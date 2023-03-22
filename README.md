@@ -43,13 +43,13 @@ Implicit data conversion eliminates the need to test and cast a bin’s value so
 
 The driver supports the execution of UDFs by calling the Execute extension method. The Execute method will reflect the actual arguments used in the UDF. Below is an example:
 
-![MethodsExample](<https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/UDFExample.png?raw=true>)
+![UDFExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/UDFExample.png?raw=true)
 
 ### Aerospike API
 
 At anytime you can use the underlying Aerospike API directly or a combination of API or driver extension methods. Below is an example:
 
-![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/AerospikeAPIExample.png?raw=true](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/UDFExample.png?raw=true))
+![APIExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/AerospikeAPIExample.png?raw=true)
 
 # Prerequisites
 
