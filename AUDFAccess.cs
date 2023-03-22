@@ -6,6 +6,7 @@ using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Linq;
+using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -18,7 +19,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultQueryPolicy = new QueryPolicy(this.AerospikeConnection.AerospikeClient.QueryPolicyDefault);
             this.DefaultWritePolicy = new WritePolicy(this.AerospikeConnection.AerospikeClient.WritePolicyDefault);
             this.Name = udfName;
-            
+
             if (moduleName?.EndsWith(".lua") == true)
                 this.Module = moduleName?.Replace(".lua", string.Empty);
             else
@@ -38,7 +39,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.Name = cloneUDF.Name;
             this.Module = cloneUDF.Module;
             this.SourceCode = cloneUDF.SourceCode;
-            this.Type= cloneUDF.Type;
+            this.Type = cloneUDF.Type;
         }
 
         public AUDFAccess Clone() => new AUDFAccess(this);
@@ -52,7 +53,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public string SourceCode { get; }
         public Client.Language Type { get; }
 
-        
+
         public IEnumerable<object> QueryAggregate(Statement statement, Client.Exp filterExpression, params object[] functionArgs)
         {
             /*
@@ -60,18 +61,18 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
            */
             var funcValues = new Value[functionArgs.Length];
 
-            for(int idx = 0; idx < functionArgs.Length; ++idx)
+            for (int idx = 0; idx < functionArgs.Length; ++idx)
             {
                 if (functionArgs[idx] is Value vArg)
                     funcValues[idx] = vArg;
                 else
                     funcValues[idx] = Value.Get(functionArgs[idx]);
-            }            
+            }
 
             var queryPolicy = filterExpression == null
                                     ? this.DefaultQueryPolicy
                                     : new QueryPolicy(this.DefaultQueryPolicy) { filterExp = Exp.Build(filterExpression) };
-            
+
             using var resultSet = this.AerospikeConnection.AerospikeClient.QueryAggregate(queryPolicy,
                                                                                             statement,
                                                                                             this.Module,
@@ -108,17 +109,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         ///         var result = this.QueryAggregate(stmt);
         /// </code>
         /// </example>
-        public IEnumerable<object> QueryAggregate(Statement statement, params object[] functionArgs) =>  this.QueryAggregate(statement, null, functionArgs);
-        
+        public IEnumerable<object> QueryAggregate(Statement statement, params object[] functionArgs) => this.QueryAggregate(statement, null, functionArgs);
+
         public IEnumerable<object> QueryAggregate(SetRecords set, params object[] functionArgs) => this.QueryAggregate(set, null, functionArgs);
-        
+
         public IEnumerable<object> QueryAggregate(SetRecords set, Client.Exp filterExpression, params object[] functionArgs)
         {
             var statement = new Statement();
 
             statement.SetNamespace(set.Namespace);
             statement.SetSetName(set.SetName);
-            
+
             return this.QueryAggregate(statement, filterExpression, functionArgs);
         }
 
@@ -177,7 +178,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public object Execute(SetRecords set, object primaryKey, params object[] functionArgs)
         {
             Client.Key key;
-            
+
             if (primaryKey is Client.Key valueKey)
             {
                 key = new Client.Key(set.Namespace, set.SetName, valueKey.userKey);
@@ -191,8 +192,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         public object Execute(ARecord asRecord, params object[] functionArgs)
-        {            
+        {
             return this.Execute(asRecord.Aerospike.Key, functionArgs);
+        }
+
+        virtual public object ToDump()
+        {
+            return LPU.ToExpando(this, include: "Module,Name,SourceCode,Type");
         }
     }
 }

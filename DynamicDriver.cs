@@ -113,8 +113,10 @@ namespace Aerospike.Database.LINQPadDriver
 
 		public override List<ExplorerItem> GetSchemaAndBuildAssembly (
 			IConnectionInfo cxInfo, AssemblyName assemblyToBuild, ref string nameSpace, ref string typeName)
-		{            
-			lock(ConnectionLock)
+		{
+            //Debugger.Launch();
+
+            lock (ConnectionLock)
 			{
 				var connection = _Connection;
 
@@ -128,9 +130,7 @@ namespace Aerospike.Database.LINQPadDriver
 					_Connection.Open();
 				}
             }
-
-            //Debugger.Launch();
-
+            
             var buildNamespaces = this.BuildNamespaces();
 			var namespaceClasses = buildNamespaces.Item1;
             var namespaceProps = buildNamespaces.Item2;

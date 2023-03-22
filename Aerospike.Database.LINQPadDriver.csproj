@@ -5,15 +5,17 @@
 		<UseWpf>true</UseWpf>
 		<AssemblyName>Aerospike.Database.LINQPadDriver</AssemblyName>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<PackageTags>linqpaddriver</PackageTags>
+		<PackageTags>linqpaddriver aerospike</PackageTags>
 		<Title>Aerospike LINQPad Driver</Title>
     <Authors>Richard Andersen</Authors>
     <Company>Aerospike</Company>
-    <Product>Aerospike LINQPad</Product>
-    <Description>Aerospike for LINQPad 7 is a data context dynamic driver for querying and updating an Aerospike database.</Description>
+    <Product>Aerospike LINQPad Driver</Product>
+    <Description>Aerospike for LINQPad 6/7 is a data context dynamic driver for querying and updating an Aerospike database.</Description>
     <RepositoryUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageLicenseUrl>https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/LICENSE</PackageLicenseUrl>    
+    <PackageLicenseUrl>https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/LICENSE</PackageLicenseUrl>
+    <PackageIcon>Connection.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
     <Version>2.0.4.0</Version>
     <FileVersion>2.0.4.0</FileVersion>    
@@ -43,18 +45,24 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Connection.png">      
-    </Resource>    
+    <Resource Include="Connection.png">
+    </Resource>
   </ItemGroup>
   
 	<ItemGroup>
 	  <Content Include="Connection.png">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	    <Pack>true</Pack>
+      <PackagePath/>
 	  </Content>
 	  <Content Include="FailedConnection.png">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </Content>
-	</ItemGroup>
+    <Content Include="README.md">
+      <Pack>true</Pack>
+      <PackagePath/>
+    </Content>
+
+  </ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Aerospike.Client" Version="5.3.1" />
