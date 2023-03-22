@@ -1,0 +1,170 @@
+<Window x:Class="Aerospike.Database.LINQPadDriver.ConnectionDialog"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	Title="Aerospike Connection Details"
+	Background="{x:Static SystemColors.ControlBrush}"
+	SizeToContent="Height" 
+	WindowStartupLocation="CenterScreen" Icon="/Aerospike.Database.LINQPadDriver;component/Connection.png" Width="550" Height="619">
+
+    <StackPanel Margin="12">
+
+        <GroupBox Header="Database" BorderThickness="4">
+            <StackPanel Margin="5,0,0,0">
+                <Label Padding="0,0,0,2">Seed Nodes separated by a comma:</Label>
+                <TextBox Name="txtSeedNodes" Padding="2" ToolTip="Cluster Seed Node List (default localhost)" TextWrapping="WrapWithOverflow" Text="{Binding ConnectionInfo.DatabaseInfo.Server, FallbackValue='localhost'}" Margin="1,0,0,5" />
+                <CheckBox IsChecked="{Binding UseExternalIP}" ToolTip="Enable if connecting to the DB over the Internet" HorizontalAlignment="Left" Margin="10,10,0,0">Enable External IP Usage</CheckBox>
+
+                <StackPanel Orientation="Horizontal">
+                    <Label Padding="0,0,0,2" Margin="0,5,0,5" HorizontalAlignment="Center">Port:</Label>
+                    <TextBox Name="txtPort" Padding="2" ToolTip="Cluster DB Port (default 3000)" MaxLines="1" MinLines="1" Text="{Binding Port, FallbackValue=3000}" Width="50" HorizontalAlignment="Center" Margin="0,5,0,5"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Label Padding="0,0,0,2" VerticalAlignment="Center">UserName:</Label>
+                    <TextBox Name="txtUserName" Padding="2" ToolTip="User Name used for login" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.UserName}" Width="250" HorizontalAlignment="Left" Margin="5,0,0,5"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Label Padding="0,0,0,2" VerticalAlignment="Center">Password:</Label>
+                    <TextBox Name="txtPassword" Padding="0,0,0,2" ToolTip="Password" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.Password}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5"/>
+                </StackPanel>
+                <GroupBox Header="Timeout" BorderThickness="4" Margin="5,0,5,0">
+                    <StackPanel Margin="5,0,0,0" Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal">
+                            <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Connection:</Label>
+                            <TextBox Name="txtConnTimeout" Padding="2" ToolTip="Connection Timeout in milliseconds" MaxLines="1" MinLines="1" Text="{Binding ConnectionTimeout}" Width="50" HorizontalAlignment="Left" Margin="8,5,5,5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Write (Total):</Label>
+                            <TextBox Name="txtTotalTimeout" Padding="2" ToolTip="Total Timeout in milliseconds used for operations like Get, Write, Delete, etc. Does not apply to any operations with reads." MaxLines="1" MinLines="1" Text="{Binding TotalTimeout}" Width="50" HorizontalAlignment="Left" Margin="0,5,5,5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Socket:</Label>
+                            <TextBox Name="txtSocketTimeout" Padding="2" ToolTip="Socket Timeout in milliseconds for all operations" MaxLines="1" MinLines="1" Text="{Binding SocketTimeout}" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Sleep:</Label>
+                            <TextBox Name="txtSleepRetries" Padding="2" ToolTip="Sleep between retrying operations in milliseconds.  Enter zero to skip sleep." MaxLines="1" MinLines="1" Text="{Binding SleepBetweenRetries}" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5"/>
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+                <Expander Name="TLSGrpBox" Header="TLS" ToolTip="Expands the TLS options" Background="LightGray"
+                          BorderThickness="4" Margin="5,0,5,0" ExpandDirection="Down" IsExpanded="False">
+                    <StackPanel Margin="5,0,0,0">
+                        <StackPanel>
+                            <Label Padding="0,0,0,2">Protocols:</Label>
+                            <ListBox Name="lbProtocols" ItemsSource="{Binding TLSProtocolsList}" SelectionMode="Multiple"  Padding="2" ToolTip="A list of TLS protocols" Margin="0,0,5,5">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel IsItemsHost="True" />
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding Content}" Tag="{Binding Name}" IsChecked="{Binding IsChecked ,Mode=TwoWay}" ToolTip="{Binding ToolTip}" Checked="lbProtocols_Checked" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                        
+                        <StackPanel>
+                            <Label Padding="0,0,0,2">Client Certificate File:</Label>
+                            <DockPanel HorizontalAlignment="Stretch" LastChildFill="True">
+                                <Button Name="btnCertFile" Click="btnCertFile_Click" DockPanel.Dock="Right"  Margin="5,0,5,5" FontSize="8" ToolTip="Select Certificate File" IsEnabled="False">Select File</Button>
+                                <TextBox Name="txtCertFile" Padding="2" ToolTip="File containing the client certs" MaxLines="1" MinLines="1" Text="{Binding TLSClientCertFile}" Margin="0,0,0,5" HorizontalContentAlignment="Stretch" IsEnabled="False"/>
+                            </DockPanel>
+                        </StackPanel>
+                        <StackPanel>
+                            <Label Padding="0,0,0,2">Reject Server Certificates:</Label>
+                            <TextBox Name="txtRejectCerts" Padding="2" ToolTip="Reject server certificates whose serial numbers match a serial number in this list separated by comma" MaxLines="1" MinLines="1" Text="{Binding TLSRevokeCerts}" Margin="0,0,5,5" IsEnabled="False"/>
+                        </StackPanel>
+                        <CheckBox Name="cbTLSOnlyLogin" IsChecked="{Binding TLSOnlyLogin}" ToolTip="Use TLS connections only for login authentication" HorizontalAlignment="Left" Margin="5,10,0,5" IsEnabled="False">Only for Login</CheckBox>
+                    </StackPanel>
+                </Expander>
+                <CheckBox IsChecked="{Binding SendKey}" ToolTip="If enabled, the primary key's value is saved as part of the record" HorizontalAlignment="Left" Margin="5,0,0,5">Send Key</CheckBox>
+                <CheckBox IsChecked="{Binding ShortQuery}" ToolTip="If true, queries are expected to return less than 100 records, the server will optimize the query for a small record set. This field is ignored for aggregation queries." HorizontalAlignment="Left" Margin="5,0,0,5">
+                    <Hyperlink NavigateUri="https://docs.aerospike.com/apidocs/csharp/html/f_aerospike_client_querypolicy_shortquery" RequestNavigate="Hyperlink_RequestNavigate">
+                        Short Query (Query Policy)
+                    </Hyperlink>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding NetworkCompression}" ToolTip="Enable Network Compression" HorizontalAlignment="Left" Margin="5,0,0,5">
+                    Use Compression
+                </CheckBox>
+                <CheckBox IsChecked="{Binding RespondAllOps}" ToolTip="Enabling makes it easier to debug operational expressions by returning all results of each operation" HorizontalAlignment="Left" Margin="5,0,0,5">
+                    <Hyperlink NavigateUri="https://docs.aerospike.com/apidocs/csharp/html/f_aerospike_client_writepolicy_respondallops" RequestNavigate="Hyperlink_RequestNavigate">
+                        Return a result for every operational expression (Write Policy)
+                    </Hyperlink>
+                </CheckBox>
+                <CheckBox IsChecked="{Binding DocumentAPI}" ToolTip="Enable Document/JSON API" HorizontalAlignment="Left" Margin="5,0,0,5">Document API</CheckBox>
+                <CheckBox IsChecked="{Binding DriverLogging}" ToolTip="Enable Driver Logging" HorizontalAlignment="Left" Margin="5,0,0,5">Driver Logging</CheckBox>
+                <TextBlock Margin="5,0,5,0">You can override the connection polices at the namespace and set levels.</TextBlock>
+                <TextBlock Margin="5,0,5,5" ToolTip="Policies">                    
+                    <Hyperlink NavigateUri="https://docs.aerospike.com/apidocs/csharp/html/t_aerospike_client_clientpolicy" RequestNavigate="Hyperlink_RequestNavigate">
+                        For more information about Policies, click here
+                    </Hyperlink>
+                </TextBlock>
+            </StackPanel>
+        </GroupBox>
+        <Label Padding="0,0,0,2">Friendly name for this connection (optional):</Label>
+        <TextBox Name="txtFriendlyName" Padding="2" Text="{Binding ConnectionInfo.DisplayName}" Margin="0,0,0,5" />
+        <Expander Name="DisplayExpander" ToolTip="Expands the Display, Serialize, etc. Options" Background="LightGray"
+          HorizontalAlignment="Left" Header="Display/Conversion Options" 
+          ExpandDirection="Down" IsExpanded="false" BorderThickness="4">
+            <StackPanel>
+                <Label Padding="0,5,0,5">Sample Number of Records (0 to disable):</Label>
+                <TextBox Name="txtSampleRecs" Padding="0,5,0,5" ToolTip="The number of records to read from a set to determine the data type usage. A value of zero will disable this feature" MaxLines="1" MinLines="1" Text="{Binding DBRecordSampleSet, FallbackValue=10}" Margin="0,0,0,5" Width="99" HorizontalAlignment="Left" />
+
+                <StackPanel>
+                    <Label Padding="0,0,0,2" ToolTip="Options on How Records are Displayed in LinqPad when using the Dump function">Record Display Views:</Label>
+                    <ListBox Name="lbRecordViews" ItemsSource="{Binding RecordViewList}" SelectionMode="Multiple"  Padding="2" ToolTip="A list of Possible Views of a Record being Displayed" Margin="0,0,5,5">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel IsItemsHost="True" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding Content}" Tag="{Binding Name}" IsChecked="{Binding IsChecked ,Mode=TwoWay}" ToolTip="{Binding ToolTip}" Checked="lbRecordViews_Checked" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+                <GroupBox Header="Serialize/Deserialize Formats" BorderThickness="4">
+                    <StackPanel>
+                        <CheckBox IsChecked="{Binding AllDateTimeUseUnixEpochNano, FallbackValue=false}" ToolTip="If true all date/time values are converted to nanoseconds from Unix Epoch DateTime." HorizontalAlignment="Left" Margin="5,0,0,5" Checked="cbAllDTNumeric_Checked" Unchecked="cbAllDTNumeric_Checked" >All DateTimes use Nanoseconds</CheckBox>
+                        <CheckBox Name="cbUseUnixEpoch" IsChecked="{Binding UseUnixEpochNanoForNumericDateTime, FallbackValue=true}" ToolTip="Numeric Date/Time values are based on nanoseconds from Unix Epoch DateTime. If disabled treat as .Net ticks." HorizontalAlignment="Left" Margin="5,0,0,5">Numeric Nanoseconds for Date/Time Values</CheckBox>
+                        <Label Padding="0,0,0,2" HorizontalAlignment="Left" Margin="2,0,0,0">Date Time:</Label>
+                        <TextBox Name="txtDateTimeFmt" HorizontalAlignment="Left" Margin="10,0,5,0" ToolTip="Serialize/Deserialize Date/Time Format used by the C# Parser" MaxLines="1" MinLines="1" Text="{Binding DateTimeFmt}" Width="300" />
+                        <Label Padding="0,0,0,2" HorizontalAlignment="Left" Margin="2,0,0,0">Date Time Offset:</Label>
+                        <TextBox Name="txtDateTimeOffsetFmt" HorizontalAlignment="Left" Margin="10,0,5,0" ToolTip="Serialize/Deserialize DateTime Offset Format used by the C# Parser" MaxLines="1" MinLines="1" Text="{Binding DateTimeOffsetFmt}" Width="300" />
+                        <Label Padding="0,0,0,2" HorizontalAlignment="Left" Margin="2,0,0,0">Time:</Label>
+                        <TextBox Name="txtTimeSpanFmt" HorizontalAlignment="Left" Margin="10,0,5,5" ToolTip="Serialize/Deserialize Time Span Format used by the C# Parser" MaxLines="1" MinLines="1" Text="{Binding TimespanFmt}" Width="300" />
+                        <TextBlock Margin="5,0,5,5" ToolTip="DateTime Format Information">                    
+                            <Hyperlink NavigateUri="https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-date-and-time-format-strings" RequestNavigate="Hyperlink_RequestNavigate">
+                                For more information about DateTime and Offset formats, click here
+                            </Hyperlink>    
+                        </TextBlock>
+                        <TextBlock Margin="5,0,5,5" ToolTip="TimeSpan Format Information">                    
+                            <Hyperlink NavigateUri="https://learn.microsoft.com/en-us/dotnet/standard/base-types/standard-timespan-format-strings" RequestNavigate="Hyperlink_RequestNavigate">
+                                For more information about TimeSpan formats, click here
+                            </Hyperlink>
+                        </TextBlock>
+                    </StackPanel>
+                </GroupBox>
+                <Label Margin="0,5,0,0" HorizontalAlignment="Left">Primary Key Name:</Label>
+                <TextBox Name="txtPKName" HorizontalAlignment="Left" Margin="0,0,0,5" ToolTip="Property Name of the Primary Key" MaxLines="1" MinLines="1" Text="{Binding PKName}" Width="150" />
+                <CheckBox IsChecked="{Binding Debug}" ToolTip="only use for internal debugging" VerticalAlignment="Top">Enable Debugging</CheckBox>
+            </StackPanel>
+        </Expander>
+        <DockPanel LastChildFill="False" Margin="0,15,0,0" Height="42">
+            <StackPanel>
+                <CheckBox IsChecked="{Binding ConnectionInfo.Persist}" VerticalAlignment="Center">Remember this connection</CheckBox>
+                <CheckBox IsChecked="{Binding ConnectionInfo.IsProduction}" ToolTip="Enabled for a Production Cluster. Operations like Truncate, Import, etc. will throw an Invalid Operation Exception." VerticalAlignment="Top">Production Cluster</CheckBox>
+            </StackPanel>
+
+            <Button Name="btnCancel" DockPanel.Dock="Right" Content="Cancel" Margin="6,0,0,0" Padding="10,3" MinWidth="60" IsCancel="True" TabIndex="2" />
+            <Button Name="btnOK" DockPanel.Dock="Right" Content="OK" Margin="6,0,0,0" Padding="10,3" MinWidth="60" IsDefault="True" TabIndex="1" Click="btnOK_Click" />
+            <Button Name="btnTest" ToolTip="Test Connection" DockPanel.Dock="Right" Content="Test" Margin="6,0,0,0" Padding="10,3" MinWidth="60" TabIndex="3" Click="btnTestConnection_Click" />
+
+        </DockPanel>
+
+    </StackPanel>
+</Window>

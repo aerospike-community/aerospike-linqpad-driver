@@ -1,0 +1,337 @@
+﻿﻿<#@ template debug="false" hostSpecific="false" #>
+<#@ output extension=".cs" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.Collections.Generic" #> 
+<#
+    string[] nativeDataTypes = new string[] 
+      { "string", "bool", "Enum", "Guid",
+        "short", "int", "long",
+        "ushort", "uint", "ulong",
+        "decimal", "float", "double", 
+        "DateTime", "DateTimeOffset", "TimeSpan" };
+	
+    string[] classDataTypes = new string[] 
+      { "JsonDocument", "JObject"};
+#>
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Newtonsoft.Json.Linq;
+
+namespace Aerospike.Database.LINQPadDriver.Extensions
+{
+    /// <summary>
+    /// A wrapper around an <see cref="Object"/> value. 
+    /// This is used as an aid so that casting is not required to perform comparison operations, etc.
+    /// This object also performs implicit casting to standard .Net data types while using LINQ...  
+    /// </summary>
+    /// <seealso cref="APrimaryKey"/>
+    /// <seealso cref="AValue.ToValue(object)"/>
+    /// <seealso cref="AValue.ToValue(Client.Bin)"/>
+    /// <seealso cref="AValue.ToValue(Client.Value)"/>
+    /// <seealso cref="APrimaryKey.ToValue(Client.Key)"/>
+    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Bin)"/>
+    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Key)"/>
+    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Value)"/>
+    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(object)"/>
+    public class AValue : IEquatable<AValue>,
+                                        IEqualityComparer<AValue>,
+                                        IEquatable<Aerospike.Client.Key>,
+                                        IEqualityComparer<Aerospike.Client.Key>,
+                                        IEquatable<Aerospike.Client.Value>,
+                                        IEqualityComparer<Aerospike.Client.Value>
+        <# foreach(var datatype in nativeDataTypes)
+        { #>
+            , IEquatable< <#= datatype #> >
+            , IEqualityComparer< <#= datatype #> >
+         <#    }//end of foreach data type #>  
+         <# foreach(var datatype in classDataTypes)
+        { #>
+            , IEquatable< <#= datatype #> >
+            , IEqualityComparer< <#= datatype #> >
+         <#    }//end of foreach data type #>  
+    {
+
+        public AValue(Aerospike.Client.Bin bin) 
+            : this(bin.value, bin.name)
+        { }
+
+        public AValue(Aerospike.Client.Value value, string binName = null) 
+            : this(value.Object, binName ?? "Value", "Value")
+        { }
+
+        public AValue(object value, string binName, string fldName)
+        {
+            this.Value = value is AValue aValue ? aValue.Value : value;
+            this.BinName = binName;
+            this.FldName = fldName;
+        }
+
+        public AValue(AValue aValue)
+            : this(aValue.Value, aValue.BinName, aValue.FldName)
+        {            
+        }
+
+        /// <summary>
+        /// Returns the actual value from the <see cref="Aerospike.Client.Record"/>
+        /// </summary>
+        public Object Value { get; }
+        /// <summary>
+        /// Returns the Aerospike Bin Name
+        /// </summary>
+        public string BinName { get; }
+        /// <summary>
+        /// Returns the name of the associated field/property
+        /// </summary>
+        public string FldName { get; }
+
+        /// <summary>
+        /// The <see cref="Value"/> type
+        /// </summary>
+        public Type UnderlyingType { get => this.Value.GetType(); }
+
+        /// <summary>
+        /// Converts <see cref="Value"/> into a >net native type
+        /// </summary>
+        /// <typeparam name="T">.Net Type to convert to</typeparam>
+        /// <returns>
+        /// The converted value
+        /// </returns>
+        public Object Convert<T>() => Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
+
+        /// <summary>
+        /// Returns an enumerable object, if possible.
+        /// </summary>
+        /// <typeparam name="T">The element type</typeparam>
+        /// <returns>
+        /// Returns an enumerable object
+        /// </returns>
+        public IEnumerable<T> AsEnumerable<T>() => (T[]) this.Convert<T[]>();
+        /// <summary>
+        /// Returns an enumerable object, if possible.
+        /// </summary>
+        /// <returns>
+        /// Returns an enumerable object
+        /// </returns>
+        public System.Collections.IEnumerable AsEnumerable() => (object[]) this.Convert<object[]>();
+
+        virtual public object ToDump()
+        {
+            return this.Value;
+        }
+
+        protected virtual bool DigestRequired() => false;
+        protected virtual bool CompareDigest(object value) => false;
+
+        public bool Equals(Aerospike.Client.Key key)
+        {
+            if(this.DigestRequired())
+                return this.CompareDigest(key);
+                                                
+           if(this.Value is null || key is null)
+           {
+                if(key is null) return false;                
+           }
+           return this.Equals(key.userKey);
+        }
+        public bool Equals(Aerospike.Client.Key key1, Aerospike.Client.Key key2)
+        {
+            if(key1 is null) return key2 is null;
+            if(key1.userKey is null) 
+            {
+                if(key2 is null) return false;
+                return key2.userKey is null ;
+            }
+
+            return key1.Equals(key2);
+        }
+        public int GetHashCode(Aerospike.Client.Key key) => key?.GetHashCode() ?? 0;
+
+        public bool Equals(Aerospike.Client.Value value)
+        {
+            if(this.DigestRequired())
+                return this.CompareDigest(value?.Object);
+                                                
+           if(this.Value is null || value is null)
+           {
+                if(value is null) return false;
+                return value.Type == Aerospike.Client.Value.NullValue.Instance.Type;
+           }
+           return Helpers.CompareTo(this.Value, value.Object);
+        }
+        public bool Equals(Aerospike.Client.Value v1, Aerospike.Client.Value v2)
+        {
+            if(v1 is null) return v2 is null;
+            if(v1.Object is null)
+            {
+                if(v2 is null) return false;
+                return v2.Object is null;
+            }
+
+            return v1.Object.Equals(v2.Object);
+        }
+        public int GetHashCode(Aerospike.Client.Value value) => value?.Object?.GetHashCode() ?? 0;
+        
+        public bool Equals(AValue value)
+        {
+            if(this.DigestRequired())
+                return this.CompareDigest(value);
+                                                
+           if(this.Value is null || value is null)
+           {
+                if(value is null) return false;
+                return value.Value is null;
+           }
+
+           if(value.DigestRequired()) return value.CompareDigest(this);
+
+           return Helpers.CompareTo(this.Value, value.Value);
+        }
+        public bool Equals(AValue v1, AValue v2)
+        {
+            if(v1 is null) return v2 is null;
+            
+            return v1.Equals(v2);
+        }
+        public int GetHashCode(AValue value) => value?.GetHashCode() ?? 0;
+
+        public override string ToString() => this.Value?.ToString();
+
+        public override int GetHashCode() => this.Value?.GetHashCode() ?? 0;
+
+        public override bool Equals(object obj)
+        {
+            if(ReferenceEquals(this,obj)) return true;
+            if(obj is Aerospike.Client.Key key) return this.Equals(key);
+            if(obj is Aerospike.Client.Value value) return this.Equals(value);
+            if(obj is AValue pValue) return this.Equals(pValue);
+
+            return Helpers.CompareTo(this.Value, obj);
+        }
+
+        public static AValue ToValue(Aerospike.Client.Value value) => new AValue(value, "Value");
+        public static AValue ToValue(Aerospike.Client.Bin bin) => new AValue(bin);
+        public static AValue ToValue(object value) => new AValue(value, "Value", "ToValue");
+            
+        public static bool operator==(AValue key1, AValue key2)
+        {
+            if(key1 is null) return key2 is null;
+
+            return key1.Equals(key2);
+        }
+	    public static bool operator!=(AValue key1, AValue key2) => !(key1 == key2);
+
+        public static bool operator==(AValue key1, Aerospike.Client.Value value) => key1?.Equals(value) ?? value is null;
+	    public static bool operator!=(AValue key1, Aerospike.Client.Value value) => !(key1?.Equals(value) ?? value is null);               
+        public static bool operator==(Aerospike.Client.Value value, AValue key1) => key1?.Equals(value) ?? value is null;
+	    public static bool operator!=(Aerospike.Client.Value value, AValue key1) => !(key1?.Equals(value) ?? value is null);
+       
+        public static bool operator==(AValue key1, Aerospike.Client.Key value) => key1?.Equals(value) ?? value is null;
+	    public static bool operator!=(AValue key1, Aerospike.Client.Key value) => !(key1?.Equals(value) ?? value is null);               
+        public static bool operator==(Aerospike.Client.Key value, AValue key1) => key1?.Equals(value) ?? value is null;
+	    public static bool operator!=(Aerospike.Client.Key value, AValue key1) => !(key1?.Equals(value) ?? value is null);
+
+        <# foreach(var datatype in nativeDataTypes)
+        { #>
+
+            public static implicit operator <#= datatype #> (AValue v) => (<#= datatype #>) v.Convert< <#= datatype #> >();
+            public static implicit operator <#= datatype #>[] (AValue v) => (<#= datatype #>[]) v.Convert<<#= datatype #>[] >();
+            
+            public static bool operator==(AValue av, <#= datatype #> v) => av?.Equals(v) ?? false;
+	        public static bool operator!=(AValue av, <#= datatype #> v) => !(av == v);
+            public static bool operator==(<#= datatype #> v, AValue av) => av == v;
+	        public static bool operator!=(<#= datatype #> v, AValue av) => av != v;
+           
+            public static bool operator==(AValue av, List< <#= datatype #> > v)
+                    => Helpers.SequenceEquals(v, av?.Value);
+	        public static bool operator!=(AValue av, List< <#= datatype #> > v) => !(av == v);
+            public static bool operator==(List< <#= datatype #> > v, AValue av) => av == v;
+	        public static bool operator!=(List< <#= datatype #> > v, AValue av) => av != v;
+
+            public bool Equals(<#= datatype #> value) => (this.Value is string
+                                                                || this.UnderlyingType.IsValueType
+                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
+                                                           && (this.DigestRequired()
+                                                                ? this.CompareDigest(value)
+                                                                : (<#= datatype #>)this == value);
+
+            public bool Equals(<#= datatype #> v1, <#= datatype #> v2) => v1 == v2;
+            public int GetHashCode(<#= datatype #> value) => value.GetHashCode();
+
+        <#    }//end of foreach data type #>
+
+        <# foreach(var datatype in classDataTypes)
+        { #>
+
+            public static implicit operator <#= datatype #> (AValue key) => key is null ? null : (<#= datatype #>) key.Convert< <#= datatype #> >();
+            public static implicit operator <#= datatype #>[] (AValue key) => (<#= datatype #>[]) key.Convert<<#= datatype #>[]>();
+            
+            public bool Equals(<#= datatype #> value) => this.DigestRequired()
+                                                            ? this.CompareDigest(value)
+                                                            : ((<#= datatype #>) this).Equals(value);
+            public bool Equals(<#= datatype #> v1, <#= datatype #> v2)
+            {
+                if(ReferenceEquals(v1,v2)) return true;
+                if(v1 is null) return v2 is null;
+
+                return v1.Equals(v2);
+            }
+            public int GetHashCode(<#= datatype #> value) => value?.GetHashCode() ?? 0;
+
+        <#    }//end of foreach data type #>
+        
+        /// <summary>
+        /// Determines if <paramref name="value"/> is contained in <see cref="Value"/>.
+        /// If <see cref="Value"/> is a collection, each element is compared. 
+        /// If <see cref="Value"/> is an instance, the Equals method is applied.
+        /// </summary>
+        /// <typeparam name="T">The type of <paramref name="value"/></typeparam>
+        /// <param name="value">The value used to determined if it exists</param>
+        /// <returns>
+        /// True if it is contained within a collection or is equal to an instance.
+        /// </returns>
+        public bool Contains<T>(T value)
+        {
+            return this.Value switch
+            {
+                IEnumerable<T> iValue => iValue.Contains(value),
+                IEnumerable<object> oValue => oValue.Any(i => Helpers.CompareTo(i, value)),
+                IEnumerable<KeyValuePair<string, object>> iKeyValuePair
+                    => iKeyValuePair.Any(kvp => Helpers.CompareTo(kvp.Value, value)),
+                _ => this.Equals(value)
+            };
+        }
+
+        /// <summary>
+        /// Determines if <paramref name="key"/> and <paramref name="value"/> is contained in <see cref="Value"/>.
+        /// If <see cref="Value"/> is a IDictionary, <seealso cref="JsonDocument"/>, or <see cref="IDictionary{TKey, TValue}"/>, each Key/Value pair is compared. 
+        /// If <see cref="Value"/> is an instance, false is always returned.
+        /// </summary>
+        /// <typeparam name="K">The type of <paramref name="key"/></typeparam>
+        /// <typeparam name="T">The type of <paramref name="value"/></typeparam>
+        /// <param name="value">The value used to determined if it exists</param>
+        /// <returns>
+        /// True if it is contained within a collection or false otherwise.
+        /// </returns>
+        public bool Contains<K, T>(K key, T value)
+        {
+            return this.Value switch
+            {
+                JObject jObj
+                    => key is string sKey
+                            && jObj.ContainsKey(sKey)
+                            && Helpers.CompareTo(jObj[sKey], value),
+                IDictionary<string, object> sDict
+                    => key is string sKey
+                            && sDict.ContainsKey(sKey)
+                            && Helpers.CompareTo(sDict[sKey], value),
+                IDictionary<object, object> oDict
+                    => oDict.ContainsKey(key)
+                            && Helpers.CompareTo(oDict[key], value),
+                _ => false
+            };
+        }
+    }
+}
