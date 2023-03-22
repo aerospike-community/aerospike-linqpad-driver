@@ -6,10 +6,14 @@
 		<AssemblyName>Aerospike.Database.LINQPadDriver</AssemblyName>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<PackageTags>linqpaddriver</PackageTags>
-		<Title>Aerospike LinqPad Driver</Title>
+		<Title>Aerospike LINQPad Driver</Title>
     <Authors>Richard Andersen</Authors>
     <Company>Aerospike</Company>
-    <Product>Aerospike DB API Client</Product>
+    <Product>Aerospike LINQPad</Product>
+    <Description>Aerospike for LINQPad 7 is a data context dynamic driver for querying and updating an Aerospike database.</Description>
+    <RepositoryUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseUrl>https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/LICENSE</PackageLicenseUrl>    
     <Copyright>2023</Copyright>
     <Version>2.0.4.0</Version>
     <FileVersion>2.0.4.0</FileVersion>    
