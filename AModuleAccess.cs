@@ -6,6 +6,9 @@ using System.Text;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class AModuleAccess
     {
         public AModuleAccess(IDbConnection dbConnection)

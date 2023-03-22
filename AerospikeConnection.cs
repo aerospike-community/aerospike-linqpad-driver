@@ -16,6 +16,9 @@ using System.Reflection.Metadata.Ecma335;
 
 namespace Aerospike.Database.LINQPadDriver
 {
+    /// <summary>
+    /// This class is a wrapper around the Aerospike connection class (<see cref="Aerospike.Client.AerospikeClient"/>)
+    /// </summary>
     [System.Diagnostics.DebuggerDisplay("{ConnectionString}")]
     public sealed class AerospikeConnection : IDbConnection, IEquatable<AerospikeConnection>
     {

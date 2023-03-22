@@ -43,15 +43,13 @@ namespace Aerospike.Database.LINQPadDriver
                 fileBuilder.AppendLine(string.Format("//\t\t{0}",
                                                         GetFrameWorkInfo()));
                 var lqDriver = typeof(Aerospike.Database.LINQPadDriver.AerospikeConnection).Assembly.GetName();
-                fileBuilder.AppendLine(string.Format("//\t\tLinqPad Driver: {0} Version: {1} VersionCompatibility: {2}",
+                fileBuilder.AppendLine(string.Format("//\t\tLinqPad Driver: {0} Version: {1}",
                                                         lqDriver?.Name,
-                                                        lqDriver?.Version,
-                                                        lqDriver?.VersionCompatibility));
+                                                        lqDriver?.Version));
                 var asyncClient = typeof(Aerospike.Client.Connection).Assembly.GetName();
-                fileBuilder.AppendLine(string.Format("//\t\tAerospike Driver: {0} Version: {1} VersionCompatibility: {2}",
+                fileBuilder.AppendLine(string.Format("//\t\tAerospike Driver: {0} Version: {1}",
                                                         asyncClient?.Name,
-                                                        asyncClient?.Version,
-                                                        asyncClient?.VersionCompatibility));
+                                                        asyncClient?.Version));
             }
 
             foreach (var error in errors)

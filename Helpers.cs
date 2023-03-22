@@ -16,7 +16,6 @@ using System.Runtime.InteropServices;
 using Microsoft.VisualBasic.FileIO;
 using static Aerospike.Client.Value;
 using System.Collections.Specialized;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Reflection.Metadata.Ecma335;
 
 namespace Aerospike.Client

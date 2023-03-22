@@ -172,8 +172,10 @@ namespace {nameSpace}
 }}";
 
 			Compile(source,
-					assemblyToBuild.CodeBase,
-					cxInfo,
+				#pragma warning disable SYSLIB0044
+                    assemblyToBuild.CodeBase,
+				#pragma warning restore SYSLIB0044
+                    cxInfo,
 					debug: _Connection.Debug);
 
 			List<ExplorerItem> items = new List<ExplorerItem>();
@@ -251,25 +253,14 @@ namespace {nameSpace}
 		static void Compile(string cSharpSourceCode, string outputFile, IConnectionInfo cxInfo, bool debug = false)
         {           
             string[] assembliesToReference =
-#if NETCORE
+
 			// GetCoreFxReferenceAssemblies is helper method that returns the full set of .NET Core reference assemblies.
 			// (There are more than 100 of them.)
 			GetCoreFxReferenceAssemblies(cxInfo)
 				.Append(typeof(Aerospike.Client.Connection).Assembly.Location)
 				.Append(typeof(AClusterAccess).Assembly.Location)
 				.ToArray();
-#else
-			// .NET Framework - here's how to get the basic Framework assemblies:
-			new[]
-			{
-				typeof (int).Assembly.Location,            // mscorlib
-				typeof (Uri).Assembly.Location,            // System
-				typeof (XmlConvert).Assembly.Location,     // System.Xml
-				typeof (Enumerable).Assembly.Location,     // System.Core
-				typeof (DataSet).Assembly.Location,        // System.Data
-				typeof(Aerospike.Client.Connection).Assembly.Location)
-			};
-#endif
+
             // CompileSource is a static helper method to compile C# source code using LINQPad's built-in Roslyn libraries.
             // If you prefer, you can add a NuGet reference to the Roslyn libraries and use them directly.
             var compileResult = CompileSource(new CompilationInput

@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 	
 	<PropertyGroup>
-		<TargetFrameworks>netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1;net6.0-windows;net7.0-windows</TargetFrameworks>
+    <NoWarn>1591</NoWarn>
 		<UseWpf>true</UseWpf>
 		<AssemblyName>Aerospike.Database.LINQPadDriver</AssemblyName>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
@@ -13,12 +14,12 @@
     <Description>Aerospike for LINQPad 6/7 is a data context dynamic driver for querying and updating an Aerospike database.</Description>
     <RepositoryUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageLicenseUrl>https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/LICENSE</PackageLicenseUrl>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>lib\netcoreapp3.1\Connection.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
-    <Version>2.0.4.0</Version>
-    <FileVersion>2.0.4.0</FileVersion>    
+    <Version>2.0.5.0</Version>
+    <FileVersion>2.0.5.0</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -68,19 +69,19 @@
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	    <Pack>true</Pack>
-      <PackagePath>lib\netcoreapp3.1</PackagePath>
+      <PackagePath>lib\netcoreapp3.1;lib\net6.0-windows7.0;lib\net7.0-windows7.0</PackagePath>
 	  </Content>
 	  <Content Include="FailedConnection.png">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <pack>true</pack>
-      <PackagePath>lib\netcoreapp3.1</PackagePath>
+      <PackagePath>lib\netcoreapp3.1;lib\net6.0-windows7.0;lib\net7.0-windows7.0</PackagePath>
 	  </Content>
     <Content Include="README.md">
       <Pack>true</Pack>
       <PackagePath/>
     </Content>
-
+    <None Include="LICENSE" Pack="true" PackagePath=""/>
   </ItemGroup>
 
 	<ItemGroup>
@@ -113,10 +114,6 @@
   
 	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
 		<Exec Command="xcopy /i/y/s &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)&quot;" />
-	</Target>
-
-	<Target Name="PostBuild2" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net46'">
-		<Exec Command="xcopy /i/y/s &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\4.6\\$(TargetName) (no-strong-name)&quot;" />
 	</Target>
 
   <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'netcoreapp3.1' AND '$(ConfigurationName)' == 'Release'">

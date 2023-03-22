@@ -429,7 +429,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// A collection of filtered items.
         /// </returns>
-        public new IEnumerable<T> Where(Func<T, bool> predicate)
+        public IEnumerable<T> Where(Func<T, bool> predicate)
         {
             return this.AsEnumerable().Where(predicate);
         }

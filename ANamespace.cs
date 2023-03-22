@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 
 namespace Aerospike.Database.LINQPadDriver
 {
+    /// <summary>
+    /// 
+    /// </summary>
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
     public sealed class ANamespace
     {

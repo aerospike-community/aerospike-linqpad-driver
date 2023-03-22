@@ -6,7 +6,10 @@ using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
-
+    /// <summary>
+    /// A class used to represent Query records
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class AQueryRecord<T> : AQueryRecord
         where T : ARecord
     {

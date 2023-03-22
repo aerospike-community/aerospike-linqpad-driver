@@ -26,7 +26,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 IEquatable<string>,
                                 IEquatable<AValue>
     {
-        
+        /// <summary>
+        /// The Aerospike Epoch
+        /// </summary>
         public static readonly DateTimeOffset Epoch = new DateTime(2010, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
 
         #region Constructors

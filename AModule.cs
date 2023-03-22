@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 
 namespace Aerospike.Database.LINQPadDriver
 {
+    /// <summary>
+    /// A class used to represent Aerospike UDG Modules
+    /// </summary>
     public sealed class AModule
     {
         public enum Types

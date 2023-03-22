@@ -9,6 +9,9 @@ using System.Linq;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
+    /// <summary>
+    /// This class is used to represent an Aerospike Cluster 
+    /// </summary>
     [System.Diagnostics.DebuggerDisplay("{ConnectionString}")]
     public class AClusterAccess
     {

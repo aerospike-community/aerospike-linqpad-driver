@@ -710,6 +710,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </summary>
         /// <typeparam name="K">The type of <paramref name="key"/></typeparam>
         /// <typeparam name="T">The type of <paramref name="value"/></typeparam>
+        /// <param name="key">The key used to determine if it exists</param>
         /// <param name="value">The value used to determined if it exists</param>
         /// <returns>
         /// True if it is contained within a collection or false otherwise.

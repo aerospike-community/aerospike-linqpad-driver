@@ -623,7 +623,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             .Select(dnis => new AQueryRecord(dnis.Key, dnis.Select(r => r.Record)));
         }
 
-        public new IEnumerator<AQueryRecord> GetEnumerator()
+        public IEnumerator<AQueryRecord> GetEnumerator()
         {
             foreach (var queryRec in this.AsEnumerable())
             {

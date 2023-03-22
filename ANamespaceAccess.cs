@@ -16,6 +16,9 @@ using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
+    /// <summary>
+    /// A class used to define Aerospike Namespaces.
+    /// </summary>
     public class ANamespaceAccess
     {
 
@@ -174,6 +177,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put([NotNull] ARecord record,
                             string setName = null,
                             WritePolicy writePolicy = null,
@@ -201,6 +205,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put<V>([NotNull] dynamic primaryKey,
                             [NotNull] IDictionary<string, V> binValues,
                             string setName = null,
@@ -244,6 +249,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put<V>([NotNull] dynamic primaryKey,
                             [NotNull] string bin,
                             [NotNull] V binValue,
@@ -266,8 +272,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if(refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
-        }               
-        
+        }
+
         /// <summary>
         /// Puts (writes) a bin to the DB record.
         /// Note that if the namespace and/or set is different, this instances&apos;s values are used.
@@ -286,7 +292,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// The write policy. If not provided , the default policy is used.
         /// <seealso cref="WritePolicy"/>
         /// </param>
-        /// <param name="ttl">Time-to-live of the record</param>        
+        /// <param name="ttl">Time-to-live of the record</param> 
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put<T>([NotNull] dynamic primaryKey,
                             [NotNull] string bin,
                             [NotNull] IList<T> listValue,
@@ -330,7 +337,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// The write policy. If not provided , the default policy is used.
         /// <seealso cref="WritePolicy"/>
         /// </param>
-        /// <param name="ttl">Time-to-live of the record</param>        
+        /// <param name="ttl">Time-to-live of the record</param> 
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put<T>([NotNull] dynamic primaryKey,
                             [NotNull] string bin,
                             [NotNull] IEnumerable<T> collectionValue,
@@ -354,7 +362,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
         }
-        
+
         /// <summary>
         /// Put (Writes) a DB record based on the provided key and bin values.
         /// Note that if the namespace and/or set is different, this instances&apos;s values are used.
@@ -372,6 +380,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put([NotNull] dynamic primaryKey,
                             [NotNull] IEnumerable<Bin> binsToWrite,
                             string setName = null,
@@ -418,6 +427,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="ttl"></param>
         /// <seealso cref="Aerospike.Client.BinNameAttribute"/>
         /// <seealso cref="Aerospike.Client.BinIgnoreAttribute"/>
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void WriteObject<T>([NotNull] dynamic primaryKey,
                                     [NotNull] T instance,
                                     string setName = null,
@@ -488,13 +498,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If true, the TTL of the record at export is used.
         /// Otherwise, <paramref name="ttl"/> is used, if provided.
         /// </param>
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         /// <returns>The number of records imported</returns>
         /// <seealso cref="Export(string, Exp, bool)"/>
         /// <seealso cref="Import(string, WritePolicy, TimeSpan?, bool, bool)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>
         /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy)"/>
-        /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>        
         public int Import([NotNull] string importJSONFile,
                             string setName,
                             WritePolicy writePolicy = null,
@@ -551,6 +562,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If true, the TTL of the record at export is used.
         /// Otherwise, <paramref name="ttl"/> is used, if provided.
         /// </param>
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         /// <returns>The number of records imported</returns>
         /// <seealso cref="Export(string, Exp, bool)"/>
         /// <seealso cref="Import(string, string, WritePolicy, TimeSpan?, bool, bool)"/>
