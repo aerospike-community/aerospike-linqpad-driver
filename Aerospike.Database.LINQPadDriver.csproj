@@ -14,7 +14,7 @@
     <RepositoryUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseUrl>https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/LICENSE</PackageLicenseUrl>
-    <PackageIcon>Connection.png</PackageIcon>
+    <PackageIcon>lib\netcoreapp3.1\Connection.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
     <Version>2.0.4.0</Version>
@@ -30,6 +30,20 @@
 		<DefineConstants>NETCORE</DefineConstants>
 	</PropertyGroup>
 
+  <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>    
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All"/>
+  </ItemGroup>
+  
 	<ItemGroup>
 	  <Compile Remove="linqpad-samples\**" />
 	  <EmbeddedResource Remove="linqpad-samples\**" />
@@ -51,11 +65,16 @@
   
 	<ItemGroup>
 	  <Content Include="Connection.png">
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	    <Pack>true</Pack>
-      <PackagePath/>
+      <PackagePath>lib\netcoreapp3.1</PackagePath>
 	  </Content>
 	  <Content Include="FailedConnection.png">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <pack>true</pack>
+      <PackagePath>lib\netcoreapp3.1</PackagePath>
 	  </Content>
     <Content Include="README.md">
       <Pack>true</Pack>
