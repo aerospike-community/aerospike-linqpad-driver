@@ -22,6 +22,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Key)"/>
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Value)"/>
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(object)"/>
+    /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
+    /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
     public class AValue : IEquatable<AValue>,
                                         IEqualityComparer<AValue>,
                                         IEquatable<Aerospike.Client.Key>,
@@ -710,8 +712,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </summary>
         /// <typeparam name="K">The type of <paramref name="key"/></typeparam>
         /// <typeparam name="T">The type of <paramref name="value"/></typeparam>
-        /// <param name="key">The key used to determine if it exists</param>
-        /// <param name="value">The value used to determined if it exists</param>
+        /// <param name="key">The key value used to obtain the associated value</param>
+        /// <param name="value">The value used to determined if it matches the found value</param>
         /// <returns>
         /// True if it is contained within a collection or false otherwise.
         /// </returns>

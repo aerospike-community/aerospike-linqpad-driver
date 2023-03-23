@@ -84,6 +84,7 @@ namespace Aerospike.Database.LINQPadDriver
 {
     public static class Helpers
     {
+
         /// <summary>
         /// Checks to see if <paramref name="interfaceClass"/> is a subclass of <paramref name="classToCheck"/>.
         /// If the types are generic, the underlying types are ignored.

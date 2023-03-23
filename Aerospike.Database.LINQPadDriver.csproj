@@ -34,7 +34,8 @@
   <PropertyGroup>
     <IncludeSymbols>true</IncludeSymbols>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>    
-    <DebugType>embedded</DebugType>
+    <DebugType>embedded</DebugType>    
+    <PackageProjectUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</PackageProjectUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
@@ -87,7 +88,7 @@
 	<ItemGroup>
 		<PackageReference Include="Aerospike.Client" Version="5.3.1" />
 		<PackageReference Include="LINQPad.Reference" Version="1.*" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
 
 	<ItemGroup>

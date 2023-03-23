@@ -23,6 +23,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Key)"/>
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Value)"/>
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(object)"/>
+    /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
+    /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
     public class APrimaryKey : AValue
     {
         public APrimaryKey(Aerospike.Client.Key key)
