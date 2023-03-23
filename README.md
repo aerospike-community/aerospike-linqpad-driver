@@ -14,7 +14,7 @@
 
 [JSON](#_Toc130473484)
 
-[Prerequisites](#prerequisites)
+[Prerequisites](#importingexporting)
 
 [Installation](#_Toc130473486)
 
@@ -75,7 +75,35 @@ The driver supports the execution of UDFs by calling the Execute extension metho
 
 At any time, you can use the underlying Aerospike API directly or a combination of API or driver extension methods. Below is an example:
 
-![APIExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/AerospikeAPIExample.png?raw=true)
+```
+void Main() 
+{ 
+    //Using Aerospike API 
+     
+    var cPolicy = new ClientPolicy(); 
+    using var client = new AerospikeClient(cPolicy, "localhost", 3000); 
+
+    //Insert 3 records, with MapPolicy KEY_ORDERED 
+
+    var key1 = new Key("test", "s1", 1); 
+    var key2 = new Key("test", "s1", 2); 
+    var key3 = new Key("test", "s1", 3); 
+    var policy = new WritePolicy(); 
+    policy.recordExistsAction = RecordExistsAction.UPDATE; 
+
+    client.Put(policy, key1, new Bin("id", "groupID1")); 
+    client.Put(policy, key2, new Bin("id", "groupID2")); 
+    client.Put(policy, key3, new Bin("id", "groupID3")); 
+
+    for (int i = 0; i < 25; i++) 
+    { 
+        client.Operate(null, key1, 
+                        ListOperation.Insert("myList", 0, Value.get(value)), 
+                        ListOperation.Trim("myList", 0, 20) ); 
+    } 
+
+}
+```
 
 ## Serialization/Object-Mapper
 
@@ -289,7 +317,6 @@ The driver supports the use of the Aerospike JSON support. This feature can be t
     The secondary index is defined on “neighbors” bin
 
 ```
-
 test.graphG1Set.Get("201").Dump("Obtain the complete record from the DB"); 
 
 test.graphG1Set.Operate("201", //PK 
@@ -358,6 +385,131 @@ Below is the output from LINQPad:
 | **Linq using secondary index**             |                             |                       |           |
 | **IEnumerable\<JToken\> (1 item)**         |                             |                       |           |
 | RLTZ                                       |                             |                       |           |
+
+## Importing/Exporting
+
+The driver can import a valid JSON file into an Aerospike set. The set can be an existing set or a set will be created. Each JSON property will be mapped to an Aerospike bin. Any JSON collection types will be transformed into the corresponding Aerospike CDT. Nested JSON objects will be treated as Aerospike JSON documents.
+
+The driver can also export an Aerospike set into a JSON file. Below is an example of an export from the “players” Aerospike set.
+
+```
+test.players.Export(@"c:\users\randersen_aerospike\Desktop\player.json");
+```
+
+Below is an example of importing a JSON file:
+
+```
+test.players.Import(@"c:\users\randersen_aerospike\Desktop\player.json"); 
+test.Import(@"c:\users\randersen_aerospike\Desktop\player.json", "players");
+```
+
+Below is an example of the JSON file (truncated to one record):
+
+[
+
+{
+
+"\$type": "Aerospike.Database.LINQPadDriver.Extensions.JsonExportStructure, Aerospike.Database.LINQPadDriver",
+
+"NameSpace": "test",
+
+"SetName": "players",
+
+"Generation": 1,
+
+"Digest": {
+
+"\$type": "System.Byte[], System.Private.CoreLib",
+
+"\$value": "iFPrctmVIIjlveDF/lqIv/Zwg+4="
+
+},
+
+"KeyValue": 5220,
+
+"Values": {
+
+"\$type": "System.Collections.Generic.Dictionary\`2[[System.String, System.Private.CoreLib],[System.Object, System.Private.CoreLib]], System.Private.CoreLib",
+
+"PlayerId": 522,
+
+"UserName": "Roberts.Eunice",
+
+"FirstName": "Eunice",
+
+"LastName": "Roberts",
+
+"EmailAddress": "RobertsEunice52@prohaska.name",
+
+"Game": {
+
+"\$type": "System.Collections.Generic.Dictionary\`2[[System.Object, System.Private.CoreLib],[System.Object, System.Private.CoreLib]], System.Private.CoreLib",
+
+"Tag": "Game",
+
+"Name": "Roulette",
+
+"MinimumWager": 0.1,
+
+"MaximumWager": 50.0
+
+},
+
+"WagersResults": {
+
+"\$type": "System.Collections.Generic.List\`1[[System.Object, System.Private.CoreLib]], System.Private.CoreLib",
+
+"\$values": [
+
+{
+
+"\$type": "System.Collections.Generic.Dictionary\`2[[System.Object, System.Private.CoreLib],[System.Object, System.Private.CoreLib]], System.Private.CoreLib",
+
+"Id": 2245872720943,
+
+"Timestamp": "2022-12-20T09:18:33.3706-04:00",
+
+"Game": "Roulette",
+
+"BetType": "Dozen",
+
+"Type": "Loss",
+
+"Amount": 9.15,
+
+"PlayerBalance": 821.57
+
+},
+
+{
+
+"\$type": "System.Collections.Generic.Dictionary\`2[[System.Object, System.Private.CoreLib],[System.Object, System.Private.CoreLib]], System.Private.CoreLib",
+
+"Id": 2244231101892,
+
+"Timestamp": "2022-12-20T09:18:25.3706-04:00",
+
+"Game": "Roulette",
+
+"BetType": null,
+
+"Type": "Wager",
+
+"Amount": 9.15,
+
+"PlayerBalance": 830.72
+
+}
+
+]
+
+}
+
+}
+
+},
+
+]
 
 # Prerequisites
 
