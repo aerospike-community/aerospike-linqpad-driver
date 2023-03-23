@@ -1,5 +1,29 @@
 # Aerospike Database for LINQPad 7
 
+[Aerospike Database for LINQPad 7](#_Toc130473478)
+
+[Description](#description)
+
+[Aerospike Namespace, Set, Records, Bins, and Secondary Indexes](#_Toc130473480)
+
+[User-Defined Functions (UDFs)](#_Toc130473481)
+
+[Aerospike API](#_Toc130473482)
+
+[Serialization/Object-Mapper](#_Toc130473483)
+
+[JSON](#_Toc130473484)
+
+[Prerequisites](#prerequisites)
+
+[Installation](#_Toc130473486)
+
+[NuGet](#_Toc130473487)
+
+[Manual](#_Toc130473488)
+
+## 
+
 ## Description
 
 Aerospike for LINQPad 7 is a data context dynamic driver for querying and updating an Aerospike database. This driver can be used to explore an Aerospike data model, data mining, prototyping, testing, etc.
@@ -47,13 +71,13 @@ The driver supports the execution of UDFs by calling the Execute extension metho
 
 ![UDFExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/UDFExample.png?raw=true)
 
-### Aerospike API
+## Aerospike API
 
 At any time, you can use the underlying Aerospike API directly or a combination of API or driver extension methods. Below is an example:
 
 ![APIExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/AerospikeAPIExample.png?raw=true)
 
-# Serialization/Object-Mapper
+## Serialization/Object-Mapper
 
 The driver supports serialize and deserialize any C\# object to/from an Aerospike record. Native C\# types are stored as Aerospike data type. Unsupported types like DateTime, DateTimeOffset, Timespan, etc. are serialized as an ISO string or a numeric value based on behavior defined in the connection dialog. This behavior can also be changed programmability by the driver’s API or by providing a custom serializer.
 
@@ -179,7 +203,7 @@ void Main()
 }
 ```
 
-Below is the output from the code above:
+Below is the output from LINQPad:
 
 | **DB Records**                                            |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
 |-----------------------------------------------------------|--------------|-------------------|---------------|--------------|-----------------------------------|----------------------------|----------------------------------------------|--------------------------------|--------------------------------|-------------|----------|------------|-------------------|---------|
@@ -254,6 +278,86 @@ Below is the output from the code above:
 |                                                           |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
 | **Cleanup Successful:**                                   |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
 | **TRUE**                                                  |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
+
+## JSON
+
+The driver supports the use of the Aerospike JSON support. This feature can be turned on or off from within the connection dialog. Below is an example where we show three different methods of obtaining a value within a JSON document. They are:
+
+-   Using the [Aerospike Operate](https://docs.aerospike.com/apidocs/csharp/html/m_aerospike_client_aerospikeclient_operate_2) API
+-   Using JSON Pathing
+-   Using an [Aerospike secondary index](https://docs.aerospike.com/server/architecture/secondary-index) with the driver’s Query extension method with [Aerospike filter expressions](https://docs.aerospike.com/server/operations/configure/cross-datacenter/filters)  
+    The secondary index is defined on “neighbors” bin
+
+```
+
+test.graphG1Set.Get("201").Dump("Obtain the complete record from the DB"); 
+
+test.graphG1Set.Operate("201", //PK 
+                        MapOperation.GetByKey("neighbors", //Aerospike API 
+                                                    Value.Get("attr01"), 
+                                                    MapReturnType.VALUE, 
+                                                CTX.MapKey(Value.Get("201.02")))).Dump("Using Operation"); 
+                                                 
+test.graphG1Set.Get("201") //PK 
+                .neighbors 
+                .JsonPath("$.['201.02']['attr01']").Dump("Using JSON Path (JToken)"); 
+
+test.graphG1Set.graphG1Set_idx.Query(Filter.Contains("neighbors", //Aerospike API 
+                                                        IndexCollectionType.MAPKEYS, 
+                                                        "201.02")) 
+                                .AsEnumerable() 
+                                .Select(gs => gs.neighbors["201.02"]["attr01"]).Dump("Linq using secondary index");
+```
+
+Below is the output from LINQPad:
+
+| **Obtain the complete record from the DB** |                             |                       |           |
+|--------------------------------------------|-----------------------------|-----------------------|-----------|
+| **IEqualityComparer\<ARecord\>**           |                             |                       |           |
+| **PK**                                     | 201                         |                       |           |
+| **nodeID**                                 | 201                         |                       |           |
+| **neighbors**                              | **JsonDocument (15 items)** |                       |           |
+|                                            | **Name**                    | **Value**             |           |
+|                                            | 201.01                      | JObject (2 items)     |           |
+|                                            | 201.02                      | **JObject (9 items)** |           |
+|                                            |                             | **Name**              | **Value** |
+|                                            |                             | attr01                | RLTZ      |
+|                                            |                             | attr02                | RJDO      |
+|                                            |                             | attr03                | SPHJ      |
+|                                            |                             | attr04                | GUBU      |
+|                                            |                             | attr05                | TZFZ      |
+|                                            |                             | attr06                | RCHM      |
+|                                            |                             | attr07                | MGED      |
+|                                            |                             | attr08                | ZTTO      |
+|                                            |                             | attr09                | KUID      |
+|                                            | 201.03                      | JObject (16 items)    |           |
+|                                            | 201.04                      | JObject (19 items)    |           |
+|                                            | 201.05                      | JObject (18 items)    |           |
+|                                            | 201.06                      | JObject (5 items)     |           |
+|                                            | 201.07                      | JObject (16 items)    |           |
+|                                            | 201.08                      | JObject (2 items)     |           |
+|                                            | 201.09                      | JObject (4 items)     |           |
+|                                            | 201.1                       | JObject (17 items)    |           |
+|                                            | 201.11                      | JObject (4 items)     |           |
+|                                            | 201.12                      | JObject (11 items)    |           |
+|                                            | 201.13                      | JObject (8 items)     |           |
+|                                            | 201.14                      | JObject (19 items)    |           |
+|                                            | 201.15                      | JObject (11 items)    |           |
+|                                            |                             |                       |           |
+| **Using Operation**                        |                             |                       |           |
+| **ARecord**                                |                             |                       |           |
+| **Namespace**                              | test                        |                       |           |
+| **SetName**                                | graphG1Set                  |                       |           |
+| **Values**                                 | **ExpandoObject**           |                       |           |
+|                                            | **PK**                      | 201                   |           |
+|                                            | **neighbors**               | RLTZ                  |           |
+|                                            |                             |                       |           |
+| **Using JSON Path (JToken)**               |                             |                       |           |
+| RLTZ                                       |                             |                       |           |
+|                                            |                             |                       |           |
+| **Linq using secondary index**             |                             |                       |           |
+| **IEnumerable\<JToken\> (1 item)**         |                             |                       |           |
+| RLTZ                                       |                             |                       |           |
 
 # Prerequisites
 
