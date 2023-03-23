@@ -22,8 +22,6 @@
 
 [Manual](#_Toc130473488)
 
-## 
-
 ## Description
 
 Aerospike for LINQPad 7 is a data context dynamic driver for querying and updating an Aerospike database. This driver can be used to explore an Aerospike data model, data mining, prototyping, testing, etc.
