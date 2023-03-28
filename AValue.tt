@@ -7,7 +7,7 @@
       { "string", "bool", "Enum", "Guid",
         "short", "int", "long",
         "ushort", "uint", "ulong",
-        "decimal", "float", "double", 
+        "decimal", "float", "double", "byte", "sbyte",
         "DateTime", "DateTimeOffset", "TimeSpan" };
 	
     string[] classDataTypes = new string[] 
@@ -38,16 +38,22 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(object)"/>
     /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
     /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
-    public class AValue : IEquatable<AValue>,
-                                        IEqualityComparer<AValue>,
-                                        IEquatable<Aerospike.Client.Key>,
-                                        IEqualityComparer<Aerospike.Client.Key>,
-                                        IEquatable<Aerospike.Client.Value>,
-                                        IEqualityComparer<Aerospike.Client.Value>
+    public class AValue : IConvertible,
+                            IComparable,
+                            IEquatable<AValue>,
+                            IEqualityComparer<AValue>,
+                            IComparable<AValue>,
+                            IEquatable<Aerospike.Client.Key>,
+                            IEqualityComparer<Aerospike.Client.Key>,
+                            IComparable<Aerospike.Client.Key>,
+                            IEquatable<Aerospike.Client.Value>,
+                            IEqualityComparer<Aerospike.Client.Value>,
+                            IComparable<Aerospike.Client.Value>
         <# foreach(var datatype in nativeDataTypes)
         { #>
             , IEquatable< <#= datatype #> >
             , IEqualityComparer< <#= datatype #> >
+            , IComparable< <#= datatype #> >            
          <#    }//end of foreach data type #>  
          <# foreach(var datatype in classDataTypes)
         { #>
@@ -101,7 +107,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// The converted value
         /// </returns>
-        public Object Convert<T>() => Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
+        public T Convert<T>() => (T) Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
 
         /// <summary>
         /// Returns an enumerable object, if possible.
@@ -161,7 +167,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 if(value is null) return false;
                 return value.Type == Aerospike.Client.Value.NullValue.Instance.Type;
            }
-           return Helpers.CompareTo(this.Value, value.Object);
+           return Helpers.Equals(this.Value, value.Object);
         }
         public bool Equals(Aerospike.Client.Value v1, Aerospike.Client.Value v2)
         {
@@ -189,7 +195,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
            if(value.DigestRequired()) return value.CompareDigest(this);
 
-           return Helpers.CompareTo(this.Value, value.Value);
+           return Helpers.Equals(this.Value, value.Value);
         }
         public bool Equals(AValue v1, AValue v2)
         {
@@ -209,37 +215,233 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if(obj is Aerospike.Client.Key key) return this.Equals(key);
             if(obj is Aerospike.Client.Value value) return this.Equals(value);
             if(obj is AValue pValue) return this.Equals(pValue);
+            
+            return Helpers.Equals(this.Value, obj);
+        }
 
-            return Helpers.CompareTo(this.Value, obj);
+        public int CompareTo(object other)
+        {
+            if(ReferenceEquals(this,other)) return 0;
+            if(other is null) return this.Value is null ? 0 : 1;
+            if(this.Value is null) return -1;
+            if(other is Aerospike.Client.Key key) return this.CompareTo(key);
+            if(other is Aerospike.Client.Value value) return this.CompareTo(value);
+            if(other is AValue pValue) return this.CompareTo(pValue);
+            
+            var cValue = Helpers.CastToNativeType(this.FldName, other.GetType(), this.BinName, this.Value);
+            
+            if(cValue is IComparable iCompareValue) return iCompareValue.CompareTo(other);
+            
+            return this.Value.GetHashCode().CompareTo(other.GetHashCode());
+        }
+
+        public int CompareTo(AValue other)
+        {
+            if(other is null) return 1;
+            return this.CompareTo(other.Value);
+        }
+
+        public int CompareTo(Aerospike.Client.Key other)
+        {
+            if(other is null) return this.Value is null ? 0 : 1;
+            if(this.Equals(other)) return 0;
+            if(this.Value is null) return 1;
+            if(other.userKey is null) return this.Value.GetHashCode().CompareTo(other.digest.GetHashCode());
+            
+            return this.CompareTo(other.userKey);
+        }
+
+        public int CompareTo(Aerospike.Client.Value other)
+        {
+             if(other is null) return 1;
+             return this.CompareTo(other.Object);
+        }
+
+         public TypeCode GetTypeCode()
+        {
+            return Type.GetTypeCode(this.UnderlyingType);
+        }
+
+        bool IConvertible.ToBoolean(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToBoolean(provider);
+
+            return (bool) this;
+        }
+
+        byte IConvertible.ToByte(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToByte(provider);
+
+            return (byte) this;
+        }
+
+        char IConvertible.ToChar(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToChar(provider);
+
+            return (char) this;
+        }
+
+        DateTime IConvertible.ToDateTime(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToDateTime(provider);
+
+            return (DateTime) this;
+        }
+
+        decimal IConvertible.ToDecimal(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToDecimal(provider);
+
+            return (decimal) this;
+        }
+
+        double IConvertible.ToDouble(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToDouble(provider);
+
+            return (double) this;
+        }
+
+        short IConvertible.ToInt16(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToInt16(provider);
+
+            return (short) this;
+        }
+
+        int IConvertible.ToInt32(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToInt32(provider);
+
+            return (int) this;
+        }
+
+        long IConvertible.ToInt64(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToInt64(provider);
+
+            return (long) this;
+        }
+
+        sbyte IConvertible.ToSByte(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToSByte(provider);
+
+            return (sbyte) this;
+        }
+
+        float IConvertible.ToSingle(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToSingle(provider);
+
+            return (float) this;
+        }
+
+        string IConvertible.ToString(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToString(provider);
+
+            return (string) this;
+        }
+
+        object IConvertible.ToType(Type conversionType, IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToType(conversionType, provider);
+
+            return Helpers.CastToNativeType(this.FldName, conversionType, this.BinName, this.Value);
+        }
+
+        ushort IConvertible.ToUInt16(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToUInt16(provider);
+
+            return (ushort) this;
+        }
+
+        uint IConvertible.ToUInt32(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToUInt32(provider);
+
+            return (uint) this;
+        }
+
+        ulong IConvertible.ToUInt64(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToUInt64(provider);
+
+            return (ulong) this;
         }
 
         public static AValue ToValue(Aerospike.Client.Value value) => new AValue(value, "Value");
         public static AValue ToValue(Aerospike.Client.Bin bin) => new AValue(bin);
         public static AValue ToValue(object value) => new AValue(value, "Value", "ToValue");
             
-        public static bool operator==(AValue key1, AValue key2)
+        public static bool operator==(AValue value1, AValue value2)
         {
-            if(key1 is null) return key2 is null;
+            if(value1 is null) return value2 is null;
 
-            return key1.Equals(key2);
+            return value1.Equals(value2);
         }
-	    public static bool operator!=(AValue key1, AValue key2) => !(key1 == key2);
+	    public static bool operator!=(AValue value1, AValue value2) => !(value1 == value2);
 
-        public static bool operator==(AValue key1, Aerospike.Client.Value value) => key1?.Equals(value) ?? value is null;
-	    public static bool operator!=(AValue key1, Aerospike.Client.Value value) => !(key1?.Equals(value) ?? value is null);               
-        public static bool operator==(Aerospike.Client.Value value, AValue key1) => key1?.Equals(value) ?? value is null;
-	    public static bool operator!=(Aerospike.Client.Value value, AValue key1) => !(key1?.Equals(value) ?? value is null);
+        public static bool operator<(AValue value1, AValue value2) => value1 is null ? !(value2 is null) : value1.CompareTo(value2) < 0;
+	    public static bool operator>(AValue value1, AValue value2) => !(value1 is null) && value1.CompareTo(value2) > 0;
+        public static bool operator<=(AValue value1, AValue value2) => value1 is null || value1.CompareTo(value2) <= 0;
+        public static bool operator>=(AValue value1, AValue value2) => value1 is null ? value2 is null : value1.CompareTo(value2) >= 0;
        
-        public static bool operator==(AValue key1, Aerospike.Client.Key value) => key1?.Equals(value) ?? value is null;
-	    public static bool operator!=(AValue key1, Aerospike.Client.Key value) => !(key1?.Equals(value) ?? value is null);               
-        public static bool operator==(Aerospike.Client.Key value, AValue key1) => key1?.Equals(value) ?? value is null;
-	    public static bool operator!=(Aerospike.Client.Key value, AValue key1) => !(key1?.Equals(value) ?? value is null);
+        public static bool operator==(AValue aValue, Aerospike.Client.Value oValue) => aValue?.Equals(oValue) ?? oValue is null;
+	    public static bool operator!=(AValue aValue, Aerospike.Client.Value oValue) => !(aValue?.Equals(oValue) ?? oValue is null);               
+        public static bool operator==(Aerospike.Client.Value oValue, AValue aValue) => aValue?.Equals(oValue) ?? oValue is null;
+	    public static bool operator!=(Aerospike.Client.Value oValue, AValue aValue) => !(aValue?.Equals(oValue) ?? oValue is null);
+       
+        public static bool operator<(Aerospike.Client.Value oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	    public static bool operator>(Aerospike.Client.Value oValue, AValue aValue) => aValue is null ? !(oValue is null) : aValue.CompareTo(oValue) < 0;
+        public static bool operator<=(Aerospike.Client.Value oValue, AValue aValue) => aValue is null ? oValue is null : aValue.CompareTo(oValue) >= 0;
+        public static bool operator>=(Aerospike.Client.Value oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
+
+        public static bool operator<(AValue aValue, Aerospike.Client.Value oValue) => aValue is null ? !(oValue is null) : aValue.CompareTo(oValue) < 0;
+	    public static bool operator>(AValue aValue, Aerospike.Client.Value oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+        public static bool operator<=(AValue aValue, Aerospike.Client.Value oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
+        public static bool operator>=(AValue aValue, Aerospike.Client.Value oValue) => aValue is null ? oValue is null : aValue.CompareTo(oValue) >= 0;
+
+        public static bool operator==(AValue aValue, Aerospike.Client.Key oValue) => aValue?.Equals(oValue) ?? oValue is null;
+	    public static bool operator!=(AValue aValue, Aerospike.Client.Key oValue) => !(aValue?.Equals(oValue) ?? oValue is null);               
+        public static bool operator==(Aerospike.Client.Key oValue, AValue aValue) => aValue?.Equals(oValue) ?? oValue is null;
+	    public static bool operator!=(Aerospike.Client.Key oValue, AValue aValue) => !(aValue?.Equals(oValue) ?? oValue is null);
+
+        public static bool operator<(Aerospike.Client.Key oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	    public static bool operator>(Aerospike.Client.Key oValue, AValue aValue) => aValue is null ? !(oValue is null) : aValue.CompareTo(oValue) < 0;
+        public static bool operator<=(Aerospike.Client.Key oValue, AValue aValue) => aValue is null ? oValue is null : aValue.CompareTo(oValue) >= 0;
+        public static bool operator>=(Aerospike.Client.Key oValue, AValue aValue) => aValue is null || aValue?.CompareTo(oValue) <= 0;
+
+        public static bool operator<(AValue aValue, Aerospike.Client.Key oValue) => aValue is null ? !(oValue is null) : aValue?.CompareTo(oValue) < 0;
+	    public static bool operator>(AValue aValue, Aerospike.Client.Key oValue) => !(aValue is null) && aValue?.CompareTo(oValue) > 0;
+        public static bool operator<=(AValue aValue, Aerospike.Client.Key oValue) => aValue is null || aValue?.CompareTo(oValue) <= 0;
+        public static bool operator>=(AValue aValue, Aerospike.Client.Key oValue) => aValue is null ? oValue is null : aValue?.CompareTo(oValue) >= 0;
 
         <# foreach(var datatype in nativeDataTypes)
         { #>
 
-            public static implicit operator <#= datatype #> (AValue v) => (<#= datatype #>) v.Convert< <#= datatype #> >();
-            public static implicit operator <#= datatype #>[] (AValue v) => (<#= datatype #>[]) v.Convert<<#= datatype #>[] >();
+            public static implicit operator <#= datatype #> (AValue v) => v.Convert< <#= datatype #> >();
+            public static implicit operator <#= datatype #>[] (AValue v) => v.Convert<<#= datatype #>[] >();
             
             public static bool operator==(AValue av, <#= datatype #> v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, <#= datatype #> v) => !(av == v);
@@ -252,6 +454,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< <#= datatype #> > v, AValue av) => av == v;
 	        public static bool operator!=(List< <#= datatype #> > v, AValue av) => av != v;
 
+            public static bool operator<(<#= datatype #> oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(<#= datatype #> oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
+            public static bool operator<=(<#= datatype #> oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(<#= datatype #> oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
+
+            public static bool operator<(AValue aValue, <#= datatype #> oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
+	        public static bool operator>(AValue aValue, <#= datatype #> oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<=(AValue aValue, <#= datatype #> oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
+            public static bool operator>=(AValue aValue, <#= datatype #> oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+
             public bool Equals(<#= datatype #> value) => (this.Value is string
                                                                 || this.UnderlyingType.IsValueType
                                                                 || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
@@ -261,6 +473,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             public bool Equals(<#= datatype #> v1, <#= datatype #> v2) => v1 == v2;
             public int GetHashCode(<#= datatype #> value) => value.GetHashCode();
+
+            public int CompareTo(<#= datatype #> value)
+            {
+                <# if(datatype == "string") { #>
+                if(this.Value is null) return value is null ? 0 : -1;
+                if(value is null) return 1;
+                <# } else { #>
+                if(this.Value is null) return -1;
+                <# } #>
+                if(this.Value is IComparable< <#= datatype #> > vValue)
+                    return vValue.CompareTo(value);
+
+                var cValue = (<#= datatype #>) this;
+
+                if(cValue is IComparable coValue)
+                    return coValue.CompareTo(value);
+                
+                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+            }
 
         <#    }//end of foreach data type #>
 
@@ -299,9 +530,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return this.Value switch
             {
                 IEnumerable<T> iValue => iValue.Contains(value),
-                IEnumerable<object> oValue => oValue.Any(i => Helpers.CompareTo(i, value)),
+                IEnumerable<object> oValue => oValue.Any(i => Helpers.Equals(i, value)),
                 IEnumerable<KeyValuePair<string, object>> iKeyValuePair
-                    => iKeyValuePair.Any(kvp => Helpers.CompareTo(kvp.Value, value)),
+                    => iKeyValuePair.Any(kvp => Helpers.Equals(kvp.Value, value)),
                 _ => this.Equals(value)
             };
         }
@@ -313,6 +544,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </summary>
         /// <typeparam name="K">The type of <paramref name="key"/></typeparam>
         /// <typeparam name="T">The type of <paramref name="value"/></typeparam>
+        /// <param name="key">The key used to obtain the value</param>
         /// <param name="value">The value used to determined if it exists</param>
         /// <returns>
         /// True if it is contained within a collection or false otherwise.
@@ -324,14 +556,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 JObject jObj
                     => key is string sKey
                             && jObj.ContainsKey(sKey)
-                            && Helpers.CompareTo(jObj[sKey], value),
+                            && Helpers.Equals(jObj[sKey], value),
                 IDictionary<string, object> sDict
                     => key is string sKey
                             && sDict.ContainsKey(sKey)
-                            && Helpers.CompareTo(sDict[sKey], value),
+                            && Helpers.Equals(sDict[sKey], value),
                 IDictionary<object, object> oDict
                     => oDict.ContainsKey(key)
-                            && Helpers.CompareTo(oDict[key], value),
+                            && Helpers.Equals(oDict[key], value),
                 _ => false
             };
         }

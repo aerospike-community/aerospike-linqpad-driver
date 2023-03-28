@@ -18,8 +18,8 @@
     <PackageIcon>lib\netcoreapp3.1\Connection.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
-    <Version>2.0.5.1</Version>
-    <FileVersion>2.0.5.1</FileVersion>    
+    <Version>2.0.5.2</Version>
+    <FileVersion>2.0.5.2</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -43,14 +43,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All"/>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
   </ItemGroup>
   
 	<ItemGroup>
 	  <Compile Remove="linqpad-samples\**" />
+	  <Compile Remove="TestProjects\**" />
 	  <EmbeddedResource Remove="linqpad-samples\**" />
+	  <EmbeddedResource Remove="TestProjects\**" />
 	  <None Remove="linqpad-samples\**" />
+	  <None Remove="TestProjects\**" />
 	  <Page Remove="linqpad-samples\**" />
+	  <Page Remove="TestProjects\**" />
 	</ItemGroup>
 
   <ItemGroup>
@@ -80,9 +84,9 @@
 	  </Content>
     <Content Include="README.md">
       <Pack>true</Pack>
-      <PackagePath/>
+      <PackagePath />
     </Content>
-    <None Include="LICENSE" Pack="true" PackagePath=""/>
+    <None Include="LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 
 	<ItemGroup>

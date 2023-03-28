@@ -279,7 +279,7 @@ namespace Aerospike.Database.LINQPadDriver
 
                     for(var idx = 0; idx < cItems.Count;idx++)
                     {
-                        if (CompareTo(newArray.GetValue(idx), itemArray[idx]))
+                        if (Equals(newArray.GetValue(idx), itemArray[idx]))
                         {
                             result = false;
                             break;
@@ -638,7 +638,7 @@ namespace Aerospike.Database.LINQPadDriver
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns>True if Equal</returns>
-        public static bool CompareTo(object a, object b)
+        public static bool Equals(object a, object b)
         {
             if (a is null) return b is null;
             if (b is null) return false;
@@ -665,12 +665,12 @@ namespace Aerospike.Database.LINQPadDriver
 
             if (Helpers.IsSubclassOfInterface(typeof(Nullable<>), aType))
             {
-                return Helpers.CompareTo(((dynamic)a).Value, b);
+                return Helpers.Equals(((dynamic)a).Value, b);
             }
 
             if (Helpers.IsSubclassOfInterface(typeof(Nullable<>), bType))
             {
-                return Helpers.CompareTo(a, ((dynamic)b).Value);
+                return Helpers.Equals(a, ((dynamic)b).Value);
             }
 
             if (aType == bType) return a.Equals(b);
@@ -712,7 +712,7 @@ namespace Aerospike.Database.LINQPadDriver
         {
             //Debugger.Launch();
 
-            Exception CreateException<T>(T castValue)
+            Exception CreateException<T>(T castValue, Exception innerException = null)
             {
                 var castStr = castValue == null
                                 ? "null"
@@ -720,9 +720,11 @@ namespace Aerospike.Database.LINQPadDriver
                                     ? $"\"{castValue}\""
                                     : castValue.ToString());
                 if (binName == fldName)
-                    return new ArgumentException($"Bin \"{binName}\" with Value {castStr} ({GetRealTypeName(binValue?.GetType()) ?? "<UnKnownType>"}) could not be cast to field type {GetRealTypeName(fldType)}");
+                    return new ArgumentException($"Bin \"{binName}\" with Value {castStr} ({GetRealTypeName(binValue?.GetType()) ?? "<UnKnownType>"}) could not be cast to field type {GetRealTypeName(fldType)}",
+                                                    innerException);
 
-                return new ArgumentException($"Bin \"{binName}\" with Value {castStr} ({GetRealTypeName(binValue?.GetType()) ?? "<UnKnownType>"}) could not be cast to Field \"{fldName}\" of type {GetRealTypeName(fldType)}");
+                return new ArgumentException($"Bin \"{binName}\" with Value {castStr} ({GetRealTypeName(binValue?.GetType()) ?? "<UnKnownType>"}) could not be cast to Field \"{fldName}\" of type {GetRealTypeName(fldType)}",
+                                                innerException);
             }
 
             if (fldType == typeof(object) || fldType == binValue?.GetType())
@@ -1268,6 +1270,57 @@ namespace Aerospike.Database.LINQPadDriver
                             else
                             {
                                 return aValue.Value;
+                            }
+                        }
+                    case IConvertible iConvertible:
+                        {
+                            if (fldType.IsGenericType)
+                            {
+                                if (fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                {
+                                    if (iConvertible is null) return null;
+
+                                    return CastToNativeType(fldName,
+                                                                fldType.GetGenericArguments()[0],
+                                                                binName,
+                                                                binValue);
+                                }
+                            }
+                                                        
+                            if (fldType == typeof(DateTimeOffset))
+                            {
+                                return new DateTimeOffset(iConvertible.ToDateTime(CultureInfo.CurrentCulture));
+                            }
+                            else if (fldType == typeof(TimeSpan))
+                            {
+                                return iConvertible.ToDateTime(CultureInfo.CurrentCulture).TimeOfDay;
+                            }                            
+                            else if (fldType == typeof(Guid))
+                            {
+                                return new Guid(iConvertible.ToString(CultureInfo.CurrentCulture));
+                            }
+                            else if (fldType == typeof(JObject))
+                            {
+                                return new JObject(iConvertible);
+                            }
+                            else if (fldType == typeof(JsonDocument))
+                            {
+                                return new JsonDocument(new JObject(iConvertible));
+                            }
+                            else if (fldType.IsEnum)
+                            {
+                                if(iConvertible.GetTypeCode() == TypeCode.String)
+                                    return Enum.Parse(fldType, iConvertible.ToString(CultureInfo.CurrentCulture));
+
+                                return Enum.ToObject(fldType, iConvertible.ToInt64(CultureInfo.CurrentCulture));
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    return iConvertible.ToType(fldType, CultureInfo.CurrentCulture);
+                                }
+                                catch(Exception ex) { throw CreateException(binValue, ex); }
                             }
                         }
                     default:

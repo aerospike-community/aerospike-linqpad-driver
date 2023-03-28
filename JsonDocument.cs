@@ -55,6 +55,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
         }
 
+        public JsonDocument(Newtonsoft.Json.Linq.JObject jObject)
+            : base(jObject)
+        {
+        }
+
         /// <summary>
         /// Selects a <see cref="T:Newtonsoft.Json.Linq.JToken" /> using a JSONPath expression. Selects the token that matches the object path.
         /// <seealso cref="Newtonsoft.Json.Linq.JToken.SelectTokens(string)"/>

@@ -5,6 +5,8 @@ VisualStudioVersion = 17.3.32825.248
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aerospike.Database.LINQPadDriver", "Aerospike.Database.LINQPadDriver.csproj", "{AF7E3FBA-2CB0-4C2D-AFDF-6BE6DA340C4F}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Aerospike.Database.LINQPadDriverTests", "TestProjects\Aerospike.Database.LINQPadDriverTests\Aerospike.Database.LINQPadDriverTests.csproj", "{AD206A04-DF9B-42E8-86EB-CF4C84942C9D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{AF7E3FBA-2CB0-4C2D-AFDF-6BE6DA340C4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF7E3FBA-2CB0-4C2D-AFDF-6BE6DA340C4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF7E3FBA-2CB0-4C2D-AFDF-6BE6DA340C4F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD206A04-DF9B-42E8-86EB-CF4C84942C9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD206A04-DF9B-42E8-86EB-CF4C84942C9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD206A04-DF9B-42E8-86EB-CF4C84942C9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD206A04-DF9B-42E8-86EB-CF4C84942C9D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

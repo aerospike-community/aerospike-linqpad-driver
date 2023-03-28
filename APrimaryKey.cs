@@ -87,6 +87,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return this.AerospikeKey.digest.SequenceEqual(Aerospike.Client.Key.ComputeDigest(this.AerospikeKey.setName,
                                                                                                 Aerospike.Client.Value.Get(value)));
         }
-               
+
+        
     }
 }
