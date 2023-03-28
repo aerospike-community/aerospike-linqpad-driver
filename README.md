@@ -403,111 +403,9 @@ test.Import(@"c:\users\randersen_aerospike\Desktop\player.json", "players");
 
 Below is an example of the JSON file (truncated to one record):
 
-[
+```[ {
 
-{
-
-"\$type": "Aerospike.Database.LINQPadDriver.Extensions.JsonExportStructure, Aerospike.Database.LINQPadDriver",
-
-"NameSpace": "test",
-
-"SetName": "players",
-
-"Generation": 1,
-
-"Digest": {
-
-"\$type": "System.Byte[], System.Private.CoreLib",
-
-"\$value": "iFPrctmVIIjlveDF/lqIv/Zwg+4="
-
-},
-
-"KeyValue": 5220,
-
-"Values": {
-
-"\$type": "System.Collections.Generic.Dictionary\`2[[System.String, System.Private.CoreLib],[System.Object, System.Private.CoreLib]], System.Private.CoreLib",
-
-"PlayerId": 522,
-
-"UserName": "Roberts.Eunice",
-
-"FirstName": "Eunice",
-
-"LastName": "Roberts",
-
-"EmailAddress": "RobertsEunice52@prohaska.name",
-
-"Game": {
-
-"\$type": "System.Collections.Generic.Dictionary\`2[[System.Object, System.Private.CoreLib],[System.Object, System.Private.CoreLib]], System.Private.CoreLib",
-
-"Tag": "Game",
-
-"Name": "Roulette",
-
-"MinimumWager": 0.1,
-
-"MaximumWager": 50.0
-
-},
-
-"WagersResults": {
-
-"\$type": "System.Collections.Generic.List\`1[[System.Object, System.Private.CoreLib]], System.Private.CoreLib",
-
-"\$values": [
-
-{
-
-"\$type": "System.Collections.Generic.Dictionary\`2[[System.Object, System.Private.CoreLib],[System.Object, System.Private.CoreLib]], System.Private.CoreLib",
-
-"Id": 2245872720943,
-
-"Timestamp": "2022-12-20T09:18:33.3706-04:00",
-
-"Game": "Roulette",
-
-"BetType": "Dozen",
-
-"Type": "Loss",
-
-"Amount": 9.15,
-
-"PlayerBalance": 821.57
-
-},
-
-{
-
-"\$type": "System.Collections.Generic.Dictionary\`2[[System.Object, System.Private.CoreLib],[System.Object, System.Private.CoreLib]], System.Private.CoreLib",
-
-"Id": 2244231101892,
-
-"Timestamp": "2022-12-20T09:18:25.3706-04:00",
-
-"Game": "Roulette",
-
-"BetType": null,
-
-"Type": "Wager",
-
-"Amount": 9.15,
-
-"PlayerBalance": 830.72
-
-}
-
-]
-
-}
-
-}
-
-},
-
-]
+```
 
 # Prerequisites
 
@@ -516,13 +414,13 @@ Below is an example of the JSON file (truncated to one record):
 
 # Installation
 
-## NuGet
+## LINQPad NuGet Manager
 
 -   Open LINQPad
 -   Click `Add Connection` Link.
 -   Click button `View more drivers…`
 -   Click radio button `Show all drivers` and type `Aerospike`.
--   Install
+-   Click Install
 
 ## Manual
 
