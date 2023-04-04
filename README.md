@@ -24,17 +24,28 @@
 
 ## Description
 
-Aerospike for LINQPad 7 is a data context dynamic driver for querying and updating an Aerospike database. This driver can be used to explore an Aerospike data model, data mining, prototyping, testing, etc.
+[Aerospike](https://aerospike.com/) for LINQPad 7 is a data context dynamic driver for interactively querying and updating an Aerospike database using "[LINQPad](https://www.linqpad.net/)". LINQPad is a Graphical Development Tool designed for rapid prototyping, interactive testing, data modeling, data mining, drag-and-drop execution, interactive debugging, etc. The Aerospike driver for LINQPad is designed to support all LINQPad capabilities including the enhanced ability to learn and use the [Aerospike API directly](https://developer.aerospike.com/client/csharp).
 
-You can perform the following:
+Here is a subset of what you can perform using the driver:
 
--   query any [Aerospike Set](https://docs.aerospike.com/server/architecture/data-model) using any LINQ command.
--   use the driver’s extension methods to perform operations like Aerospike Expression, CRUD operations, import/export, or execute an Aerospike User Defined Function (UDF) without understanding the underlying Aerospike API.
--   Able to serialize and deserialize any C\# object (ORM). These objects can be a class, structure, native type, nested classes, or collections.
--   JSON support
--   use the Aerospike API to perform advance operations or just to test code segments used in your application.
+-   Query any [Aerospike Set or Secondary Index](https://docs.aerospike.com/server/architecture/overview) using any LINQ command (including joins), interactively.
+-   Use the driver’s extension methods to perform operations like Aerospike Expression, CRUD operations, etc. without understanding the underlying Aerospike API.
+-   Serialize and deserialize any C\# object via the Object-Mapper (POCO). The driver supports all C\# data types, nested classes, and collections.
+-   Full JSON support using [Json.NET](https://www.newtonsoft.com/json).
+-   Be able to execute [UDF](https://docs.aerospike.com/server/guide/udf)s directly and display their underlying code. UDFs are treated like C\# methods with intellisense and code completion.
+-   Export or Import Sets directly or by means of an [Aerospike Filter](https://docs.aerospike.com/server/operations/configure/cross-datacenter/filters).
+-   Provides metadata about the cluster which includes active/inactive nodes, Aerospike server version, etc.
+-   Use the Aerospike API directly to perform advance operations or instantly test snippets used in your application code.
 
-The driver can dynamically detect the structure of records in Aerospike Sets resulting in an easy-to-understand view. The driver can also detect multiple data types for the same Aerospike Bin within a record. Below screenshot show how Aerospike Sets and Bins are represented in LinqPad:
+The driver can, also, dynamically detect the structure of records within an Aerospike Set resulting in an easy-to-understand view much like a relational table with enhanced capabilities. Some of these capabilities are:
+
+-   detection of bins with the same name but have different data types between records within a Set
+-   records with different Bin structures within a Set
+-   implicit data type conversion without the need to cast or check a Bin's data type for quick data operation
+-   enhanced [Aerospike CDT](https://docs.aerospike.com/server/guide/data-types/cdt) handling
+-   driver extension methods to programmatically interrogate Namespaces, Sets, records, Bins, Bin data types, etc.
+
+The screenshot below show how Aerospike Sets and Bins are represented in LinqPad:
 
 ![Example](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/DupBinTypeInRecordDialog.png?raw=true)
 
@@ -403,7 +414,7 @@ test.Import(@"c:\users\randersen_aerospike\Desktop\player.json", "players");
 
 Below is an example of the JSON file (truncated to one record):
 
-```[ {
+```[
 
 ```
 
