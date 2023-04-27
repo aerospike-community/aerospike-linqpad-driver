@@ -148,6 +148,14 @@ namespace Aerospike.Database.LINQPadDriver
             return hex.ToString();
         }
 
+        public static byte[] StringToByteArray(string hex)
+        {
+            return Enumerable.Range(0, hex.Length)
+                             .Where(x => x % 2 == 0)
+                             .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
+                             .ToArray();
+        }
+
         public static string GetRealTypeName(Type t, bool makeIntoNullable = false)
         {
             if (t == null) return null;
@@ -638,7 +646,7 @@ namespace Aerospike.Database.LINQPadDriver
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns>True if Equal</returns>
-        public static bool Equals(object a, object b)
+        public new static bool Equals(object a, object b)
         {
             if (a is null) return b is null;
             if (b is null) return false;
@@ -806,6 +814,10 @@ namespace Aerospike.Database.LINQPadDriver
                             {
                                 return (int)intValue;
                             }
+                            else if (fldType == typeof(long))
+                            {
+                                return (long)intValue;
+                            }
                             else if (fldType == typeof(uint))
                             {
                                 return (uint)intValue;
@@ -968,6 +980,10 @@ namespace Aerospike.Database.LINQPadDriver
                             else if (fldType == typeof(int))
                             {
                                 return int.Parse(strValue);
+                            }
+                            else if (fldType == typeof(long))
+                            {
+                                return long.Parse(strValue);
                             }
                             else if (fldType == typeof(uint))
                             {

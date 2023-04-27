@@ -243,15 +243,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     DateTimeOffset? expirationDate = null,
                                     int? generation = null)
             {
-                if (keyValue is byte[] digest)
-                    this.Key = new Client.Key(ns, set, digest);
-                else if (keyValue is Client.Key valueKey)
-                    this.Key = new Client.Key(ns, set, valueKey.userKey);
-                else if (keyValue is Value value)
-                    this.Key = new Client.Key(ns, set, value);
-                else
-                    this.Key = new Client.Key(ns, set, Value.Get(keyValue));
-
+                this.Key = Helpers.DetermineAerospikeKey(keyValue, ns, set);              
                 this.Record = new Record((Dictionary<string, object>)binValues,
                                                     generation ?? 0,
                                                     expiration ?? (expirationDate.HasValue
@@ -677,7 +669,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="JsonExportStructure"/>
         /// <seealso cref="JsonSerializerSettings"/>
         /// <seealso cref="JsonConvert.SerializeObject(object?, Formatting, JsonSerializerSettings?)"/>
-        public string ToJson(bool indented = false, Newtonsoft.Json.JsonSerializerSettings jsonSettings = null)
+        public string Export(bool indented = false, Newtonsoft.Json.JsonSerializerSettings jsonSettings = null)
         {
             var values = this.Aerospike.GetValues();
 
@@ -700,7 +692,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Created an <see cref="ARecord"/> from a JSON string based on <see cref="JsonExportStructure"/> or generated from <see cref="ToJson(bool, JsonSerializerSettings)"/>
+        /// Created an <see cref="ARecord"/> from a JSON string based on <see cref="JsonExportStructure"/> or generated from <see cref="Export(bool, JsonSerializerSettings)"/>
         /// </summary>
         /// <param name="jsonString">A valid JSON string based on <see cref="JsonExportStructure"/></param>
         /// <param name="ignoreTTL">If true, the TimeToLive field is ignored when creating a record</param>
@@ -713,7 +705,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// An <see cref="ARecord"/> instance
         /// </returns>
-        public static ARecord FromJson(string jsonString,
+        public static ARecord Import(string jsonString,
                                         bool ignoreTTL = false,
                                         bool ignoreGeneration=false,
                                         Newtonsoft.Json.JsonSerializerSettings jsonSettings = null)
@@ -732,6 +724,238 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 expiration: ignoreTTL ? null : jsonStruct.TimeToLive);
         }
 
+        /// <summary>
+        /// Returns a <see cref="JObject"/> representing the record as JSON. Each property name will be the corresponding bin name. 
+        /// The primary key is the PK value or the <see cref="Aerospike.Client.Key.digest"/> if the PK Value is not provided/present.
+        /// </summary>
+        /// <param name="pkPropertyName">
+        /// The property name used for the primary key. The default is &apos;_id&apos;.
+        /// If the primary key value is not present, the digest is used. In these cases the property value will be a sub property where that name will be &apos;$oid&apos; and the value is a byte string.
+        /// </param>
+        /// <param name="useDigest">
+        /// If true, always use the PK digest as the primary key.
+        /// If false, use the PK value is present, otherwise use the digest. 
+        /// Default is false.
+        /// </param>
+        /// <returns>
+        /// Returns a <see cref="JObject"/> representing the record.
+        /// </returns>
+        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="FromJson(string, string, dynamic, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
+        /// <example>
+        /// <code>
+        /// {
+        ///      &quot;_id&quot;: 522,
+        ///      &quot;Tag&quot;: &quot;Player&quot;,
+        ///      &quot;PlayerId&quot;: 522,
+        ///      &quot;UserName&quot;: &quot;Roberts.Eunice&quot;,
+        ///      &quot;FirstName&quot;: &quot;Eunice&quot;,
+        ///      &quot;LastName&quot;: &quot;Roberts&quot;,
+        ///      &quot;EmailAddress&quot;: &quot;RobertsEunice52@prohaska.name&quot;,
+        ///      &quot;CountryCode&quot;: &quot;US&quot;,
+        ///      &quot;State&quot;: &quot;NJ&quot;
+        /// }
+        /// </code>
+        /// When <paramref name="useDigest"/> is true:
+        /// <code>
+        /// {
+        ///      &quot;_id&quot;: {
+        ///        &quot;$oid&quot;: &quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot;
+        ///      },
+        ///      &quot;Tag&quot;: &quot;Player&quot;,
+        ///      &quot;PlayerId&quot;: 522,
+        ///      &quot;UserName&quot;: &quot;Roberts.Eunice&quot;,
+        ///      &quot;FirstName&quot;: &quot;Eunice&quot;,
+        ///      &quot;LastName&quot;: &quot;Roberts&quot;,
+        ///      &quot;EmailAddress&quot;: &quot;RobertsEunice52@prohaska.name&quot;,
+        ///      &quot;CountryCode&quot;: &quot;US&quot;,
+        ///      &quot;State&quot;: &quot;NJ&quot;
+        /// }
+        /// </code>
+        /// </example>
+        public JObject ToJson(string pkPropertyName = "_id", bool useDigest = false)
+        {
+            var jsonStruct = new JObject();
+
+            if(!(this.Aerospike.Key is null))
+            {
+                if(useDigest || this.Aerospike.Key.userKey is null)
+                {
+                    var jDigest = new JObject();
+                    jDigest.Add("$oid", JToken.FromObject(Helpers.ByteArrayToString(this.Aerospike.Key.digest)));
+
+                    jsonStruct.Add(pkPropertyName, jDigest);
+                }
+                else
+                {
+                    jsonStruct.Add(pkPropertyName, JToken.FromObject(this.Aerospike.Key.userKey.Object));
+                }
+            }
+
+            foreach(var bin in this.Aerospike.Bins) 
+            {
+                if(!(bin.value?.Object is null))
+                    jsonStruct.Add(bin.name, JToken.FromObject(bin.value.Object));
+            }
+
+            return jsonStruct;
+        }
+
+        /// <summary>
+        /// Given a Json string, creates a <see cref="ARecord"/> object that can but used to update the DB.
+        /// </summary>
+        /// <param name="nameSpace">The associated namespace of the set</param>
+        /// <param name="setName">The associated Set of the record</param>
+        /// <param name="primaryKey">
+        /// The primary key which can be:
+        ///     a C# value,
+        ///     digest byte array,
+        ///     <see cref="Aerospike.Client.Key"/>,
+        ///     <see cref="APrimaryKey"/>,
+        ///     <see cref="AValue"/>,
+        ///     <see cref="Aerospike.Client.Value"/>
+        /// </param>
+        /// <param name="json">A valid Json string</param>
+        /// <param name="jsonBinName">
+        /// If provided, the Json object is placed into this bin.
+        /// If null (default), the each top level Json property will be associated with a bin. Note, if the property name is greater than the bin name limit, an Aerospike exception will occur during the put.
+        /// </param>
+        /// <param name="setAccess">The set instance that will be associated to this record.</param>
+        /// <returns>
+        /// Returns ARecord instance.
+        /// </returns>
+        /// <seealso cref="ToJson(string, bool)"/>
+        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
+        /// <seealso cref="SetRecords.Put(ARecord, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="AerospikeAPI.Bins"/>
+        /// <remarks>
+        /// The Json string can include Json in-line types. Below are the supported types:
+        ///     <code>$date</code> or <code>$datetime</code>,
+        ///         This can include an optional sub Json Type.Example:
+        ///             <code>&quot;bucket_start_date&quot;: &quot;$date&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+        ///     <code>$datetimeoffset</code>,
+        ///         This can include an optional sub Json Type. Example:
+        ///             <code>&quot;bucket_start_datetimeoffset&quot;: &quot;$datetimeoffset&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+        ///     <code>$timespan</code>,
+        ///         This can include an optional sub Json Type. Example:
+        ///             <code>&quot;bucket_start_time&quot;: &quot;$timespan&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+        ///     <code>$timestamp</code>,
+        ///     <code>$guid</code> or <code>$uuid</code>,
+        ///     <code>$oid</code>,
+        ///         If the Json string value equals 40 in length it will be treated as a digest and converted into a byte array.
+        ///         Example:
+        ///             <code>&quot;_id&quot;: { &quot;$oid &quot;: &quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; }</code> ==&gt; <code>&quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]</code>
+        ///     <code>$numberint64</code> or <code>$numberlong</code>,
+        ///     <code>$numberint32</code>, or <code>$numberint</code>,
+        ///     <code>$numberdecimal</code>,
+        ///     <code>$numberdouble</code>,
+        ///     <code>$numberfloat</code> or <code>$single</code>,
+        ///     <code>$numberint16</code> or <code>$numbershort</code>,
+        ///     <code>$numberuint32</code> or <code>$numberuint</code>,
+        ///     <code>$numberuint64</code> or <code>$numberulong</code>,
+        ///     <code>$numberuint16</code> or <code>$numberushort</code>,
+        ///     <code>$bool</code> or <code>$boolean</code>;
+        /// </remarks>
+        public static ARecord FromJson(string nameSpace,
+                                        string setName,
+                                        dynamic primaryKey,
+                                        string json,
+                                        string jsonBinName = null,
+                                        ANamespaceAccess setAccess = null)
+        {
+            var converter = new CDTConverter();
+            var binDict = JsonConvert.DeserializeObject<IDictionary<string, object>>(json, converter);
+            
+            return new ARecord(nameSpace,
+                                setName,
+                                primaryKey,
+                                string.IsNullOrEmpty(jsonBinName) 
+                                    ? binDict
+                                    : new Dictionary<string,object>() { {jsonBinName, binDict} },
+                                setAccess: setAccess);
+        }
+
+        /// <summary>
+        /// Given a Json string, creates a <see cref="ARecord"/> object that can but used to update the DB.
+        /// </summary>
+        /// <param name="nameSpace">The associated namespace of the set</param>
+        /// <param name="setName">The associated Set of the record</param>       
+        /// <param name="json"></param>
+        /// <param name="pkPropertyName">
+        /// The property name used to obtain the primary key. This must be a top level field (cannot be nested).
+        /// The default is &apos;_id&apos;.
+        /// If the pkPropertyName doesn&apos;s exists, a <see cref="KeyNotFoundException"/> is thrown.
+        /// </param>
+        /// <param name="jsonBinName">
+        /// If provided, the Json object is placed into this bin.
+        /// If null (default), the each top level Json property will be associated with a bin. Note, if the property name is greater than the bin name limit, an Aerospike exception will occur during the put.
+        /// </param>
+        /// <param name="setAccess">The set instance that will be associated to this record.</param>
+        /// <returns>
+        /// Returns ARecord instance.
+        /// </returns>
+        /// <seealso cref="ToJson(string, bool)"/>
+        /// <seealso cref="FromJson(string, string, dynamic, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
+        /// <seealso cref="SetRecords.Put(ARecord, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="AerospikeAPI.Bins"/>
+        /// <exception cref="KeyNotFoundException">
+        /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 
+        /// </exception>
+        /// <remarks>
+        /// The Json string can include Json in-line types. Below are the supported types:
+        ///     <code>$date</code> or <code>$datetime</code>,
+        ///         This can include an optional sub Json Type.Example:
+        ///             <code>&quot;bucket_start_date&quot;: &quot;$date&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+        ///     <code>$datetimeoffset</code>,
+        ///         This can include an optional sub Json Type. Example:
+        ///             <code>&quot;bucket_start_datetimeoffset&quot;: &quot;$datetimeoffset&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+        ///     <code>$timespan</code>,
+        ///         This can include an optional sub Json Type. Example:
+        ///             <code>&quot;bucket_start_time&quot;: &quot;$timespan&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+        ///     <code>$timestamp</code>,
+        ///     <code>$guid</code> or <code>$uuid</code>,
+        ///     <code>$oid</code>,
+        ///         If the Json string value equals 40 in length it will be treated as a digest and converted into a byte array.
+        ///         Example:
+        ///             <code>&quot;_id&quot;: { &quot;$oid &quot;: &quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; }</code> ==&gt; <code>&quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]</code>
+        ///     <code>$numberint64</code> or <code>$numberlong</code>,
+        ///     <code>$numberint32</code>, or <code>$numberint</code>,
+        ///     <code>$numberdecimal</code>,
+        ///     <code>$numberdouble</code>,
+        ///     <code>$numberfloat</code> or <code>$single</code>,
+        ///     <code>$numberint16</code> or <code>$numbershort</code>,
+        ///     <code>$numberuint32</code> or <code>$numberuint</code>,
+        ///     <code>$numberuint64</code> or <code>$numberulong</code>,
+        ///     <code>$numberuint16</code> or <code>$numberushort</code>,
+        ///     <code>$bool</code> or <code>$boolean</code>;
+        /// </remarks>
+        public static ARecord FromJson(string nameSpace,
+                                        string setName,
+                                        string json,
+                                        string pkPropertyName = "_id",
+                                        string jsonBinName = null,
+                                        ANamespaceAccess setAccess = null)
+        {            
+            var converter = new CDTConverter();
+            var binDict = JsonConvert.DeserializeObject<IDictionary<string, object>>(json, converter);
+
+            var primaryKeyValue = binDict[pkPropertyName];
+            binDict.Remove(pkPropertyName);
+
+            return new ARecord(nameSpace,
+                                setName,
+                                primaryKeyValue,
+                                string.IsNullOrEmpty(jsonBinName)
+                                    ? binDict
+                                    : new Dictionary<string, object>() { { jsonBinName, binDict } },
+                                setAccess: setAccess);
+        }
 
         #endregion
 

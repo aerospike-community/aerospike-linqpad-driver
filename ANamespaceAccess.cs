@@ -478,7 +478,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         #endregion
 
-        #region Import/Export
+        #region Import/Export/Json
         /// <summary>
         /// Imports a <see cref="SetRecords.Export(string, Exp, bool)"/> generated JSON file into a set.
         /// </summary>
@@ -621,7 +621,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, bool)"/>
         /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, bool)"/>
-        /// <seealso cref="ARecord.ToJson(bool, JsonSerializerSettings)"/>
+        /// <seealso cref="ARecord.Export(bool, JsonSerializerSettings)"/>
         public int Export([NotNull] string exportJSONFile, Client.Exp filterExpression = null, bool indented = true)
         {
             if (Directory.Exists(exportJSONFile))
@@ -630,6 +630,130 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
 
             return NullSet.Export(exportJSONFile, filterExpression, indented);
+        }
+
+        /// <summary>
+        /// Converts a Json string into an <see cref="ARecord"/> which is than put into this set.
+        /// Each top-level property in the Json is translated into a bin and value. Json Arrays and embedded objects are transformed into an Aerospike List or Map&lt;string,object&gt;.
+        /// Note: If the Json string is an Json array, each item in the array is inserted/updated. If an object, only that one item is inserted/updated.
+        /// </summary>
+        /// <param name="setName">The name of the set. This can be a new set, existing set, or null for the NullSet.</param>
+        /// <param name="json">
+        /// The Json string. 
+        /// note: in-line json types are supported.
+        ///     Example:
+        ///         <code>&quot;bucket_start_date&quot;: &quot;$date&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+        /// </param>
+        /// <param name="pkPropertyName">
+        /// The property name used for the primary key. The default is &apos;_id&apos;.
+        /// If the primary key value is not present, the digest is used. In these cases the property value will be a sub property where that name will be &apos;$oid&apos; and the value is a byte string.
+        /// </param>
+        /// <param name="jsonBinName">
+        /// If provided, the Json object is placed into this bin.
+        /// If null (default), the each top level Json property will be associated with a bin. Note, if the property name is greater than the bin name limit, an Aerospike exception will occur during the put.
+        /// </param>
+        /// <param name="writePolicy">
+        /// The write policy. If not provided , the default policy is used.
+        /// <seealso cref="WritePolicy"/>
+        /// </param>
+        /// <param name="ttl">Time-to-live of the record</param>
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
+        /// <returns>The number of items put.</returns>
+        /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
+        /// <seealso cref="ARecord.ToJson(string, bool)"/>
+        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <exception cref="KeyNotFoundException">
+        /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 
+        /// </exception>
+        /// <exception cref="InvalidDataException">
+        /// Thrown if an unexpected data type is encountered.
+        /// </exception>
+        /// <remarks>
+        /// The Json string can include Json in-line types. Below are the supported types:
+        ///     <code>$date</code> or <code>$datetime</code>,
+        ///         This can include an optional sub Json Type.Example:
+        ///             <code>&quot;bucket_start_date&quot;: &quot;$date&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+        ///     <code>$datetimeoffset</code>,
+        ///         This can include an optional sub Json Type. Example:
+        ///             <code>&quot;bucket_start_datetimeoffset&quot;: &quot;$datetimeoffset&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+        ///     <code>$timespan</code>,
+        ///         This can include an optional sub Json Type. Example:
+        ///             <code>&quot;bucket_start_time&quot;: &quot;$timespan&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+        ///     <code>$timestamp</code>,
+        ///     <code>$guid</code> or <code>$uuid</code>,
+        ///     <code>$oid</code>,
+        ///         If the Json string value equals 40 in length it will be treated as a digest and converted into a byte array.
+        ///         Example:
+        ///             <code>&quot;_id&quot;: { &quot;$oid &quot;: &quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; }</code> ==&gt; <code>&quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]</code>
+        ///     <code>$numberint64</code> or <code>$numberlong</code>,
+        ///     <code>$numberint32</code>, or <code>$numberint</code>,
+        ///     <code>$numberdecimal</code>,
+        ///     <code>$numberdouble</code>,
+        ///     <code>$numberfloat</code> or <code>$single</code>,
+        ///     <code>$numberint16</code> or <code>$numbershort</code>,
+        ///     <code>$numberuint32</code> or <code>$numberuint</code>,
+        ///     <code>$numberuint64</code> or <code>$numberulong</code>,
+        ///     <code>$numberuint16</code> or <code>$numberushort</code>,
+        ///     <code>$bool</code> or <code>$boolean</code>;
+        /// </remarks>
+        public int FromJson(string setName, string json,
+                                string pkPropertyName = "_id",
+                                string jsonBinName = null,
+                                WritePolicy writePolicy = null,
+                                TimeSpan? ttl = null,
+                                bool refreshOnNewSet = true)
+        {
+            
+            var converter = new CDTConverter();
+            var bins = JsonConvert.DeserializeObject<object>(json, converter);
+            int cnt = 0;
+
+            ARecord GetRecord(Dictionary<string, object> binDict)
+            {
+                var primaryKeyValue = binDict[pkPropertyName];
+                binDict.Remove(pkPropertyName);
+
+                return new ARecord(this.Namespace,
+                                    setName,
+                                    primaryKeyValue, 
+                                    string.IsNullOrEmpty(jsonBinName)
+                                        ? binDict
+                                        : new Dictionary<string, object>() { { jsonBinName, binDict } },
+                                    setAccess: this);
+            }
+
+            if (bins is Dictionary<string, object> binDictionary)
+            {
+                var record = GetRecord(binDictionary);
+
+                this.Put(record, setName, writePolicy, ttl, false);
+                cnt++;
+            }
+            else if (bins is List<object> binList)
+            {
+                foreach (var item in binList)
+                {
+                    if (item is Dictionary<string, object> binDict)
+                    {
+                        var record = GetRecord(binDict);
+
+                        this.Put(record, setName, writePolicy, ttl, false);
+                        cnt++;
+                    }
+                    else
+                        throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> but received a {item.GetType()}.");
+                }
+            }
+            else
+                throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> or List<object> but received a {bins.GetType()}.");
+
+            if (refreshOnNewSet && cnt > 0)
+                this.NamespaceRefresh(setName, false);
+
+            return cnt;
         }
 
         #endregion
