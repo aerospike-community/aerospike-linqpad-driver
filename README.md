@@ -316,14 +316,19 @@ Below is the output from LINQPad:
 | **Cleanup Successful:**                                   |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
 | **TRUE**                                                  |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
 
-## JSON
+## Json Support
 
-The driver supports the use of the Aerospike JSON support. This feature can be turned on or off from within the connection dialog. Below is an example where we show three different methods of obtaining a value within a JSON document. They are:
+You can read and write Json to or from an Aerospike set by means of the “ToJson” and “FromJson“methods. The driver supports embedded JSON data types which are compatible with Json from multiple databases.
+
+## Document API
+
+The driver supports the use of the Aerospike Document API. This feature can be turned on or off from within the connection dialog. Below is an example where we show three different methods of obtaining a value within a JSON document. They are:
 
 -   Using the [Aerospike Operate](https://docs.aerospike.com/apidocs/csharp/html/m_aerospike_client_aerospikeclient_operate_2) API
 -   Using JSON Pathing
--   Using an [Aerospike secondary index](https://docs.aerospike.com/server/architecture/secondary-index) with the driver’s Query extension method with [Aerospike filter expressions](https://docs.aerospike.com/server/operations/configure/cross-datacenter/filters)  
-    The secondary index is defined on “neighbors” bin
+-   Using an [Aerospike secondary index](https://docs.aerospike.com/server/architecture/secondary-index) with the driver’s Query extension method with [Aerospike filter expressions](https://docs.aerospike.com/server/operations/configure/cross-datacenter/filters)
+
+Note that the secondary index is defined on “neighbors” bin in the below example:
 
 ```
 test.graphG1Set.Get("201").Dump("Obtain the complete record from the DB"); 
@@ -397,7 +402,7 @@ Below is the output from LINQPad:
 
 ## Importing/Exporting
 
-The driver can import a valid JSON file into an Aerospike set. The set can be an existing set or a set will be created. Each JSON property will be mapped to an Aerospike bin. Any JSON collection types will be transformed into the corresponding Aerospike CDT. Nested JSON objects will be treated as Aerospike JSON documents.
+The driver can import a valid JSON file into an Aerospike set. The set can be an existing set or a new set which will be created. Each JSON property will be mapped to an Aerospike bin. Any JSON collection types will be transformed into the corresponding Aerospike CDT. Nested JSON objects will be treated as Aerospike JSON documents.
 
 The driver can also export an Aerospike set into a JSON file. Below is an example of an export from the “players” Aerospike set.
 
