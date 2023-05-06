@@ -1552,6 +1552,36 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         .Exists(policy, key);
         }
 
+
+        /// <summary>
+        /// Placeholder for <see cref="System.Linq.Enumerable.Count{TSource}(IEnumerable{TSource})"/>
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException">Always throw since it must be executed from <see cref="AsEnumerable(Exp)"/></exception>
+        public int Count()
+        {
+            throw new NotImplementedException("Count must be executed from the \"AsEnumerable\" method. Ex: mySet.AsEnumerable().Count()");
+        }
+
+        /// <summary>
+        /// Placeholder for <see cref="System.Linq.Enumerable.OrderBy{TSource, TKey}(IEnumerable{TSource}, Func{TSource, TKey})"/>
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException">Always throw since it must be executed from <see cref="AsEnumerable(Exp)"/></exception>
+        public IEnumerable<ARecord> OrderBy(Func<ARecord,int> orderby)            
+        {
+            throw new NotImplementedException("OrderBy must be executed from the \"AsEnumerable\" method. Ex: mySet.AsEnumerable().OrderBy(r => r.PK)");
+        }
+
+        /// <summary>
+        /// Placeholder for <see cref="System.Linq.Enumerable.OrderByDescending{TSource, TKey}(IEnumerable{TSource}, Func{TSource, TKey})"/>
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException">Always throw since it must be executed from <see cref="AsEnumerable(Exp)"/></exception>
+        public IEnumerable<ARecord> OrderByDescending(Func<ARecord, int> orderby)
+        {
+            throw new NotImplementedException("OrderByDescending must be executed from the \"AsEnumerable\" method. Ex: mySet.AsEnumerable().OrderByDescending(r => r.PK)");
+        }
         #endregion
 
         #region Export/Import/JSON

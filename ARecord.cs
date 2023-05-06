@@ -845,20 +845,28 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         ///             <code>&quot;bucket_start_time&quot;: &quot;$timespan&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
         ///     <code>$timestamp</code>,
         ///     <code>$guid</code> or <code>$uuid</code>,
-        ///     <code>$oid</code>,
+        ///     &quot;$oid&quot;,
         ///         If the Json string value equals 40 in length it will be treated as a digest and converted into a byte array.
         ///         Example:
-        ///             <code>&quot;_id&quot;: { &quot;$oid &quot;: &quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; }</code> ==&gt; <code>&quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]</code>
-        ///     <code>$numberint64</code> or <code>$numberlong</code>,
-        ///     <code>$numberint32</code>, or <code>$numberint</code>,
-        ///     <code>$numberdecimal</code>,
-        ///     <code>$numberdouble</code>,
-        ///     <code>$numberfloat</code> or <code>$single</code>,
-        ///     <code>$numberint16</code> or <code>$numbershort</code>,
-        ///     <code>$numberuint32</code> or <code>$numberuint</code>,
-        ///     <code>$numberuint64</code> or <code>$numberulong</code>,
-        ///     <code>$numberuint16</code> or <code>$numberushort</code>,
+        ///             &quot; _id&quot;: { &quot;$oid&quot;:&quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; } ==&gt; &quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]
+        ///         This type can also take an optional keyword as a value. They are:
+        ///             <code>$guid</code> or <code>&uuid</code> -- If provided, a new guid/uuid is generate as a unique value used
+        ///             <code>$numeric</code> -- a sequential number starting at 1 will be used
+        ///         Example:
+        ///             &quot; _id&quot;: { &quot;$oid&quot;: &quot;$uuid&quot; } ==&gt; Generates a new uuid as the _id value
+        ///     <code>$numberint64</code>, <code>$numberlong</code> or <code>$long</code>,
+        ///     <code>$numberint32</code>, <code>$numberint</code>, or <code>$int</code>,
+        ///     <code>$numberdecimal</code> or  <code>$decimal</code>,
+        ///     <code>$numberdouble</code> or  <code>$double</code>,
+        ///     <code>$numberfloat</code>, <code>$single</code>, or  <code>$float</code>,
+        ///     <code>$numberint16</code>, <code>$numbershort</code> or  <code>$short</code>,
+        ///     <code>$numberuint32</code>, <code>$numberuint</code>, or  <code>$uint</code>,
+        ///     <code>$numberuint64</code>, <code>$numberulong</code>, or  <code>$ulong</code>,
+        ///     <code>$numberuint16</code>, <code>$numberushort</code> or  <code>$ushort</code>,
         ///     <code>$bool</code> or <code>$boolean</code>;
+        ///     <code>$type</code>
+        ///         This item must be the first property in a JObject where the property&apos;s value is a .NET type.
+        ///         All reminding elements will be transformed into that .NET object.
         /// </remarks>
         public static ARecord FromJson(string nameSpace,
                                         string setName,
@@ -920,20 +928,28 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         ///             <code>&quot;bucket_start_time&quot;: &quot;$timespan&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
         ///     <code>$timestamp</code>,
         ///     <code>$guid</code> or <code>$uuid</code>,
-        ///     <code>$oid</code>,
+        ///     &quot;$oid&quot;,
         ///         If the Json string value equals 40 in length it will be treated as a digest and converted into a byte array.
         ///         Example:
-        ///             <code>&quot;_id&quot;: { &quot;$oid &quot;: &quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; }</code> ==&gt; <code>&quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]</code>
-        ///     <code>$numberint64</code> or <code>$numberlong</code>,
-        ///     <code>$numberint32</code>, or <code>$numberint</code>,
-        ///     <code>$numberdecimal</code>,
-        ///     <code>$numberdouble</code>,
-        ///     <code>$numberfloat</code> or <code>$single</code>,
-        ///     <code>$numberint16</code> or <code>$numbershort</code>,
-        ///     <code>$numberuint32</code> or <code>$numberuint</code>,
-        ///     <code>$numberuint64</code> or <code>$numberulong</code>,
-        ///     <code>$numberuint16</code> or <code>$numberushort</code>,
+        ///             &quot; _id&quot;: { &quot;$oid&quot;:&quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; } ==&gt; &quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]
+        ///         This type can also take an optional keyword as a value. They are:
+        ///             <code>$guid</code> or <code>&uuid</code> -- If provided, a new guid/uuid is generate as a unique value used
+        ///             <code>$numeric</code> -- a sequential number starting at 1 will be used
+        ///         Example:
+        ///             &quot; _id&quot;: { &quot;$oid&quot;: &quot;$uuid&quot; } ==&gt; Generates a new uuid as the _id value
+        ///     <code>$numberint64</code>, <code>$numberlong</code> or <code>$long</code>,
+        ///     <code>$numberint32</code>, <code>$numberint</code>, or <code>$int</code>,
+        ///     <code>$numberdecimal</code> or  <code>$decimal</code>,
+        ///     <code>$numberdouble</code> or  <code>$double</code>,
+        ///     <code>$numberfloat</code>, <code>$single</code>, or  <code>$float</code>,
+        ///     <code>$numberint16</code>, <code>$numbershort</code> or  <code>$short</code>,
+        ///     <code>$numberuint32</code>, <code>$numberuint</code>, or  <code>$uint</code>,
+        ///     <code>$numberuint64</code>, <code>$numberulong</code>, or  <code>$ulong</code>,
+        ///     <code>$numberuint16</code>, <code>$numberushort</code> or  <code>$ushort</code>,
         ///     <code>$bool</code> or <code>$boolean</code>;
+        ///     <code>$type</code>
+        ///         This item must be the first property in a JObject where the property&apos;s value is a .NET type.
+        ///         All reminding elements will be transformed into that .NET object.
         /// </remarks>
         public static ARecord FromJson(string nameSpace,
                                         string setName,

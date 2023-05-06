@@ -400,7 +400,21 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     var genericTypes = dictValue.GetType().GetGenericArguments();
 
-                    if (genericTypes.Length == 0
+                    if(genericTypes.Length == 2
+                            && genericTypes[0] == typeof(string)
+                            && !IsAerospikeType(genericTypes[1]))
+                    {
+                        var newDict = new Dictionary<string, object>();
+                        
+                        foreach (DictionaryEntry kvp in dictValue)
+                        {
+                            newDict.Add((string) kvp.Key,
+                                        ConvertToAerospikeType(kvp.Value));                            
+                        }
+
+                        putObject = newDict;
+                    }
+                    else if (genericTypes.Length == 0
                             || !IsAerospikeType(genericTypes[0])
                             || !IsAerospikeType(genericTypes[1]))
                     {
@@ -425,6 +439,10 @@ namespace Aerospike.Database.LINQPadDriver
                         }
                         putObject = newDict;
                     }
+                }
+                else if (putObject is byte[] byteArray)
+                {
+                    putObject = byteArray;
                 }
                 else if (putObject is IEnumerable enumerableValue)
                 {

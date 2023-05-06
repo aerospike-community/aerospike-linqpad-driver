@@ -199,8 +199,7 @@ namespace Aerospike.Database.LINQPadDriver
         }
 
         public void Close()
-        {
-            //Debugger.Launch();
+        {            
             if(this.State == ConnectionState.Open || this.State == ConnectionState.Connecting)
             {
                 this.Connection?.Close();
