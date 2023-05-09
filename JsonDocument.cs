@@ -253,7 +253,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         ///         Example:
         ///             &quot; _id&quot;: { &quot;$oid&quot;:&quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; } ==&gt; &quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]
         ///         This type can also take an optional keyword as a value. They are:
-        ///             $guid or &uuid -- If provided, a new guid/uuid is generate as a unique value used
+        ///             $guid or $uuid -- If provided, a new guid/uuid is generate as a unique value used
         ///             $numeric -- a sequential number starting at 1 will be used
         ///         Example:
         ///             &quot; _id&quot;: { &quot;$oid&quot;: &quot;$uuid&quot; } ==&gt; Generates a new uuid as the _id value

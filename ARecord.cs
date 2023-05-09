@@ -52,16 +52,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             var recordBins = record.bins?.Keys.ToArray();
             this.BinsHashCode = Helpers.GetHashCode(recordBins);
-
+            
             if (this.BinsHashCode != this.SetBinsHashCode && this.DumpType == DumpTypes.Record)
-            {
-                if (recordBins.Length < this.Aerospike.BinNames?.Length
+            {                
+                if (recordBins.Length <= this.Aerospike.BinNames?.Length
                         && recordBins.All(n => this.Aerospike.BinNames.Contains(n)))
                 { }
                 else
                 {
                     this.DumpType = DumpTypes.Dynamic;
-                    this.HasExtendedBins= true;
+                    this.HasChangedSchema= true;
                 }
             }
         }
@@ -113,8 +113,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             
             if (this.BinsHashCode != this.SetBinsHashCode && this.DumpType == DumpTypes.Record)
             {
-                this.DumpType = DumpTypes.Dynamic;
-                this.HasExtendedBins = true;                
+                if (binValues.Count <= this.Aerospike.BinNames?.Length
+                        && binValues.All(n => this.Aerospike.BinNames.Contains(n.Key)))
+                { }
+                else
+                {
+                    this.DumpType = DumpTypes.Dynamic;
+                    this.HasChangedSchema = true;
+                }
             }
         }
 
@@ -124,7 +130,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DumpType = cloneRecord.DumpType;
             this.SetBinsHashCode = cloneRecord.SetBinsHashCode;
             this.BinsHashCode = cloneRecord.BinsHashCode;
-            this._hasExtendedBins = cloneRecord._hasExtendedBins;
+            this.HasChangedSchema = cloneRecord.HasChangedSchema;
             this.RecordException= cloneRecord.RecordException;
         }
 
@@ -194,26 +200,20 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return this;
         }
 
-        private bool _hasExtendedBins;
-
         /// <summary>
-        /// Returns true to indicated that this record had bins that were not detected by the associated Set.
+        /// Returns true to indicated that this record&apos;s schema does not match when the set was scanned.
         /// </summary>
-        public bool HasExtendedBins
+        public bool HasChangedSchema
         {
-            get => this._hasExtendedBins;
-            set
-            {
-                this._hasExtendedBins = value;
-            }
+            get;
         }
         
         /// <summary>
-        /// This is the Set's BinName Names Hash Code
+        /// This is the Set's Bin Names Hash Code
         /// </summary>
         private int SetBinsHashCode { get; }
         /// <summary>
-        /// This is the Record's BinName Name Hash Code
+        /// This is the Record&apos;s Bin Name Hash Code
         /// </summary>
         private int BinsHashCode { get; }
         
@@ -497,7 +497,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         /// <summary>
         /// Container for Aerospike API Properties.
+        /// You can obtain <see cref="Aerospike.Client.Record"/> instance, namespace, set name, etc. 
         /// </summary>
+        /// <seealso cref="ARecord.AerospikeAPI.Record"/>
+        /// <seealso cref="ARecord.AerospikeAPI.Values"/>
         public AerospikeAPI Aerospike { get; }
 
         #endregion
@@ -642,10 +645,61 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Aerospike.Client.BinNameAttribute"/>
         /// <seealso cref="Aerospike.Client.BinIgnoreAttribute"/>
         /// <seealso cref="Aerospike.Client.ConstructorAttribute"/>
+        /// <seealso cref="Cast{T}(object, Func{string, Type, string, object, object})"/>
         public T Cast<T>(Func<string, Type, string, object, object> transform = null)
         {            
             return (T)Helpers.Transform<T>(this.Aerospike.Record.bins, transform);
         }
+
+        /// <summary>
+        /// Will convert the record into a user defined class were the bin's name is matches the class's field/property name and type.
+        /// <seealso cref="Aerospike.Client.BinNameAttribute"/>
+        /// <seealso cref="Aerospike.Client.BinIgnoreAttribute"/>
+        /// <seealso cref="Aerospike.Client.ConstructorAttribute"/>
+        /// </summary>
+        /// <typeparam name="T">user defined class</typeparam>
+        /// <param name="primaryKey">
+        /// The primary key can be a <see cref="Aerospike.Client.Key"/>, <see cref="Aerospike.Client.Value"/>, digest (byte[]), or a .net type.
+        /// </param>  
+        /// <param name="transform">
+        /// A action that is called to perform customized transformation. 
+        /// First argument -- the name of the property/field
+        /// Second argument -- the property/field type
+        /// Third argument -- bin name
+        /// Fourth argument -- bin value
+        /// Returns the new transformed object or null to indicate that this transformation should be skipped.
+        /// </param>
+        /// <returns>
+        /// An instance of the class or an exception.
+        /// </returns>
+        /// <exception cref="MissingMethodException">Thrown if the constructor for the type cannot be determined</exception>
+        /// <seealso cref="Aerospike.Client.BinNameAttribute"/>
+        /// <seealso cref="Aerospike.Client.BinIgnoreAttribute"/>
+        /// <seealso cref="Aerospike.Client.ConstructorAttribute"/>
+        /// <seealso cref="Cast{T}(Func{string, Type, string, object, object})"/>
+        public T Cast<T>(object primaryKey, Func<string, Type, string, object, object> transform = null)
+        {
+            Client.Key pk = null;
+            
+            if (primaryKey != null)
+            {
+                pk = Helpers.DetermineAerospikeKey(primaryKey, this.Aerospike.Namespace, this.Aerospike.SetName);
+            }
+
+            return (T)Helpers.Transform<T>(this.Aerospike.Record.bins, transform, pk);
+        }
+
+        /// <summary>
+        /// Converts the record into a Dictionary&lt;string, object&gt; where the key is the bin name and the value is the bin&apos;s value.
+        /// To obtain the actual Aerospike Record see <see cref="AerospikeAPI.Record"/>.
+        /// </summary>
+        /// <returns>
+        /// An IDictionary where the key is the bin name and the value is the bin&apos;s value.
+        /// </returns>
+        /// <seealso cref="ARecord.AerospikeAPI.Values"/>
+        /// <seealso cref="ARecord.AerospikeAPI.Record"/>
+        /// <seealso cref="ARecord.AerospikeAPI.GetValues"/>
+        public IDictionary<string, object> ToDictionary() => new Dictionary<string, object>((IDictionary<string, object>)this.Aerospike.GetValues());
 
         #region JSON
 
@@ -783,9 +837,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 if(useDigest || this.Aerospike.Key.userKey is null)
                 {
-                    var jDigest = new JObject();
-                    jDigest.Add("$oid", JToken.FromObject(Helpers.ByteArrayToString(this.Aerospike.Key.digest)));
-
+                    var jDigest = new JObject()
+                    {
+                        ["$oid"] = JToken.FromObject(Helpers.ByteArrayToString(this.Aerospike.Key.digest))
+                    };
+                    
                     jsonStruct.Add(pkPropertyName, jDigest);
                 }
                 else
@@ -850,7 +906,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         ///         Example:
         ///             &quot; _id&quot;: { &quot;$oid&quot;:&quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; } ==&gt; &quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]
         ///         This type can also take an optional keyword as a value. They are:
-        ///             <code>$guid</code> or <code>&uuid</code> -- If provided, a new guid/uuid is generate as a unique value used
+        ///             <code>$guid</code> or <code>$uuid</code> -- If provided, a new guid/uuid is generate as a unique value used
         ///             <code>$numeric</code> -- a sequential number starting at 1 will be used
         ///         Example:
         ///             &quot; _id&quot;: { &quot;$oid&quot;: &quot;$uuid&quot; } ==&gt; Generates a new uuid as the _id value
@@ -933,7 +989,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         ///         Example:
         ///             &quot; _id&quot;: { &quot;$oid&quot;:&quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; } ==&gt; &quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]
         ///         This type can also take an optional keyword as a value. They are:
-        ///             <code>$guid</code> or <code>&uuid</code> -- If provided, a new guid/uuid is generate as a unique value used
+        ///             <code>$guid</code> or <code>$uuid</code> -- If provided, a new guid/uuid is generate as a unique value used
         ///             <code>$numeric</code> -- a sequential number starting at 1 will be used
         ///         Example:
         ///             &quot; _id&quot;: { &quot;$oid&quot;: &quot;$uuid&quot; } ==&gt; Generates a new uuid as the _id value

@@ -49,6 +49,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultReadPolicy = new QueryPolicy(this.DefaultQueryPolicy);
         }
 
+
+        /// <summary>
+        /// Refreshes the set name schema by querying the Aerospike DB. 
+        /// This function is not thread safe!!
+        /// </summary>
+        /// <param name="setName">The name of the set</param>
+        public void RefreshSet(string setName)
+        {
+            this.NamespaceRefresh(setName, false);
+        }
+
         private void NamespaceRefresh(string setName, bool forceRefresh)
         {
             this._sets = Enumerable.Empty<SetRecords>();
@@ -212,7 +223,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null,
                             bool refreshOnNewSet = true)
-        {
+        {            
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
             if (ttl.HasValue)
@@ -387,7 +398,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null,
                             bool refreshOnNewSet = true)
-        {           
+        {
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
             if (ttl.HasValue)
@@ -406,28 +417,40 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         /// <summary>
         /// Writes the instance where each field/property is a bin name and the associated value the bin's value.
-        /// <seealso cref="Aerospike.Client.BinNameAttribute"/>
+        /// <seealso cref="Aerospike.Client.BinNameAttribute"/> and any of the &quot;Put&quot; methods.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="primaryKey"></param>
-        /// <param name="instance"></param>
+        /// <param name="primaryKey">
+        /// Primary AerospikeKey.
+        /// This can be a <see cref="Client.Key"/>, <see cref="Value"/>, or <see cref="Bin"/> object besides a native, collection, etc. value/object.
+        /// </param>
+        /// <param name="instance">
+        /// The instance that will be transformed into an Aerospike Record.
+        /// </param>
         /// <param name="setName">Set name or null for the null set</param>
         /// <param name="transform">
         /// A action that is called to perform customized transformation. 
-        /// First argument -- the name of the kvPair
-        /// Second argument -- the name of the bin (can be different from kvPair if JsonPropertyNameAttribute is defined)
-        /// Third argument -- the instance being transformed
+        /// First argument -- the name of the property/field within the instance/class
+        /// Second argument -- the name of the bin (can be different from property/field name if <see cref="BinNameAttribute"/> is defined)
+        /// Third argument -- the <paramref name="instance"/> being transformed
         /// Fourth argument -- if true the instance is within another object.
-        /// Returns the new transformed object or null to indicate that this kvPair should be skipped.
+        /// Returns the new transformed object or null to indicate that this instance should be skipped.
         /// </param>
         /// <param name="doctumentBinName">
         /// If provided the record is created as a document and this will be the name of the bin. 
         /// </param>
         /// <param name="writePolicy"></param>
         /// <param name="ttl"></param>
+        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         /// <seealso cref="Aerospike.Client.BinNameAttribute"/>
         /// <seealso cref="Aerospike.Client.BinIgnoreAttribute"/>
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
+        /// <seealso cref="Put(dynamic, IEnumerable{Bin}, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Put{T}(dynamic, string, IEnumerable{T}, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Put{T}(dynamic, string, IList{T}, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Put{V}(dynamic, IDictionary{string, V}, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Put{V}(dynamic, string, V, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <see cref="Put(ARecord, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <exception cref="TypeAccessException">Thrown if cannot write <paramref name="instance"/></exception>
         public void WriteObject<T>([NotNull] dynamic primaryKey,
                                     [NotNull] T instance,
                                     string setName = null,
@@ -435,9 +458,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     string doctumentBinName = null,
                                     WritePolicy writePolicy = null,
                                     TimeSpan? ttl = null,
-                                     bool refreshOnNewSet = true)
-        {
-           
+                                    bool refreshOnNewSet = true)
+        {            
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
             if (ttl.HasValue)
@@ -447,9 +469,19 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             var key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName);
 
-            var dictItem = instance is ARecord asRecord2
-                                ? asRecord2.Aerospike.GetValues()
-                                : Helpers.TransForm(instance, transform);
+            Dictionary<string, object> dictItem;
+
+            if (instance is ARecord)
+            {
+                throw new TypeAccessException($"Don't know how to Write an ARecord instance. Try using a \"Put\" method.");
+            }
+            else if (instance is IEnumerable)
+            {
+                var instanceType = Helpers.GetRealTypeName(instance.GetType());
+                throw new TypeAccessException($"Don't know how to Write an IEnumerable Object (\"{instanceType}\"). Try using a \"Put\" method or call this method on each item in the collection.");
+            }
+            else
+                dictItem = Helpers.TransForm(instance, transform);
 
             if(string.IsNullOrEmpty(doctumentBinName))
             {

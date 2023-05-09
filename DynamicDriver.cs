@@ -423,7 +423,7 @@ namespace {nameSpace}
                             {
 								var idxDataType = setBins.Item3.FirstOrDefault(b => b.bin == sidx.Bin).type;
 
-								if (idxDataType == null) idxDataType = typeof(object);
+								if (idxDataType is null) idxDataType = typeof(object);
 
                                 idxProps.AppendLine($@"
 			public Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess<RecordCls> {sidx.SafeName} 
