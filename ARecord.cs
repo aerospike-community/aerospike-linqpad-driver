@@ -11,6 +11,7 @@ using LPU = LINQPad.Util;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Windows.Input;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -61,7 +62,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 else
                 {
                     this.DumpType = DumpTypes.Dynamic;
-                    this.HasChangedSchema= true;
+                    this.HasDifferentSchema= true;
                 }
             }
         }
@@ -119,7 +120,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 else
                 {
                     this.DumpType = DumpTypes.Dynamic;
-                    this.HasChangedSchema = true;
+                    this.HasDifferentSchema = true;
                 }
             }
         }
@@ -130,7 +131,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DumpType = cloneRecord.DumpType;
             this.SetBinsHashCode = cloneRecord.SetBinsHashCode;
             this.BinsHashCode = cloneRecord.BinsHashCode;
-            this.HasChangedSchema = cloneRecord.HasChangedSchema;
+            this.HasDifferentSchema = cloneRecord.HasDifferentSchema;
             this.RecordException= cloneRecord.RecordException;
         }
 
@@ -203,7 +204,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Returns true to indicated that this record&apos;s schema does not match when the set was scanned.
         /// </summary>
-        public bool HasChangedSchema
+        public bool HasDifferentSchema
         {
             get;
         }
@@ -1222,21 +1223,29 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 }
             }
 
-            var pkKVP = dict.FirstOrDefault(kvp => kvp.Key == DefaultASPIKeyName);
-            var exceptionFld = dict.FirstOrDefault(kvp => kvp.Key == nameof(RecordException));
-
-            if (pkKVP.Key is null && exceptionFld.Key is null) return expando;
-
-            if(pkKVP.Key != null && pkKVP.Value is AValue pKey)
+            foreach(var kvp in dict.ToArray())
             {
-                dict[DefaultASPIKeyName] = pKey.ToDump();
+                
+                if(kvp.Value is AValue aValue)
+                {
+                    if (kvp.Key == DefaultASPIKeyName)
+                    {
+                        dict[DefaultASPIKeyName] = aValue.ToDump();
+                    }
+                    else
+                    {
+                        dict[kvp.Key] = aValue.ToDump();
+                    }
+                }                    
             }
+
+           var exceptionFld = dict.FirstOrDefault(kvp => kvp.Key == nameof(RecordException));
 
             if (exceptionFld.Key != null && exceptionFld.Value is Exception exception)
             {
                 dict[nameof(RecordException)] = LPU.WithStyle(exception, "color:Red");
             }
-
+            
             return expando;
         }
 

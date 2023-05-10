@@ -718,17 +718,21 @@ namespace Aerospike.Database.LINQPadDriver
 
             if (aType == bType) return a.Equals(b);
 
-            if (!aType.IsGenericType
-                && !bType.IsGenericType
-                && Marshal.SizeOf(aType) < Marshal.SizeOf(bType))
+            if (aType.IsPrimitive
+                && aType.IsPrimitive
+                && Marshal.SizeOf(aType) <= Marshal.SizeOf(bType))
             {
                 if (Helpers.IsSubclassOfInterface(typeof(IConvertible), aType))
                     return ((IConvertible)a).ToType(bType, null).Equals(b);
 
             }
 
-            if (Helpers.IsSubclassOfInterface(typeof(IConvertible), bType))
-                return ((IConvertible)b).ToType(aType, null).Equals(a);
+            try
+            {
+                if (Helpers.IsSubclassOfInterface(typeof(IConvertible), bType))
+                    return ((IConvertible)b).ToType(aType, null).Equals(a);
+            }
+            catch { }
 
             return false;
         }
@@ -762,6 +766,7 @@ namespace Aerospike.Database.LINQPadDriver
                                 : (castValue is string
                                     ? $"\"{castValue}\""
                                     : castValue.ToString());
+                
                 if (binName == fldName)
                     return new ArgumentException($"Bin \"{binName}\" with Value {castStr} ({GetRealTypeName(binValue?.GetType()) ?? "<UnKnownType>"}) could not be cast to field type {GetRealTypeName(fldType)}",
                                                     innerException);
@@ -776,655 +781,667 @@ namespace Aerospike.Database.LINQPadDriver
             }
             else
             {
-                switch (binValue)
+                try
                 {
-                    case byte byteValue:
-                        {
-                            if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                            {
-                                return binValue is null
-                                        ? null
-                                        : CastToNativeType(fldName, fldType.GetGenericArguments()[0], binName, binValue);
-                            }
-
-                            if (fldType == typeof(short))
-                            {
-                                return (short)byteValue;
-                            }
-                            else if (fldType == typeof(int))
-                            {
-                                return (int)byteValue;
-                            }
-                            else if (fldType == typeof(uint))
-                            {
-                                return (uint)byteValue;
-                            }
-                            else if (fldType == typeof(ulong))
-                            {
-                                return (ulong)byteValue;
-                            }
-                            else if (fldType == typeof(ushort))
-                            {
-                                return (ushort)byteValue;
-                            }
-                            else if (fldType == typeof(decimal))
-                            {
-                                return (decimal)byteValue;
-                            }
-                            else if (fldType == typeof(float))
-                            {
-                                return (float)byteValue;
-                            }
-                            else if (fldType == typeof(double))
-                            {
-                                return (double)byteValue;
-                            }
-                            else if (fldType == typeof(bool))
-                            {
-                                return byteValue != 0;
-                            }
-                            else if (fldType == typeof(string))
-                            {
-                                return byteValue.ToString();
-                            }
-                            else
-                            {
-                                throw CreateException(byteValue);
-                            }
-                        }
-                    case Int64 intValue:
-                        {
-                            if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                            {
-                                return binValue is null
-                                        ? null
-                                        : CastToNativeType(fldName, fldType.GetGenericArguments()[0], binName, binValue);
-                            }
-
-                            if (fldType == typeof(short))
-                            {
-                                return (short)intValue;
-                            }
-                            else if (fldType == typeof(int))
-                            {
-                                return (int)intValue;
-                            }
-                            else if (fldType == typeof(long))
-                            {
-                                return (long)intValue;
-                            }
-                            else if (fldType == typeof(uint))
-                            {
-                                return (uint)intValue;
-                            }
-                            else if (fldType == typeof(ulong))
-                            {
-                                return (ulong)intValue;
-                            }
-                            else if (fldType == typeof(ushort))
-                            {
-                                return (ushort)intValue;
-                            }
-                            else if (fldType == typeof(decimal))
-                            {
-                                return (decimal)intValue;
-                            }
-                            else if (fldType == typeof(float))
-                            {
-                                return (float)intValue;
-                            }
-                            else if (fldType == typeof(double))
-                            {
-                                return (double)intValue;
-                            }
-                            else if (fldType == typeof(bool))
-                            {
-                                return (long)intValue != 0;
-                            }
-                            else if (fldType == typeof(string))
-                            {
-                                return intValue.ToString();
-                            }
-                            else if (fldType.IsEnum)
-                            {
-                                return Enum.ToObject(fldType, intValue);
-                            }
-                            else if (fldType == typeof(DateTime))
-                            {
-
-                                return UseUnixEpochNanoForNumericDateTime || AllDateTimeUseUnixEpochNano
-                                        ? NanoEpochToDateTime(intValue)
-                                        : new DateTime(intValue);
-                            }
-                            else if (fldType == typeof(DateTimeOffset))
-                            {
-                                return UseUnixEpochNanoForNumericDateTime || AllDateTimeUseUnixEpochNano
-                                        ? new DateTimeOffset(NanoEpochToDateTime(intValue), TimeSpan.Zero)
-                                        : new DateTimeOffset(intValue, TimeSpan.Zero);
-                            }
-                            else if (fldType == typeof(TimeSpan))
-                            {
-                                return UseUnixEpochNanoForNumericDateTime || AllDateTimeUseUnixEpochNano
-                                        ? new TimeSpan(intValue / 100)
-                                        : new TimeSpan(intValue);
-                            }
-                            else
-                            {
-                                throw CreateException(intValue);
-                            }
-                        }
-                    case double doubleValue:
-                        {
-                            if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                            {
-                                return binValue is null
-                                        ? null
-                                        : CastToNativeType(fldName, fldType.GetGenericArguments()[0], binName, binValue);
-                            }
-
-                            if (fldType == typeof(short))
-                            {
-                                return (short)doubleValue;
-                            }
-                            else if (fldType == typeof(int))
-                            {
-                                return (int)doubleValue;
-                            }
-                            else if (fldType == typeof(uint))
-                            {
-                                return (uint)doubleValue;
-                            }
-                            else if (fldType == typeof(ulong))
-                            {
-                                return (ulong)doubleValue;
-                            }
-                            else if (fldType == typeof(ushort))
-                            {
-                                return (ushort)doubleValue;
-                            }
-                            else if (fldType == typeof(decimal))
-                            {
-                                return (decimal)doubleValue;
-                            }
-                            else if (fldType == typeof(float))
-                            {
-                                return (float)doubleValue;
-                            }
-                            else if (fldType == typeof(double))
-                            {
-                                return (double)doubleValue;
-                            }
-                            else if (fldType == typeof(bool))
-                            {
-                                return doubleValue != 0;
-                            }
-                            else if (fldType == typeof(string))
-                            {
-                                return doubleValue.ToString();
-                            }
-                            else
-                            {
-                                throw CreateException(doubleValue);
-                            }
-                        }
-                    case string strValue:
-                        {
-                            if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                            {
-                                if (strValue == null) return null;
-
-                                return CastToNativeType(fldName,
-                                                            fldType.GetGenericArguments()[0],
-                                                            binName,
-                                                            binValue);
-                            }
-
-                            if (string.IsNullOrEmpty(strValue))
-                            {
-                                return strValue;
-                            }
-                            else if (fldType == typeof(DateTime))
-                            {
-                                if (DateTime.TryParse(strValue, out DateTime dateTime))
-                                    return dateTime;
-
-                                return DateTime.ParseExact(strValue, DateTimeFormat, CultureInfo.InvariantCulture);
-                            }
-                            else if (fldType == typeof(DateTimeOffset))
-                            {
-                                if (DateTimeOffset.TryParse(strValue, out DateTimeOffset dateTime))
-                                    return dateTime;
-
-                                return DateTimeOffset.ParseExact(strValue, DateTimeFormat, CultureInfo.InvariantCulture);
-                            }
-                            else if (fldType == typeof(TimeSpan))
-                            {
-                                if (TimeSpan.TryParse(strValue, out TimeSpan timespan))
-                                    return timespan;
-
-                                return TimeSpan.ParseExact(strValue, DateTimeFormat, CultureInfo.InvariantCulture);
-                            }
-                            else if (fldType == typeof(bool))
-                            {
-                                return bool.Parse(strValue);
-                            }
-                            else if (fldType == typeof(short))
-                            {
-                                return short.Parse(strValue);
-                            }
-                            else if (fldType == typeof(int))
-                            {
-                                return int.Parse(strValue);
-                            }
-                            else if (fldType == typeof(long))
-                            {
-                                return long.Parse(strValue);
-                            }
-                            else if (fldType == typeof(uint))
-                            {
-                                return uint.Parse(strValue);
-                            }
-                            else if (fldType == typeof(ulong))
-                            {
-                                return ulong.Parse(strValue);
-                            }
-                            else if (fldType == typeof(ushort))
-                            {
-                                return ushort.Parse(strValue);
-                            }
-                            else if (fldType == typeof(decimal))
-                            {
-                                return decimal.Parse(strValue);
-                            }
-                            else if (fldType == typeof(float))
-                            {
-                                return float.Parse(strValue);
-                            }
-                            else if (fldType == typeof(double))
-                            {
-                                return double.Parse(strValue);
-                            }
-                            else if (fldType == typeof(Guid))
-                            {
-                                return new Guid(strValue);
-                            }
-                            else if (fldType == typeof(JObject))
-                            {
-                                return JObject.Parse(strValue);
-                            }
-                            else if (fldType == typeof(JToken))
-                            {
-                                return JToken.Parse(strValue);
-                            }
-                            else if (fldType == typeof(JArray))
-                            {
-                                return JArray.Parse(strValue);
-                            }
-                            else if (fldType.IsEnum)
-                            {
-                                return Enum.Parse(fldType, strValue, true);
-                            }
-                            else
-                            {
-                                throw CreateException(strValue);
-                            }
-                        }
-                    case DateTime dtValue:
-                        {
-                            if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                            {
-                                return binValue is null
-                                        ? null
-                                        : CastToNativeType(fldName,
-                                                            fldType.GetGenericArguments()[0],
-                                                            binName,
-                                                            binValue);
-                            }
-
-                            if (fldType == typeof(DateTime))
-                            {
-                                return dtValue;
-                            }
-                            else if (fldType == typeof(DateTimeOffset))
-                            {
-                                return new DateTimeOffset(dtValue);
-                            }
-                            else if (fldType == typeof(string))
-                            {
-                                return dtValue.ToString(DateTimeFormat);
-                            }
-                            else if (fldType == typeof(long))
-                            {
-                                if (AllDateTimeUseUnixEpochNano)
-                                    return NanosFromEpoch(dtValue);
-
-                                return dtValue.Ticks;
-                            }
-                            else if (fldType == typeof(JObject))
-                            {
-                                return JObject.FromObject(dtValue);
-                            }
-                            else if (fldType == typeof(JToken))
-                            {
-                                return JToken.FromObject(dtValue);
-                            }
-                            else
-                            {
-                                throw CreateException(dtValue);
-                            }
-                        }
-                    case DateTimeOffset dtoValue:
-                        {
-                            if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
-                            {
-                                return binValue is null
-                                        ? null
-                                        : CastToNativeType(fldName,
-                                                            fldType.GetGenericArguments()[0],
-                                                            binName,
-                                                            binValue);
-                            }
-
-                            if (fldType == typeof(DateTime))
-                            {
-                                return dtoValue.DateTime;
-                            }
-                            else if (fldType == typeof(DateTimeOffset))
-                            {
-                                return dtoValue;
-                            }
-                            else if (fldType == typeof(string))
-                            {
-                                return dtoValue.ToString(DateTimeFormat);
-                            }
-                            else if (fldType == typeof(long))
-                            {
-                                if (AllDateTimeUseUnixEpochNano)
-                                    return NanosFromEpoch(dtoValue.DateTime);
-
-                                return dtoValue.Ticks;
-                            }
-                            else if (fldType == typeof(JObject))
-                            {
-                                return JObject.FromObject(dtoValue);
-                            }
-                            else if (fldType == typeof(JToken))
-                            {
-                                return JToken.FromObject(dtoValue);
-                            }
-                            else
-                            {
-                                throw CreateException(dtoValue);
-                            }
-                        }
-                    case IList<object> lstValue:
-                        {
-                            if (fldType.IsArray)
-                            {
-                                var itemType = fldType.GetElementType();
-                                var newArray = Array.CreateInstance(itemType, lstValue.Count);
-                                var idx = 0;
-
-                                foreach (var item in lstValue.Select(i => CastToNativeType(fldName, itemType, binName, i)).ToArray())
+                    switch (binValue)
+                    {
+                        case byte byteValue:
+                            {
+                                if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
                                 {
-                                    newArray.SetValue(item, idx++);
+                                    return binValue is null
+                                            ? null
+                                            : CastToNativeType(fldName, fldType.GetGenericArguments()[0], binName, binValue);
                                 }
 
-                                return newArray;
-                            }
-
-                            if (IsSubclassOfInterface(typeof(IList<>), fldType))
-                            {
-                                var itemTypes = fldType.GetGenericArguments();
-                                var newList = (IList)Activator.CreateInstance(fldType.GetGenericTypeDefinition().MakeGenericType(itemTypes[0]));
-
-                                foreach (var item in lstValue.Select(i => CastToNativeType(fldName, itemTypes[0], binName, i)).ToArray())
+                                if (fldType == typeof(short))
                                 {
-                                    newList.Add(item);
+                                    return (short)byteValue;
+                                }
+                                else if (fldType == typeof(int))
+                                {
+                                    return (int)byteValue;
+                                }
+                                else if (fldType == typeof(uint))
+                                {
+                                    return (uint)byteValue;
+                                }
+                                else if (fldType == typeof(ulong))
+                                {
+                                    return (ulong)byteValue;
+                                }
+                                else if (fldType == typeof(ushort))
+                                {
+                                    return (ushort)byteValue;
+                                }
+                                else if (fldType == typeof(decimal))
+                                {
+                                    return (decimal)byteValue;
+                                }
+                                else if (fldType == typeof(float))
+                                {
+                                    return (float)byteValue;
+                                }
+                                else if (fldType == typeof(double))
+                                {
+                                    return (double)byteValue;
+                                }
+                                else if (fldType == typeof(bool))
+                                {
+                                    return byteValue != 0;
+                                }
+                                else if (fldType == typeof(string))
+                                {
+                                    return byteValue.ToString();
+                                }
+                                else
+                                {
+                                    throw CreateException(byteValue);
+                                }
+                            }
+                        case Int64 intValue:
+                            {
+                                if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                {
+                                    return binValue is null
+                                            ? null
+                                            : CastToNativeType(fldName, fldType.GetGenericArguments()[0], binName, binValue);
                                 }
 
-                                return newList;
-                            }
-
-                            if (fldType != typeof(string) && IsSubclassOfInterface(typeof(IEnumerable<>), fldType))
-                            {
-                                var itemTypes = fldType.GetGenericArguments();
-                                var newArray = Array.CreateInstance(itemTypes[0], lstValue.Count);
-                                var idx = 0;
-
-                                foreach (var item in lstValue.Select(i => CastToNativeType(fldName, itemTypes[0], binName, i)).ToArray())
+                                if (fldType == typeof(short))
                                 {
-                                    newArray.SetValue(item, idx++);
+                                    return (short)intValue;
+                                }
+                                else if (fldType == typeof(int))
+                                {
+                                    return (int)intValue;
+                                }
+                                else if (fldType == typeof(long))
+                                {
+                                    return (long)intValue;
+                                }
+                                else if (fldType == typeof(uint))
+                                {
+                                    return (uint)intValue;
+                                }
+                                else if (fldType == typeof(ulong))
+                                {
+                                    return (ulong)intValue;
+                                }
+                                else if (fldType == typeof(ushort))
+                                {
+                                    return (ushort)intValue;
+                                }
+                                else if (fldType == typeof(decimal))
+                                {
+                                    return (decimal)intValue;
+                                }
+                                else if (fldType == typeof(float))
+                                {
+                                    return (float)intValue;
+                                }
+                                else if (fldType == typeof(double))
+                                {
+                                    return (double)intValue;
+                                }
+                                else if (fldType == typeof(bool))
+                                {
+                                    return (long)intValue != 0;
+                                }
+                                else if (fldType == typeof(string))
+                                {
+                                    return intValue.ToString();
+                                }
+                                else if (fldType.IsEnum)
+                                {
+                                    return Enum.ToObject(fldType, intValue);
+                                }
+                                else if (fldType == typeof(DateTime))
+                                {
+
+                                    return UseUnixEpochNanoForNumericDateTime || AllDateTimeUseUnixEpochNano
+                                            ? NanoEpochToDateTime(intValue)
+                                            : new DateTime(intValue);
+                                }
+                                else if (fldType == typeof(DateTimeOffset))
+                                {
+                                    return UseUnixEpochNanoForNumericDateTime || AllDateTimeUseUnixEpochNano
+                                            ? new DateTimeOffset(NanoEpochToDateTime(intValue), TimeSpan.Zero)
+                                            : new DateTimeOffset(intValue, TimeSpan.Zero);
+                                }
+                                else if (fldType == typeof(TimeSpan))
+                                {
+                                    return UseUnixEpochNanoForNumericDateTime || AllDateTimeUseUnixEpochNano
+                                            ? new TimeSpan(intValue / 100)
+                                            : new TimeSpan(intValue);
+                                }
+                                else
+                                {
+                                    throw CreateException(intValue);
+                                }
+                            }
+                        case double doubleValue:
+                            {
+                                if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                {
+                                    return binValue is null
+                                            ? null
+                                            : CastToNativeType(fldName, fldType.GetGenericArguments()[0], binName, binValue);
                                 }
 
-                                return newArray;
-                            }
-
-                            throw CreateException(lstValue);
-                        }
-                    case IDictionary<object, object> dictValue:
-                        {
-                            if (fldType == typeof(JsonDocument))
-                            {
-                                return new JsonDocument(dictValue);
-                            }
-                            else if (fldType == typeof(Newtonsoft.Json.Linq.JObject))
-                            {
-                                return Newtonsoft.Json.Linq.JObject.FromObject(dictValue);
-                            }
-
-
-                            if (IsSubclassOfInterface(typeof(IDictionary<,>), fldType))
-                            {
-                                var itemTypes = fldType.GetGenericArguments();
-                                var newDict = (IDictionary)Activator.CreateInstance(fldType.GetGenericTypeDefinition().MakeGenericType(itemTypes[0], itemTypes[1]));
-                                var keyValues = dictValue.Keys.Select(i => CastToNativeType(fldName, itemTypes[0], binName, i)).ToArray();
-                                var values = dictValue.Values.Select(i => CastToNativeType(fldName, itemTypes[1], binName, i)).ToArray();
-
-                                for (var idx = 0; idx < dictValue.Count; idx++)
+                                if (fldType == typeof(short))
                                 {
-                                    newDict.Add(keyValues[idx], values[idx]);
+                                    return (short)doubleValue;
                                 }
-
-                                return newDict;
-                            }
-
-
-                            return typeof(Helpers)
-                                        .GetMethod("Transform")
-                                        .MakeGenericMethod(fldType)
-                                        .Invoke(null, new object[] { dictValue.ToDictionary(key => (string)key.Key, v => v.Value), null, null });
-                        }
-                    case AValue aValue:
-                        {
-                            if (fldType.IsGenericType)
-                            {
-                                if (fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                else if (fldType == typeof(int))
                                 {
-                                    if (aValue.Value is null) return null;
+                                    return (int)doubleValue;
+                                }
+                                else if (fldType == typeof(uint))
+                                {
+                                    return (uint)doubleValue;
+                                }
+                                else if (fldType == typeof(ulong))
+                                {
+                                    return (ulong)doubleValue;
+                                }
+                                else if (fldType == typeof(ushort))
+                                {
+                                    return (ushort)doubleValue;
+                                }
+                                else if (fldType == typeof(decimal))
+                                {
+                                    return (decimal)doubleValue;
+                                }
+                                else if (fldType == typeof(float))
+                                {
+                                    return (float)doubleValue;
+                                }
+                                else if (fldType == typeof(double))
+                                {
+                                    return (double)doubleValue;
+                                }
+                                else if (fldType == typeof(bool))
+                                {
+                                    return doubleValue != 0;
+                                }
+                                else if (fldType == typeof(string))
+                                {
+                                    return doubleValue.ToString();
+                                }
+                                else
+                                {
+                                    throw CreateException(doubleValue);
+                                }
+                            }
+                        case string strValue:
+                            {
+                                if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                {
+                                    if (strValue == null) return null;
 
                                     return CastToNativeType(fldName,
                                                                 fldType.GetGenericArguments()[0],
                                                                 binName,
                                                                 binValue);
                                 }
-                            }
 
-                            if (fldType == typeof(string))
-                            {
-                                return (string)aValue;
-                            }
-                            else if (fldType == typeof(DateTime))
-                            {
-                                return (DateTime)aValue;
-                            }
-                            else if (fldType == typeof(DateTimeOffset))
-                            {
-                                return (DateTimeOffset)aValue;
-                            }
-                            else if (fldType == typeof(TimeSpan))
-                            {
-                                return (TimeSpan)aValue;
-                            }
-                            else if (fldType == typeof(bool))
-                            {
-                                return (bool)aValue;
-                            }
-                            else if (fldType == typeof(short))
-                            {
-                                return (short)aValue;
-                            }
-                            else if (fldType == typeof(int))
-                            {
-                                return (int)aValue;
-                            }
-                            else if (fldType == typeof(uint))
-                            {
-                                return (uint)aValue;
-                            }
-                            else if (fldType == typeof(ulong))
-                            {
-                                return (ulong)aValue;
-                            }
-                            else if (fldType == typeof(ushort))
-                            {
-                                return (ushort)aValue;
-                            }
-                            else if (fldType == typeof(decimal))
-                            {
-                                return (decimal)aValue;
-                            }
-                            else if (fldType == typeof(float))
-                            {
-                                return (float)aValue;
-                            }
-                            else if (fldType == typeof(double))
-                            {
-                                return (double)aValue;
-                            }
-                            else if (fldType == typeof(Guid))
-                            {
-                                return (Guid)aValue;
-                            }
-                            else if (fldType == typeof(JObject))
-                            {
-                                return (JObject)aValue;
-                            }
-                            else if (fldType == typeof(JsonDocument))
-                            {
-                                return (JsonDocument)aValue;
-                            }
-                            else if (fldType.IsEnum)
-                            {
-                                return (Enum)aValue;
-                            }
-                            else
-                            {
-                                return aValue.Value;
-                            }
-                        }
-                    case IConvertible iConvertible:
-                        {
-                            if (fldType.IsGenericType)
-                            {
-                                if (fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                if (string.IsNullOrEmpty(strValue))
                                 {
-                                    if (iConvertible is null) return null;
+                                    return strValue;
+                                }
+                                else if (fldType == typeof(DateTime))
+                                {
+                                    if (DateTime.TryParse(strValue, out DateTime dateTime))
+                                        return dateTime;
 
-                                    return CastToNativeType(fldName,
+                                    return DateTime.ParseExact(strValue, DateTimeFormat, CultureInfo.InvariantCulture);
+                                }
+                                else if (fldType == typeof(DateTimeOffset))
+                                {
+                                    if (DateTimeOffset.TryParse(strValue, out DateTimeOffset dateTime))
+                                        return dateTime;
+
+                                    return DateTimeOffset.ParseExact(strValue, DateTimeOffsetFormat, CultureInfo.InvariantCulture);
+                                }
+                                else if (fldType == typeof(TimeSpan))
+                                {
+                                    if (TimeSpan.TryParse(strValue, out TimeSpan timespan))
+                                        return timespan;
+
+                                    return TimeSpan.ParseExact(strValue, TimeSpanFormat, CultureInfo.InvariantCulture);
+                                }
+                                else if (fldType == typeof(bool))
+                                {
+                                    return bool.Parse(strValue);
+                                }
+                                else if (fldType == typeof(short))
+                                {
+                                    return short.Parse(strValue);
+                                }
+                                else if (fldType == typeof(int))
+                                {
+                                    return int.Parse(strValue);
+                                }
+                                else if (fldType == typeof(long))
+                                {
+                                    return long.Parse(strValue);
+                                }
+                                else if (fldType == typeof(uint))
+                                {
+                                    return uint.Parse(strValue);
+                                }
+                                else if (fldType == typeof(ulong))
+                                {
+                                    return ulong.Parse(strValue);
+                                }
+                                else if (fldType == typeof(ushort))
+                                {
+                                    return ushort.Parse(strValue);
+                                }
+                                else if (fldType == typeof(decimal))
+                                {
+                                    return decimal.Parse(strValue);
+                                }
+                                else if (fldType == typeof(float))
+                                {
+                                    return float.Parse(strValue);
+                                }
+                                else if (fldType == typeof(double))
+                                {
+                                    return double.Parse(strValue);
+                                }
+                                else if (fldType == typeof(Guid))
+                                {
+                                    return new Guid(strValue);
+                                }
+                                else if (fldType == typeof(JObject))
+                                {
+                                    return JObject.Parse(strValue);
+                                }
+                                else if (fldType == typeof(JToken))
+                                {
+                                    return JToken.Parse(strValue);
+                                }
+                                else if (fldType == typeof(JArray))
+                                {
+                                    return JArray.Parse(strValue);
+                                }
+                                else if (fldType.IsEnum)
+                                {
+                                    return Enum.Parse(fldType, strValue, true);
+                                }
+                                else
+                                {
+                                    throw CreateException(strValue);
+                                }
+                            }
+                        case DateTime dtValue:
+                            {
+                                if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                {
+                                    return binValue is null
+                                            ? null
+                                            : CastToNativeType(fldName,
                                                                 fldType.GetGenericArguments()[0],
                                                                 binName,
                                                                 binValue);
                                 }
-                            }
 
-                            if (fldType == typeof(DateTimeOffset))
-                            {
-                                return new DateTimeOffset(iConvertible.ToDateTime(CultureInfo.CurrentCulture));
-                            }
-                            else if (fldType == typeof(TimeSpan))
-                            {
-                                return iConvertible.ToDateTime(CultureInfo.CurrentCulture).TimeOfDay;
-                            }
-                            else if (fldType == typeof(Guid))
-                            {
-                                return new Guid(iConvertible.ToString(CultureInfo.CurrentCulture));
-                            }
-                            else if (fldType == typeof(JObject))
-                            {
-                                return new JObject(iConvertible);
-                            }
-                            else if (fldType == typeof(JsonDocument))
-                            {
-                                return new JsonDocument(new JObject(iConvertible));
-                            }
-                            else if (fldType.IsEnum)
-                            {
-                                if (iConvertible.GetTypeCode() == TypeCode.String)
-                                    return Enum.Parse(fldType, iConvertible.ToString(CultureInfo.CurrentCulture));
-
-                                return Enum.ToObject(fldType, iConvertible.ToInt64(CultureInfo.CurrentCulture));
-                            }
-                            else
-                            {
-                                try
+                                if (fldType == typeof(DateTime))
                                 {
-                                    return iConvertible.ToType(fldType, CultureInfo.CurrentCulture);
+                                    return dtValue;
                                 }
-                                catch (Exception ex) { throw CreateException(binValue, ex); }
-                            }
-                        }
-                    default:
-                        {
-                            if (binValue == null
-                                    && (!fldType.IsValueType
-                                            || (fldType.IsGenericType
-                                                    && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))))
-                                return null;
-
-                            if (binValue != null)
-                            {
-                                var binValueType = binValue.GetType();
-
-                                if (binValueType.IsArray)
+                                else if (fldType == typeof(DateTimeOffset))
                                 {
-                                    var binArray = (Array)binValue;
+                                    return new DateTimeOffset(dtValue);
+                                }
+                                else if (fldType == typeof(string))
+                                {
+                                    return dtValue.ToString(DateTimeFormat);
+                                }
+                                else if (fldType == typeof(long))
+                                {
+                                    if (AllDateTimeUseUnixEpochNano)
+                                        return NanosFromEpoch(dtValue);
 
-                                    if (fldType.IsArray)
-                                    {
-                                        var itemType = fldType.GetElementType();
-                                        var newArray = Array.CreateInstance(itemType, binArray.Length);
-                                        var idx = 0;
-
-                                        foreach (var item in binArray)
-                                        {
-                                            newArray.SetValue(CastToNativeType(fldName, itemType, binName, item), idx++);
-                                        }
-
-                                        return newArray;
-                                    }
-
-                                    if (fldType.IsGenericType && IsSubclassOfInterface(typeof(IList<>), fldType)) {
-                                        var itemTypes = fldType.GetGenericArguments();
-                                        var newList = (IList)Activator.CreateInstance(fldType.GetGenericTypeDefinition().MakeGenericType(itemTypes[0]));
-
-                                        foreach (var item in binArray)
-                                        {
-                                            newList.Add(CastToNativeType(fldName, itemTypes[0], binName, item));
-                                        }
-
-                                        return newList;
-                                    }
-
-                                    if (fldType == typeof(string) && binValueType.GetElementType() == typeof(byte))
-                                    {
-                                        return Encoding.Default.GetString((byte[])binValue);
-                                    }
+                                    return dtValue.Ticks;
+                                }
+                                else if (fldType == typeof(JObject))
+                                {
+                                    return JObject.FromObject(dtValue);
+                                }
+                                else if (fldType == typeof(JToken))
+                                {
+                                    return JToken.FromObject(dtValue);
+                                }
+                                else
+                                {
+                                    throw CreateException(dtValue);
                                 }
                             }
+                        case DateTimeOffset dtoValue:
+                            {
+                                if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                {
+                                    return binValue is null
+                                            ? null
+                                            : CastToNativeType(fldName,
+                                                                fldType.GetGenericArguments()[0],
+                                                                binName,
+                                                                binValue);
+                                }
 
-                            throw CreateException(binValue);
-                        }
+                                if (fldType == typeof(DateTime))
+                                {
+                                    return dtoValue.DateTime;
+                                }
+                                else if (fldType == typeof(DateTimeOffset))
+                                {
+                                    return dtoValue;
+                                }
+                                else if (fldType == typeof(string))
+                                {
+                                    return dtoValue.ToString(DateTimeFormat);
+                                }
+                                else if (fldType == typeof(long))
+                                {
+                                    if (AllDateTimeUseUnixEpochNano)
+                                        return NanosFromEpoch(dtoValue.DateTime);
+
+                                    return dtoValue.Ticks;
+                                }
+                                else if (fldType == typeof(JObject))
+                                {
+                                    return JObject.FromObject(dtoValue);
+                                }
+                                else if (fldType == typeof(JToken))
+                                {
+                                    return JToken.FromObject(dtoValue);
+                                }
+                                else
+                                {
+                                    throw CreateException(dtoValue);
+                                }
+                            }
+                        case IList<object> lstValue:
+                            {
+                                if (fldType.IsArray)
+                                {
+                                    var itemType = fldType.GetElementType();
+                                    var newArray = Array.CreateInstance(itemType, lstValue.Count);
+                                    var idx = 0;
+
+                                    foreach (var item in lstValue.Select(i => CastToNativeType(fldName, itemType, binName, i)).ToArray())
+                                    {
+                                        newArray.SetValue(item, idx++);
+                                    }
+
+                                    return newArray;
+                                }
+
+                                if (IsSubclassOfInterface(typeof(IList<>), fldType))
+                                {
+                                    var itemTypes = fldType.GetGenericArguments();
+                                    var newList = (IList)Activator.CreateInstance(fldType.GetGenericTypeDefinition().MakeGenericType(itemTypes[0]));
+
+                                    foreach (var item in lstValue.Select(i => CastToNativeType(fldName, itemTypes[0], binName, i)).ToArray())
+                                    {
+                                        newList.Add(item);
+                                    }
+
+                                    return newList;
+                                }
+
+                                if (fldType != typeof(string) && IsSubclassOfInterface(typeof(IEnumerable<>), fldType))
+                                {
+                                    var itemTypes = fldType.GetGenericArguments();
+                                    var newArray = Array.CreateInstance(itemTypes[0], lstValue.Count);
+                                    var idx = 0;
+
+                                    foreach (var item in lstValue.Select(i => CastToNativeType(fldName, itemTypes[0], binName, i)).ToArray())
+                                    {
+                                        newArray.SetValue(item, idx++);
+                                    }
+
+                                    return newArray;
+                                }
+
+                                throw CreateException(lstValue);
+                            }
+                        case IDictionary<object, object> dictValue:
+                            {
+                                if (fldType == typeof(JsonDocument))
+                                {
+                                    return new JsonDocument(dictValue);
+                                }
+                                else if (fldType == typeof(Newtonsoft.Json.Linq.JObject))
+                                {
+                                    return Newtonsoft.Json.Linq.JObject.FromObject(dictValue);
+                                }
+
+
+                                if (IsSubclassOfInterface(typeof(IDictionary<,>), fldType))
+                                {
+                                    var itemTypes = fldType.GetGenericArguments();
+                                    var newDict = (IDictionary)Activator.CreateInstance(fldType.GetGenericTypeDefinition().MakeGenericType(itemTypes[0], itemTypes[1]));
+                                    var keyValues = dictValue.Keys.Select(i => CastToNativeType(fldName, itemTypes[0], binName, i)).ToArray();
+                                    var values = dictValue.Values.Select(i => CastToNativeType(fldName, itemTypes[1], binName, i)).ToArray();
+
+                                    for (var idx = 0; idx < dictValue.Count; idx++)
+                                    {
+                                        newDict.Add(keyValues[idx], values[idx]);
+                                    }
+
+                                    return newDict;
+                                }
+
+
+                                return typeof(Helpers)
+                                            .GetMethod("Transform")
+                                            .MakeGenericMethod(fldType)
+                                            .Invoke(null, new object[] { dictValue.ToDictionary(key => (string)key.Key, v => v.Value), null, null });
+                            }
+                        case AValue aValue:
+                            {
+                                if (fldType.IsGenericType)
+                                {
+                                    if (fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                    {
+                                        if (aValue.Value is null) return null;
+
+                                        return CastToNativeType(fldName,
+                                                                    fldType.GetGenericArguments()[0],
+                                                                    binName,
+                                                                    binValue);
+                                    }
+                                }
+
+                                if (fldType == typeof(string))
+                                {
+                                    return (string)aValue;
+                                }
+                                else if (fldType == typeof(DateTime))
+                                {
+                                    return (DateTime)aValue;
+                                }
+                                else if (fldType == typeof(DateTimeOffset))
+                                {
+                                    return (DateTimeOffset)aValue;
+                                }
+                                else if (fldType == typeof(TimeSpan))
+                                {
+                                    return (TimeSpan)aValue;
+                                }
+                                else if (fldType == typeof(bool))
+                                {
+                                    return (bool)aValue;
+                                }
+                                else if (fldType == typeof(short))
+                                {
+                                    return (short)aValue;
+                                }
+                                else if (fldType == typeof(int))
+                                {
+                                    return (int)aValue;
+                                }
+                                else if (fldType == typeof(uint))
+                                {
+                                    return (uint)aValue;
+                                }
+                                else if (fldType == typeof(ulong))
+                                {
+                                    return (ulong)aValue;
+                                }
+                                else if (fldType == typeof(ushort))
+                                {
+                                    return (ushort)aValue;
+                                }
+                                else if (fldType == typeof(decimal))
+                                {
+                                    return (decimal)aValue;
+                                }
+                                else if (fldType == typeof(float))
+                                {
+                                    return (float)aValue;
+                                }
+                                else if (fldType == typeof(double))
+                                {
+                                    return (double)aValue;
+                                }
+                                else if (fldType == typeof(Guid))
+                                {
+                                    return (Guid)aValue;
+                                }
+                                else if (fldType == typeof(JObject))
+                                {
+                                    return (JObject)aValue;
+                                }
+                                else if (fldType == typeof(JsonDocument))
+                                {
+                                    return (JsonDocument)aValue;
+                                }
+                                else if (fldType.IsEnum)
+                                {
+                                    return (Enum)aValue;
+                                }
+                                else
+                                {
+                                    return aValue.Value;
+                                }
+                            }
+                        case IConvertible iConvertible:
+                            {
+                                if (fldType.IsGenericType)
+                                {
+                                    if (fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                    {
+                                        if (iConvertible is null) return null;
+
+                                        return CastToNativeType(fldName,
+                                                                    fldType.GetGenericArguments()[0],
+                                                                    binName,
+                                                                    binValue);
+                                    }
+                                }
+
+                                if (fldType == typeof(DateTimeOffset))
+                                {
+                                    return new DateTimeOffset(iConvertible.ToDateTime(CultureInfo.CurrentCulture));
+                                }
+                                else if (fldType == typeof(TimeSpan))
+                                {
+                                    return iConvertible.ToDateTime(CultureInfo.CurrentCulture).TimeOfDay;
+                                }
+                                else if (fldType == typeof(Guid))
+                                {
+                                    return new Guid(iConvertible.ToString(CultureInfo.CurrentCulture));
+                                }
+                                else if (fldType == typeof(JObject))
+                                {
+                                    return new JObject(iConvertible);
+                                }
+                                else if (fldType == typeof(JsonDocument))
+                                {
+                                    return new JsonDocument(new JObject(iConvertible));
+                                }
+                                else if (fldType.IsEnum)
+                                {
+                                    if (iConvertible.GetTypeCode() == TypeCode.String)
+                                        return Enum.Parse(fldType, iConvertible.ToString(CultureInfo.CurrentCulture));
+
+                                    return Enum.ToObject(fldType, iConvertible.ToInt64(CultureInfo.CurrentCulture));
+                                }
+                                else
+                                {
+                                    try
+                                    {
+                                        return iConvertible.ToType(fldType, CultureInfo.CurrentCulture);
+                                    }
+                                    catch (Exception ex) { throw CreateException(binValue, ex); }
+                                }
+                            }
+                        default:
+                            {
+                                if (binValue == null
+                                        && (!fldType.IsValueType
+                                                || (fldType.IsGenericType
+                                                        && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))))
+                                    return null;
+
+                                if (binValue != null)
+                                {
+                                    var binValueType = binValue.GetType();
+
+                                    if (binValueType.IsArray)
+                                    {
+                                        var binArray = (Array)binValue;
+
+                                        if (fldType.IsArray)
+                                        {
+                                            var itemType = fldType.GetElementType();
+                                            var newArray = Array.CreateInstance(itemType, binArray.Length);
+                                            var idx = 0;
+
+                                            foreach (var item in binArray)
+                                            {
+                                                newArray.SetValue(CastToNativeType(fldName, itemType, binName, item), idx++);
+                                            }
+
+                                            return newArray;
+                                        }
+
+                                        if (fldType.IsGenericType && IsSubclassOfInterface(typeof(IList<>), fldType))
+                                        {
+                                            var itemTypes = fldType.GetGenericArguments();
+                                            var newList = (IList)Activator.CreateInstance(fldType.GetGenericTypeDefinition().MakeGenericType(itemTypes[0]));
+
+                                            foreach (var item in binArray)
+                                            {
+                                                newList.Add(CastToNativeType(fldName, itemTypes[0], binName, item));
+                                            }
+
+                                            return newList;
+                                        }
+
+                                        if (fldType == typeof(string) && binValueType.GetElementType() == typeof(byte))
+                                        {
+                                            return Encoding.Default.GetString((byte[])binValue);
+                                        }
+                                    }
+                                }
+
+                                throw CreateException(binValue);
+                            }
+                    }
+                }
+                catch(ArgumentException)
+                { 
+                    throw; 
+                }
+                catch (Exception ex) 
+                {
+                    throw CreateException(binValue, ex);
                 }
             }
         }
@@ -1689,5 +1706,6 @@ namespace Aerospike.Database.LINQPadDriver
 
             return key;
         }        
+        
     }
 }

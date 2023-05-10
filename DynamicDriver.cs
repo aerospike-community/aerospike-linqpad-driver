@@ -462,7 +462,12 @@ namespace {nameSpace}
 									Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes recordView = global::Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes.Record)
 					:base(setAccess, key, record, binNames, recordView, binsHashCode)
 				{{
+					try {{
 {setClassFldsConst}
+					}} catch (System.Exception ex) {{
+						this.SetException(ex);
+						this.SetDumpType(ARecord.DumpTypes.Dynamic);
+					}}
 				}}
 {setClassFlds}
 				override public object ToDump() => this.ToDump( new string[] {{ ""{ARecord.DefaultASPIKeyName}"", {string.Join(',', flds.Select(s => "\"" + s + "\""))} }} );

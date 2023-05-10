@@ -216,7 +216,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if(obj is Aerospike.Client.Value value) return this.Equals(value);
             if(obj is AValue pValue) return this.Equals(pValue);
             
-            return Helpers.Equals(this.Value, obj);
+            var invokeEquals = this.GetType().GetMethod("Equals", new Type[] { obj.GetType() });
+
+            if(invokeEquals is null) return Helpers.Equals(this.Value, obj);
+
+            return (bool) invokeEquals.Invoke(this, new object[] { obj });            
         }
 
         public int CompareTo(object other)
@@ -228,11 +232,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if(other is Aerospike.Client.Value value) return this.CompareTo(value);
             if(other is AValue pValue) return this.CompareTo(pValue);
             
-            var cValue = Helpers.CastToNativeType(this.FldName, other.GetType(), this.BinName, this.Value);
-            
-            if(cValue is IComparable iCompareValue) return iCompareValue.CompareTo(other);
-            
-            return this.Value.GetHashCode().CompareTo(other.GetHashCode());
+            var invokeCompare = this.GetType().GetMethod("CompareTo", new Type[] { other.GetType() });
+
+            if(invokeCompare is null) return this.Value.GetHashCode().CompareTo(other.GetHashCode());
+
+            return (int) invokeCompare.Invoke(this, new object[] { other });
         }
 
         public int CompareTo(AValue other)
@@ -464,12 +468,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, <#= datatype #> oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, <#= datatype #> oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(<#= datatype #> value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (<#= datatype #>)this == value);
+            public bool Equals(<#= datatype #> value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(<#= datatype #> v1, <#= datatype #> v2) => v1 == v2;
             public int GetHashCode(<#= datatype #> value) => value.GetHashCode();
@@ -479,18 +483,43 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 <# if(datatype == "string") { #>
                 if(this.Value is null) return value is null ? 0 : -1;
                 if(value is null) return 1;
+                if(this.Value is string sValue) return sValue.CompareTo(value);
+                if(this.Value is Guid gValue) return gValue.ToString().CompareTo(value);
+                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                <# } else if(datatype == "Guid") { #>
+                if(this.Value is null) return -1;
+                if(this.Value is Guid gValue) return gValue.CompareTo(value);
+                if(this.Value is string sValue) return sValue.CompareTo(value.ToString());
+                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
                 <# } else { #>
                 if(this.Value is null) return -1;
-                <# } #>
-                if(this.Value is IComparable< <#= datatype #> > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (<#= datatype #>) this;
+                    if(tValue is <#= datatype #> cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                <# if(datatype == "DateTime"
+                        || datatype == "DateTimeOffset"
+                        || datatype == "TimeSpan") { #>
+                    if(tValue is string || tValue.GetType().IsPrimitive)
+                        tValue = this.Convert< <#= datatype #> >();
+                     if(tValue is IComparable vValue)
+                        return vValue.CompareTo(value);                     
+                <# } else { #>
+                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                <# } #> 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                <# } #>               
             }
 
         <#    }//end of foreach data type #>
@@ -501,9 +530,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static implicit operator <#= datatype #> (AValue key) => key is null ? null : (<#= datatype #>) key.Convert< <#= datatype #> >();
             public static implicit operator <#= datatype #>[] (AValue key) => (<#= datatype #>[]) key.Convert<<#= datatype #>[]>();
             
-            public bool Equals(<#= datatype #> value) => this.DigestRequired()
-                                                            ? this.CompareDigest(value)
-                                                            : ((<#= datatype #>) this).Equals(value);
+            public bool Equals(<#= datatype #> value)
+            {
+                try {
+                    return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : ((<#= datatype #>) this).Equals(value);
+                } catch {}
+                return false;
+            }
+
             public bool Equals(<#= datatype #> v1, <#= datatype #> v2)
             {
                 if(ReferenceEquals(v1,v2)) return true;

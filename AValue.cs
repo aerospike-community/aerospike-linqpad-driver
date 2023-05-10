@@ -251,7 +251,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if(obj is Aerospike.Client.Value value) return this.Equals(value);
             if(obj is AValue pValue) return this.Equals(pValue);
             
-            return Helpers.Equals(this.Value, obj);
+            var invokeEquals = this.GetType().GetMethod("Equals", new Type[] { obj.GetType() });
+
+            if(invokeEquals is null) return Helpers.Equals(this.Value, obj);
+
+            return (bool) invokeEquals.Invoke(this, new object[] { obj });            
         }
 
         public int CompareTo(object other)
@@ -263,11 +267,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if(other is Aerospike.Client.Value value) return this.CompareTo(value);
             if(other is AValue pValue) return this.CompareTo(pValue);
             
-            var cValue = Helpers.CastToNativeType(this.FldName, other.GetType(), this.BinName, this.Value);
-            
-            if(cValue is IComparable iCompareValue) return iCompareValue.CompareTo(other);
-            
-            return this.Value.GetHashCode().CompareTo(other.GetHashCode());
+            var invokeCompare = this.GetType().GetMethod("CompareTo", new Type[] { other.GetType() });
+
+            if(invokeCompare is null) return this.Value.GetHashCode().CompareTo(other.GetHashCode());
+
+            return (int) invokeCompare.Invoke(this, new object[] { other });
         }
 
         public int CompareTo(AValue other)
@@ -497,12 +501,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, string oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, string oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(string value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (string)this == value);
+            public bool Equals(string value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(string v1, string v2) => v1 == v2;
             public int GetHashCode(string value) => value.GetHashCode();
@@ -511,15 +515,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                                 if(this.Value is null) return value is null ? 0 : -1;
                 if(value is null) return 1;
-                                if(this.Value is IComparable< string > vValue)
-                    return vValue.CompareTo(value);
-
-                var cValue = (string) this;
-
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                if(this.Value is string sValue) return sValue.CompareTo(value);
+                if(this.Value is Guid gValue) return gValue.ToString().CompareTo(value);
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -547,12 +546,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, bool oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, bool oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(bool value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (bool)this == value);
+            public bool Equals(bool value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(bool v1, bool v2) => v1 == v2;
             public int GetHashCode(bool value) => value.GetHashCode();
@@ -560,15 +559,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(bool value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< bool > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (bool) this;
+                    if(tValue is bool cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -596,12 +605,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, Enum oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, Enum oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(Enum value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (Enum)this == value);
+            public bool Equals(Enum value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(Enum v1, Enum v2) => v1 == v2;
             public int GetHashCode(Enum value) => value.GetHashCode();
@@ -609,15 +618,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(Enum value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< Enum > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (Enum) this;
+                    if(tValue is Enum cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -645,12 +664,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, Guid oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, Guid oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(Guid value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (Guid)this == value);
+            public bool Equals(Guid value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(Guid v1, Guid v2) => v1 == v2;
             public int GetHashCode(Guid value) => value.GetHashCode();
@@ -658,15 +677,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(Guid value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< Guid > vValue)
-                    return vValue.CompareTo(value);
-
-                var cValue = (Guid) this;
-
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                if(this.Value is Guid gValue) return gValue.CompareTo(value);
+                if(this.Value is string sValue) return sValue.CompareTo(value.ToString());
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -694,12 +708,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, short oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, short oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(short value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (short)this == value);
+            public bool Equals(short value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(short v1, short v2) => v1 == v2;
             public int GetHashCode(short value) => value.GetHashCode();
@@ -707,15 +721,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(short value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< short > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (short) this;
+                    if(tValue is short cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -743,12 +767,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, int oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, int oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(int value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (int)this == value);
+            public bool Equals(int value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(int v1, int v2) => v1 == v2;
             public int GetHashCode(int value) => value.GetHashCode();
@@ -756,15 +780,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(int value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< int > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (int) this;
+                    if(tValue is int cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -792,12 +826,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, long oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, long oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(long value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (long)this == value);
+            public bool Equals(long value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(long v1, long v2) => v1 == v2;
             public int GetHashCode(long value) => value.GetHashCode();
@@ -805,15 +839,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(long value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< long > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (long) this;
+                    if(tValue is long cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -841,12 +885,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, ushort oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, ushort oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(ushort value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (ushort)this == value);
+            public bool Equals(ushort value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(ushort v1, ushort v2) => v1 == v2;
             public int GetHashCode(ushort value) => value.GetHashCode();
@@ -854,15 +898,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(ushort value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< ushort > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (ushort) this;
+                    if(tValue is ushort cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -890,12 +944,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, uint oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, uint oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(uint value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (uint)this == value);
+            public bool Equals(uint value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(uint v1, uint v2) => v1 == v2;
             public int GetHashCode(uint value) => value.GetHashCode();
@@ -903,15 +957,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(uint value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< uint > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (uint) this;
+                    if(tValue is uint cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -939,12 +1003,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, ulong oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, ulong oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(ulong value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (ulong)this == value);
+            public bool Equals(ulong value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(ulong v1, ulong v2) => v1 == v2;
             public int GetHashCode(ulong value) => value.GetHashCode();
@@ -952,15 +1016,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(ulong value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< ulong > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (ulong) this;
+                    if(tValue is ulong cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -988,12 +1062,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, decimal oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, decimal oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(decimal value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (decimal)this == value);
+            public bool Equals(decimal value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(decimal v1, decimal v2) => v1 == v2;
             public int GetHashCode(decimal value) => value.GetHashCode();
@@ -1001,15 +1075,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(decimal value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< decimal > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (decimal) this;
+                    if(tValue is decimal cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -1037,12 +1121,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, float oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, float oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(float value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (float)this == value);
+            public bool Equals(float value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(float v1, float v2) => v1 == v2;
             public int GetHashCode(float value) => value.GetHashCode();
@@ -1050,15 +1134,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(float value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< float > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (float) this;
+                    if(tValue is float cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -1086,12 +1180,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, double oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, double oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(double value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (double)this == value);
+            public bool Equals(double value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(double v1, double v2) => v1 == v2;
             public int GetHashCode(double value) => value.GetHashCode();
@@ -1099,15 +1193,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(double value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< double > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (double) this;
+                    if(tValue is double cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -1135,12 +1239,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, byte oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, byte oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(byte value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (byte)this == value);
+            public bool Equals(byte value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(byte v1, byte v2) => v1 == v2;
             public int GetHashCode(byte value) => value.GetHashCode();
@@ -1148,15 +1252,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(byte value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< byte > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (byte) this;
+                    if(tValue is byte cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -1184,12 +1298,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, sbyte oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, sbyte oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(sbyte value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (sbyte)this == value);
+            public bool Equals(sbyte value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(sbyte v1, sbyte v2) => v1 == v2;
             public int GetHashCode(sbyte value) => value.GetHashCode();
@@ -1197,15 +1311,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(sbyte value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< sbyte > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (sbyte) this;
+                    if(tValue is sbyte cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string)
+                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                    
+                    tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
+
+                    return ((decimal)tValue).CompareTo((decimal)((IConvertible)value).ToType(typeof(decimal), null));
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -1233,12 +1357,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, DateTime oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, DateTime oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(DateTime value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (DateTime)this == value);
+            public bool Equals(DateTime value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(DateTime v1, DateTime v2) => v1 == v2;
             public int GetHashCode(DateTime value) => value.GetHashCode();
@@ -1246,15 +1370,23 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(DateTime value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< DateTime > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (DateTime) this;
+                    if(tValue is DateTime cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string || tValue.GetType().IsPrimitive)
+                        tValue = this.Convert< DateTime >();
+                     if(tValue is IComparable vValue)
+                        return vValue.CompareTo(value);                     
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -1282,12 +1414,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, DateTimeOffset oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, DateTimeOffset oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(DateTimeOffset value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (DateTimeOffset)this == value);
+            public bool Equals(DateTimeOffset value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(DateTimeOffset v1, DateTimeOffset v2) => v1 == v2;
             public int GetHashCode(DateTimeOffset value) => value.GetHashCode();
@@ -1295,15 +1427,23 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(DateTimeOffset value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< DateTimeOffset > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (DateTimeOffset) this;
+                    if(tValue is DateTimeOffset cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string || tValue.GetType().IsPrimitive)
+                        tValue = this.Convert< DateTimeOffset >();
+                     if(tValue is IComparable vValue)
+                        return vValue.CompareTo(value);                     
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -1331,12 +1471,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, TimeSpan oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, TimeSpan oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Equals(TimeSpan value) => (this.Value is string
-                                                                || this.UnderlyingType.IsValueType
-                                                                || !Helpers.IsSubclassOfInterface(typeof(IEnumerable<>), this.UnderlyingType))
-                                                           && (this.DigestRequired()
-                                                                ? this.CompareDigest(value)
-                                                                : (TimeSpan)this == value);
+            public bool Equals(TimeSpan value)
+            {
+                return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : this.CompareTo(value) == 0;
+            }
 
             public bool Equals(TimeSpan v1, TimeSpan v2) => v1 == v2;
             public int GetHashCode(TimeSpan value) => value.GetHashCode();
@@ -1344,15 +1484,23 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int CompareTo(TimeSpan value)
             {
                                 if(this.Value is null) return -1;
-                                if(this.Value is IComparable< TimeSpan > vValue)
-                    return vValue.CompareTo(value);
+               
+                try {
+                    var tValue = this.Value;
 
-                var cValue = (TimeSpan) this;
+                    if(tValue is TimeSpan cValue)
+                        return cValue.CompareTo(value);
 
-                if(cValue is IComparable coValue)
-                    return coValue.CompareTo(value);
-                
+                                    if(tValue is string || tValue.GetType().IsPrimitive)
+                        tValue = this.Convert< TimeSpan >();
+                     if(tValue is IComparable vValue)
+                        return vValue.CompareTo(value);                     
+                 
+                                                  
+                } catch  {}
+
                 return this.Value.GetHashCode().CompareTo(value.GetHashCode());
+                               
             }
 
         
@@ -1360,9 +1508,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static implicit operator JsonDocument (AValue key) => key is null ? null : (JsonDocument) key.Convert< JsonDocument >();
             public static implicit operator JsonDocument[] (AValue key) => (JsonDocument[]) key.Convert<JsonDocument[]>();
             
-            public bool Equals(JsonDocument value) => this.DigestRequired()
-                                                            ? this.CompareDigest(value)
-                                                            : ((JsonDocument) this).Equals(value);
+            public bool Equals(JsonDocument value)
+            {
+                try {
+                    return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : ((JsonDocument) this).Equals(value);
+                } catch {}
+                return false;
+            }
+
             public bool Equals(JsonDocument v1, JsonDocument v2)
             {
                 if(ReferenceEquals(v1,v2)) return true;
@@ -1376,9 +1531,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static implicit operator JObject (AValue key) => key is null ? null : (JObject) key.Convert< JObject >();
             public static implicit operator JObject[] (AValue key) => (JObject[]) key.Convert<JObject[]>();
             
-            public bool Equals(JObject value) => this.DigestRequired()
-                                                            ? this.CompareDigest(value)
-                                                            : ((JObject) this).Equals(value);
+            public bool Equals(JObject value)
+            {
+                try {
+                    return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : ((JObject) this).Equals(value);
+                } catch {}
+                return false;
+            }
+
             public bool Equals(JObject v1, JObject v2)
             {
                 if(ReferenceEquals(v1,v2)) return true;

@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Windows.Input;
 using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
@@ -57,7 +54,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="setName">The name of the set</param>
         public void RefreshSet(string setName)
         {
-            this.NamespaceRefresh(setName, false);
+            this.NamespaceRefresh(setName, true);
         }
 
         private void NamespaceRefresh(string setName, bool forceRefresh)
@@ -97,17 +94,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Returns the set name from <paramref name="setName"/>
+        /// Returns the Set instance or null indicating the set doesn't exists in this namespace.
         /// </summary>
         /// <param name="setName">The name of the Aerospike set</param>
-        /// <returns>The set instance or null</returns>
+        /// <returns>A <see cref="SetRecords"/> instance or null</returns>
         public SetRecords this[string setName]
         {
             get => this.Sets.FirstOrDefault(s => s.SetName == setName);
         }
 
         /// <summary>
-        /// Returns the Aerospike Null Set.
+        /// Returns the Aerospike Null Set for this namespace.
         /// </summary>
         public SetRecords NullSet { get => this[ASet.NullSetName]; }
 
@@ -791,7 +788,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         #endregion
 
         /// <summary>
-        /// Truncates the Set
+        /// Truncates all the Sets in this namespace
         /// </summary>
         /// <param name="infoPolicy">
         /// The <see cref="InfoPolicy"/> used for the truncate. If not provided, the default is used.
@@ -801,6 +798,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// The default is everything up to when this was executed (DateTime.Now).
         /// </param>
         /// <seealso cref="SetRecords.Truncate(InfoPolicy, DateTime?)"/>
+        /// <seealso cref="Truncate(string, InfoPolicy, DateTime?)"/>
         /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
         public void Truncate(InfoPolicy infoPolicy = null, DateTime? before = null)
         {
@@ -811,6 +809,38 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 set.Truncate(infoPolicy, before);
             }
+        }
+
+        /// <summary>
+        /// Truncates the Set
+        /// </summary>
+        /// <param name="setName">
+        /// The name of the set to be truncated. 
+        /// </param>
+        /// <param name="infoPolicy">
+        /// The <see cref="InfoPolicy"/> used for the truncate. If not provided, the default is used.
+        /// </param>
+        /// <param name="before">
+        /// A Date/time used to truncate the set. Records before this time will be truncated. 
+        /// The default is everything up to when this was executed (DateTime.Now).
+        /// </param>
+        /// <returns>
+        /// True if the set was truncated or false to indicate the set did not exist in the namespace.
+        /// </returns>
+        /// <seealso cref="Truncate(InfoPolicy, DateTime?)"/>
+        /// <seealso cref="this[string]"/>
+        /// <seealso cref="SetRecords.Truncate(InfoPolicy, DateTime?)"/>
+        /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
+        public bool Truncate(string setName, InfoPolicy infoPolicy = null, DateTime? before = null)
+        {
+            var set = this.Sets.FirstOrDefault(s => s.SetName == setName);
+            if (set != null)
+            {
+                set.Truncate(infoPolicy, before);
+                return true;
+            }
+
+            return false;
         }
 
         protected object ToDump()
