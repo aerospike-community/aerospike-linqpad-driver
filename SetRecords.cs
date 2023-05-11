@@ -633,10 +633,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                 if (this._bins.Length == 0)
                 {
-                    return this._binsHashCode = Helpers.GetHashCode(this.BinNames);
+                    return this._binsHashCode = Helpers.GetStableHashCode(this.BinNames);
                 }
 
-                return this._binsHashCode = Helpers.GetHashCode(this._bins);
+                return this._binsHashCode = Helpers.GetStableHashCode(this._bins);
             }
         }
 
@@ -726,7 +726,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
-            this.SetAccess.Put(record.Aerospike.Key, record.Aerospike.GetValues(), this.SetName, writePolicy, ttl, refreshOnNewSet: false);
+            this.SetAccess.Put(this.SetName, record.Aerospike.Key, record.Aerospike.GetValues(), writePolicy, ttl, refreshOnNewSet: false);
         }
 
         /// <summary>
@@ -779,7 +779,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
-            this.SetAccess.Put(primaryKey, bin, binValue, this.SetName, writePolicy, ttl, false);
+            this.SetAccess.Put(this.SetName, primaryKey, bin, binValue, writePolicy, ttl, false);
         }
 
         /// <summary>
@@ -806,7 +806,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
-            this.SetAccess.Put(primaryKey, bin, listValue, this.SetName, writePolicy, ttl, false);
+            this.SetAccess.Put(this.SetName, primaryKey, bin, listValue, writePolicy, ttl, false);
         }
 
 
@@ -834,7 +834,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
-            this.SetAccess.Put(primaryKey, bin, collectionValue, this.SetName, writePolicy, ttl, false);
+            this.SetAccess.Put(this.SetName, primaryKey, bin, collectionValue, writePolicy, ttl, false);
         }
 
         /// <summary>
@@ -892,7 +892,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     WritePolicy writePolicy = null,
                                     TimeSpan? ttl = null)
         {
-            this.SetAccess.WriteObject<T>(primaryKey, instance, this.SetName, transform, doctumentBinName, writePolicy, ttl, false);
+            this.SetAccess.WriteObject<T>(this.SetName, primaryKey, instance, transform, doctumentBinName, writePolicy, ttl, false);
         }
 
         #region Delete/Trunc Methods
@@ -1833,7 +1833,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public override int GetHashCode()
         {
-            return this.ToString().GetHashCode();
+            return Helpers.GetStableHashCode(this.ToString());
         }
 
         public override string ToString()

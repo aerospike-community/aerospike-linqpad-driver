@@ -17,6 +17,9 @@ using Microsoft.VisualBasic.FileIO;
 using static Aerospike.Client.Value;
 using System.Collections.Specialized;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
+using System.Windows.Input;
+using System.CodeDom;
 
 namespace Aerospike.Client
 {
@@ -150,8 +153,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             return newStr;
         }
-        public static int GetHashCode(string[] strings) => ((IStructuralEquatable)strings)?.GetHashCode(EqualityComparer<string>.Default) ?? 0;
-
+        
         public static string ByteArrayToString(byte[] ba)
         {
             StringBuilder hex = new StringBuilder(ba.Length * 2);
@@ -690,13 +692,12 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 if (b is string sb) return sa == sb;
 
-                return sa == b.ToString();
+                return false;
             }
-            if (b is string ba)
+            if (b is string)
             {
-                return ba == a.ToString();
+                return false;
             }
-
 
             if (a is IEnumerable<object> alist)
                 return SequenceEquals(alist, b);
@@ -719,7 +720,7 @@ namespace Aerospike.Database.LINQPadDriver
             if (aType == bType) return a.Equals(b);
 
             if (aType.IsPrimitive
-                && aType.IsPrimitive
+                && bType.IsPrimitive
                 && Marshal.SizeOf(aType) <= Marshal.SizeOf(bType))
             {
                 if (Helpers.IsSubclassOfInterface(typeof(IConvertible), aType))
@@ -1705,7 +1706,174 @@ namespace Aerospike.Database.LINQPadDriver
                 key = new Client.Key(nameSpace, setName, Value.Get(primaryKey));
 
             return key;
-        }        
-        
+        }
+
+        /// <summary>
+        /// Dummy class
+        /// </summary>
+        sealed class Numeric { }
+
+        public static int GetStableHashCode(this object obj)
+        {
+            if (obj == null) return 0;
+            
+            if (obj.GetType().IsPrimitive) return GetStableHashCode(obj.ToString(), typeof(Numeric));
+
+            switch (obj) 
+            {
+                case string str:
+                    return GetStableHashCode(str);
+                case AValue av:
+                    return GetStableHashCode(av);
+                case Client.Key key:
+                    return GetStableHashCode(key);
+                case Client.Value value:
+                    return GetStableHashCode(value);
+                case DateTime dt:
+                    return GetStableHashCode(dt);
+                case DateTimeOffset dto:
+                    return GetStableHashCode(dto);
+                case TimeSpan ts:
+                    return GetStableHashCode(ts);
+                case Guid gs:
+                    return GetStableHashCode(gs.ToString());
+                case byte[] ba:
+                    return GetStableHashCode(ba);
+                case string[] sa: 
+                    return GetStableHashCode(sa);
+                case JObject jo:
+                    return GetStableHashCode(jo.ToString());
+                case JArray ja:
+                    return GetStableHashCode(ja.ToString());
+                case JToken jo:
+                    return GetStableHashCode(jo.ToString());
+                default:
+                    break;
+            }
+
+            var objType = obj.GetType();
+
+            if (objType.IsValueType)
+            {
+                if (objType.IsGenericType && objType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                {
+                    var hasvalueProp = objType.GetProperty("HasValue")?.GetValue(obj, null);
+
+                    if (hasvalueProp != null && (bool)hasvalueProp)
+                    {
+                        var valuePropValue = objType.GetProperty("Value").GetValue(obj, null);
+
+                        return GetStableHashCode(valuePropValue);
+                    }
+                }
+
+                //return GetStableHashCode(obj.ToString());
+            }
+
+            return obj.GetHashCode();
+        }
+
+        public static int GetStableHashCode(this DateTime dateTime)
+        {
+           return GetStableHashCode(dateTime.ToString(DateTimeFormat), typeof(DateTime));
+        }
+
+        public static int GetStableHashCode(this DateTimeOffset dateTimeOffset)
+        {
+            return GetStableHashCode(dateTimeOffset.ToString(DateTimeOffsetFormat), typeof(DateTime));
+        }
+
+        public static int GetStableHashCode(this TimeSpan timeSpan)
+        {
+            return GetStableHashCode(timeSpan.ToString(TimeSpanFormat), typeof(TimeSpan));
+        }
+
+        public static int GetStableHashCode(this AValue aValue)
+        {
+            if (aValue is null) return 0;
+            return GetStableHashCode(aValue.Value);
+        }
+
+        public static int GetStableHashCode(this Client.Key key)
+        {
+            if (key is null) return 0;
+            return  key.userKey is null
+                        ? GetStableHashCode(key.digest)
+                        : GetStableHashCode(key.userKey);
+        }
+
+        public static int GetStableHashCode(this Client.Value value)
+        {
+            if (value is null) return 0;
+            return GetStableHashCode(value.Object);
+        }
+
+        public static int GetStableHashCode(this byte[] ba)
+        {
+            if (ba is null) return 0;
+            return GetStableHashCode(ByteArrayToString(ba));
+        }
+
+        public static int GetStableHashCode(this string[] sa)
+        {
+            if (sa is null) return 0;
+            return GetStableHashCode(string.Concat(sa));
+        }
+
+        public static int GetStableHashCode(this string str)
+        {
+            return GetStableHashCode(str, typeof(string));
+        }
+
+        public static int GetStableHashCode(string str, Type dataType)
+        {
+         
+            str = string.Concat(dataType.Name, "|", str);
+
+            unchecked
+            {
+                int hash1 = 5381;
+                int hash2 = hash1;
+
+                for (int i = 0; i < str.Length && str[i] != '\0'; i += 2)
+                {
+                    hash1 = ((hash1 << 5) + hash1) ^ str[i];
+                    if (i == str.Length - 1 || str[i + 1] == '\0')
+                        break;
+                    hash2 = ((hash2 << 5) + hash2) ^ str[i + 1];
+                }
+
+                return hash1 + (hash2 * 1566083941);
+            }
+        }
+
+
+        public static bool IsInt(Type checkType) => checkType == typeof(long)
+                                                        || checkType == typeof(ulong)
+                                                        || checkType == typeof(int)
+                                                        || checkType == typeof(uint)
+                                                        || checkType == typeof(short)
+                                                        || checkType == typeof(ushort);
+
+        public static bool IsFloat(Type checkType) => checkType == typeof(double)
+                                                        || checkType == typeof(float)
+                                                        || checkType == typeof(decimal);
+
+        public static bool IsNumeric(Type checkType) => checkType == typeof(long)
+                                                        || checkType == typeof(double)
+                                                        || checkType == typeof(ulong)
+                                                        || checkType == typeof(float)
+                                                        || checkType == typeof(decimal)
+                                                        || checkType == typeof(int)
+                                                        || checkType == typeof(uint)
+                                                        || checkType == typeof(short)
+                                                        || checkType == typeof(ushort)
+                                                        || checkType == typeof(byte)
+                                                        || checkType == typeof(sbyte);
+
+        public static bool IsJson(Type checkType) => checkType == typeof(JObject)
+                                                        || checkType == typeof(JToken)
+                                                        || checkType == typeof(JArray)
+                                                        || checkType == typeof(JsonDocument);
     }
 }

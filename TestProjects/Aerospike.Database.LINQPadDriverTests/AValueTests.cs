@@ -111,11 +111,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsTrue(checkValue <= aValueStr);
             Assert.IsTrue(checkValue < aValueStr);
 
-            Assert.IsTrue(aValueStr == expectedValuex10);
-            Assert.IsFalse(aValueStr != expectedValuex10);
+            Assert.IsFalse(aValueStr == expectedValuex10);
+            Assert.IsTrue(aValueStr != expectedValuex10);
             Assert.IsTrue(aValueStr >= expectedValuex10);
-            Assert.IsFalse(aValueStr > expectedValuex10);
-            Assert.IsTrue(aValueStr <= expectedValuex10);
+            Assert.IsTrue(aValueStr > expectedValuex10);
+            Assert.IsFalse(aValueStr <= expectedValuex10);
             Assert.IsFalse(aValueStr < expectedValuex10);
         }
     }

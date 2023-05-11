@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
@@ -24,6 +25,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(object)"/>
     /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
     /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
+    [DebuggerDisplay("{DebuggerString()}")]
     public class AValue : IConvertible,
                             IComparable,
                             IEquatable<AValue>,
@@ -135,6 +137,174 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </summary>
         public Type UnderlyingType { get => this.Value.GetType(); }
 
+
+        /// <summary>
+        /// Returns true if the value is a string
+        /// </summary>
+        /// <seealso cref="IsCDT"/>
+        /// <seealso cref="IsMap"/>
+        /// <seealso cref="IsList"/>
+        /// <seealso cref="IsBool"/>
+        /// <seealso cref="IsFloat"/>
+        /// <seealso cref="IsInt"/>
+        /// <seealso cref="IsJson"/>
+        /// <seealso cref="UnderlyingType"/>
+        public bool IsString
+        {
+            get => this.UnderlyingType == typeof(string);
+        }
+
+        /// <summary>
+        /// Returns true if the value is any numeric type (e.g., long, double, etc.)
+        /// </summary>
+        /// <seealso cref="IsCDT"/>
+        /// <seealso cref="IsMap"/>
+        /// <seealso cref="IsList"/>
+        /// <seealso cref="IsBool"/>
+        /// <seealso cref="IsFloat"/>
+        /// <seealso cref="IsInt"/>
+        /// <seealso cref="IsJson"/>
+        /// <seealso cref="IsString"/>
+        /// <seealso cref="UnderlyingType"/>
+        public bool IsNumeric
+        {
+            get => Helpers.IsNumeric(this.UnderlyingType);
+        }
+
+        /// <summary>
+        /// Returns true if the value is any whole number type (e.g., int, uint, long, ulong, etc.)
+        /// </summary>
+        /// <seealso cref="IsCDT"/>
+        /// <seealso cref="IsMap"/>
+        /// <seealso cref="IsList"/>
+        /// <seealso cref="IsBool"/>
+        /// <seealso cref="IsFloat"/>
+        /// <seealso cref="IsJson"/>
+        /// <seealso cref="IsNumeric"/>
+        /// <seealso cref="IsString"/>
+        /// <seealso cref="UnderlyingType"/>
+        public bool IsInt
+        {
+            get => Helpers.IsInt(this.UnderlyingType);
+        }
+
+        /// <summary>
+        /// Returns true if the value is any float type (e.g., float, double)
+        /// </summary>
+        /// <seealso cref="IsCDT"/>
+        /// <seealso cref="IsMap"/>
+        /// <seealso cref="IsList"/>
+        /// <seealso cref="IsBool"/>
+        /// <seealso cref="IsJson"/>
+        /// <seealso cref="IsInt"/>
+        /// <seealso cref="IsNumeric"/>
+        /// <seealso cref="IsString"/>
+        /// <seealso cref="UnderlyingType"/>
+        public bool IsFloat
+        {
+            get => Helpers.IsFloat(this.UnderlyingType);
+        }
+
+        /// <summary>
+        /// Returns true if the value is boolean
+        /// </summary>
+        /// <seealso cref="IsCDT"/>
+        /// <seealso cref="IsMap"/>
+        /// <seealso cref="IsList"/>
+        /// <seealso cref="IsJson"/>
+        /// <seealso cref="IsFloat"/>
+        /// <seealso cref="IsInt"/>
+        /// <seealso cref="IsNumeric"/>
+        /// <seealso cref="IsString"/>
+        /// <seealso cref="UnderlyingType"/>
+        public bool IsBool
+        {
+            get => this.UnderlyingType == typeof(bool);
+        }
+
+        /// <summary>
+        /// Returns true if the value is a IList
+        /// </summary>
+        /// <seealso cref="IsCDT"/>
+        /// <seealso cref="IsMap"/>
+        /// <seealso cref="IsJson"/>
+        /// <seealso cref="IsBool"/>
+        /// <seealso cref="IsFloat"/>
+        /// <seealso cref="IsInt"/>
+        /// <seealso cref="IsNumeric"/>
+        /// <seealso cref="IsString"/>
+        /// <seealso cref="UnderlyingType"/>
+        public bool IsList
+        {
+            get => Helpers.IsSubclassOfInterface(typeof(IList<>), this.UnderlyingType);
+        }
+
+        /// <summary>
+        /// Returns true if the value is a IDictionary
+        /// </summary>
+        /// <seealso cref="IsCDT"/>
+        /// <seealso cref="IsJson"/>
+        /// <seealso cref="IsList"/>
+        /// <seealso cref="IsBool"/>
+        /// <seealso cref="IsFloat"/>
+        /// <seealso cref="IsInt"/>
+        /// <seealso cref="IsNumeric"/>
+        /// <seealso cref="IsString"/>
+        /// <seealso cref="UnderlyingType"/>
+        public bool IsMap
+        {
+            get => Helpers.IsSubclassOfInterface(typeof(IDictionary<,>), this.UnderlyingType);
+        }
+
+        /// <summary>
+        /// Returns true if the value is a Collection Data Type (e.g., IList, IDictionary)
+        /// </summary>
+        /// <seealso cref="IsJson"/>
+        /// <seealso cref="IsMap"/>
+        /// <seealso cref="IsList"/>
+        /// <seealso cref="IsBool"/>
+        /// <seealso cref="IsFloat"/>
+        /// <seealso cref="IsInt"/>
+        /// <seealso cref="IsNumeric"/>
+        /// <seealso cref="IsString"/>
+        /// <seealso cref="UnderlyingType"/>
+        public bool IsCDT
+        {
+            get => this.IsList || this.IsMap;
+        }
+
+        /// <summary>
+        /// Returns true if the value is a JSON Data Type (e.g., JObject, JArray, etc.)
+        /// </summary>
+        /// <seealso cref="IsCDT"/>
+        /// <seealso cref="IsMap"/>
+        /// <seealso cref="IsList"/>
+        /// <seealso cref="IsBool"/>
+        /// <seealso cref="IsFloat"/>
+        /// <seealso cref="IsInt"/>
+        /// <seealso cref="IsNumeric"/>
+        /// <seealso cref="IsString"/>
+        /// <seealso cref="UnderlyingType"/>
+        public bool IsJson
+        {
+            get => Helpers.IsJson(this.UnderlyingType);
+        }
+
+        public bool IsDateTime
+        {
+            get => this.UnderlyingType == typeof(DateTime);
+        }
+
+        public bool IsDateTimeOffset
+        {
+            get => this.UnderlyingType == typeof(DateTimeOffset);
+        }
+
+        public bool IsTimeSpan
+        {
+            get => this.UnderlyingType == typeof(TimeSpan);
+        }
+
         /// <summary>
         /// Converts <see cref="Value"/> into a >net native type
         /// </summary>
@@ -241,6 +411,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public int GetHashCode(AValue value) => value?.GetHashCode() ?? 0;
 
         public override string ToString() => this.Value?.ToString();
+        public string DebuggerString() => $"{this.FldName ?? this.BinName}{{{this.Value} ({this.UnderlyingType?.Name})}}";
 
         public override int GetHashCode() => this.Value?.GetHashCode() ?? 0;
 
@@ -269,7 +440,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             
             var invokeCompare = this.GetType().GetMethod("CompareTo", new Type[] { other.GetType() });
 
-            if(invokeCompare is null) return this.Value.GetHashCode().CompareTo(other.GetHashCode());
+            if(invokeCompare is null) return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(other));
 
             return (int) invokeCompare.Invoke(this, new object[] { other });
         }
@@ -285,7 +456,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if(other is null) return this.Value is null ? 0 : 1;
             if(this.Equals(other)) return 0;
             if(this.Value is null) return 1;
-            if(other.userKey is null) return this.Value.GetHashCode().CompareTo(other.digest.GetHashCode());
+            if(other.userKey is null) return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(other.digest));
             
             return this.CompareTo(other.userKey);
         }
@@ -517,9 +688,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 if(value is null) return 1;
                 if(this.Value is string sValue) return sValue.CompareTo(value);
                 if(this.Value is Guid gValue) return gValue.ToString().CompareTo(value);
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator bool (AValue v) => v.Convert< bool >();
@@ -567,7 +737,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -576,9 +746,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator Enum (AValue v) => v.Convert< Enum >();
@@ -626,7 +795,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -635,9 +804,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator Guid (AValue v) => v.Convert< Guid >();
@@ -679,9 +847,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 if(this.Value is null) return -1;
                 if(this.Value is Guid gValue) return gValue.CompareTo(value);
                 if(this.Value is string sValue) return sValue.CompareTo(value.ToString());
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator short (AValue v) => v.Convert< short >();
@@ -729,7 +896,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -738,9 +905,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator int (AValue v) => v.Convert< int >();
@@ -788,7 +954,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -797,9 +963,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator long (AValue v) => v.Convert< long >();
@@ -847,7 +1012,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -856,9 +1021,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator ushort (AValue v) => v.Convert< ushort >();
@@ -906,7 +1070,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -915,9 +1079,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator uint (AValue v) => v.Convert< uint >();
@@ -965,7 +1128,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -974,9 +1137,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator ulong (AValue v) => v.Convert< ulong >();
@@ -1024,7 +1186,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -1033,9 +1195,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator decimal (AValue v) => v.Convert< decimal >();
@@ -1083,7 +1244,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -1092,9 +1253,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator float (AValue v) => v.Convert< float >();
@@ -1142,7 +1302,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -1151,9 +1311,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator double (AValue v) => v.Convert< double >();
@@ -1201,7 +1360,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -1210,9 +1369,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator byte (AValue v) => v.Convert< byte >();
@@ -1260,7 +1418,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -1269,9 +1427,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator sbyte (AValue v) => v.Convert< sbyte >();
@@ -1319,7 +1476,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return cValue.CompareTo(value);
 
                                     if(tValue is string)
-                         return tValue.GetHashCode().CompareTo(value.GetHashCode());
+                         return Helpers.GetStableHashCode(tValue).CompareTo(Helpers.GetStableHashCode(value));
                     
                     tValue = ((IConvertible)tValue).ToType(typeof(decimal), null);
 
@@ -1328,9 +1485,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator DateTime (AValue v) => v.Convert< DateTime >();
@@ -1385,9 +1541,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator DateTimeOffset (AValue v) => v.Convert< DateTimeOffset >();
@@ -1442,9 +1597,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
             public static implicit operator TimeSpan (AValue v) => v.Convert< TimeSpan >();
@@ -1499,9 +1653,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                   
                 } catch  {}
 
-                return this.Value.GetHashCode().CompareTo(value.GetHashCode());
-                               
-            }
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
+                            }
 
         
         

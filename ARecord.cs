@@ -52,7 +52,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.SetBinsHashCode = setBinsHashCode;
 
             var recordBins = record.bins?.Keys.ToArray();
-            this.BinsHashCode = Helpers.GetHashCode(recordBins);
+            this.BinsHashCode = Helpers.GetStableHashCode(recordBins);
             
             if (this.BinsHashCode != this.SetBinsHashCode && this.DumpType == DumpTypes.Record)
             {                
@@ -110,7 +110,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DumpType = dumpType;
             this.SetBinsHashCode = setBinsHashCode;
 
-            this.BinsHashCode = Helpers.GetHashCode(binValues.Keys.ToArray());
+            this.BinsHashCode = Helpers.GetStableHashCode(binValues.Keys.ToArray());
             
             if (this.BinsHashCode != this.SetBinsHashCode && this.DumpType == DumpTypes.Record)
             {
@@ -433,7 +433,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 }
             }
 
-
             /// <summary>
             /// Gets the value based on <paramref name="binName"/>
             /// </summary>
@@ -546,7 +545,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </returns>
         /// <seealso cref="this[string]"/>
         /// <seealso cref="BinExists(string)"/>
-        /// <seealso cref="AerospikeAPI.GetValue(string)"/>
+        /// <seealso cref="GetValue(string)"/>
         public ARecord SetValue([NotNull] string binName, object value, bool cloneRecord = false)
         {
             ARecord newRec = cloneRecord ? new ARecord(this) : this;
@@ -581,11 +580,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// True if it exists.
         /// </returns>
         /// <seealso cref="this[string]"/>
+        /// <seealso cref="GetValue(string)"/>
+        /// <seealso cref="SetValue(string, object, bool)"/>
+        public bool BinExists([NotNull] string binName) => this.Aerospike.BinExists(binName);
+
+        /// <summary>
+        /// Returns the Bin&apos;s value.
+        /// </summary>
+        /// <param name="binName">The bin name</param>
+        /// <returns>
+        /// Returns an <see cref="AValue"/> or null indicating that the bin was not found.
+        /// </returns>
+        /// <seealso cref="this[string]"/>
+        /// <seealso cref="SetValue(string, object, bool)"/>
+        /// <seealso cref="BinExists(string)"/>
         /// <seealso cref="AerospikeAPI.GetValue(string)"/>
-        public bool BinExists(string binName)
-        {
-            return this.Aerospike.BinExists(binName);
-        }
+        /// <seealso cref="AerospikeAPI.ToValue(string)"/>
+        /// <seealso cref="AerospikeAPI.Bins"/>
+        public AValue GetValue([NotNull]string binName) => this.Aerospike.ToValue(binName);
 
         /// <summary>
         /// Deletes the record from the DB. 
@@ -1039,12 +1051,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             unchecked // Allow arithmetic overflow, numbers will just "wrap around"
             {
                 int hashcode = 1430287;
-                hashcode = hashcode * 7302013 ^ this.Aerospike.Key.digest.GetHashCode();
+                hashcode = hashcode * 7302013 ^ Helpers.GetStableHashCode(this.Aerospike.Key.digest);
 
                 foreach (var bin in this.Aerospike.Record.bins)
                 {
-                    hashcode = hashcode * 7302013 ^ bin.Key.GetHashCode();
-                    hashcode = hashcode * 7302013 ^ (bin.Value?.GetHashCode() ?? 0);
+                    hashcode = hashcode * 7302013 ^ Helpers.GetStableHashCode(bin.Key);
+                    hashcode = hashcode * 7302013 ^ Helpers.GetStableHashCode(bin.Value);
                 }
 
                 return hashcode;
