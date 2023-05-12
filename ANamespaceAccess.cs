@@ -202,11 +202,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             var record = this.AerospikeConnection
                                 .AerospikeClient
                                 .Get(this.DefaultReadPolicy, pk, bins);
+            var setAccess = this[setName];
 
             return new ARecord(this,
                                 pk,
                                 record,
-                                bins,
+                                setAccess?.BinNames,
                                 dumpType: this.AerospikeConnection.RecordView);
         }
 

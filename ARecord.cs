@@ -12,6 +12,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Windows.Input;
+using System.IO;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -56,8 +57,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             
             if (this.BinsHashCode != this.SetBinsHashCode && this.DumpType == DumpTypes.Record)
             {                
-                if (recordBins.Length <= this.Aerospike.BinNames?.Length
-                        && recordBins.All(n => this.Aerospike.BinNames.Contains(n)))
+                if (recordBins is null
+                        || (recordBins.Length <= this.Aerospike.BinNames?.Length
+                                && recordBins.All(n => this.Aerospike.BinNames.Contains(n))))
                 { }
                 else
                 {
@@ -293,15 +295,21 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public Aerospike.Client.Record Record { get; }
 
             /// <summary>
-            /// The primary key&apos;s value, if <see cref="Aerospike.Client.Policy.sendKey"/> value is true.
-            /// To use a primary key where use <see cref="Equals(string)"/> method.
+            /// The primary key&apos;s value, if <see cref="Aerospike.Client.Policy.sendKey"/> is true.
+            /// Otherwise this will be the digest.
             /// </summary>
+            /// <seealso cref="HasKeyValue"/>
             /// <seealso cref="AerospikeAPI.Key"/>
             /// <seealso cref="AerospikeAPI.KeyValue"/>
             /// <seealso cref="AerospikeAPI.Digest"/>
             /// <seealso cref="Equals(string)"/>
             /// <seealso cref="SetRecords.Get(dynamic, string[])"/>
-            public object PrimaryKey { get => this.KeyValue?.Object; }
+            public APrimaryKey PrimaryKey { get => this.Key is null ? null : new APrimaryKey(this.Key); }
+
+            /// <summary>
+            /// If true, the PK has an actual value. If false, the digest is only provided.
+            /// </summary>
+            public bool HasKeyValue { get => !(this.KeyValue?.Object is null); }
 
             /// <summary>
             /// The Records Aerospike <see cref="Aerospike.Client.Key"/>
@@ -747,7 +755,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 Digest = this.Aerospike.Digest,
                 Generation= this.Aerospike.Generation,
                 TimeToLive = this.Aerospike.Expiration == 0 ? null : (int?) this.Aerospike.Expiration,
-                KeyValue = this.Aerospike.PrimaryKey,
+                KeyValue = this.Aerospike.KeyValue?.Object,
                 Values = values
             };
 
@@ -937,6 +945,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         ///         This item must be the first property in a JObject where the property&apos;s value is a .NET type.
         ///         All reminding elements will be transformed into that .NET object.
         /// </remarks>
+        /// <exception cref="InvalidDataException">Thrown if the Json is not valid</exception>
         public static ARecord FromJson(string nameSpace,
                                         string setName,
                                         dynamic primaryKey,
@@ -945,13 +954,21 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         ANamespaceAccess setAccess = null)
         {
             var converter = new CDTConverter();
-            var binDict = JsonConvert.DeserializeObject<IDictionary<string, object>>(json, converter);
-            
+            var binDict = JsonConvert.DeserializeObject<object>(json, converter);
+
+            if (!(binDict is IDictionary<string, object>))
+            {
+                if (string.IsNullOrEmpty(jsonBinName) || !(binDict is IList<object>))
+                {
+                    throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> or List<object> but received a {binDict.GetType()}.");
+                }
+            }
+
             return new ARecord(nameSpace,
                                 setName,
                                 primaryKey,
                                 string.IsNullOrEmpty(jsonBinName) 
-                                    ? binDict
+                                    ? (IDictionary<string, object>) binDict
                                     : new Dictionary<string,object>() { {jsonBinName, binDict} },
                                 setAccess: setAccess);
         }
@@ -1163,7 +1180,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             .SequenceEqual(Client.Key.ComputeDigest(this.Aerospike.SetName,
                                                                     new Value.StringValue(primaryKey)));
 
-            return this.Aerospike.KeyValue.Object.ToString().Equals(primaryKey);
+            return this.Aerospike.KeyValue?.Object?.ToString().Equals(primaryKey) ?? false;
         }
 
         /// <summary>
@@ -1248,10 +1265,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     {
                         dict[kvp.Key] = aValue.ToDump();
                     }
-                }                    
+                }
+                else if(kvp.Key == nameof(AerospikeAPI.Values))
+                {
+                    dict[kvp.Key] = CheckForAPrimaryKeyType((ExpandoObject) kvp.Value);
+                }
             }
 
-           var exceptionFld = dict.FirstOrDefault(kvp => kvp.Key == nameof(RecordException));
+            var exceptionFld = dict.FirstOrDefault(kvp => kvp.Key == nameof(RecordException));
 
             if (exceptionFld.Key != null && exceptionFld.Value is Exception exception)
             {

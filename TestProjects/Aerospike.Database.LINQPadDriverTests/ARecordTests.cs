@@ -76,7 +76,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             var aRecord = ARecord.FromJson("tns", "tset", json);
 
             Assert.AreEqual(5, aRecord.Aerospike.Count);
-            Assert.IsNull(aRecord.Aerospike.PrimaryKey);
+            Assert.IsFalse(aRecord.Aerospike.HasKeyValue);
             Assert.IsNotNull(aRecord.Aerospike.Digest);
             Assert.AreEqual(20, aRecord.Aerospike.Digest.Length);
 
@@ -128,8 +128,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 
             Assert.AreEqual(2, aRecord.Aerospike.Count);
             Assert.IsNotNull(aRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(aRecord.Aerospike.HasKeyValue);
             Assert.IsNotNull(aRecord.Aerospike.Digest);
-            Assert.IsInstanceOfType<string>(aRecord.Aerospike.PrimaryKey);
+            Assert.IsInstanceOfType<string>(aRecord.Aerospike.PrimaryKey.Value);
             Assert.AreEqual(36, ((string) aRecord.Aerospike.PrimaryKey).Length);
 
             Assert.AreEqual(1l, aRecord["oid"].Value);
@@ -146,8 +147,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 
             Assert.AreEqual(2, aRecord.Aerospike.Count);
             Assert.IsNotNull(aRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(aRecord.Aerospike.HasKeyValue);
             Assert.IsNotNull(aRecord.Aerospike.Digest);
-            Assert.IsInstanceOfType<string>(aRecord.Aerospike.PrimaryKey);
+            Assert.IsInstanceOfType<string>(aRecord.Aerospike.PrimaryKey.Value);
             Assert.AreEqual(36, ((string)aRecord.Aerospike.PrimaryKey).Length);
 
             Assert.AreEqual(1l, aRecord["oid"].Value);
@@ -180,7 +182,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             aRecord = ARecord.FromJson("tns", "tset", json, pkPropertyName: "Digest");
 
             Assert.AreEqual(6, aRecord.Aerospike.Count);
-            Assert.IsNull(aRecord.Aerospike.PrimaryKey);
+            Assert.IsNotNull(aRecord.Aerospike.PrimaryKey);
+            Assert.IsFalse(aRecord.Aerospike.HasKeyValue);
             Assert.IsNotNull(aRecord.Aerospike.Digest);
             Assert.IsInstanceOfType<Dictionary<string, object>>(aRecord["Values"].Value);
 

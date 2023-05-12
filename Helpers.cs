@@ -90,8 +90,11 @@ namespace Aerospike.Client
 
         public static AValue ToAValue(this Bin bin) => new AValue(bin);
         public static AValue ToAValue(this Value value) => new AValue(value, "Value", "Value");
-        public static APrimaryKey ToAValue(this Key key) => new APrimaryKey(key);
+        public static APrimaryKey ToAPrimaryKey(this Key key) => new APrimaryKey(key);
         public static AValue ToAValue(this object value) => new AValue(value, "Object", "Value");
+
+        public static JArray ToJArray(this IEnumerable<JsonDocument> documents) => new JArray(documents.Cast<JObject>());
+        public static JsonDocument ToJsonDocument(this IDictionary<string,object> document) => new JsonDocument(document);
     }
 }
 
@@ -369,7 +372,7 @@ namespace Aerospike.Database.LINQPadDriver
         /// <see cref="UseUnixEpochNanoForNumericDateTime"/>
         public static bool AllDateTimeUseUnixEpochNano = false;
 
-        private static object ConvertToAerospikeType(object putObject)
+        public static object ConvertToAerospikeType(object putObject)
         {
             if (putObject == null)
                 return null;
@@ -379,6 +382,10 @@ namespace Aerospike.Database.LINQPadDriver
                 if (putObject is ARecord aRecord)
                 {
                     putObject = ConvertToAerospikeType(aRecord.Aerospike.GetValues());
+                }
+                else if (putObject is AValue aValue)
+                {
+                    putObject = ConvertToAerospikeType(aValue.Value);
                 }
                 else if (putObject is Decimal decValue)
                 {
@@ -779,11 +786,28 @@ namespace Aerospike.Database.LINQPadDriver
             if (fldType == typeof(object) || fldType == binValue?.GetType())
             {
                 return binValue;
-            }
+            }            
             else
             {
                 try
                 {
+                    if (fldType == typeof(JToken))
+                    {
+                        return JToken.FromObject(binValue);
+                    }
+                    else if (fldType == typeof(JArray))
+                    {
+                        return JArray.FromObject(binValue);
+                    }
+                    else if (fldType == typeof(JObject))
+                    {
+                        return JObject.FromObject(binValue);
+                    }
+                    else if (fldType == typeof(JsonDocument))
+                    {
+                        return new JsonDocument(JObject.FromObject(binValue));
+                    }
+
                     switch (binValue)
                     {
                         case byte byteValue:
@@ -1165,6 +1189,39 @@ namespace Aerospike.Database.LINQPadDriver
                                     throw CreateException(dtoValue);
                                 }
                             }
+                        case TimeSpan tsValue:
+                            {
+                                if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                                {
+                                    return binValue is null
+                                            ? null
+                                            : CastToNativeType(fldName,
+                                                                fldType.GetGenericArguments()[0],
+                                                                binName,
+                                                                binValue);
+                                }
+
+                                if (fldType == typeof(TimeSpan))
+                                {
+                                    return tsValue; 
+                                }
+                                else if (fldType == typeof(string))
+                                {
+                                    return tsValue.ToString(TimeSpanFormat);
+                                }                                
+                                else if (fldType == typeof(JObject))
+                                {
+                                    return JObject.FromObject(tsValue);
+                                }
+                                else if (fldType == typeof(JToken))
+                                {
+                                    return JToken.FromObject(tsValue);
+                                }
+                                else
+                                {
+                                    throw CreateException(tsValue);
+                                }
+                            }
                         case IList<object> lstValue:
                             {
                                 if (fldType.IsArray)
@@ -1330,7 +1387,7 @@ namespace Aerospike.Database.LINQPadDriver
                                 {
                                     return aValue.Value;
                                 }
-                            }
+                            }                        
                         case IConvertible iConvertible:
                             {
                                 if (fldType.IsGenericType)

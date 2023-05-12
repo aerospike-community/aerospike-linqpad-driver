@@ -20,7 +20,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="AValue.ToValue(Client.Value)"/>
     /// <seealso cref="APrimaryKey.ToValue(Client.Key)"/>
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Bin)"/>
-    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Key)"/>
+    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAPrimaryKey(Client.Key)"/>
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Value)"/>
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(object)"/>
     /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
@@ -96,6 +96,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             , IEqualityComparer< JsonDocument >
                      , IEquatable< JObject >
             , IEqualityComparer< JObject >
+                     , IEquatable< JArray >
+            , IEqualityComparer< JArray >
+                     , IEquatable< JToken >
+            , IEqualityComparer< JToken >
            
     {
 
@@ -303,6 +307,75 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public bool IsTimeSpan
         {
             get => this.UnderlyingType == typeof(TimeSpan);
+        }
+
+        /// <summary>
+        /// Tries to convert an object to a JToken.
+        /// </summary>
+        /// <returns>A <see cref="JToken"/> or an empty JToken</returns>
+        public JToken ToJson()
+        {
+            if (this.UnderlyingType == typeof(JToken)
+                || this.UnderlyingType == typeof(JObject)
+                || this.UnderlyingType == typeof(JArray)
+                || this.UnderlyingType == typeof(JsonDocument))
+            {
+                return (JToken)this.Value;
+            }
+
+            try
+            {
+                return (JToken)Newtonsoft.Json.JsonConvert.SerializeObject(this.Value);
+            } catch
+            {
+                return new JObject();
+            }
+        }
+
+        /// <summary>
+        /// Tries to convert a value to a IDictionary. If not possible an empty IDictionary is returned.
+        /// </summary>
+        /// <returns></returns>
+        public IDictionary<object, object> ToDictionary()
+        {
+            if (this.Value is JObject jObject)
+            {
+                return jObject.ToObject<Dictionary<object, object>>();
+            }            
+            else if (this.Value is JProperty jProp)
+            {
+                return new Dictionary<object,object>(){ [jProp.Name] = jProp.Value<Object>() };
+            }
+            else if (this.Value is IDictionary<object, object> oDict)
+                return oDict;
+            else if (this.Value is IDictionary<string, object> sDict)
+                return sDict.ToDictionary(kvp => (object)kvp.Key, kvp => kvp.Value);
+
+            return new Dictionary<object, object>(0);
+        }
+
+        /// <summary>
+        /// Tries to convert a value to a IList. If not possible an empty list is returned.
+        /// </summary>
+        /// <returns></returns>
+        public IList<object> ToList()
+        {          
+            var value = this.Value;
+
+            if (this.Value is JObject
+                    || this.Value is JProperty)
+            {
+                value = this.ToDictionary();
+            }
+            else if(this.Value is JArray jArray)
+            {
+                return jArray.ToList<object>();
+            }
+
+            if(Helpers.IsSubclassOfInterface(typeof(System.Collections.IEnumerable), this.UnderlyingType)) 
+                return ((System.Collections.IEnumerable) value).Cast<object>().ToList();
+
+            return new List<object>(0);
         }
 
         /// <summary>
@@ -649,7 +722,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator string (AValue v) => v.Convert< string >();
-            public static implicit operator string[] (AValue v) => v.Convert<string[] >();
+            //public static implicit operator string[] (AValue v) => v.Convert<string[] >();            
             
             public static bool operator==(AValue av, string v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, string v) => !(av == v);
@@ -672,6 +745,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, string oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, string oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public string Tostring() => (string) this;
             public bool Equals(string value)
             {
                 return this.DigestRequired()
@@ -693,7 +767,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator bool (AValue v) => v.Convert< bool >();
-            public static implicit operator bool[] (AValue v) => v.Convert<bool[] >();
+            //public static implicit operator bool[] (AValue v) => v.Convert<bool[] >();            
             
             public static bool operator==(AValue av, bool v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, bool v) => !(av == v);
@@ -716,6 +790,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, bool oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, bool oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public bool Tobool() => (bool) this;
             public bool Equals(bool value)
             {
                 return this.DigestRequired()
@@ -751,7 +826,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator Enum (AValue v) => v.Convert< Enum >();
-            public static implicit operator Enum[] (AValue v) => v.Convert<Enum[] >();
+            //public static implicit operator Enum[] (AValue v) => v.Convert<Enum[] >();            
             
             public static bool operator==(AValue av, Enum v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, Enum v) => !(av == v);
@@ -774,6 +849,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, Enum oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, Enum oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public Enum ToEnum() => (Enum) this;
             public bool Equals(Enum value)
             {
                 return this.DigestRequired()
@@ -809,7 +885,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator Guid (AValue v) => v.Convert< Guid >();
-            public static implicit operator Guid[] (AValue v) => v.Convert<Guid[] >();
+            //public static implicit operator Guid[] (AValue v) => v.Convert<Guid[] >();            
             
             public static bool operator==(AValue av, Guid v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, Guid v) => !(av == v);
@@ -832,6 +908,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, Guid oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, Guid oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public Guid ToGuid() => (Guid) this;
             public bool Equals(Guid value)
             {
                 return this.DigestRequired()
@@ -852,7 +929,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator short (AValue v) => v.Convert< short >();
-            public static implicit operator short[] (AValue v) => v.Convert<short[] >();
+            //public static implicit operator short[] (AValue v) => v.Convert<short[] >();            
             
             public static bool operator==(AValue av, short v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, short v) => !(av == v);
@@ -875,6 +952,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, short oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, short oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public short Toshort() => (short) this;
             public bool Equals(short value)
             {
                 return this.DigestRequired()
@@ -910,7 +988,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator int (AValue v) => v.Convert< int >();
-            public static implicit operator int[] (AValue v) => v.Convert<int[] >();
+            //public static implicit operator int[] (AValue v) => v.Convert<int[] >();            
             
             public static bool operator==(AValue av, int v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, int v) => !(av == v);
@@ -933,6 +1011,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, int oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, int oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public int Toint() => (int) this;
             public bool Equals(int value)
             {
                 return this.DigestRequired()
@@ -968,7 +1047,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator long (AValue v) => v.Convert< long >();
-            public static implicit operator long[] (AValue v) => v.Convert<long[] >();
+            //public static implicit operator long[] (AValue v) => v.Convert<long[] >();            
             
             public static bool operator==(AValue av, long v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, long v) => !(av == v);
@@ -991,6 +1070,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, long oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, long oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public long Tolong() => (long) this;
             public bool Equals(long value)
             {
                 return this.DigestRequired()
@@ -1026,7 +1106,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator ushort (AValue v) => v.Convert< ushort >();
-            public static implicit operator ushort[] (AValue v) => v.Convert<ushort[] >();
+            //public static implicit operator ushort[] (AValue v) => v.Convert<ushort[] >();            
             
             public static bool operator==(AValue av, ushort v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, ushort v) => !(av == v);
@@ -1049,6 +1129,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, ushort oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, ushort oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public ushort Toushort() => (ushort) this;
             public bool Equals(ushort value)
             {
                 return this.DigestRequired()
@@ -1084,7 +1165,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator uint (AValue v) => v.Convert< uint >();
-            public static implicit operator uint[] (AValue v) => v.Convert<uint[] >();
+            //public static implicit operator uint[] (AValue v) => v.Convert<uint[] >();            
             
             public static bool operator==(AValue av, uint v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, uint v) => !(av == v);
@@ -1107,6 +1188,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, uint oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, uint oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public uint Touint() => (uint) this;
             public bool Equals(uint value)
             {
                 return this.DigestRequired()
@@ -1142,7 +1224,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator ulong (AValue v) => v.Convert< ulong >();
-            public static implicit operator ulong[] (AValue v) => v.Convert<ulong[] >();
+            //public static implicit operator ulong[] (AValue v) => v.Convert<ulong[] >();            
             
             public static bool operator==(AValue av, ulong v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, ulong v) => !(av == v);
@@ -1165,6 +1247,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, ulong oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, ulong oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public ulong Toulong() => (ulong) this;
             public bool Equals(ulong value)
             {
                 return this.DigestRequired()
@@ -1200,7 +1283,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator decimal (AValue v) => v.Convert< decimal >();
-            public static implicit operator decimal[] (AValue v) => v.Convert<decimal[] >();
+            //public static implicit operator decimal[] (AValue v) => v.Convert<decimal[] >();            
             
             public static bool operator==(AValue av, decimal v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, decimal v) => !(av == v);
@@ -1223,6 +1306,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, decimal oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, decimal oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public decimal Todecimal() => (decimal) this;
             public bool Equals(decimal value)
             {
                 return this.DigestRequired()
@@ -1258,7 +1342,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator float (AValue v) => v.Convert< float >();
-            public static implicit operator float[] (AValue v) => v.Convert<float[] >();
+            //public static implicit operator float[] (AValue v) => v.Convert<float[] >();            
             
             public static bool operator==(AValue av, float v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, float v) => !(av == v);
@@ -1281,6 +1365,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, float oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, float oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public float Tofloat() => (float) this;
             public bool Equals(float value)
             {
                 return this.DigestRequired()
@@ -1316,7 +1401,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator double (AValue v) => v.Convert< double >();
-            public static implicit operator double[] (AValue v) => v.Convert<double[] >();
+            //public static implicit operator double[] (AValue v) => v.Convert<double[] >();            
             
             public static bool operator==(AValue av, double v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, double v) => !(av == v);
@@ -1339,6 +1424,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, double oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, double oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public double Todouble() => (double) this;
             public bool Equals(double value)
             {
                 return this.DigestRequired()
@@ -1374,7 +1460,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator byte (AValue v) => v.Convert< byte >();
-            public static implicit operator byte[] (AValue v) => v.Convert<byte[] >();
+            //public static implicit operator byte[] (AValue v) => v.Convert<byte[] >();            
             
             public static bool operator==(AValue av, byte v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, byte v) => !(av == v);
@@ -1397,6 +1483,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, byte oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, byte oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public byte Tobyte() => (byte) this;
             public bool Equals(byte value)
             {
                 return this.DigestRequired()
@@ -1432,7 +1519,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator sbyte (AValue v) => v.Convert< sbyte >();
-            public static implicit operator sbyte[] (AValue v) => v.Convert<sbyte[] >();
+            //public static implicit operator sbyte[] (AValue v) => v.Convert<sbyte[] >();            
             
             public static bool operator==(AValue av, sbyte v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, sbyte v) => !(av == v);
@@ -1455,6 +1542,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, sbyte oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, sbyte oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public sbyte Tosbyte() => (sbyte) this;
             public bool Equals(sbyte value)
             {
                 return this.DigestRequired()
@@ -1490,7 +1578,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator DateTime (AValue v) => v.Convert< DateTime >();
-            public static implicit operator DateTime[] (AValue v) => v.Convert<DateTime[] >();
+            //public static implicit operator DateTime[] (AValue v) => v.Convert<DateTime[] >();            
             
             public static bool operator==(AValue av, DateTime v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, DateTime v) => !(av == v);
@@ -1513,6 +1601,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, DateTime oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, DateTime oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public DateTime ToDateTime() => (DateTime) this;
             public bool Equals(DateTime value)
             {
                 return this.DigestRequired()
@@ -1546,7 +1635,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator DateTimeOffset (AValue v) => v.Convert< DateTimeOffset >();
-            public static implicit operator DateTimeOffset[] (AValue v) => v.Convert<DateTimeOffset[] >();
+            //public static implicit operator DateTimeOffset[] (AValue v) => v.Convert<DateTimeOffset[] >();            
             
             public static bool operator==(AValue av, DateTimeOffset v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, DateTimeOffset v) => !(av == v);
@@ -1569,6 +1658,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, DateTimeOffset oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, DateTimeOffset oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public DateTimeOffset ToDateTimeOffset() => (DateTimeOffset) this;
             public bool Equals(DateTimeOffset value)
             {
                 return this.DigestRequired()
@@ -1602,7 +1692,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator TimeSpan (AValue v) => v.Convert< TimeSpan >();
-            public static implicit operator TimeSpan[] (AValue v) => v.Convert<TimeSpan[] >();
+            //public static implicit operator TimeSpan[] (AValue v) => v.Convert<TimeSpan[] >();            
             
             public static bool operator==(AValue av, TimeSpan v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, TimeSpan v) => !(av == v);
@@ -1625,6 +1715,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, TimeSpan oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, TimeSpan oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public TimeSpan ToTimeSpan() => (TimeSpan) this;
             public bool Equals(TimeSpan value)
             {
                 return this.DigestRequired()
@@ -1659,8 +1750,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         
         
             public static implicit operator JsonDocument (AValue key) => key is null ? null : (JsonDocument) key.Convert< JsonDocument >();
-            public static implicit operator JsonDocument[] (AValue key) => (JsonDocument[]) key.Convert<JsonDocument[]>();
+            //public static implicit operator JsonDocument[] (AValue key) => (JsonDocument[]) key.Convert<JsonDocument[]>();
             
+            public JsonDocument ToJsonDocument() => (JsonDocument) this;
+
             public bool Equals(JsonDocument value)
             {
                 try {
@@ -1682,8 +1775,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator JObject (AValue key) => key is null ? null : (JObject) key.Convert< JObject >();
-            public static implicit operator JObject[] (AValue key) => (JObject[]) key.Convert<JObject[]>();
+            //public static implicit operator JObject[] (AValue key) => (JObject[]) key.Convert<JObject[]>();
             
+            public JObject ToJObject() => (JObject) this;
+
             public bool Equals(JObject value)
             {
                 try {
@@ -1702,6 +1797,56 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 return v1.Equals(v2);
             }
             public int GetHashCode(JObject value) => value?.GetHashCode() ?? 0;
+
+        
+            public static implicit operator JArray (AValue key) => key is null ? null : (JArray) key.Convert< JArray >();
+            //public static implicit operator JArray[] (AValue key) => (JArray[]) key.Convert<JArray[]>();
+            
+            public JArray ToJArray() => (JArray) this;
+
+            public bool Equals(JArray value)
+            {
+                try {
+                    return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : ((JArray) this).Equals(value);
+                } catch {}
+                return false;
+            }
+
+            public bool Equals(JArray v1, JArray v2)
+            {
+                if(ReferenceEquals(v1,v2)) return true;
+                if(v1 is null) return v2 is null;
+
+                return v1.Equals(v2);
+            }
+            public int GetHashCode(JArray value) => value?.GetHashCode() ?? 0;
+
+        
+            public static implicit operator JToken (AValue key) => key is null ? null : (JToken) key.Convert< JToken >();
+            //public static implicit operator JToken[] (AValue key) => (JToken[]) key.Convert<JToken[]>();
+            
+            public JToken ToJToken() => (JToken) this;
+
+            public bool Equals(JToken value)
+            {
+                try {
+                    return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : ((JToken) this).Equals(value);
+                } catch {}
+                return false;
+            }
+
+            public bool Equals(JToken v1, JToken v2)
+            {
+                if(ReferenceEquals(v1,v2)) return true;
+                if(v1 is null) return v2 is null;
+
+                return v1.Equals(v2);
+            }
+            public int GetHashCode(JToken value) => value?.GetHashCode() ?? 0;
 
                 
         /// <summary>

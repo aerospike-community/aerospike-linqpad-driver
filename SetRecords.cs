@@ -59,18 +59,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Get(dynamic, Expression, string[])"/>
         public new T Get([NotNull] dynamic primaryKey, params string[] bins)
         {
-            Client.Key key;
-
-            if (primaryKey is Client.Key valueKey)
-            {
-                key = new Client.Key(this.Namespace, this.SetName, valueKey.userKey);
-            }
-            else if (primaryKey is Value value)
-                key = new Client.Key(this.Namespace, this.SetName, value);
-            else if (primaryKey is byte[] digest)
-                key = new Client.Key(this.Namespace, digest, this.SetName, new Value.BytesValue(digest));
-            else
-                key = new Client.Key(this.Namespace, this.SetName, Value.Get(primaryKey));
+            Client.Key key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
 
             var record = this.SetAccess
                                 .AerospikeConnection
@@ -82,7 +71,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return (T) CreateRecord(this.SetAccess,
                                         key,
                                         record,
-                                        bins,
+                                        this._bins,
                                         this.BinsHashCode,
                                         recordView: this.DefaultRecordView);
         }
@@ -105,18 +94,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Get(dynamic, string[])"/>
         public new T Get([NotNull] dynamic primaryKey, Expression filterExpresion, params string[] bins)
         {
-            Client.Key key;
-
-            if (primaryKey is Client.Key valueKey)
-            {
-                key = new Client.Key(this.Namespace, this.SetName, valueKey.userKey);
-            }
-            else if (primaryKey is Value value)
-                key = new Client.Key(this.Namespace, this.SetName, value);
-            else if (primaryKey is byte[] digest)
-                key = new Client.Key(this.Namespace, digest, this.SetName, new Value.BytesValue(digest));
-            else
-                key = new Client.Key(this.Namespace, this.SetName, Value.Get(primaryKey));
+            Client.Key key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
 
             var policy = new Client.Policy(this.DefaultReadPolicy) { filterExp = filterExpresion };
 
@@ -130,7 +108,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return (T)CreateRecord(this.SetAccess,
                                         key,
                                         record,
-                                        bins,
+                                        this._bins,
                                         this.BinsHashCode,
                                         recordView: this.DefaultRecordView);
         }
@@ -981,7 +959,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </returns>        
         /// <seealso cref="Get(dynamic, Expression, string[])"/>
         public ARecord Get([NotNull] dynamic primaryKey, params string[] bins)
-        {
+        {            
             var key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
 
             var record = this.SetAccess
@@ -994,7 +972,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return new ARecord(this.SetAccess,
                                     key,
                                     record,
-                                    bins,
+                                    this._bins,
                                     dumpType: this.DefaultRecordView);
         }
 
@@ -1031,7 +1009,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return new ARecord(this.SetAccess,
                                     key,
                                     record,
-                                    bins,
+                                    this._bins,
                                     dumpType: this.DefaultRecordView);
         }
         #endregion

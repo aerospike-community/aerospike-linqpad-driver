@@ -513,7 +513,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                 if (idxValue is JsonDocument jsonDoc)
                 {
-                    return GetGrpKeys((Dictionary<object, object>)jsonDoc, collectionType, rec, returningOnlyMatching);
+                    return GetGrpKeys(jsonDoc.ToDictionary(), collectionType, rec, returningOnlyMatching);
                 }
 
                 if (collectionType == IndexCollectionType.MAPKEYS)

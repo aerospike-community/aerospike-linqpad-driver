@@ -11,7 +11,7 @@
         "DateTime", "DateTimeOffset", "TimeSpan" };
 	
     string[] classDataTypes = new string[] 
-      { "JsonDocument", "JObject"};
+      { "JsonDocument", "JObject", "JArray", "JToken"};
 #>
 
 using System;
@@ -268,6 +268,75 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public bool IsTimeSpan
         {
             get => this.UnderlyingType == typeof(TimeSpan);
+        }
+
+        /// <summary>
+        /// Tries to convert an object to a JToken.
+        /// </summary>
+        /// <returns>A <see cref="JToken"/> or an empty JToken</returns>
+        public JToken ToJson()
+        {
+            if (this.UnderlyingType == typeof(JToken)
+                || this.UnderlyingType == typeof(JObject)
+                || this.UnderlyingType == typeof(JArray)
+                || this.UnderlyingType == typeof(JsonDocument))
+            {
+                return (JToken)this.Value;
+            }
+
+            try
+            {
+                return (JToken)Newtonsoft.Json.JsonConvert.SerializeObject(this.Value);
+            } catch
+            {
+                return new JObject();
+            }
+        }
+
+        /// <summary>
+        /// Tries to convert a value to a IDictionary. If not possible an empty IDictionary is returned.
+        /// </summary>
+        /// <returns></returns>
+        public IDictionary<object, object> ToDictionary()
+        {
+            if (this.Value is JObject jObject)
+            {
+                return jObject.ToObject<Dictionary<object, object>>();
+            }            
+            else if (this.Value is JProperty jProp)
+            {
+                return new Dictionary<object,object>(){ [jProp.Name] = jProp.Value<Object>() };
+            }
+            else if (this.Value is IDictionary<object, object> oDict)
+                return oDict;
+            else if (this.Value is IDictionary<string, object> sDict)
+                return sDict.ToDictionary(kvp => (object)kvp.Key, kvp => kvp.Value);
+
+            return new Dictionary<object, object>(0);
+        }
+
+        /// <summary>
+        /// Tries to convert a value to a IList. If not possible an empty list is returned.
+        /// </summary>
+        /// <returns></returns>
+        public IList<object> ToList()
+        {          
+            var value = this.Value;
+
+            if (this.Value is JObject
+                    || this.Value is JProperty)
+            {
+                value = this.ToDictionary();
+            }
+            else if(this.Value is JArray jArray)
+            {
+                return jArray.ToList<object>();
+            }
+
+            if(Helpers.IsSubclassOfInterface(typeof(System.Collections.IEnumerable), this.UnderlyingType)) 
+                return ((System.Collections.IEnumerable) value).Cast<object>().ToList();
+
+            return new List<object>(0);
         }
 
         /// <summary>
@@ -616,7 +685,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         { #>
 
             public static implicit operator <#= datatype #> (AValue v) => v.Convert< <#= datatype #> >();
-            public static implicit operator <#= datatype #>[] (AValue v) => v.Convert<<#= datatype #>[] >();
+            //public static implicit operator <#= datatype #>[] (AValue v) => v.Convert<<#= datatype #>[] >();            
             
             public static bool operator==(AValue av, <#= datatype #> v) => av?.Equals(v) ?? false;
 	        public static bool operator!=(AValue av, <#= datatype #> v) => !(av == v);
@@ -639,6 +708,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, <#= datatype #> oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, <#= datatype #> oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            public <#= datatype #> To<#= datatype #>() => (<#= datatype #>) this;
             public bool Equals(<#= datatype #> value)
             {
                 return this.DigestRequired()
@@ -698,8 +768,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         { #>
 
             public static implicit operator <#= datatype #> (AValue key) => key is null ? null : (<#= datatype #>) key.Convert< <#= datatype #> >();
-            public static implicit operator <#= datatype #>[] (AValue key) => (<#= datatype #>[]) key.Convert<<#= datatype #>[]>();
+            //public static implicit operator <#= datatype #>[] (AValue key) => (<#= datatype #>[]) key.Convert<<#= datatype #>[]>();
             
+            public <#= datatype #> To<#= datatype #>() => (<#= datatype #>) this;
+
             public bool Equals(<#= datatype #> value)
             {
                 try {

@@ -20,7 +20,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="AValue.ToValue(Client.Value)"/>
     /// <seealso cref="APrimaryKey.ToValue(Client.Key)"/>
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Bin)"/>
-    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Key)"/>
+    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAPrimaryKey(Client.Key)"/>
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Value)"/>
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(object)"/>
     /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
@@ -40,7 +40,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         public Aerospike.Client.Key AerospikeKey { get; }
-        
+
+        /// <summary>
+        /// If true, the PK has an actual value. If false, the digest is only provided.
+        /// </summary>
+        public bool HasKeyValue { get => !(this.AerospikeKey.userKey?.Object is null); }
+
         public static APrimaryKey ToValue(Aerospike.Client.Key key) => new APrimaryKey(key);
 
         public override int GetHashCode() => this.DigestRequired()
@@ -59,9 +64,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 ? Helpers.ByteArrayToString(this.AerospikeKey.digest)
                                                 : base.ToString();
 
-        protected override bool DigestRequired() => this.AerospikeKey.userKey == null;
+        protected override bool DigestRequired() => this.AerospikeKey.userKey?.Object is null;
         protected override bool CompareDigest(object value)
-        {
+        {            
             if (value is null) return false;
             if(ReferenceEquals(this, value)) return true;
 
@@ -84,8 +89,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 return this.CompareDigest(aValue.Value);
             }
 
+            var dbValue = Helpers.ConvertToAerospikeType(value);
             return this.AerospikeKey.digest.SequenceEqual(Aerospike.Client.Key.ComputeDigest(this.AerospikeKey.setName,
-                                                                                                Aerospike.Client.Value.Get(value)));
+                                                                                                Aerospike.Client.Value.Get(dbValue)));
         }
 
         

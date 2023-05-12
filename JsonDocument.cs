@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Windows.Controls;
 using Microsoft.Win32.SafeHandles;
+using System.Xml.Linq;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -101,19 +102,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return this.SelectToken(jsonPath, errorWhenNoMatch);
         }
 
-        static public explicit operator Dictionary<object, object>(JsonDocument jObject)
-                                    => jObject.ToObject<Dictionary<object, object>>();
-
-        static public explicit operator JsonDocument(Dictionary<object, object> dict)
-                                    => new JsonDocument(dict);
-
-        static public explicit operator JsonDocument(SortedDictionary<object, object> dict)
-                                    => new JsonDocument(dict);
-
-        static public Dictionary<object, object> ToDictionary(Newtonsoft.Json.Linq.JToken jToken)
-        {
-            return jToken.ToObject<Dictionary<object, object>>();
-        }
+        public IDictionary<string, object> ToDictionary() => CDTConverter.ConvertToDictionary(this);
+         
     }
 
     /// <summary>
@@ -445,6 +435,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public override bool CanConvert(Type objectType)
         {
             return true;
+        }
+
+        static public IDictionary<string,object> ConvertToDictionary(JObject jObject)
+        {
+            var converter = new CDTConverter();
+            var newDict = new Dictionary<string,object>();
+
+            converter.ReadObject(jObject, newDict, null);
+
+            return newDict;
         }
     }
 }
