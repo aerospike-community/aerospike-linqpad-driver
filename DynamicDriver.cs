@@ -131,7 +131,7 @@ namespace Aerospike.Database.LINQPadDriver
 				}
             }
             
-            var buildNamespaces = this.BuildNamespaces();
+            var buildNamespaces = this.BuildNamespaces(_Connection.AlwaysUseAValues);
 			var namespaceClasses = buildNamespaces.Item1;
             var namespaceProps = buildNamespaces.Item2;
             var namespaceConstruct = buildNamespaces.Item3;
@@ -286,12 +286,13 @@ namespace {nameSpace}
         /// <summary>
         /// Creates namespace/set/bin C# code strings
         /// </summary>
+		/// <param name="alwaysUseAValues"></param>
         /// <returns>
         /// Item1 -- Namespace classes
         /// Item2 -- Namespace Properties
         /// Item3 -- Namespace constructors 
         /// </returns>
-        public Tuple<StringBuilder, StringBuilder, StringBuilder> BuildNamespaces()
+        public Tuple<StringBuilder, StringBuilder, StringBuilder> BuildNamespaces(bool alwaysUseAValues)
 		{
 			var namespaceClasses = new StringBuilder();
             var namespaceProps = new StringBuilder();
@@ -367,7 +368,9 @@ namespace {nameSpace}
 								}
 
 								var fldName = Helpers.CheckName(setBinType.bin, "Bin");
-								var fldType = setBinType.dup ? "AValue" : Helpers.GetRealTypeName(setBinType.type, !setBinType.inAllRecs);
+								var fldType = setBinType.dup || alwaysUseAValues
+													? "AValue"
+													: Helpers.GetRealTypeName(setBinType.type, !setBinType.inAllRecs);
 
 								flds.Add(fldName);
 
@@ -389,7 +392,7 @@ namespace {nameSpace}
 								setClassFldsConst.Append(fldType);
 								setClassFldsConst.Append(") ");
 
-								if (setBinType.dup)
+								if (setBinType.dup || alwaysUseAValues)
 								{
 									setClassFldsConst.Append($" new AValue(this.Aerospike.GetValue(\"");
 									setClassFldsConst.Append(setBinType.bin);

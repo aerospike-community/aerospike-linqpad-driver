@@ -362,12 +362,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {          
             var value = this.Value;
 
-            if (this.Value is JObject
+            if (value is JObject
                     || this.Value is JProperty)
             {
                 value = this.ToDictionary();
             }
-            else if(this.Value is JArray jArray)
+            else if(value is JArray jArray)
             {
                 return jArray.ToList<object>();
             }
@@ -379,7 +379,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Converts <see cref="Value"/> into a >net native type
+        /// Converts <see cref="Value"/> into a .net native type
         /// </summary>
         /// <typeparam name="T">.Net Type to convert to</typeparam>
         /// <returns>

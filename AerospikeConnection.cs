@@ -40,6 +40,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.SendPK = connectionInfo.SendKey;
             this.ShortQuery = connectionInfo.ShortQuery;
             this.DocumentAPI= connectionInfo.DocumentAPI;
+            this.AlwaysUseAValues = connectionInfo.AlwaysUseAValues;
             this.DriverLogging= connectionInfo.DriverLogging;
             this.NetworkCompression= connectionInfo.NetworkCompression;
             this.RespondAllOps = connectionInfo.RespondAllOps;
@@ -125,6 +126,7 @@ namespace Aerospike.Database.LINQPadDriver
         public bool ShortQuery { get; }
 
         public bool DocumentAPI { get; }
+        public bool AlwaysUseAValues { get; }
 
         public bool RespondAllOps { get; }
 

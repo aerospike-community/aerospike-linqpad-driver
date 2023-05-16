@@ -340,7 +340,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Converts <see cref="Value"/> into a >net native type
+        /// Converts <see cref="Value"/> into a .net native type
         /// </summary>
         /// <typeparam name="T">.Net Type to convert to</typeparam>
         /// <returns>

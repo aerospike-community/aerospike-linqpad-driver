@@ -272,6 +272,24 @@ namespace Aerospike.Database.LINQPadDriver
             }
         }
 
+        public bool AlwaysUseAValues
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    DriverData.SetElementValue("AlwaysUseAValues", false);
+                    return false;
+                }
+
+                return (bool?)DriverData.Element("AlwaysUseAValues") ?? false;
+            }
+            set
+            {
+                DriverData.SetElementValue("AlwaysUseAValues", value);
+            }
+        }
+
         public bool RespondAllOps
         {
             get

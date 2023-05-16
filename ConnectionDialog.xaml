@@ -149,6 +149,8 @@
                         </TextBlock>
                     </StackPanel>
                 </GroupBox>
+                <CheckBox IsChecked="{Binding AlwaysUseAValues}" ToolTip="Enabled, always use Auto-Values (AValue). Disabled, if possible use native types" HorizontalAlignment="Left" Margin="5,0,0,5">Always Use Auto-Values</CheckBox>
+
                 <Label Margin="0,5,0,0" HorizontalAlignment="Left">Primary Key Name:</Label>
                 <TextBox Name="txtPKName" HorizontalAlignment="Left" Margin="0,0,0,5" ToolTip="Property Name of the Primary Key" MaxLines="1" MinLines="1" Text="{Binding PKName}" Width="150" />
                 <CheckBox IsChecked="{Binding Debug}" ToolTip="only use for internal debugging" VerticalAlignment="Top">Enable Debugging</CheckBox>
