@@ -95,6 +95,22 @@ namespace Aerospike.Client
 
         public static JArray ToJArray(this IEnumerable<JsonDocument> documents) => new JArray(documents.Cast<JObject>());
         public static JsonDocument ToJsonDocument(this IDictionary<string,object> document) => new JsonDocument(document);
+
+        /// <summary>
+        /// This will convert a list of JsonDocuments to a list of dictionary items.
+        /// </summary>
+        /// <param name="documentLst">A list of JSON documents</param>
+        /// <returns>
+        /// a list of dictionary items.
+        /// </returns>
+        public static IEnumerable<IDictionary<string,object>> ToCDT(this IEnumerable<JsonDocument> documentLst)
+        {
+            foreach(var document in documentLst)
+            {
+                yield return document.ToDictionary();
+            }
+        }
+
     }
 }
 
@@ -417,10 +433,22 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     putObject = guidValue.ToString();
                 }
-                else if (putObject is Newtonsoft.Json.Linq.JToken jToken)
+                else if(putObject is JObject jObject)
                 {
-                    putObject = jToken.ToObject<Dictionary<string, object>>();
+                    return ConvertToAerospikeType(jObject.ToObject<Dictionary<string, object>>());
                 }
+                else if (putObject is JArray jArray)
+                {
+                    return ConvertToAerospikeType(jArray.ToObject<List<object>>());
+                }
+                else if (putObject is JProperty jProp)
+                {
+                    return ConvertToAerospikeType(jProp.ToObject<Dictionary<string, object>>());
+                }
+                else if (putObject is JValue jValue)
+                {
+                    return ConvertToAerospikeType(jValue.Value);
+                }                
                 else if (putObject is IDictionary dictValue)
                 {
                     var genericTypes = dictValue.GetType().GetGenericArguments();

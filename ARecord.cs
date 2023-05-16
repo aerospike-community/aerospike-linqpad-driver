@@ -806,6 +806,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="pkPropertyName">
         /// The property name used for the primary key. The default is &apos;_id&apos;.
         /// If the primary key value is not present, the digest is used. In these cases the property value will be a sub property where that name will be &apos;$oid&apos; and the value is a byte string.
+        /// If this is null, no PK property is written. 
         /// </param>
         /// <param name="useDigest">
         /// If true, always use the PK digest as the primary key.
@@ -815,9 +816,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// Returns a <see cref="JObject"/> representing the record.
         /// </returns>
-        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="FromJson(string, string, dynamic, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
+        /// <seealso cref="SetRecords.FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
         /// <example>
         /// <code>
@@ -850,11 +852,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// }
         /// </code>
         /// </example>
-        public JObject ToJson(string pkPropertyName = "_id", bool useDigest = false)
+        public JObject ToJson([AllowNull] string pkPropertyName = "_id", bool useDigest = false)
         {
             var jsonStruct = new JObject();
 
-            if(!(this.Aerospike.Key is null))
+            if(!string.IsNullOrEmpty(pkPropertyName) && !(this.Aerospike.Key is null))
             {
                 if(useDigest || this.Aerospike.Key.userKey is null)
                 {
@@ -879,7 +881,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             return jsonStruct;
         }
-
+       
         /// <summary>
         /// Given a Json string, creates a <see cref="ARecord"/> object that can but used to update the DB.
         /// </summary>
@@ -899,13 +901,18 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If provided, the Json object is placed into this bin.
         /// If null (default), the each top level Json property will be associated with a bin. Note, if the property name is greater than the bin name limit, an Aerospike exception will occur during the put.
         /// </param>
+        /// <param name="ignorePKPropertyName">
+        /// Removes the primary key property, if present, so that it is not added to the record.
+        /// If null, all properties are added to the record.
+        /// </param>
         /// <param name="setAccess">The set instance that will be associated to this record.</param>
         /// <returns>
         /// Returns ARecord instance.
         /// </returns>
         /// <seealso cref="ToJson(string, bool)"/>
-        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
+        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
         /// <seealso cref="SetRecords.Put(ARecord, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="AerospikeAPI.Bins"/>
@@ -951,18 +958,23 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         dynamic primaryKey,
                                         string json,
                                         string jsonBinName = null,
+                                        [AllowNull]
+                                        string ignorePKPropertyName = "_id",
                                         ANamespaceAccess setAccess = null)
         {
             var converter = new CDTConverter();
             var binDict = JsonConvert.DeserializeObject<object>(json, converter);
-
+            
             if (!(binDict is IDictionary<string, object>))
             {
                 if (string.IsNullOrEmpty(jsonBinName) || !(binDict is IList<object>))
                 {
-                    throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> or List<object> but received a {binDict.GetType()}.");
+                    throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> or List<object> with a jsonBinName but received a {binDict.GetType()}.");
                 }
             }
+
+            if(!string.IsNullOrEmpty(ignorePKPropertyName))
+                ((IDictionary<string, object>)binDict).Remove(ignorePKPropertyName);
 
             return new ARecord(nameSpace,
                                 setName,
@@ -984,6 +996,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// The default is &apos;_id&apos;.
         /// If the pkPropertyName doesn&apos;s exists, a <see cref="KeyNotFoundException"/> is thrown.
         /// </param>
+        /// <param name="writePKPropertyName">
+        /// If true, the <paramref name="pkPropertyName"/>, is written to the record.
+        /// If false (default), it will not be part of the record (only used to define the PK).
+        /// </param>
         /// <param name="jsonBinName">
         /// If provided, the Json object is placed into this bin.
         /// If null (default), the each top level Json property will be associated with a bin. Note, if the property name is greater than the bin name limit, an Aerospike exception will occur during the put.
@@ -993,8 +1009,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Returns ARecord instance.
         /// </returns>
         /// <seealso cref="ToJson(string, bool)"/>
-        /// <seealso cref="FromJson(string, string, dynamic, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
+        /// <seealso cref="FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
         /// <seealso cref="SetRecords.Put(ARecord, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="AerospikeAPI.Bins"/>
@@ -1042,13 +1059,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         string json,
                                         string pkPropertyName = "_id",
                                         string jsonBinName = null,
-                                        ANamespaceAccess setAccess = null)
-        {            
+                                        ANamespaceAccess setAccess = null,
+                                        bool writePKPropertyName = false)
+        {
             var converter = new CDTConverter();
             var binDict = JsonConvert.DeserializeObject<IDictionary<string, object>>(json, converter);
 
             var primaryKeyValue = binDict[pkPropertyName];
-            binDict.Remove(pkPropertyName);
+            if(!writePKPropertyName)
+                binDict.Remove(pkPropertyName);
 
             return new ARecord(nameSpace,
                                 setName,

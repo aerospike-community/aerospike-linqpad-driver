@@ -582,6 +582,8 @@ namespace {nameSpace}
 
             if (set.SIndexes.Any())
             {
+				static string DetermineContext(string context) => string.IsNullOrEmpty(context) ? string.Empty : ":" + context;
+
                 items.Add(new ExplorerItem($"Secondary Indexes",
                                                 ExplorerItemKind.Category,
                                                 ExplorerIcon.Key)
@@ -594,7 +596,7 @@ namespace {nameSpace}
                                                                     ExplorerIcon.Key)
 													{
 														DragText = $"{i.Namespace.SafeName}.{i.Set.SafeName}.{i.SafeName}",
-														Children = new List<ExplorerItem>() { new ExplorerItem($"{i.Bin} ({i.Type}:{i.IndexType})",
+														Children = new List<ExplorerItem>() { new ExplorerItem($"{i.Bin} ({i.Type}:{i.IndexType}{DetermineContext(i.Context)})",
 																											ExplorerItemKind.Schema,
 																											ExplorerIcon.Column)
 																									{ DragText = i.Bin }

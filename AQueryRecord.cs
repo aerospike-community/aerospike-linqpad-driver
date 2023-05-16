@@ -1,4 +1,5 @@
-﻿using Aerospike.Database.LINQPadDriver.Extensions;
+﻿using Aerospike.Client;
+using Aerospike.Database.LINQPadDriver.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -29,13 +30,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     {
         public AQueryRecord(object idxKey, IEnumerable<ARecord> records)
         {
-            this.IdxKey = idxKey;
+            this.IdxKey = idxKey.ToAValue();
             this.Records = records;
         }
 
         public IEnumerable<ARecord> Records { get; }
 
-        public object IdxKey { get; }
+        public AValue IdxKey { get; }
         
         virtual protected object ToDump()
         {

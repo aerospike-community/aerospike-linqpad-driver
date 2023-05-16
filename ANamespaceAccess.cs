@@ -731,9 +731,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>The number of items put.</returns>
         /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
         /// <seealso cref="ARecord.ToJson(string, bool)"/>
-        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="SetRecords.FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
+        /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
         /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?, bool)"/>
         /// <exception cref="KeyNotFoundException">
         /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 

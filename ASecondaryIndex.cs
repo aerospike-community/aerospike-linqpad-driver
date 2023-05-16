@@ -11,7 +11,7 @@ namespace Aerospike.Database.LINQPadDriver
     public sealed class ASecondaryIndex
     {
 
-        public ASecondaryIndex(string name, ANamespace aNamespace, ASet set, string bin, string type, string indexType)
+        public ASecondaryIndex(string name, ANamespace aNamespace, ASet set, string bin, string type, string indexType, string context)
         {
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Idx");            
@@ -20,9 +20,14 @@ namespace Aerospike.Database.LINQPadDriver
             this.Bin = bin;
             this.Type = type;
             this.IndexType = indexType;
+            this.Context = context == "null" ? null : context;
         }
 
-        static private readonly Regex IdxRegEx = new Regex("ns=(?<namespace>[^:;]+):indexname=(?<indexname>[^:;]+):set=(?<setname>[^:;]+):bin=(?<binname>[^:;]+):type=(?<type>[^:;]+):indextype=(?<indextype>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        /// <summary>
+        /// ns=test:indexname=State_index:set=players:bin=State:type=string:indextype=default:context=null:state=RW;
+        /// ns=test:indexname=idx_list_map_bin_subobj:set=expressionExp:bin=map_bin:type=numeric:indextype=mapvalues:context=[list_value(*):state=RW
+        /// </summary>
+        static private readonly Regex IdxRegEx = new Regex("ns=(?<namespace>[^:;]+):indexname=(?<indexname>[^:;]+):set=(?<setname>[^:;]+):bin=(?<binname>[^:;]+):type=(?<type>[^:;]+):indextype=(?<indextype>[^:;]+):context=(?<context>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
        
         /// <summary>
         /// The name of the DB Secondary Index name
@@ -51,13 +56,15 @@ namespace Aerospike.Database.LINQPadDriver
 
         public string IndexType { get; }
 
+        public string Context { get; }
+
         public static IEnumerable<ASecondaryIndex> Create(Client.Connection asConnection, IEnumerable<ANamespace> namespaces)
         {
             ASet FindSet(ANamespace ns, string set)
             {
                 return ns?.Sets?.FirstOrDefault(s => s.Name == set);
             }
-
+            
             var idxsAttrib = Info.Request(asConnection, "sindex");
             
             var idxs = (from nsSetIdx in idxsAttrib.Split(';', StringSplitOptions.RemoveEmptyEntries)
@@ -68,6 +75,7 @@ namespace Aerospike.Database.LINQPadDriver
                                 let idxName = match.Groups["indexname"].Value
                                 let type = match.Groups["type"].Value
                                 let idxType = match.Groups["indextype"].Value
+                                let context = match.Groups["context"].Value
                                 let aNamespace = namespaces.FirstOrDefault(n => n.Name == ns)
                                 let aSet = FindSet(aNamespace,
                                                         set == "NULL" || string.IsNullOrEmpty(set)
@@ -78,7 +86,8 @@ namespace Aerospike.Database.LINQPadDriver
                                                                 aSet,
                                                                 bin,
                                                                 type,
-                                                                idxType));
+                                                                idxType,
+                                                                context));
 
             return idxs.ToArray();
         }

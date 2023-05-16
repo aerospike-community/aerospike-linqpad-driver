@@ -1852,6 +1852,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Determines if <paramref name="value"/> is contained in <see cref="Value"/>.
         /// If <see cref="Value"/> is a collection, each element is compared. 
+        /// If <see cref="Value"/> is a string and <paramref name="value"/> is a string, determines if param is contained in the Value, otherwise Equals is applied.
         /// If <see cref="Value"/> is an instance, the Equals method is applied.
         /// </summary>
         /// <typeparam name="T">The type of <paramref name="value"/></typeparam>
@@ -1863,6 +1864,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             return this.Value switch
             {
+                string sValue => !(value is null)
+                                    && (value is string svalue
+                                            && sValue.Contains(svalue))
+                                        || this.Equals(value),
+                JArray jArray => jArray.Contains(JToken.FromObject(value)),
                 IEnumerable<T> iValue => iValue.Contains(value),
                 IEnumerable<object> oValue => oValue.Any(i => Helpers.Equals(i, value)),
                 IEnumerable<KeyValuePair<string, object>> iKeyValuePair
