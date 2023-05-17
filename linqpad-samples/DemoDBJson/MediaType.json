@@ -1,0 +1,22 @@
+[
+    {
+        "_id": 1,
+        "Name": "MPEG audio file"
+    },
+    {
+        "_id": 2,
+        "Name": "Protected AAC audio file"
+    },
+    {
+        "_id": 3,
+        "Name": "Protected MPEG-4 video file"
+    },
+    {
+        "_id": 4,
+        "Name": "Purchased AAC audio file"
+    },
+    {
+        "_id": 5,
+        "Name": "AAC audio file"
+    }
+]

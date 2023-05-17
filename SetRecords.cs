@@ -699,12 +699,20 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// The write policy. If not provided , the default policy is used.
         /// <seealso cref="WritePolicy"/>
         /// </param>
-        /// <param name="ttl">Time-to-live of the record</param>
+        /// <param name="ttl">
+        /// Time-to-live of the record. 
+        /// If null (default), the TTL of <paramref name="record"/> is used.
+        /// </param>
         public void Put([NotNull] ARecord record,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
-            this.SetAccess.Put(this.SetName, record.Aerospike.Key, record.Aerospike.GetValues(), writePolicy, ttl, refreshOnNewSet: false);
+            this.SetAccess.Put(this.SetName, 
+                                record.Aerospike.Key, 
+                                record.Aerospike.GetValues(), 
+                                writePolicy, 
+                                ttl ?? record.Aerospike.TTL, 
+                                refreshOnNewSet: false);
         }
 
         /// <summary>
@@ -1721,7 +1729,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
-        /// <seealso cref="ANamespaceAccess.FromJson(string, string, string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.FromJson(string, string, string, string, WritePolicy, TimeSpan?, bool, bool)"/>
         /// <seealso cref="Put(ARecord, WritePolicy, TimeSpan?)"/>
         /// <exception cref="KeyNotFoundException">
         /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 
@@ -1764,51 +1772,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 TimeSpan? ttl = null,
                                 bool writePKPropertyName = false)
         {
-            var converter = new CDTConverter();
-            var bins = JsonConvert.DeserializeObject<object>(json, converter);
-            int cnt = 0;
-
-            ARecord GetRecord(Dictionary<string, object> binDict)
-            {
-                var primaryKeyValue = binDict[pkPropertyName];
-                if(!writePKPropertyName)
-                    binDict.Remove(pkPropertyName);
-
-                return new ARecord(this.Namespace,
-                                    this.SetName,
-                                    primaryKeyValue,
-                                    string.IsNullOrEmpty(jsonBinName)
-                                        ? binDict
-                                        : new Dictionary<string, object>() { { jsonBinName, binDict } },                                    
-                                    setAccess: this.SetAccess);
-            }
-
-            if(bins is Dictionary<string, object> binDictionary)
-            {
-                var record = GetRecord(binDictionary);
-
-                this.Put(record, writePolicy, ttl);
-                cnt++;
-            }
-            else if (bins is List<object> binList)
-            {
-                foreach(var item in binList)
-                {
-                    if (item is Dictionary<string, object> binDict)
-                    {
-                        var record = GetRecord(binDict);
-
-                        this.Put(record, writePolicy, ttl);
-                        cnt++;
-                    }
-                    else
-                        throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> but received a {item.GetType()}.");
-                }                
-            }
-            else
-                throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> or List<object> but received a {bins.GetType()}.");
-
-            return cnt;
+            return this.SetAccess.FromJson(this.SetName,
+                                            json,
+                                            pkPropertyName: pkPropertyName,
+                                            jsonBinName: jsonBinName,
+                                            writePolicy: writePolicy,
+                                            ttl: ttl,
+                                            writePKPropertyName: writePKPropertyName,
+                                            refreshOnNewSet: false);
         }
 
         /// <summary>
@@ -1849,7 +1820,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
-        /// <seealso cref="ANamespaceAccess.FromJson(string, string, string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool, bool)"/>
         /// <seealso cref="Put(ARecord, WritePolicy, TimeSpan?)"/>
         /// <exception cref="KeyNotFoundException">
         /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 
@@ -1894,65 +1865,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 TimeSpan? ttl = null,
                                 bool writePKPropertyName = false)
         {
-            var converter = new CDTConverter();
-            var bins = JsonConvert.DeserializeObject<object>(json, converter);
-            int cnt = 0;
-            Client.Key PKValue = null;
-
-            if(!(primaryKey is null))
-            {
-                PKValue = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
-            }
-            
-            ARecord GetRecord(Dictionary<string, object> binDict)
-            {
-                var primaryKeyValue = PKValue ?? binDict[pkPropertyName];
-                if(!writePKPropertyName)
-                    binDict.Remove(pkPropertyName);
-
-                return new ARecord(this.Namespace,
-                                    this.SetName,
-                                    primaryKeyValue,
-                                    string.IsNullOrEmpty(jsonBinName)
-                                        ? binDict
-                                        : new Dictionary<string, object>() { { jsonBinName, binDict } },
-                                    setAccess: this.SetAccess);
-            }
-
-            ARecord GetRecordLst(List<object> binList)
-            {
-                var primaryKeyValue = PKValue;
-               
-                return new ARecord(this.Namespace,
-                                    this.SetName,
-                                    primaryKeyValue,
-                                    new Dictionary<string, object>() { { jsonBinName, binList } },
-                                    setAccess: this.SetAccess);
-            }
-
-            if (bins is Dictionary<string, object> binDictionary)
-            {
-                var record = GetRecord(binDictionary);
-
-                this.Put(record, writePolicy, ttl);
-                cnt++;
-            }
-            else if (bins is List<object> binList)
-            {
-                if(string.IsNullOrEmpty(jsonBinName) || PKValue is null)
-                {
-                    throw new NullReferenceException("A jsonBinName and/or primaryKey parameter(s) are required for a Json Array on an individual record.");
-                }
-
-                var record = GetRecordLst(binList);
-
-                this.Put(record, writePolicy, ttl);
-                cnt++;
-            }
-            else
-                throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> or List<object> but received a {bins.GetType()}.");
-
-            return cnt;
+            return this.SetAccess.FromJson(this.SetName,
+                                            json,
+                                            primaryKey,
+                                            pkPropertyName: pkPropertyName,
+                                            jsonBinName: jsonBinName,
+                                            writePolicy: writePolicy,
+                                            ttl: ttl,
+                                            writePKPropertyName: writePKPropertyName,
+                                            refreshOnNewSet: false);
         }
 
         #endregion

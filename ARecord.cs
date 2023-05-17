@@ -309,7 +309,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             /// <summary>
             /// If true, the PK has an actual value. If false, the digest is only provided.
             /// </summary>
-            public bool HasKeyValue { get => !(this.KeyValue?.Object is null); }
+            public bool HasKeyValue { get => this.KeyValue?.Object != null; }
 
             /// <summary>
             /// The Records Aerospike <see cref="Aerospike.Client.Key"/>
@@ -856,7 +856,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             var jsonStruct = new JObject();
 
-            if(!string.IsNullOrEmpty(pkPropertyName) && !(this.Aerospike.Key is null))
+            if(!string.IsNullOrEmpty(pkPropertyName) && this.Aerospike.Key != null)
             {
                 if(useDigest || this.Aerospike.Key.userKey is null)
                 {
@@ -875,7 +875,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             foreach(var bin in this.Aerospike.Bins) 
             {
-                if(!(bin.value?.Object is null))
+                if(bin.value?.Object != null)
                     jsonStruct.Add(bin.name, JToken.FromObject(bin.value.Object));
             }
 

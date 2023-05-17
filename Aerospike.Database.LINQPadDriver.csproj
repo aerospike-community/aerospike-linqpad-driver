@@ -18,8 +18,8 @@
     <PackageIcon>lib\netcoreapp3.1\Connection.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
-    <Version>2.0.5.10</Version>
-    <FileVersion>2.0.5.10</FileVersion>    
+    <Version>2.0.5.11</Version>
+    <FileVersion>2.0.5.11</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -47,14 +47,23 @@
   </ItemGroup>
   
 	<ItemGroup>
-	  <Compile Remove="linqpad-samples\**" />
 	  <Compile Remove="TestProjects\**" />
-	  <EmbeddedResource Remove="linqpad-samples\**" />
 	  <EmbeddedResource Remove="TestProjects\**" />
-	  <None Remove="linqpad-samples\**" />
 	  <None Remove="TestProjects\**" />
-	  <Page Remove="linqpad-samples\**" />
 	  <Page Remove="TestProjects\**" />
+	</ItemGroup>
+  
+	<ItemGroup>
+	  <None Remove="linqpad-samples\Basic Data Types.linq" />
+	  <None Remove="linqpad-samples\CDT-Json-Docs.linq" />
+	  <None Remove="linqpad-samples\Create CustInvsDoc set.linq" />
+	  <None Remove="linqpad-samples\DemoDBJson\aerospike.json" />
+	  <None Remove="linqpad-samples\Linq Join Customer and Invoice.linq" />
+	  <None Remove="linqpad-samples\LinqWhere-AerospikeExpressions.linq" />
+	  <None Remove="linqpad-samples\LinqWhere-AerospikePK.linq" />
+	  <None Remove="linqpad-samples\POCO.linq" />
+	  <None Remove="linqpad-samples\ReadMeFirst.linq" />
+	  <None Remove="linqpad-samples\Record Display View.linq" />
 	</ItemGroup>
 
   <ItemGroup>
@@ -82,6 +91,16 @@
       <pack>true</pack>
       <PackagePath>lib\netcoreapp3.1;lib\net6.0-windows7.0;lib\net7.0-windows7.0</PackagePath>
 	  </Content>
+	  <Content Include="linqpad-samples\Basic Data Types.linq" />
+	  <Content Include="linqpad-samples\CDT-Json-Docs.linq" />
+	  <Content Include="linqpad-samples\Create CustInvsDoc set.linq" />
+	  <Content Include="linqpad-samples\DemoDBJson\aerospike.json" />
+	  <Content Include="linqpad-samples\Linq Join Customer and Invoice.linq" />
+	  <Content Include="linqpad-samples\LinqWhere-AerospikeExpressions.linq" />
+	  <Content Include="linqpad-samples\LinqWhere-AerospikePK.linq" />
+	  <Content Include="linqpad-samples\POCO.linq" />
+	  <Content Include="linqpad-samples\ReadMeFirst.linq" />
+	  <Content Include="linqpad-samples\Record Display View.linq" />
     <Content Include="README.md">
       <Pack>true</Pack>
       <PackagePath />

@@ -111,6 +111,15 @@ namespace Aerospike.Client
             }
         }
 
+        /// <summary>
+        /// Converts a .Net object into an Aerospike <see cref="Value"/>, if possible.
+        /// </summary>
+        /// <param name="value">A .Net object.</param>
+        /// <returns>
+        /// An Aerospike <see cref="Value"/> instance.
+        /// </returns>
+        public static Client.Value ToAerospikeValue(this object value) => Client.Value.Get(Helpers.ConvertToAerospikeType(value));
+
     }
 }
 

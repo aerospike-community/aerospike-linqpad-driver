@@ -1,0 +1,102 @@
+[
+    {
+        "_id": 1,
+        "Name": "Rock"
+    },
+    {
+        "_id": 2,
+        "Name": "Jazz"
+    },
+    {
+        "_id": 3,
+        "Name": "Metal"
+    },
+    {
+        "_id": 4,
+        "Name": "Alternative & Punk"
+    },
+    {
+        "_id": 5,
+        "Name": "Rock And Roll"
+    },
+    {
+        "_id": 6,
+        "Name": "Blues"
+    },
+    {
+        "_id": 7,
+        "Name": "Latin"
+    },
+    {
+        "_id": 8,
+        "Name": "Reggae"
+    },
+    {
+        "_id": 9,
+        "Name": "Pop"
+    },
+    {
+        "_id": 10,
+        "Name": "Soundtrack"
+    },
+    {
+        "_id": 11,
+        "Name": "Bossa Nova"
+    },
+    {
+        "_id": 12,
+        "Name": "Easy Listening"
+    },
+    {
+        "_id": 13,
+        "Name": "Heavy Metal"
+    },
+    {
+        "_id": 14,
+        "Name": "R&B/Soul"
+    },
+    {
+        "_id": 15,
+        "Name": "Electronica/Dance"
+    },
+    {
+        "_id": 16,
+        "Name": "World"
+    },
+    {
+        "_id": 17,
+        "Name": "Hip Hop/Rap"
+    },
+    {
+        "_id": 18,
+        "Name": "Science Fiction"
+    },
+    {
+        "_id": 19,
+        "Name": "TV Shows"
+    },
+    {
+        "_id": 20,
+        "Name": "Sci Fi & Fantasy"
+    },
+    {
+        "_id": 21,
+        "Name": "Drama"
+    },
+    {
+        "_id": 22,
+        "Name": "Comedy"
+    },
+    {
+        "_id": 23,
+        "Name": "Alternative"
+    },
+    {
+        "_id": 24,
+        "Name": "Classical"
+    },
+    {
+        "_id": 25,
+        "Name": "Opera"
+    }
+]
