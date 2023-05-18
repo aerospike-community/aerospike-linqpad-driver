@@ -4,21 +4,19 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <Persist>true</Persist>
     <DisplayName>Aerospike Cluster (Local)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
       <RecordView>Record</RecordView>
       <DocumentAPI>true</DocumentAPI>
-      <AlwaysUseAValues>false</AlwaysUseAValues>
     </DriverData>
   </Connection>
 </Query>
 
 /*
-	This program joins the Customer set and Invoice set, grouped by customer id. 
-	Onced joined, it creates a new set (e.g., CustInvsDoc) where each customer has a list of their invoices (documents).
+This program joins the Customer set and Invoice set, grouped by customer id. 
+Onced joined, it creates a new set (e.g., CustInvsDoc) where each customer has a list of their invoices (documents).
 
 Note: this is not meant to be used in a production environment and there can be performance implications using this LinqPad driver! 
 */

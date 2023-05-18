@@ -4,8 +4,8 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <Persist>true</Persist>
     <DisplayName>Aerospike Cluster (Local)</DisplayName>
+    <Persist>true</Persist>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
@@ -16,28 +16,29 @@
 </Query>
 
 /* 
-This will demo some of the capiblities of working with Bins from within the driver plus show how to programmaticial access sets and bins. Don’t forget bins can be accessed directly from the set as a property of that set. 
+This will demo some of the capabilities of working with Bins from within the driver plus show how to programmatically access sets and bins. Don’t forget bins can be accessed directly from the set as a property of that set instance.  
 
-Once a bin’s value is accessed the driver simplifies how you work with the value. Most of the time casting from one type to another is not required. You just work with the value and the driver will perform the casting and, if required, transformation of the values between the DB types and .Net. 
+Once a bin’s value is accessed the driver simplifies how you work with the value. Most of the time casting from one type to another is not required. You just work with the value and the driver will perform the casting and, if required, transformation of the values between the DB types and .Net. These values from the DB are called AValues (auto-values). 
 
-The Aerospike DB only supports the following data types: 
-    String, 
-    Integer (Long), 
-    Double, 
-    Boolean, 
-    Map (Dictionary), 
-    List, 
-    Bytes/Blob, 
-    Geospatial, 
-    HyperLogLog 
-     
-The LinqPad driver supports all DB Types plus is able to transform/convert types into any of the native C# data types.  
-This includes C# DateTime, DateTimeOffset, and TimeSpan.  
-Since this types do not exist in the DB they are converted into a string or numeric format depending on the driver configuration.  
+The Aerospike DB only supports the following data types:  
+    String,  
+    Integer (Long),  
+    Double,  
+    Boolean,  
+    Map (Dictionary),  
+    List,  
+    Bytes/Blob,  
+    Geospatial,  
+    HyperLogLog  
+      
+The LinqPad driver supports all DB Types plus can transform/convert types into any of the native C# data types.   
+This includes C# DateTime, DateTimeOffset, and TimeSpan.   
+Since these types do not exist in the DB they are converted into a string or numeric formats depending on the driver’s connection properties. These properties can be changed by right clicking the Aerospike driver connection and selecting properties. These settings can also be changed programmatically.    
 
-Again, the driver will perform these casting/conversion operations based on the DB and C# data type. 
-     
-Note: this is not meant to be used in a production environment and there can be performance implications using this LinqPad driver!  
+Again, the driver will perform these casting/conversion operations automatically based on the DB type and the .Net type.
+      
+Note: this is not meant to be used in a production environment and there can be performance implications using this LinqPad driver!   
+
 */
 void Main()
 {
@@ -51,7 +52,7 @@ void Main()
 
 	//Add some rows to our demo set where the PK is of different data types and so are the bins... 
 	//Note because we are using the Aerospike Bin class, we must convert the unsupported C# values (e.g., DateTime) to the correct DB type (e.g., string).  
-	//Norminally the LinqPad driver's Put methods will have done all the conversions for us... 
+	//Norminally the LinqPad driver's Put methods will have done all the conversions for us but I wanted to show the use of the underlying API... 
 	//If the set doesn' exist, it will also be created...
 	Demo.Put(demoSet, 123, new Bin[] { new Bin("BinA", "BinA123"), new Bin("BinB", 123), new Bin("BinC", dateTimeOffset.DateTime.ToString()) });
 	Demo.Put(demoSet, "MyPK", new Bin[] { new Bin("BinA", 456), new Bin("BinB", 456), new Bin("BinC", dateTimeOffset.ToString()) });
@@ -59,7 +60,7 @@ void Main()
 	Demo.Put(demoSet, 10.01, new Bin[] { new Bin("BinA", "10.01"), new Bin("BinB", 1001), new Bin("BinC", dateTimeOffset.TimeOfDay.ToString()) });
 	Demo.Put(demoSet, "10.01", new Bin[] { new Bin("BinA", 10.01), new Bin("BinB", "1001"), new Bin("BinC", 123) });
 
-	//Add a record where the PK's value will NOT be saved in the DB
+	//Add a record where the PK's actual value will NOT be saved in the DB (digiest will only be used)
 	{
 		var writePolicy = new WritePolicy() { sendKey = false };
 		Demo.Put(demoSet, 
@@ -68,13 +69,11 @@ void Main()
 					writePolicy: writePolicy);					
 	}
 
-	//Demo.RefreshSet(demoSet);
-
 	//Once the refresh has completed, the LinqPad Connection Pane will update and the bins under the demo set will not reflect these changes.
 	//Note that the bin names will now be repeated with an "*" next to the bin's data type indicating that this bin has multiple data types.
 	//LINQPad.Util.ReadLine("Note changes in Connection Pane on the left. Press <Enter> once the Connection Pane has completly refreshed!".Dump());
 
-	Demo[demoSet].Dump("Added new records");
+	Demo.GetRecords(demoSet).Dump("Added new records");
 
 	//We have a mixture of data types as the PK and in Bins "BinA" and "BinC". 
 	//Let us try some different queries. Note that we don't need to cast any of the operations...
@@ -117,4 +116,5 @@ void Main()
 	Demo[demoSet].Where(x => x["BinA"] == "10.01" || x["BinB"] == "1001").Dump("\"BinA == \"10.01\" || BinB == \"1001\"\" Records using Where");
 	Demo[demoSet].Query(Exp.Or(Exp.EQ(Exp.StringBin("BinA"), Exp.Val("10.01")), Exp.EQ(Exp.StringBin("BinB"), Exp.Val("1001")))).Dump("\"BinA == \"10.01\" || BinB == \"1001\"\" Records using Expressions");
 
+	Demo.RefreshSet(demoSet);
 }

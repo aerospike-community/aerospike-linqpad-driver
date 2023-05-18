@@ -202,7 +202,9 @@ namespace Aerospike.Database.LINQPadDriver
 
         public void Close()
         {            
-            if(this.State == ConnectionState.Open || this.State == ConnectionState.Connecting)
+            if(this.State == ConnectionState.Open
+                    || this.State == ConnectionState.Connecting
+                    || this.State == ConnectionState.Broken)
             {
                 this.Connection?.Close();
                 this.AerospikeClient?.Dispose();

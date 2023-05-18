@@ -4,14 +4,12 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <Persist>true</Persist>
     <DisplayName>Aerospike Cluster (Local)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
       <RecordView>Record</RecordView>
       <DocumentAPI>true</DocumentAPI>
-      <AlwaysUseAValues>false</AlwaysUseAValues>
     </DriverData>
   </Connection>
 </Query>
@@ -20,13 +18,12 @@
 
 /* 
 This will show how to use CDT/Json/Documents with the driver.
-Please run "Create CustInvsDoc set" LINQPad script first to create the CustInvsDoc set first!
    
 Note: this is not meant to be used in a production environment and there can be performance implications using this LinqPad driver!  
 */
 void Main()
 {
-	//ORM -- Find all tracks for TrackId 2527 and return those customers
+	//ORM -- Find all tracks for TrackId 2527 and return those customers who bought this track
 	var fndTrackIdsInstances = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
 							   let custInstance = custInvoices.Cast<Customer>()
 							   where custInstance.Invoices
@@ -34,7 +31,7 @@ void Main()
 							   select custInstance;
 	fndTrackIdsInstances.Dump("Found Using ORM/POCO");
 
-	//.Net CDTs -- Find all tracks for TrackId 2527 and return those customers
+	//.Net CDTs -- Find all tracks for TrackId 2527 and return those customers who bought this track
 	// BTW you can configure how documents from Aerospike are presented.
 	//	The default is to treat documents as JObject but you can configure this (via the connection properties)
 	//	to present them as .Net CDTs (i.e., List and Dictionary).

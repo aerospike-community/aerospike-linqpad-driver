@@ -59,10 +59,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         private void NamespaceRefresh(string setName, bool forceRefresh)
-        {
-            this._sets = Enumerable.Empty<SetRecords>();
+        {            
+            Helpers.CheckForNewSetNameRefresh(this.Namespace, setName, forceRefresh).Wait();
 
-            Helpers.CheckForNewSetNameRefresh(this.Namespace, setName, forceRefresh);
+            this.AddDynamicSet(setName);
+        }
+
+        /// <summary>
+        /// This will add a new set that wasn't already created.
+        /// </summary>
+        /// <param name="setName"></param>
+        /// <returns></returns>
+        private bool AddDynamicSet(string setName, params string[] bins)
+        {
+            if (string.IsNullOrEmpty(setName) || this._sets.Any(s => s.SetName == setName))
+                return false;
+            
+            this._sets = this._sets.Append(new SetRecords(this, setName, bins));
+            return true;
         }
 
         private IEnumerable<SetRecords> _sets = Enumerable.Empty<SetRecords>();
@@ -314,6 +328,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if(refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
+            else
+                this.AddDynamicSet(setName);
         }
 
         /// <summary>
@@ -359,6 +375,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if(refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
+            else
+                this.AddDynamicSet(setName);
         }
 
         /// <summary>
@@ -403,6 +421,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
+            else
+                this.AddDynamicSet(setName);
         }
 
 
@@ -448,6 +468,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
+            else
+                this.AddDynamicSet(setName);
         }
 
         /// <summary>
@@ -473,7 +495,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] IEnumerable<Bin> binsToWrite,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null,
-                            bool refreshOnNewSet = true)        
+                            bool refreshOnNewSet = true)
         {
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
@@ -489,6 +511,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if(refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
+            else
+                this.AddDynamicSet(setName);
         }
 
         /// <summary>
@@ -583,6 +607,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
+            else
+                this.AddDynamicSet(setName);
         }
 
         #endregion
@@ -649,6 +675,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
+            else
+                this.AddDynamicSet(setName);
 
             return jsonStructs.Length;
         }
@@ -710,7 +738,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(null, true);
-
+            
             return jsonStructs.Length;
         }
 
@@ -915,6 +943,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
+            else
+                this.AddDynamicSet(setName);
 
             return cnt;
         }
@@ -1071,6 +1101,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
+            else
+                this.AddDynamicSet(setName);
 
             return cnt;
         }

@@ -10,12 +10,17 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Aerospike.Database.LINQPadDriver.Extensions;
+using System.Runtime.Intrinsics.X86;
+using System.Windows.Markup;
 
 namespace Aerospike.Database.LINQPadDriver
 {
 	public class DynamicDriver : DynamicDataContextDriver
 	{
-		static DynamicDriver()
+		static internal volatile AerospikeConnection _Connection;
+        static internal object ConnectionLock = new object();
+
+        static DynamicDriver()
 		{
             // Uncomment the following code to attach to Visual Studio's debugger when an exception is thrown:
 
@@ -45,9 +50,48 @@ namespace Aerospike.Database.LINQPadDriver
 		public override bool ShowConnectionDialog (IConnectionInfo cxInfo, ConnectionDialogOptions dialogOptions)
 			=> new ConnectionDialog (cxInfo).ShowDialog () == true;
 
-		public override void InitializeContext(IConnectionInfo cxInfo, object context, QueryExecutionManager executionManager)
+        /// <summary>This virtual method is called after a data context object has been instantiated, in
+        /// preparation for a query. You can use this hook to perform additional initialization work.
+        ///
+        /// In overriding InitializeContext, you can access properties on the QueryExecutionManager object that’s passed in as a parameter. One of these properties is called SqlTranslationWriter (type TextWriter) and it allows you to send data to the SQL translation tab.
+        /// Although this tab is intended primary for SQL translations, you can use it for other things as well.For example, with WCF Data Services, it makes sense to write HTTP requests here:
+        ///
+		/// var dsContext = (DataServiceContext)context;
+		///        dsContext.SendingRequest += (sender, e) =>
+		///					executionManager.SqlTranslationWriter.WriteLine(e.Request.RequestUri);
+        /// </summary>
+        public override void InitializeContext(IConnectionInfo cxInfo, object context, QueryExecutionManager executionManager)
 		{           
-        }		
+        }
+
+        /// <summary>This virtual method is called after a query has completed. You can use this hook to
+        /// perform cleanup activities such as disposing of the context or other objects.</summary>
+        public override void TearDownContext(IConnectionInfo cxInfo,
+                                                object context,
+                                                QueryExecutionManager executionManager,
+                                                object[] constructorArguments)
+        {
+        }
+
+        public override void ClearConnectionPools(IConnectionInfo cxInfo)
+        {
+            lock (ConnectionLock)
+            {
+                if (_Connection != null)
+                {
+                    _Connection.Dispose();
+                    _Connection = null;
+                }
+            }
+        }
+
+        /// <summary>This method is called after the query's main thread has finished running the user's code,
+        /// but before the query has stopped. If you've spun up threads that are still writing results, you can 
+        /// use this method to wait out those threads.</summary>
+        public override void OnQueryFinishing(IConnectionInfo cxInfo, object context,
+												QueryExecutionManager executionManager)
+        { }
+
 
         /*
 		 * LINQPad calls this after the user executes an old-fashioned SQL query. 
@@ -59,29 +103,8 @@ namespace Aerospike.Database.LINQPadDriver
 		{
             return null;
 		}
-
-
-        public override void TearDownContext(IConnectionInfo cxInfo,
-												object context,
-												QueryExecutionManager executionManager,
-												object[] constructorArguments)
-		{           
-            var connection = constructorArguments == null
-								? null
-								: constructorArguments.FirstOrDefault() as AerospikeConnection;
-
-
-			if(connection != null)
-			{
-				lock(ConnectionLock)
-				{
-                    connection.Dispose();
-					_Connection = null;
-                }
-			}
-        }
-
-		public override ParameterDescriptor[] GetContextConstructorParameters(IConnectionInfo cxInfo)
+        
+        public override ParameterDescriptor[] GetContextConstructorParameters(IConnectionInfo cxInfo)
 		{
 			return new[] { new ParameterDescriptor("dbConnection", "IDbConnection") };
 		}
@@ -107,10 +130,7 @@ namespace Aerospike.Database.LINQPadDriver
 		{
 			return AerospikeConnection.CXInfoEquals(c1, c2); 
 		}
-
-		static internal AerospikeConnection _Connection;
-		static internal object ConnectionLock = new object();
-
+		
 		public override List<ExplorerItem> GetSchemaAndBuildAssembly (
 			IConnectionInfo cxInfo, AssemblyName assemblyToBuild, ref string nameSpace, ref string typeName)
 		{
@@ -237,19 +257,7 @@ namespace {nameSpace}
             return new[] { "Aerospike.Database.LINQPadDriver.Extensions",
                                         "Aerospike.Client"};
         }
-
-        public override void ClearConnectionPools(IConnectionInfo cxInfo)
-		{
-            lock (ConnectionLock)
-            {
-				if (_Connection != null)
-				{
-					_Connection.Dispose();
-					_Connection = null;
-				}
-            }
-        }
-
+        
 		static void Compile(string cSharpSourceCode, string outputFile, IConnectionInfo cxInfo, bool debug = false)
         {           
             string[] assembliesToReference =

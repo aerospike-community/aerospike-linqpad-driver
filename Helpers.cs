@@ -13,12 +13,9 @@ using Newtonsoft.Json.Linq;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using LPEDC = LINQPad.Extensibility.DataContext;
 using System.Runtime.InteropServices;
-using Microsoft.VisualBasic.FileIO;
 using static Aerospike.Client.Value;
 using System.Collections.Specialized;
-using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
-using System.Windows.Input;
 using System.CodeDom;
 
 namespace Aerospike.Client
@@ -1755,7 +1752,7 @@ namespace Aerospike.Database.LINQPadDriver
             return (T)instance;
         }
 
-        public async static void CheckForNewSetNameRefresh(string namespaceName, string setName, bool forceRefresh = false)
+        public async static System.Threading.Tasks.Task<bool> CheckForNewSetNameRefresh(string namespaceName, string setName, bool forceRefresh = false)
         {
             var ns = DynamicDriver._Connection?.Namespaces?.FirstOrDefault(n => n.Name == namespaceName);
             var refresh = ns is null;
@@ -1767,6 +1764,8 @@ namespace Aerospike.Database.LINQPadDriver
 
             if (forceRefresh || refresh)
                 await DynamicDriver._Connection.CXInfo.ForceRefresh();
+
+            return forceRefresh || refresh;
         }
 
         public static Client.Key DetermineAerospikeKey(dynamic primaryKey, string nameSpace, string setName)

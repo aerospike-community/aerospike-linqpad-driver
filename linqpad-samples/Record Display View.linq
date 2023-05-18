@@ -4,7 +4,6 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <Persist>true</Persist>
     <DisplayName>Aerospike Cluster (Local)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
@@ -16,15 +15,18 @@
 </Query>
 
 /*
-This demonstrates how "Record Display View" works.  
-When there are no changes in detected schema for a set, only the expected bins are displayed in the grid. 
-But if there are any changes in the schema (e.g., new bins added or removed) for a recod, a new grid column is added to the display (i.e., "Values") to indicated that this record schema changed.
-The "Values" column will always indicate that the record schema is different from when the Aerospike set was scanned/refreshed by the driver. 
+This demonstrates how "Record Display View" works.   
 
-You can also programmaticilly detect these changes by reviwing the value of the "HasDifferentSchema" property of the record. 
-The record has many different properties and methods to programmaticilly explore the record and bins. You can, for example, test to see if a bin exists, determine the bin's data type, obtain a bin's value, etc. 
+When there are no changes in the schema for a set, only the scanned bins are displayed in the grid. But if there are any changes in the schema (e.g., new bins added or removed) for a recod, a new grid column is added to the display (i.e., "Values") to indicate that this record’s schema has changed since the last scan of the set.
+ 
+The "Values" column will always indicate that the record schema is different from the scanned Aerospike set.  
 
-Note that you can always force a refresh of the cluster by right clicking on the connection and selecting "Refresh". You can programmaticilly refresh a set by calling the Refresh method on the namespace instance. 
+You can also programmatically detect these changes by reviwing the value of the "HasDifferentSchema" property of the record.  
+
+The record object (ARecord) has many different properties and methods that can be used to programmatically explore the record and bin atributes. You can, for example, test to see if a bin exists, determine the bin's data type, obtain a bin's value, TTL, etc.  
+
+Note that you can always force a refresh of the cluster by right clicking on the connection object and selecting "Refresh". You can programmaticilly refresh a set by calling the Refresh method on the namespace instance.
+
 */
 void Main()
 {

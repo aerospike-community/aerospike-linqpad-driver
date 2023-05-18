@@ -4,23 +4,20 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <Persist>true</Persist>
     <DisplayName>Aerospike Cluster (Local)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
       <RecordView>Record</RecordView>
       <DocumentAPI>true</DocumentAPI>
-      <AlwaysUseAValues>false</AlwaysUseAValues>
     </DriverData>
   </Connection>
 </Query>
 
 /*
-This program will read the CustInvsDoc (Customer-Invoice documents) set and cast the result into a .Net user class (Plain Old CLR Object).
-Please run "Create CustInvsDoc set" LINQPad script first to create the CustInvsDoc set first!
-	
-Note: this is not meant to be used in a production environment and there can be performance implications using this LinqPad driver! 
+This program will read the CustInvsDoc (Customer-Invoice documents) set and cast the result into a .Net list of user defined classes by means of the driver’s ORM.
+     
+Note: this is not meant to be used in a production environment and there can be performance implications using this LinqPad driver!  
 */
 void Main()
 {

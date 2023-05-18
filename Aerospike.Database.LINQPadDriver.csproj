@@ -6,7 +6,7 @@
 		<UseWpf>true</UseWpf>
 		<AssemblyName>Aerospike.Database.LINQPadDriver</AssemblyName>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<PackageTags>linqpaddriver aerospike</PackageTags>
+		<PackageTags>linqpaddriver aerospike linqpad-samples</PackageTags>
 		<Title>Aerospike LINQPad Driver</Title>
     <Authors>Richard Andersen</Authors>
     <Company>Aerospike</Company>
@@ -18,8 +18,8 @@
     <PackageIcon>lib\netcoreapp3.1\Connection.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
-    <Version>2.0.5.11</Version>
-    <FileVersion>2.0.5.11</FileVersion>    
+    <Version>2.0.5.12</Version>
+    <FileVersion>2.0.5.12</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>
