@@ -475,6 +475,7 @@ There are multiple ways to install Aerospike DB.
 
 ## Other Resources
 
+-   https://www.linqpad.net/
 -   <https://aerospike.com/>
 -   <https://developer.aerospike.com/>
 -   <https://developer.aerospike.com/blog>
