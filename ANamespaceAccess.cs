@@ -69,6 +69,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// This will add a new set that wasn't already created.
         /// </summary>
         /// <param name="setName"></param>
+        /// <param name="bins"></param>
         /// <returns></returns>
         private bool AddDynamicSet(string setName, params string[] bins)
         {

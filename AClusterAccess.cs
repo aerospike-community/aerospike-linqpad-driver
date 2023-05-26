@@ -91,7 +91,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             item.Values.Select(v => new Client.Bin(v.Key, v.Value)).ToArray());
             }
 
-            Helpers.CheckForNewSetNameRefresh(nameSpace, setName);
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            Helpers.CheckForNewSetNameRefresh(nameSpace, setName, true);
+#pragma warning restore CS4014 
 
             return jsonStructs.Length;
         }
@@ -126,7 +128,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             item.Values.Select(v => new Client.Bin(v.Key, v.Value)).ToArray());
             }
 
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             Helpers.CheckForNewSetNameRefresh(null, null, true);
+#pragma warning restore CS4014
 
             return jsonStructs.Length;
         }

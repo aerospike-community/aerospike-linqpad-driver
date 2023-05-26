@@ -224,6 +224,32 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
         }
 
+        private void ReadObject(JProperty jToken, Dictionary<string, object> existingValue, JsonSerializer serializer)
+        {
+            foreach (var element in jToken.Value)
+            {
+                if (element is JObject subObject)
+                {
+                    var newObject = new Dictionary<string, object>();
+                    existingValue.Add(jToken.Name, this.ReadObject(subObject, newObject, serializer));
+                }
+                else if (element is JArray jArray)
+                {
+                    var newList = new List<object>();
+                    this.ReadObject(jArray, newList, serializer);
+                    existingValue.Add(jToken.Name, newList);
+                }
+                else if (element is JValue jValue)
+                {
+                    existingValue.Add(jToken.Name, jValue.Value);
+                }
+                else
+                {
+                    existingValue.Add(jToken.Name, element.Value<object>());
+                }
+            }
+        }
+
         /// <summary>
         /// Determines the in-line Json Type and converts the Json value to that C# type
         /// <code>
@@ -288,6 +314,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     return vToken?.ToString() ?? string.Empty;
                 case "$date":
                 case "$datetime":
+                case "$isodate":
+                case "$isodatetime":
                     {
                         if (vToken is DateTime tDateTime)
                             return tDateTime;
@@ -304,6 +332,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         return Aerospike.Database.LINQPadDriver.Helpers.CastToNativeType(propType, typeof(DateTime), propType, vToken);
                     }
                 case "$datetimeoffset":
+                case "$isodatetimeoffset":
                     {
                         if (vToken is DateTimeOffset tDateTime)
                             return tDateTime;
@@ -445,6 +474,26 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             converter.ReadObject(jObject, newDict, null);
 
             return newDict;
+        }
+
+        static public IDictionary<string, object> ConvertToDictionary(JProperty jProperty)
+        {
+            var converter = new CDTConverter();
+            var newDict = new Dictionary<string, object>();
+
+            converter.ReadObject(jProperty, newDict, null);
+
+            return newDict;
+        }
+
+        static public IList<object> ConvertToList(JArray jObject)
+        {
+            var converter = new CDTConverter();
+            var newList = new List<object>();
+
+            converter.ReadObject(jObject, newList, null);
+
+            return newList;
         }
     }
 }

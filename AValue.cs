@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -98,6 +99,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             , IEqualityComparer< JObject >
                      , IEquatable< JArray >
             , IEqualityComparer< JArray >
+                     , IEquatable< JValue >
+            , IEqualityComparer< JValue >
                      , IEquatable< JToken >
             , IEqualityComparer< JToken >
            
@@ -315,10 +318,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>A <see cref="JToken"/> or an empty JToken</returns>
         public JToken ToJson()
         {
-            if (this.UnderlyingType == typeof(JToken)
-                || this.UnderlyingType == typeof(JObject)
-                || this.UnderlyingType == typeof(JArray)
-                || this.UnderlyingType == typeof(JsonDocument))
+            if (
+                            this.UnderlyingType == typeof(JsonDocument) ||
+                            this.UnderlyingType == typeof(JObject) ||
+                            this.UnderlyingType == typeof(JArray) ||
+                            this.UnderlyingType == typeof(JValue) ||
+                            this.UnderlyingType == typeof(JToken) ||
+                            false)
             {
                 return (JToken)this.Value;
             }
@@ -339,17 +345,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public IDictionary<object, object> ToDictionary()
         {
             if (this.Value is JObject jObject)
-            {
-                return jObject.ToObject<Dictionary<object, object>>();
-            }            
+            {                
+                return CDTConverter.ConvertToDictionary(jObject)
+                        .ToDictionary(kvp => (object)kvp.Key, kvp => kvp.Value);               
+            }
             else if (this.Value is JProperty jProp)
             {
-                return new Dictionary<object,object>(){ [jProp.Name] = jProp.Value<Object>() };
+                return CDTConverter.ConvertToDictionary(jProp)
+                        .ToDictionary(kvp => (object)kvp.Key, kvp => kvp.Value);
             }
             else if (this.Value is IDictionary<object, object> oDict)
                 return oDict;
             else if (this.Value is IDictionary<string, object> sDict)
                 return sDict.ToDictionary(kvp => (object)kvp.Key, kvp => kvp.Value);
+            else if (this.Value is System.Collections.IDictionary iDict)
+            {                
+                var kvps = iDict.Keys.Cast<object>().Zip(iDict.Values.Cast<object>(),
+                                                            (k,v) => new KeyValuePair<object,object>(k, v));
+                return new Dictionary<object, object>(kvps);
+            }
 
             return new Dictionary<object, object>(0);
         }
@@ -359,23 +373,45 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </summary>
         /// <returns></returns>
         public IList<object> ToList()
-        {          
-            var value = this.Value;
-
-            if (value is JObject
-                    || this.Value is JProperty)
+        {    
+            if(this.Value is IList<object> iList)
             {
-                value = this.ToDictionary();
-            }
-            else if(value is JArray jArray)
+                return iList;
+            }  
+            else if (this.Value is JObject
+                        || this.Value is JProperty)
             {
-                return jArray.ToList<object>();
+                return this.ToDictionary()
+                            .Cast<object>().ToList();
             }
-
-            if(Helpers.IsSubclassOfInterface(typeof(System.Collections.IEnumerable), this.UnderlyingType)) 
-                return ((System.Collections.IEnumerable) value).Cast<object>().ToList();
+            else if(this.Value is JArray jArray)
+            {
+                return CDTConverter.ConvertToList(jArray);                
+            }                                
+            else if(this.Value is System.Collections.IEnumerable iEnum)
+            {
+                return iEnum.Cast<object>().ToList();
+            }
 
             return new List<object>(0);
+        }
+
+        /// <summary>
+        /// Always convert Value to a List. 
+        /// If Value is not a collection, the item is returned in a list.
+        /// </summary>
+        /// <returns></returns>
+        public IList<object> ToListItem()
+        { 
+            if(this.IsCDT
+                || this.Value is JProperty)
+            {
+                return this.ToList();
+            }
+            if(this.Value is JValue jValue)
+                return new List<object>(1) { jValue.Value };
+
+            return new List<object>(1) { this.Value };
         }
 
         /// <summary>
@@ -385,7 +421,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// The converted value
         /// </returns>
-        public T Convert<T>() => (T) Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
+        public T Convert<T>() => this.Value is T ? (T) this.Value : (T) Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
 
         /// <summary>
         /// Returns an enumerable object, if possible.
@@ -1824,6 +1860,31 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public int GetHashCode(JArray value) => value?.GetHashCode() ?? 0;
 
         
+            public static implicit operator JValue (AValue key) => key is null ? null : (JValue) key.Convert< JValue >();
+            //public static implicit operator JValue[] (AValue key) => (JValue[]) key.Convert<JValue[]>();
+            
+            public JValue ToJValue() => (JValue) this;
+
+            public bool Equals(JValue value)
+            {
+                try {
+                    return this.DigestRequired()
+                            ? this.CompareDigest(value)
+                            : ((JValue) this).Equals(value);
+                } catch {}
+                return false;
+            }
+
+            public bool Equals(JValue v1, JValue v2)
+            {
+                if(ReferenceEquals(v1,v2)) return true;
+                if(v1 is null) return v2 is null;
+
+                return v1.Equals(v2);
+            }
+            public int GetHashCode(JValue value) => value?.GetHashCode() ?? 0;
+
+        
             public static implicit operator JToken (AValue key) => key is null ? null : (JToken) key.Convert< JToken >();
             //public static implicit operator JToken[] (AValue key) => (JToken[]) key.Convert<JToken[]>();
             
@@ -1850,6 +1911,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                 
         /// <summary>
+        /// Returns the number of elements/chars if <see cref="Value"/> is either a collection or string.
+        /// If <see cref="Value"/> is neither a collection or string, zero is returned.
+        /// </summary>
+        /// <returns>
+        /// Number of items in a collection or chars in a string, otherwise zero.
+        /// </returns>
+        public int Count()
+        {
+            return this.Value switch
+            {
+                string sValue => sValue.Length,
+                JContainer jContainer => jContainer.Count,
+                System.Collections.ICollection oValue => oValue.Count,
+                System.Collections.IEnumerable iValue => iValue.Cast<object>().Count(),
+                _ => 0
+            };
+        }
+
+        /// <summary>
         /// Determines if <paramref name="value"/> is contained in <see cref="Value"/>.
         /// If <see cref="Value"/> is a collection, each element is compared. 
         /// If <see cref="Value"/> is a string and <paramref name="value"/> is a string, determines if param is contained in the Value, otherwise Equals is applied.
@@ -1870,9 +1950,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         || this.Equals(value),
                 JArray jArray => jArray.Contains(JToken.FromObject(value)),
                 IEnumerable<T> iValue => iValue.Contains(value),
-                IEnumerable<object> oValue => oValue.Any(i => Helpers.Equals(i, value)),
                 IEnumerable<KeyValuePair<string, object>> iKeyValuePair
                     => iKeyValuePair.Any(kvp => Helpers.Equals(kvp.Value, value)),
+                IEnumerable<object> oValue => oValue.Any(i => Helpers.Equals(i, value)),                
                 _ => this.Equals(value)
             };
         }

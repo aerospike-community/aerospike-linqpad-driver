@@ -82,8 +82,8 @@ namespace Aerospike.Client
                 }
         }
 
-        public static T Cast<T>(this Bin bin) => bin is null ? default(T) : (T) Helpers.CastToNativeType(bin.name, typeof(T), bin.name, bin.value.Object);
-        public static T Cast<T>(this Value value) => value is null ? default(T) : (T) Helpers.CastToNativeType("Value", typeof(T), "Value", value.Object);
+        public static T Cast<T>(this Bin bin) => bin is null ? default : (T) Helpers.CastToNativeType(bin.name, typeof(T), bin.name, bin.value.Object);
+        public static T Cast<T>(this Value value) => value is null ? default : (T) Helpers.CastToNativeType("Value", typeof(T), "Value", value.Object);
 
         public static AValue ToAValue(this Bin bin) => new AValue(bin);
         public static AValue ToAValue(this Value value) => new AValue(value, "Value", "Value");
@@ -307,34 +307,21 @@ namespace Aerospike.Database.LINQPadDriver
             if (ReferenceEquals(items, obj)) return true;
 
             if (obj is IEnumerable<T> tItems) return items.SequenceEqual(tItems);
-
-            if (IsSubclassOfInterface(typeof(ICollection), obj.GetType()))
+            if (obj is JArray jArray)
+            {                
+                return SequenceEquals(items, CDTConverter.ConvertToList(jArray));
+            }
+            if (obj is JObject jObject)
             {
-                var cItems = (ICollection)obj;
+                if (IsSubclassOfInterface(typeof(KeyValuePair<,>), typeof(T)))                    
+                    return SequenceEquals(items, 
+                                            CDTConverter.ConvertToDictionary(jObject));
+                return false;
+            }
 
-                if (items.Count() == cItems.Count)
-                {
-                    var newArray = Array.CreateInstance(typeof(object), cItems.Count);
-                    var itemArray = items.ToArray();
-
-                    cItems.CopyTo(newArray, 0);
-
-                    Array.Sort(newArray);
-                    Array.Sort(itemArray);
-
-                    var result = true;
-
-                    for (var idx = 0; idx < cItems.Count; idx++)
-                    {
-                        if (Equals(newArray.GetValue(idx), itemArray[idx]))
-                        {
-                            result = false;
-                            break;
-                        }
-                    }
-
-                    return result;
-                }
+            if(obj is IEnumerable iobj)
+            {
+                return items.Cast<object>().SequenceEqual(iobj.Cast<object>());
             }
 
             return false;
@@ -441,20 +428,20 @@ namespace Aerospike.Database.LINQPadDriver
                 }
                 else if(putObject is JObject jObject)
                 {
-                    return ConvertToAerospikeType(jObject.ToObject<Dictionary<string, object>>());
+                    return ConvertToAerospikeType(CDTConverter.ConvertToDictionary(jObject));
                 }
                 else if (putObject is JArray jArray)
                 {
-                    return ConvertToAerospikeType(jArray.ToObject<List<object>>());
+                    return ConvertToAerospikeType(CDTConverter.ConvertToList(jArray));
                 }
                 else if (putObject is JProperty jProp)
                 {
-                    return ConvertToAerospikeType(jProp.ToObject<Dictionary<string, object>>());
+                    return ConvertToAerospikeType(CDTConverter.ConvertToDictionary(jProp));
                 }
                 else if (putObject is JValue jValue)
                 {
                     return ConvertToAerospikeType(jValue.Value);
-                }                
+                }
                 else if (putObject is IDictionary dictValue)
                 {
                     var genericTypes = dictValue.GetType().GetGenericArguments();
@@ -478,27 +465,16 @@ namespace Aerospike.Database.LINQPadDriver
                     else if (genericTypes.Length == 0
                             || !IsAerospikeType(genericTypes[0])
                             || !IsAerospikeType(genericTypes[1]))
-                    {
-                        var newDict = new Dictionary<object, object>();
-                        var keys = new List<object>();
-                        var values = new List<object>();
-
-                        foreach (var key in dictValue.Keys)
-                        {
-                            keys.Add(ConvertToAerospikeType(key));
-                        }
-
-                        foreach (var value in dictValue.Values)
-                        {
-                            values.Add(ConvertToAerospikeType(value));
-                        }
-
-                        for (var idx = 0; idx < keys.Count; idx++)
-                        {
-                            newDict.Add(keys[idx],
-                                        values[idx]);
-                        }
-                        putObject = newDict;
+                    {                        
+                        var kvps = dictValue.Keys
+                                        .Cast<object>()
+                                        .Select(key => ConvertToAerospikeType(key))
+                                    .Zip(dictValue.Values
+                                            .Cast<object>()
+                                            .Select(value => ConvertToAerospikeType(value)),
+                                            (k, v) => new KeyValuePair<object, object>(k, v));
+                            
+                        putObject = new Dictionary<object, object>(kvps);
                     }
                 }
                 else if (putObject is byte[] byteArray)
@@ -829,6 +805,10 @@ namespace Aerospike.Database.LINQPadDriver
                     {
                         return JToken.FromObject(binValue);
                     }
+                    else if (fldType == typeof(JValue))
+                    {
+                        return JValue.FromObject(binValue);
+                    }
                     else if (fldType == typeof(JArray))
                     {
                         return JArray.FromObject(binValue);
@@ -841,7 +821,7 @@ namespace Aerospike.Database.LINQPadDriver
                     {
                         return new JsonDocument(JObject.FromObject(binValue));
                     }
-
+                    
                     switch (binValue)
                     {
                         case byte byteValue:
@@ -1733,20 +1713,23 @@ namespace Aerospike.Database.LINQPadDriver
 
             if(instance != null && primaryKey != null)
             {
-                if(pkProp != null && pkProp.CanWrite)
+                if (pkProp != null)
                 {
-                    pkProp.SetValue(instance, CastToNativeType(pkProp.Name,
-                                                                pkProp.PropertyType,
-                                                                "PrimaryKey",
-                                                                primaryKey.userKey?.Object ?? primaryKey.digest));
+                    if (pkProp.CanWrite)
+                    {
+                        pkProp.SetValue(instance, CastToNativeType(pkProp.Name,
+                                                                    pkProp.PropertyType,
+                                                                    "PrimaryKey",
+                                                                    primaryKey.userKey?.Object ?? primaryKey.digest));
+                    }
+                    else
+                    {
+                        pkFld.SetValue(instance, CastToNativeType(pkFld.Name,
+                                                                    pkFld.FieldType,
+                                                                    "PrimaryKey",
+                                                                    primaryKey.userKey?.Object ?? primaryKey.digest));
+                    }
                 }
-                else if (pkFld != null)
-                {
-                    pkFld.SetValue(instance, CastToNativeType(pkFld.Name,
-                                                                pkFld.FieldType,
-                                                                "PrimaryKey",
-                                                                primaryKey.userKey?.Object ?? primaryKey.digest));
-                }                
             }
 
             return (T)instance;
