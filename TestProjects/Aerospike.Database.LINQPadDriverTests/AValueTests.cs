@@ -172,6 +172,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsTrue(Helpers.SequenceEquals(dirTst.ToList(), aValue.ToList()));
             Assert.IsTrue(Helpers.SequenceEquals(dirTst.ToList(), aValue.ToListItem()));
 
+            Assert.IsTrue(aValue.ContainsKey("pa"));
+            Assert.IsTrue(aValue.ContainsKey("pb"));
+            Assert.IsTrue(aValue.ContainsKey("pc"));
+            Assert.IsFalse(aValue.ContainsKey("a"));
+            Assert.IsTrue(aValue.Contains("b"));
+            Assert.IsFalse(aValue.Contains("x"));
+
+            Assert.IsTrue(aValue.Contains("pa", "a"));
+            Assert.IsFalse(aValue.Contains("pa", "x"));
+            Assert.IsFalse(aValue.Contains("px", "a"));
+
             var newDict = aValue.ToDictionary();
             Assert.IsTrue(Helpers.SequenceEquals(dirTst.Keys, newDict.Keys));
             Assert.IsTrue(Helpers.SequenceEquals(dirTst.Values, newDict.Values));
@@ -207,6 +218,23 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsTrue(Helpers.SequenceEquals(dirTst.Values, aValue.ToDictionary().Values));
             Assert.AreEqual(jToken, aValue.ToJToken());
 
+            var strTest = "abcdefg";
+
+            aValue = strTest.ToAValue();
+
+            Assert.IsInstanceOfType<string>(aValue.Value);
+            Assert.IsFalse(aValue.IsList);
+            Assert.IsFalse(aValue.IsCDT);
+            Assert.IsFalse(aValue.IsMap);
+            Assert.IsFalse(aValue.IsJson);
+            Assert.IsTrue(aValue.IsString);
+            Assert.AreEqual(strTest.Length, aValue.Count());
+            Assert.AreEqual(strTest.Length, aValue.ToList().Count);
+            Assert.AreEqual(1, aValue.ToListItem().Count);
+            Assert.IsTrue(aValue.Contains("abc"));
+            Assert.IsTrue(aValue.Contains("def"));
+            Assert.IsTrue(aValue.Contains("fg"));
+            Assert.IsFalse(aValue.Contains("dzf"));
         }
     }
 }

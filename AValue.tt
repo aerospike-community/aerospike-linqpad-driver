@@ -828,10 +828,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         
         /// <summary>
         /// Returns the number of elements/chars if <see cref="Value"/> is either a collection or string.
-        /// If <see cref="Value"/> is neither a collection or string, zero is returned.
+        /// If <see cref="Value"/> is neither a collection or string, -1 is returned.
         /// </summary>
         /// <returns>
-        /// Number of items in a collection or chars in a string, otherwise zero.
+        /// Number of items in a collection or chars in a string, otherwise -1.
         /// </returns>
         public int Count()
         {
@@ -841,7 +841,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 JContainer jContainer => jContainer.Count,
                 System.Collections.ICollection oValue => oValue.Count,
                 System.Collections.IEnumerable iValue => iValue.Cast<object>().Count(),
-                _ => 0
+                _ => -1
             };
         }
 
@@ -856,6 +856,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// True if it is contained within a collection or is equal to an instance.
         /// </returns>
+        /// <seealso cref="Contains{K, T}(K, T)"/>
+        /// <seealso cref="ContainsKey{K}(K)"/>
         public bool Contains<T>(T value)
         {
             return this.Value switch
@@ -868,7 +870,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 IEnumerable<T> iValue => iValue.Contains(value),
                 IEnumerable<KeyValuePair<string, object>> iKeyValuePair
                     => iKeyValuePair.Any(kvp => Helpers.Equals(kvp.Value, value)),
-                IEnumerable<object> oValue => oValue.Any(i => Helpers.Equals(i, value)),                
+                System.Collections.IDictionary cDict
+                    => cDict.Values.Cast<object>().Any(i => Helpers.Equals(i, value)),
+                System.Collections.IEnumerable iValue => iValue.Cast<object>().Any(i => Helpers.Equals(i, value)),                
                 _ => this.Equals(value)
             };
         }
@@ -885,6 +889,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// True if it is contained within a collection or false otherwise.
         /// </returns>
+        /// <seealso cref="Contains{T}(T)"/>
+        /// <seealso cref="ContainsKey{K}(K)"/>
         public bool Contains<K, T>(K key, T value)
         {
             return this.Value switch
@@ -893,13 +899,35 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     => key is string sKey
                             && jObj.ContainsKey(sKey)
                             && Helpers.Equals(jObj[sKey], value),
-                IDictionary<string, object> sDict
+                IDictionary<K, T> tDict
+                    => tDict.ContainsKey(key)
+                            && Helpers.Equals(tDict[key], value),
+                System.Collections.IDictionary cDict
+                    => cDict.Contains((object)key)
+                            && Helpers.Equals(cDict[key], value),
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Determines if <paramref name="key"/> is a key/property field within a Dictionary or JObject.
+        /// </summary>
+        /// <typeparam name="K">The type of <paramref name="key"/></typeparam>
+        /// <param name="key">The value used to determined if the key exists</param>
+        /// <returns>
+        /// True is the key/property field exists.
+        /// </returns>
+        /// <seealso cref="Contains{K, T}(K, T)"/>
+        /// <seealso cref="Contains{T}(T)"/>
+        public bool ContainsKey<K>(K key)
+        {
+            return this.Value switch
+            {
+                JObject jObj
                     => key is string sKey
-                            && sDict.ContainsKey(sKey)
-                            && Helpers.Equals(sDict[sKey], value),
-                IDictionary<object, object> oDict
-                    => oDict.ContainsKey(key)
-                            && Helpers.Equals(oDict[key], value),
+                            && jObj.ContainsKey(sKey),                
+                System.Collections.IDictionary cDict
+                    => cDict.Contains((object) key),
                 _ => false
             };
         }
