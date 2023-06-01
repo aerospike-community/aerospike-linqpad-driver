@@ -1,5 +1,4 @@
-﻿ 
-
+﻿
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -93,8 +92,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             , IEqualityComparer< TimeSpan >
             , IComparable< TimeSpan >            
            
-                     , IEquatable< JsonDocument >
-            , IEqualityComparer< JsonDocument >
                      , IEquatable< JObject >
             , IEqualityComparer< JObject >
                      , IEquatable< JArray >
@@ -313,13 +310,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Tries to convert an object to a JToken.
+        /// Tries to convert <see cref="Value"/> to a JToken.
         /// </summary>
         /// <returns>A <see cref="JToken"/> or an empty JToken</returns>
         public JToken ToJson()
         {
             if (
-                            this.UnderlyingType == typeof(JsonDocument) ||
                             this.UnderlyingType == typeof(JObject) ||
                             this.UnderlyingType == typeof(JArray) ||
                             this.UnderlyingType == typeof(JValue) ||
@@ -339,9 +335,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Tries to convert a value to a IDictionary. If not possible an empty IDictionary is returned.
+        /// Tries to convert <see cref="Value"/> to a IDictionary. If not possible an empty IDictionary is returned.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>
+        /// An IDictionary, if possible, or an empty IDictionary.
+        /// </returns>
         public IDictionary<object, object> ToDictionary()
         {
             if (this.Value is JObject jObject)
@@ -369,9 +367,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Tries to convert a value to a IList. If not possible an empty list is returned.
+        /// Tries to convert <see cref="Value"/> to a IList. If not possible an empty list is returned.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>
+        /// An IList, if possible, otherwise an empty IList.
+        /// </returns>
         public IList<object> ToList()
         {    
             if(this.Value is IList<object> iList)
@@ -397,10 +397,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Always convert Value to a List. 
-        /// If Value is not a collection, the item is returned in a list.
+        /// Always convert <see cref="Value"/> to a List. 
+        /// If <see cref="Value"/> is not a collection, the item is returned in a list.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>
+        /// A list of at least one element. If <see cref="Value"/> is a collection, that collection will be converted to an IList.
+        /// </returns>
         public IList<object> ToListItem()
         { 
             if(this.IsCDT
@@ -521,6 +523,207 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public override string ToString() => this.Value?.ToString();
         public string DebuggerString() => $"{this.FldName ?? this.BinName}{{{this.Value} ({this.UnderlyingType?.Name})}}";
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        /// <summary>
+        /// Returns the string for <see cref="Value"/> using the given format, if possible.         
+        /// Otherwise the ToString of <see cref="Value"/> is used.
+        /// </summary>
+        /// <param name="format">A composite format string.</param>
+        /// <param name="throwOnFormatException">
+        /// If true and a format exception occurs, it will be re-thrown.
+        /// The default is false and the ToString value is returned.
+        /// </param>
+        /// <returns>The string value of <see cref="Value"/></returns>
+        public string ToString(string format, bool throwOnFormatException = false)
+        {
+            try
+            {
+                switch(this.Value)
+                {
+                        case System.Enum vEnum:
+                        return vEnum.ToString(format);
+                            case System.Guid vGuid:
+                        return vGuid.ToString(format);
+                            case System.Int16 vInt16:
+                        return vInt16.ToString(format);
+                            case System.Int32 vInt32:
+                        return vInt32.ToString(format);
+                            case System.Int64 vInt64:
+                        return vInt64.ToString(format);
+                            case System.UInt16 vUInt16:
+                        return vUInt16.ToString(format);
+                            case System.UInt32 vUInt32:
+                        return vUInt32.ToString(format);
+                            case System.UInt64 vUInt64:
+                        return vUInt64.ToString(format);
+                            case System.Decimal vDecimal:
+                        return vDecimal.ToString(format);
+                            case System.Single vSingle:
+                        return vSingle.ToString(format);
+                            case System.Double vDouble:
+                        return vDouble.ToString(format);
+                            case System.Byte vByte:
+                        return vByte.ToString(format);
+                            case System.SByte vSByte:
+                        return vSByte.ToString(format);
+                            case System.DateTime vDateTime:
+                        return vDateTime.ToString(format);
+                            case System.DateTimeOffset vDateTimeOffset:
+                        return vDateTimeOffset.ToString(format);
+                            case System.TimeSpan vTimeSpan:
+                        return vTimeSpan.ToString(format);
+                                            default:
+                        break;
+                }
+                throwOnFormatException = false;
+                return String.Format($"{{0:{format}}}", this.Value);
+            }
+            catch(FormatException)
+            {
+                if(throwOnFormatException) throw;
+            }
+
+            return this.ToString();
+        }
+
+        /// <summary>
+        /// Returns the string for <see cref="Value"/> using the given provider, if possible.         
+        /// Otherwise the ToString of <see cref="Value"/> is used.
+        /// </summary>
+        /// <param name="provider">An object that supplies culture-specific formatting information.</param>
+        /// <param name="throwOnFormatException">
+        /// If true and a format exception occurs, it will be re-thrown.
+        /// The default is false and the ToString value is returned.
+        /// </param>
+        /// <returns>The string value of <see cref="Value"/></returns>
+        public string ToString(IFormatProvider provider, bool throwOnFormatException = false)
+        {
+            try
+            {
+                switch(this.Value)
+                {
+                        case System.String vString:
+                        return vString.ToString(provider);
+                            case System.Boolean vBoolean:
+                        return vBoolean.ToString(provider);
+                            case System.Enum vEnum:
+                        return vEnum.ToString(provider);
+                            case System.Int16 vInt16:
+                        return vInt16.ToString(provider);
+                            case System.Int32 vInt32:
+                        return vInt32.ToString(provider);
+                            case System.Int64 vInt64:
+                        return vInt64.ToString(provider);
+                            case System.UInt16 vUInt16:
+                        return vUInt16.ToString(provider);
+                            case System.UInt32 vUInt32:
+                        return vUInt32.ToString(provider);
+                            case System.UInt64 vUInt64:
+                        return vUInt64.ToString(provider);
+                            case System.Decimal vDecimal:
+                        return vDecimal.ToString(provider);
+                            case System.Single vSingle:
+                        return vSingle.ToString(provider);
+                            case System.Double vDouble:
+                        return vDouble.ToString(provider);
+                            case System.Byte vByte:
+                        return vByte.ToString(provider);
+                            case System.SByte vSByte:
+                        return vSByte.ToString(provider);
+                            case System.DateTime vDateTime:
+                        return vDateTime.ToString(provider);
+                            case System.DateTimeOffset vDateTimeOffset:
+                        return vDateTimeOffset.ToString(provider);
+                                            default:
+                        break;
+                }
+
+                return String.Format(provider, "{0}", this.Value);
+            }
+            catch(FormatException)
+            {
+                if(throwOnFormatException) throw;
+            }
+            return this.ToString();
+        }
+
+        /// <summary>
+        /// Returns the string for <see cref="Value"/> using the given format and provider, if possible.         
+        /// Otherwise the ToString of <see cref="Value"/> is used.
+        /// </summary>
+        /// <param name="format">A composite format string.</param>
+        /// <param name="provider">An object that supplies culture-specific formatting information.</param> 
+        /// <param name="throwOnFormatException">
+        /// If true and a format exception occurs, it will be re-thrown.
+        /// The default is false and the ToString value is returned.
+        /// </param>
+        /// <returns>The string value of <see cref="Value"/></returns>
+        public string ToString(string format, IFormatProvider provider, bool throwOnFormatException = false)
+        {
+            try
+            {
+                switch(this.Value)
+                {
+                        case System.Enum vEnum:
+                        return vEnum.ToString(format, provider);
+                            case System.Guid vGuid:
+                        return vGuid.ToString(format, provider);
+                            case System.Int16 vInt16:
+                        return vInt16.ToString(format, provider);
+                            case System.Int32 vInt32:
+                        return vInt32.ToString(format, provider);
+                            case System.Int64 vInt64:
+                        return vInt64.ToString(format, provider);
+                            case System.UInt16 vUInt16:
+                        return vUInt16.ToString(format, provider);
+                            case System.UInt32 vUInt32:
+                        return vUInt32.ToString(format, provider);
+                            case System.UInt64 vUInt64:
+                        return vUInt64.ToString(format, provider);
+                            case System.Decimal vDecimal:
+                        return vDecimal.ToString(format, provider);
+                            case System.Single vSingle:
+                        return vSingle.ToString(format, provider);
+                            case System.Double vDouble:
+                        return vDouble.ToString(format, provider);
+                            case System.Byte vByte:
+                        return vByte.ToString(format, provider);
+                            case System.SByte vSByte:
+                        return vSByte.ToString(format, provider);
+                            case System.DateTime vDateTime:
+                        return vDateTime.ToString(format, provider);
+                            case System.DateTimeOffset vDateTimeOffset:
+                        return vDateTimeOffset.ToString(format, provider);
+                            case System.TimeSpan vTimeSpan:
+                        return vTimeSpan.ToString(format, provider);
+                                            default:
+                        break;
+                }
+                throwOnFormatException = false;
+                return String.Format(provider, $"{{0:{format}}}", this.Value);
+            }
+            catch(FormatException)
+            {
+                if(throwOnFormatException) throw;
+            }
+            return this.ToString();
+        }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        /// <summary>
+        /// Returns the JSON string for <see cref="Value"/> using the given formatting and converters only if <see cref="Value"/> is a JToken.
+        /// Otherwise the ToString of <see cref="Value"/>.
+        /// </summary>
+        /// <param name="formatting">Indicates how the output should be formatted.</param>
+        /// <param name="converters">A collection of <see cref="JsonConverter"/>s which will be used when writing the token.</param>
+        /// <returns>The JSON string or the ToString of <see cref="Value"/></returns>
+        public string ToString(Formatting formatting, params JsonConverter[] converters)
+        {
+            if(this.Value is JToken jToken)
+                return jToken.ToString(formatting, converters);
+            return this.ToString();
+        }
 
         public override int GetHashCode() => this.Value?.GetHashCode() ?? 0;
 
@@ -781,7 +984,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, string oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, string oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public string Tostring() => (string) this;
+             
             public bool Equals(string value)
             {
                 return this.DigestRequired()
@@ -826,7 +1029,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, bool oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, bool oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public bool Tobool() => (bool) this;
+                        public bool Tobool() => (bool) this;
+              
             public bool Equals(bool value)
             {
                 return this.DigestRequired()
@@ -885,7 +1089,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, Enum oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, Enum oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public Enum ToEnum() => (Enum) this;
+                        public Enum ToEnum() => (Enum) this;
+              
             public bool Equals(Enum value)
             {
                 return this.DigestRequired()
@@ -944,7 +1149,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, Guid oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, Guid oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public Guid ToGuid() => (Guid) this;
+                        public Guid ToGuid() => (Guid) this;
+              
             public bool Equals(Guid value)
             {
                 return this.DigestRequired()
@@ -988,7 +1194,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, short oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, short oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public short Toshort() => (short) this;
+                        public short Toshort() => (short) this;
+              
             public bool Equals(short value)
             {
                 return this.DigestRequired()
@@ -1047,7 +1254,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, int oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, int oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public int Toint() => (int) this;
+                        public int Toint() => (int) this;
+              
             public bool Equals(int value)
             {
                 return this.DigestRequired()
@@ -1106,7 +1314,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, long oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, long oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public long Tolong() => (long) this;
+                        public long Tolong() => (long) this;
+              
             public bool Equals(long value)
             {
                 return this.DigestRequired()
@@ -1165,7 +1374,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, ushort oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, ushort oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public ushort Toushort() => (ushort) this;
+                        public ushort Toushort() => (ushort) this;
+              
             public bool Equals(ushort value)
             {
                 return this.DigestRequired()
@@ -1224,7 +1434,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, uint oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, uint oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public uint Touint() => (uint) this;
+                        public uint Touint() => (uint) this;
+              
             public bool Equals(uint value)
             {
                 return this.DigestRequired()
@@ -1283,7 +1494,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, ulong oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, ulong oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public ulong Toulong() => (ulong) this;
+                        public ulong Toulong() => (ulong) this;
+              
             public bool Equals(ulong value)
             {
                 return this.DigestRequired()
@@ -1342,7 +1554,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, decimal oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, decimal oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public decimal Todecimal() => (decimal) this;
+                        public decimal Todecimal() => (decimal) this;
+              
             public bool Equals(decimal value)
             {
                 return this.DigestRequired()
@@ -1401,7 +1614,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, float oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, float oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public float Tofloat() => (float) this;
+                        public float Tofloat() => (float) this;
+              
             public bool Equals(float value)
             {
                 return this.DigestRequired()
@@ -1460,7 +1674,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, double oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, double oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public double Todouble() => (double) this;
+                        public double Todouble() => (double) this;
+              
             public bool Equals(double value)
             {
                 return this.DigestRequired()
@@ -1519,7 +1734,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, byte oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, byte oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public byte Tobyte() => (byte) this;
+                        public byte Tobyte() => (byte) this;
+              
             public bool Equals(byte value)
             {
                 return this.DigestRequired()
@@ -1578,7 +1794,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, sbyte oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, sbyte oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public sbyte Tosbyte() => (sbyte) this;
+                        public sbyte Tosbyte() => (sbyte) this;
+              
             public bool Equals(sbyte value)
             {
                 return this.DigestRequired()
@@ -1637,7 +1854,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, DateTime oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, DateTime oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public DateTime ToDateTime() => (DateTime) this;
+                        public DateTime ToDateTime() => (DateTime) this;
+              
             public bool Equals(DateTime value)
             {
                 return this.DigestRequired()
@@ -1694,7 +1912,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, DateTimeOffset oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, DateTimeOffset oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public DateTimeOffset ToDateTimeOffset() => (DateTimeOffset) this;
+                        public DateTimeOffset ToDateTimeOffset() => (DateTimeOffset) this;
+              
             public bool Equals(DateTimeOffset value)
             {
                 return this.DigestRequired()
@@ -1751,7 +1970,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, TimeSpan oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, TimeSpan oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
-            public TimeSpan ToTimeSpan() => (TimeSpan) this;
+                        public TimeSpan ToTimeSpan() => (TimeSpan) this;
+              
             public bool Equals(TimeSpan value)
             {
                 return this.DigestRequired()
@@ -1784,31 +2004,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             }
 
         
-        
-            public static implicit operator JsonDocument (AValue key) => key is null ? null : (JsonDocument) key.Convert< JsonDocument >();
-            //public static implicit operator JsonDocument[] (AValue key) => (JsonDocument[]) key.Convert<JsonDocument[]>();
-            
-            public JsonDocument ToJsonDocument() => (JsonDocument) this;
-
-            public bool Equals(JsonDocument value)
-            {
-                try {
-                    return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : ((JsonDocument) this).Equals(value);
-                } catch {}
-                return false;
-            }
-
-            public bool Equals(JsonDocument v1, JsonDocument v2)
-            {
-                if(ReferenceEquals(v1,v2)) return true;
-                if(v1 is null) return v2 is null;
-
-                return v1.Equals(v2);
-            }
-            public int GetHashCode(JsonDocument value) => value?.GetHashCode() ?? 0;
-
         
             public static implicit operator JObject (AValue key) => key is null ? null : (JObject) key.Convert< JObject >();
             //public static implicit operator JObject[] (AValue key) => (JObject[]) key.Convert<JObject[]>();

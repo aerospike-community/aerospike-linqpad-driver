@@ -210,7 +210,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsTrue(aValue.IsMap);
             Assert.IsTrue(aValue.IsJson);
             Assert.AreEqual(dirTst.Count, aValue.Count());
-            
+
             Assert.AreEqual(dirTst.ToList().Count, aValue.ToList().Count);
             Assert.AreEqual(dirTst.ToList().Count, aValue.ToListItem().Count);
 
@@ -235,6 +235,28 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsTrue(aValue.Contains("def"));
             Assert.IsTrue(aValue.Contains("fg"));
             Assert.IsFalse(aValue.Contains("dzf"));
+        }
+
+
+        [TestMethod]
+        public void ToString()
+        {
+            var tnValue = 123456;
+            AValue aValue = tnValue.ToAValue();
+            
+            Assert.AreEqual(tnValue, aValue);
+            Assert.AreEqual("123456", aValue.ToString());
+            Assert.AreEqual("123,456", aValue.ToString("###,###"));
+            Assert.AreEqual("$123,456.00", aValue.ToString("c"));
+
+            var tjValue = JToken.FromObject(tnValue);
+            aValue = tjValue.ToAValue();
+
+            Assert.AreEqual(tnValue, aValue);
+            Assert.AreEqual(tjValue, aValue);
+            Assert.AreEqual("123456", aValue.ToString());
+            Assert.AreEqual("123,456", aValue.ToString("###,###"));
+            
         }
     }
 }

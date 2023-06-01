@@ -1,7 +1,7 @@
 ﻿﻿<#@ template debug="false" hostSpecific="false" #>
 <#@ output extension=".cs" #>
 <#@ import namespace="System" #>
-<#@ import namespace="System.Collections.Generic" #> 
+<#@ import namespace="System.Collections.Generic" #>
 <#
     string[] nativeDataTypes = new string[] 
       { "string", "bool", "Enum", "Guid",
@@ -10,8 +10,15 @@
         "decimal", "float", "double", "byte", "sbyte",
         "DateTime", "DateTimeOffset", "TimeSpan" };
 	
+    Type[] nativeclassDataTypesOf = new Type[] 
+      { typeof(string), typeof(bool), typeof(Enum), typeof(Guid),
+        typeof(short), typeof(int), typeof(long),
+        typeof(ushort), typeof(uint), typeof(ulong),
+        typeof(decimal), typeof(float), typeof(double), typeof(byte), typeof(sbyte),
+        typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan) };
+
     string[] classDataTypes = new string[] 
-      { "JsonDocument", "JObject", "JArray", "JValue", "JToken"};
+      { "JObject", "JArray", "JValue", "JToken"};
 #>
 
 using System;
@@ -272,7 +279,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Tries to convert an object to a JToken.
+        /// Tries to convert <see cref="Value"/> to a JToken.
         /// </summary>
         /// <returns>A <see cref="JToken"/> or an empty JToken</returns>
         public JToken ToJson()
@@ -297,9 +304,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Tries to convert a value to a IDictionary. If not possible an empty IDictionary is returned.
+        /// Tries to convert <see cref="Value"/> to a IDictionary. If not possible an empty IDictionary is returned.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>
+        /// An IDictionary, if possible, or an empty IDictionary.
+        /// </returns>
         public IDictionary<object, object> ToDictionary()
         {
             if (this.Value is JObject jObject)
@@ -327,9 +336,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Tries to convert a value to a IList. If not possible an empty list is returned.
+        /// Tries to convert <see cref="Value"/> to a IList. If not possible an empty list is returned.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>
+        /// An IList, if possible, otherwise an empty IList.
+        /// </returns>
         public IList<object> ToList()
         {    
             if(this.Value is IList<object> iList)
@@ -355,10 +366,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Always convert Value to a List. 
-        /// If Value is not a collection, the item is returned in a list.
+        /// Always convert <see cref="Value"/> to a List. 
+        /// If <see cref="Value"/> is not a collection, the item is returned in a list.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>
+        /// A list of at least one element. If <see cref="Value"/> is a collection, that collection will be converted to an IList.
+        /// </returns>
         public IList<object> ToListItem()
         { 
             if(this.IsCDT
@@ -479,6 +492,135 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public override string ToString() => this.Value?.ToString();
         public string DebuggerString() => $"{this.FldName ?? this.BinName}{{{this.Value} ({this.UnderlyingType?.Name})}}";
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        /// <summary>
+        /// Returns the string for <see cref="Value"/> using the given format, if possible.         
+        /// Otherwise the ToString of <see cref="Value"/> is used.
+        /// </summary>
+        /// <param name="format">A composite format string.</param>
+        /// <param name="throwOnFormatException">
+        /// If true and a format exception occurs, it will be re-thrown.
+        /// The default is false and the ToString value is returned.
+        /// </param>
+        /// <returns>The string value of <see cref="Value"/></returns>
+        public string ToString(string format, bool throwOnFormatException = false)
+        {
+            try
+            {
+                switch(this.Value)
+                {
+                    <# foreach(var datatype in nativeclassDataTypesOf)
+                    {
+                       if(datatype.GetMethod("ToString", new Type[] { typeof(string) }) != null)
+                        { #>
+    case <#= datatype #> v<#= datatype.Name #>:
+                        return v<#= datatype.Name #>.ToString(format);
+                        <# }//end of if
+                    }//end of foreach data type #>
+                    default:
+                        break;
+                }
+                throwOnFormatException = false;
+                return String.Format($"{{0:{format}}}", this.Value);
+            }
+            catch(FormatException)
+            {
+                if(throwOnFormatException) throw;
+            }
+
+            return this.ToString();
+        }
+
+        /// <summary>
+        /// Returns the string for <see cref="Value"/> using the given provider, if possible.         
+        /// Otherwise the ToString of <see cref="Value"/> is used.
+        /// </summary>
+        /// <param name="provider">An object that supplies culture-specific formatting information.</param>
+        /// <param name="throwOnFormatException">
+        /// If true and a format exception occurs, it will be re-thrown.
+        /// The default is false and the ToString value is returned.
+        /// </param>
+        /// <returns>The string value of <see cref="Value"/></returns>
+        public string ToString(IFormatProvider provider, bool throwOnFormatException = false)
+        {
+            try
+            {
+                switch(this.Value)
+                {
+                    <# foreach(var datatype in nativeclassDataTypesOf)
+                    {
+                       if(datatype.GetMethod("ToString", new Type[] { typeof(IFormatProvider) }) != null)
+                        { #>
+    case <#= datatype #> v<#= datatype.Name #>:
+                        return v<#= datatype.Name #>.ToString(provider);
+                        <# }//end of if
+                    }//end of foreach data type #>
+                    default:
+                        break;
+                }
+
+                return String.Format(provider, "{0}", this.Value);
+            }
+            catch(FormatException)
+            {
+                if(throwOnFormatException) throw;
+            }
+            return this.ToString();
+        }
+
+        /// <summary>
+        /// Returns the string for <see cref="Value"/> using the given format and provider, if possible.         
+        /// Otherwise the ToString of <see cref="Value"/> is used.
+        /// </summary>
+        /// <param name="format">A composite format string.</param>
+        /// <param name="provider">An object that supplies culture-specific formatting information.</param> 
+        /// <param name="throwOnFormatException">
+        /// If true and a format exception occurs, it will be re-thrown.
+        /// The default is false and the ToString value is returned.
+        /// </param>
+        /// <returns>The string value of <see cref="Value"/></returns>
+        public string ToString(string format, IFormatProvider provider, bool throwOnFormatException = false)
+        {
+            try
+            {
+                switch(this.Value)
+                {
+                    <# foreach(var datatype in nativeclassDataTypesOf)
+                    {
+                       if(datatype.GetMethod("ToString", new Type[] { typeof(string), typeof(IFormatProvider) }) != null)
+                        { #>
+    case <#= datatype #> v<#= datatype.Name #>:
+                        return v<#= datatype.Name #>.ToString(format, provider);
+                        <# }//end of if
+                    }//end of foreach data type #>
+                    default:
+                        break;
+                }
+                throwOnFormatException = false;
+                return String.Format(provider, $"{{0:{format}}}", this.Value);
+            }
+            catch(FormatException)
+            {
+                if(throwOnFormatException) throw;
+            }
+            return this.ToString();
+        }
+#pragma warning restore CS0618 // Type or member is obsolete
+
+        /// <summary>
+        /// Returns the JSON string for <see cref="Value"/> using the given formatting and converters only if <see cref="Value"/> is a JToken.
+        /// Otherwise the ToString of <see cref="Value"/>.
+        /// </summary>
+        /// <param name="formatting">Indicates how the output should be formatted.</param>
+        /// <param name="converters">A collection of <see cref="JsonConverter"/>s which will be used when writing the token.</param>
+        /// <returns>The JSON string or the ToString of <see cref="Value"/></returns>
+        public string ToString(Formatting formatting, params JsonConverter[] converters)
+        {
+            if(this.Value is JToken jToken)
+                return jToken.ToString(formatting, converters);
+            return this.ToString();
+        }
 
         public override int GetHashCode() => this.Value?.GetHashCode() ?? 0;
 
@@ -741,7 +883,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator<=(AValue aValue, <#= datatype #> oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
             public static bool operator>=(AValue aValue, <#= datatype #> oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
 
+            <# if(datatype != "string") { #>
             public <#= datatype #> To<#= datatype #>() => (<#= datatype #>) this;
+             <# } #> 
             public bool Equals(<#= datatype #> value)
             {
                 return this.DigestRequired()

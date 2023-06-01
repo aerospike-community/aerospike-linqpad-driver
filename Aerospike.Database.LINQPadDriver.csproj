@@ -18,8 +18,8 @@
     <PackageIcon>lib\netcoreapp3.1\Connection.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
-    <Version>2.0.5.15</Version>
-    <FileVersion>2.0.5.15</FileVersion>    
+    <Version>2.0.5.16</Version>
+    <FileVersion>2.0.5.16</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>
