@@ -239,7 +239,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 
 
         [TestMethod]
-        public void ToString()
+        public void ToStringTest()
         {
             var tnValue = 123456;
             AValue aValue = tnValue.ToAValue();
