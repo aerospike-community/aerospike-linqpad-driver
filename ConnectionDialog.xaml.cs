@@ -4,25 +4,19 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.IO;
 using Microsoft.Win32;
 using LINQPad.Extensibility.DataContext;
 using System.Diagnostics;
 using System.Collections;
 using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
+using System.Globalization;
 
 namespace Aerospike.Database.LINQPadDriver
 {
 	public partial class ConnectionDialog : Window
 	{
-		IConnectionInfo _cxInfo;
+		readonly IConnectionInfo _cxInfo;
 
 		public ConnectionDialog (IConnectionInfo cxInfo)
 		{
@@ -41,10 +35,11 @@ namespace Aerospike.Database.LINQPadDriver
                 btnCertFile.IsEnabled = true;
             }
         }
-
+        
         void btnOK_Click (object sender, RoutedEventArgs e)
 		{
-			DialogResult = true;
+            //Debugger.Launch ();
+            DialogResult = true;
 		}
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
@@ -59,13 +54,15 @@ namespace Aerospike.Database.LINQPadDriver
 
         private void btnCertFile_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Cert files (*.cer;*.crt;*.cert)|*.cer;*.crt;*.cert|All files (*.*)|*.*";
-			openFileDialog.Title = "Select Certificate File";
-			openFileDialog.CheckPathExists = true;
-			openFileDialog.CheckFileExists= true;
-			openFileDialog.AddExtension = true;	
-			
+            OpenFileDialog openFileDialog = new OpenFileDialog()
+            {
+                Filter = "Cert files (*.cer;*.crt;*.cert)|*.cer;*.crt;*.cert|All files (*.*)|*.*",
+                Title = "Select Certificate File",
+                CheckPathExists = true,
+                CheckFileExists = true,
+                AddExtension = true
+            };
+
             if (string.IsNullOrEmpty(txtCertFile.Text))
 			{				
 				openFileDialog.DefaultExt = ".cer";
@@ -178,18 +175,18 @@ namespace Aerospike.Database.LINQPadDriver
 
         private void lbRecordViews_Checked(object sender, RoutedEventArgs e)
         {
-            var cb = (CheckBox)sender;
+            var rb = (RadioButton)sender;
             var recViewItems = lbRecordViews.ItemsSource.Cast<RecordViewItem>();
             
             foreach(var item in recViewItems)
             {
-                if(item.Name == (string) cb.Tag)
+                if(item.Name == (string) rb.Tag)
                 {
                     item.IsChecked = true;
                 }
                 else
                 { item.IsChecked = false; }
-            }
+            }      
         }
 
         private void btnTestConnection_Click(object sender, RoutedEventArgs e)
@@ -263,5 +260,107 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
                 }
             }
         }
+
+        private void txtSampleRecs_TextChanged(object sender, TextChangedEventArgs e)
+        {            
+            static bool TryGetNbrRecs(string txtValue, out int nbrRecs)
+            {                
+                if(!string.IsNullOrEmpty(txtValue)
+                    && int.TryParse(txtValue, out nbrRecs)) { return true; }
+
+                nbrRecs = 0;
+                return false;
+            }
+
+            var recViewItems = lbRecordViews?.ItemsSource.Cast<RecordViewItem>();
+
+            if (recViewItems != null)
+            {
+                if (TryGetNbrRecs(txtSampleRecs.Text, out int nbrRecs)
+                        && nbrRecs > 0)
+                {
+                    recViewItems.First(i => i.Name == "Record").IsEnabled = true;
+                    txtSampleRecsPercent.IsEnabled = true;
+                }
+                else
+                {
+                    var item = recViewItems.First(i => i.Name == "Record");
+                    item.IsEnabled = false;
+                    if (item.IsChecked)
+                    {
+                        item.IsChecked = false;
+                        recViewItems.First(i => i.Name == "Dynamic").IsChecked = true;
+                    }
+
+                    txtSampleRecsPercent.IsEnabled = false;
+                }
+            }
+        }
+        
     }
+
+    public class NumericValidationRule : ValidationRule
+    {
+        public int Min { get; set; } = 0;
+        public int Max { get; set; } = int.MaxValue;
+        public bool HasPercent { get; set; } = false;
+        public bool AllowEmpty { get; set; } = false;
+
+        public override ValidationResult Validate(object value, CultureInfo cultureInfo)
+        {
+            int nValue = -1;
+
+            if(value  is null) 
+            {
+                if (AllowEmpty)
+                {
+                    return new ValidationResult(true, null);
+                }
+                else
+                {
+                    return new ValidationResult(false, "Required Field");
+                }
+            }
+
+            try
+            {
+                var strValue = ((string)value).Trim(' ');
+
+                if (HasPercent)
+                    strValue = strValue.TrimEnd(' ', '%');
+
+                if (strValue.Length > 0)
+                {
+                    nValue = int.Parse(strValue);
+                }
+                else if (AllowEmpty)
+                {
+                    return new ValidationResult(true, null);
+                }
+                else
+                {
+                    return new ValidationResult(false, "Required Field");
+                }
+            }
+            catch
+            {
+                return new ValidationResult(false, "Illegal characters for a Numeric Value");
+            }
+
+            if ((nValue < Min) || (nValue > Max))
+            {
+                if(Min == int.MinValue)
+                    return new ValidationResult(false,
+                                    $"Please enter a Number <= {Max}.");
+                else if(Max == int.MaxValue)
+                    return new ValidationResult(false,
+                                    $"Please enter a Number >= {Min}.");
+
+                return new ValidationResult(false,
+                                    $"Please enter a Numeric Range [{Min} - {Max}].");
+            }
+            return new ValidationResult(true, null);
+        }
+    }
+    
 }

@@ -34,6 +34,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.Debug = connectionInfo.Debug;
             this.RecordView = connectionInfo.RecordView;
             this.DBRecordSampleSet = connectionInfo.DBRecordSampleSet;
+            this.DBRecordSampleSetMin = (int) Math.Ceiling(this.DBRecordSampleSet * connectionInfo.DBRecordSampleSetPercent);
             this.ConnectionTimeout = connectionInfo.ConnectionTimeout;
             this.TotalTimeout = connectionInfo.TotalTimeout;
             this.SocketTimeout= connectionInfo.SocketTimeout;
@@ -103,7 +104,12 @@ namespace Aerospike.Database.LINQPadDriver
         {
             get;
         }
-        
+
+        public int DBRecordSampleSetMin
+        {
+            get;
+        }
+
         public IEnumerable<ANamespace> Namespaces { get; private set; }
 
         public IEnumerable<AModule> UDFModules { get; private set; }
@@ -314,7 +320,7 @@ namespace Aerospike.Database.LINQPadDriver
                                     foreach (var set in ns.Sets)
                                     {
                                         if(!set.IsNullSet)
-                                            binsInSets.Add((ns.Name, set.Name, getBins.Get(ns.Name, set.Name, this.DocumentAPI, this.DBRecordSampleSet)));
+                                            binsInSets.Add((ns.Name, set.Name, getBins.Get(ns.Name, set.Name, this.DocumentAPI, this.DBRecordSampleSet, this.DBRecordSampleSetMin)));
                                     }
                                 }
 
@@ -531,6 +537,7 @@ namespace Aerospike.Database.LINQPadDriver
                     && this.CXInfo.PopulateChildrenOnStartup == other.CXInfo.PopulateChildrenOnStartup
                     && this.DocumentAPI == other.DocumentAPI
                     && this.RecordView == other.RecordView
+                    && this.AlwaysUseAValues == other.AlwaysUseAValues
                     && this.TotalTimeout == other.TotalTimeout
                     && this.UseExternalIP == other.UseExternalIP
                     && this.SocketTimeout == other.SocketTimeout
@@ -539,7 +546,8 @@ namespace Aerospike.Database.LINQPadDriver
                     && this.SendPK == other.SendPK
                     && this.RespondAllOps == other.RespondAllOps
                     && this.NetworkCompression == other.NetworkCompression
-                    && this.DBRecordSampleSet == other.DBRecordSampleSet;
+                    && this.DBRecordSampleSet == other.DBRecordSampleSet
+                    && this.DBRecordSampleSetMin == other.DBRecordSampleSetMin;
                             
         }
     }

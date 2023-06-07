@@ -128,6 +128,37 @@ namespace Aerospike.Database.LINQPadDriver
             }
         }
 
+        public decimal DBRecordSampleSetPercent
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    DriverData.SetElementValue("DBRecordSampleSetPercent", 0.50m);
+                    return 0.50m;
+                }
+
+                return (decimal?)DriverData.Element("DBRecordSampleSetPercent") ?? 0.50m;
+            }
+            set
+            {
+                DriverData.SetElementValue("DBRecordSampleSetPercent", value);
+            }
+        }
+
+        public string DBRecordSampleSetPercentStr
+        {
+            get
+            {
+                return this.DBRecordSampleSetPercent.ToString("P0");
+            }
+            set
+            {
+                var valueWithoutPercentage = value.TrimEnd(' ', '%');
+                this.DBRecordSampleSetPercent = decimal.Parse(valueWithoutPercentage) / 100;
+            }
+        }
+
         public bool NetworkCompression
         {
             get
@@ -585,6 +616,20 @@ namespace Aerospike.Database.LINQPadDriver
                     }
                 }
             }
+            
+            private bool _isEnabled = true;
+            public bool IsEnabled
+            {
+                get { return this._isEnabled; }
+                set
+                {
+                    if (this._isEnabled != value)
+                    {
+                        this._isEnabled = value;
+                        this.NotifyIsEnabledProperty();                        
+                    }
+                }
+            }
             public string ToolTip { get; set; }
             public string Name { get; set; }
 
@@ -600,6 +645,11 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 this.NotifyPropertyChanged("IsChecked");
             }
+
+            public void NotifyIsEnabledProperty()
+            {
+                this.NotifyPropertyChanged("IsEnabled");
+            }
         }
 
         private List<RecordViewItem> _RecordViewItemList = null;
@@ -608,9 +658,12 @@ namespace Aerospike.Database.LINQPadDriver
         {            
             _RecordViewItemList = new List<RecordViewItem>()
             {
-                new RecordViewItem(this) { Content = "Record", Name = "Record", ToolTip="Displays the record based on the detected bins of the set." },
-                new RecordViewItem(this) { Content = "Dynamic", Name = "Dynamic", ToolTip="Similar to \"Record\" except all bins associated to this record are displayed regardless of the set defined bins."},
-                new RecordViewItem(this) { Content = "Detail", Name = "Detail", ToolTip= "Displays all properties/fields of this instance like the LinqPad \"LINQPad.Extensions.Dump{T}(T)\" method." }
+                new RecordViewItem(this) { Content = "Record", 
+                                            Name = "Record",
+                                            ToolTip="Displays the record based on the detected bins of the set.",
+                                            IsEnabled = this.DBRecordSampleSet > 0},
+                new RecordViewItem(this) { Content = "Dynamic", Name = "Dynamic", ToolTip="Similar to \"Record\" except all bins associated to this record are displayed regardless of the set's defined bins."},
+                new RecordViewItem(this) { Content = "Detail", Name = "Detail", ToolTip= "Displays all properties/fields of this instance like the \"LINQPad Dump\" method." }
             };
 
             var recordView = this.RecordView.ToString();

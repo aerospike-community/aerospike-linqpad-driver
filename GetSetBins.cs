@@ -120,21 +120,29 @@ namespace Aerospike.Database.LINQPadDriver
             return (binName, GetdocType(binValue, determineDocType));
         }
         
-        public IEnumerable<(string name, Type type, bool duplicate, bool inAllRecs)> Get(string nsName, string setName, bool determineDocType, int maxRecords)
+        public IEnumerable<(string name, Type type, bool duplicate, bool inAllRecs)> Get(string nsName, 
+                                                                                            string setName,
+                                                                                            bool determineDocType, 
+                                                                                            int maxRecords,
+                                                                                            int minRecs)
         {            
             if (maxRecords > 0)
                 try
                 {
                     var records = GetRecords(nsName, setName, maxRecords);
                     var nbrRecs = records.Count();
-                    return records
-                            .SelectMany(r => r.bins.Select(b => GetBinDocType(nsName, setName, b.Key, b.Value, determineDocType)))
-                                .GroupBy(x => x)
-                                .Select(y => (y.Key.name, y.Key.type, y.Count()))
-                                .GroupBy(y => y.name)
-                                .SelectMany(x => x.Select(i => (i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs))).ToArray();
+
+                    if (nbrRecs >= minRecs)
+                    {
+                        return records
+                                .SelectMany(r => r.bins.Select(b => GetBinDocType(nsName, setName, b.Key, b.Value, determineDocType)))
+                                    .GroupBy(x => x)
+                                    .Select(y => (y.Key.name, y.Key.type, y.Count()))
+                                    .GroupBy(y => y.name)
+                                    .SelectMany(x => x.Select(i => (i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs))).ToArray();
+                    }
                 }
-                catch (AerospikeException)
+                catch
                 {                    
                 }
 
