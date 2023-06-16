@@ -12,6 +12,8 @@ using System.Text;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using System.Runtime.Intrinsics.X86;
 using System.Windows.Markup;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -151,12 +153,12 @@ namespace Aerospike.Database.LINQPadDriver
 				}
             }
             
-            var buildNamespaces = this.BuildNamespaces(_Connection.AlwaysUseAValues);
+            var buildNamespaces = BuildNamespaces(_Connection.AlwaysUseAValues);
 			var namespaceClasses = buildNamespaces.Item1;
             var namespaceProps = buildNamespaces.Item2;
             var namespaceConstruct = buildNamespaces.Item3;
 
-			var buildModules = this.BuildModules();
+			var buildModules = BuildModules();
 			var moduleClasses = buildModules.Item1;
 			var moduleProps = buildModules.Item2;
 			var moduleConstruct = buildModules.Item3;
@@ -300,34 +302,32 @@ namespace {nameSpace}
         /// Item2 -- Namespace Properties
         /// Item3 -- Namespace constructors 
         /// </returns>
-        public Tuple<StringBuilder, StringBuilder, StringBuilder> BuildNamespaces(bool alwaysUseAValues)
+        public static Tuple<StringBuilder, StringBuilder, StringBuilder> BuildNamespaces(bool alwaysUseAValues)
 		{
-			var namespaceClasses = new StringBuilder();
-            var namespaceProps = new StringBuilder();
-            var namespaceConstruct = new StringBuilder();
+			var nsStack = new ConcurrentStack<(string classes, string props, string constructs)>();
 
-			foreach (var ns in _Connection.Namespaces)
+			Parallel.ForEach(_Connection.Namespaces, ns =>
 			{
-                var setProps = new StringBuilder();
+				var setProps = new StringBuilder();
 				var setClasses = new StringBuilder();
-                var binNames = new StringBuilder();
-				
-				void GenerateNoRecSet(string safeSetName, 
+				var binNames = new StringBuilder();
+
+				void GenerateNoRecSet(string safeSetName,
 										string setName,
 										IEnumerable<ASecondaryIndex> indexes)
 				{
-                    var idxProps = new StringBuilder();
+					var idxProps = new StringBuilder();
 
-                    foreach (var sidx in indexes)
-                    {
+					foreach (var sidx in indexes)
+					{
 
-                        idxProps.AppendLine($@"
+						idxProps.AppendLine($@"
 			public Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess {sidx.SafeName} 
 								{{ get => new Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess(this, ""{sidx.Name}"", ""{sidx.Bin}"", ""{sidx.Type}"", ""{sidx.IndexType}""); }}
 ");
-                    }
+					}
 
-                    setClasses.AppendLine($@"
+					setClasses.AppendLine($@"
 		public class {safeSetName}_SetCls : Aerospike.Database.LINQPadDriver.Extensions.SetRecords
 		{{
 			public {safeSetName}_SetCls (Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess setAccess)
@@ -336,29 +336,29 @@ namespace {nameSpace}
 			
 {idxProps}
 		}}"
-                            );
+							);
 
-                    setProps.AppendLine($@"
+					setProps.AppendLine($@"
 		public {safeSetName}_SetCls {safeSetName} {{ get => new {safeSetName}_SetCls(this); }}"
-                        );
-                }
+						);
+				}
 
 
-                //Code for getting RecordSets for Set. 
-                foreach (var set in ns.Sets)
-                {
+				//Code for getting RecordSets for Set. 
+				foreach (var set in ns.Sets)
+				{
 					if (_Connection.SetBins == null)
 					{
 						GenerateNoRecSet(set.SafeName, set.Name, set.SIndexes);
-                    }
+					}
 					else
 					{
 						var setBins = _Connection.SetBins.FirstOrDefault(s => s.nsName == ns.Name && s.setname == set.Name);
 
 						if (setBins.setname != null && setBins.Item3.Any())
 						{
-                            var idxProps = new StringBuilder();
-                            var binsString = string.Join(',', setBins.Item3.Select(b => string.Format("\"{0}\"", b.bin)));
+							var idxProps = new StringBuilder();
+							var binsString = string.Join(',', setBins.Item3.Select(b => string.Format("\"{0}\"", b.bin)));
 							var flds = new List<string>();
 
 							var setClassFlds = new StringBuilder();
@@ -413,37 +413,37 @@ namespace {nameSpace}
 									setClassFldsConst.Append("\"))");
 									setClassFldsConst.Append($" ?? default({fldType}));");
 								}
-								else 
+								else
 								{
-                                    setClassFldsConst.Append($" Helpers.CastToNativeType(this, \"{fldName}\", typeof({fldType}), \"{setBinType.bin}\", this.Aerospike.GetValue(\"");
-                                    setClassFldsConst.Append(setBinType.bin);
-                                    setClassFldsConst.Append("\"));");
-                                }								
+									setClassFldsConst.Append($" Helpers.CastToNativeType(this, \"{fldName}\", typeof({fldType}), \"{setBinType.bin}\", this.Aerospike.GetValue(\"");
+									setClassFldsConst.Append(setBinType.bin);
+									setClassFldsConst.Append("\"));");
+								}
 
 								if (setBinType.dup)
 									setClassFldsConst.Append("\t//Multiple Type Bin");
-                                if (!setBinType.inAllRecs)
-                                    setClassFldsConst.Append("\t//Bin not found in all records");
+								if (!setBinType.inAllRecs)
+									setClassFldsConst.Append("\t//Bin not found in all records");
 
-                                setClassFldsConst.AppendLine();
+								setClassFldsConst.AppendLine();
 
 								fldSeen.Add(setBinType.bin);
 							}
 
-                            foreach (var sidx in set.SIndexes)
-                            {
+							foreach (var sidx in set.SIndexes)
+							{
 								var idxDataType = setBins.Item3.FirstOrDefault(b => b.bin == sidx.Bin).type;
 
-								if (idxDataType is null) idxDataType = typeof(object);
+								idxDataType ??= typeof(object);
 
-                                idxProps.AppendLine($@"
+								idxProps.AppendLine($@"
 			public Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess<RecordCls> {sidx.SafeName} 
 								{{ get => new Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess<RecordCls>(this, ""{sidx.Name}"", ""{sidx.Bin}"", ""{sidx.Type}"", ""{sidx.IndexType}"", typeof({Helpers.GetRealTypeName(idxDataType)})); }}
 ");
-                            }
+							}
 
 
-                            setClasses.AppendLine($@"
+							setClasses.AppendLine($@"
 		public class {set.SafeName}_SetCls : Aerospike.Database.LINQPadDriver.Extensions.SetRecords<{set.SafeName}_SetCls.RecordCls>
 		{{
 			public {set.SafeName}_SetCls (Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess setAccess)
@@ -494,20 +494,21 @@ namespace {nameSpace}
 						}
 						else
 						{
-                            GenerateNoRecSet(set.SafeName, set.Name, set.SIndexes);
-                        }
+							GenerateNoRecSet(set.SafeName, set.Name, set.SIndexes);
+						}
 					}
-                }
+				}
 
-                foreach (var binName in ns.Bins)
-                {					
-                    binNames.Append("\"");
-                    binNames.Append(binName);
-                    binNames.Append("\", ");
-                }
+				foreach (var binName in ns.Bins)
+				{
+					binNames.Append('"');
+					binNames.Append(binName);
+					binNames.Append("\", ");
+				}
 
-                //Code to generate namespace class
-                namespaceClasses.AppendLine($@"
+				nsStack.Push(
+				//Code to generate namespace class
+				($@"
 	public class {ns.SafeName}_NamespaceCls : Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess
 	{{
 
@@ -533,24 +534,33 @@ namespace {nameSpace}
 		        
 		{setClasses}
 		{setProps}
-	}}"
-                );
+	}}",
 
-                //Code to access namespace instance. 
-                namespaceProps.AppendLine($@"
-		public {ns.SafeName}_NamespaceCls {ns.SafeName} {{get; }}"
-                );
+				//Code to access namespace properties. 
+				$@"
+		public {ns.SafeName}_NamespaceCls {ns.SafeName} {{get; }}",
 
-                //Code to construct namespace instance
-                namespaceConstruct.AppendLine($@"
+				//Code to construct namespace instance
+				$@"
 			this.{ns.SafeName} = new {ns.SafeName}_NamespaceCls(dbConnection);"
-                );
-            }
+				));
+			});
 
-			return new Tuple<StringBuilder, StringBuilder, StringBuilder>(namespaceClasses, namespaceProps, namespaceConstruct);
+            var namespaceClasses = new StringBuilder();
+            var namespaceProps = new StringBuilder();
+            var namespaceConstruct = new StringBuilder();
+
+			foreach((string classes, string props, string constructs) nsItem in nsStack)
+			{
+				namespaceClasses.AppendLine(nsItem.classes);
+				namespaceProps.AppendLine(nsItem.props);
+				namespaceConstruct.AppendLine(nsItem.constructs);
+			}
+
+            return new Tuple<StringBuilder, StringBuilder, StringBuilder>(namespaceClasses, namespaceProps, namespaceConstruct);
         }
 
-		public List<ExplorerItem> AddSetBinItems(ANamespace ns, ASet set)
+		public static List<ExplorerItem> AddSetBinItems(ANamespace ns, ASet set)
 		{
 
 			static string GetBinTypeDupIndicator(Type type, bool dup, bool notInAllRecs)
@@ -620,7 +630,7 @@ namespace {nameSpace}
             return items;
         }
 
-        public List<ExplorerItem> AddSetBinExplorerItems(ANamespace ns)
+        public static List<ExplorerItem> AddSetBinExplorerItems(ANamespace ns)
         {
             var items = new List<ExplorerItem>();
 
@@ -648,7 +658,7 @@ namespace {nameSpace}
             return items;
         }
 
-        public IEnumerable<ExplorerItem> CreateNamespaceExploreItems()
+        public static IEnumerable<ExplorerItem> CreateNamespaceExploreItems()
 		{
             List<ExplorerItem> items = new List<ExplorerItem>();
             
@@ -680,7 +690,7 @@ namespace {nameSpace}
         /// Item2 -- Module Properties
         /// Item3 -- Module constructors 
         /// </returns>
-        public Tuple<StringBuilder, StringBuilder, StringBuilder> BuildModules()
+        public static Tuple<StringBuilder, StringBuilder, StringBuilder> BuildModules()
         {			
             var moduleClasses = new StringBuilder();
             var moduleProps = new StringBuilder();
@@ -775,7 +785,7 @@ namespace {nameSpace}
             return new Tuple<StringBuilder, StringBuilder, StringBuilder>(moduleClasses, moduleProps, moduleConstruct);
         }
 
-        public List<ExplorerItem> AddUDFChildrenExplorerItems(AModule mod)
+        public static List<ExplorerItem> AddUDFChildrenExplorerItems(AModule mod)
         {
             var items = new List<ExplorerItem>();
 
@@ -796,14 +806,14 @@ namespace {nameSpace}
             return items;
         }
 
-        public IEnumerable<ExplorerItem> CreateModuleExploreItems()
+        public static IEnumerable<ExplorerItem> CreateModuleExploreItems()
         {
             List<ExplorerItem> items = new List<ExplorerItem>();
 
             foreach (var mod in _Connection.UDFModules.OrderBy(u => u.Name))
             {
                 items.Add(
-                            new ExplorerItem($"{mod.Name} ({mod.UDFs.Count()})", ExplorerItemKind.Property, ExplorerIcon.Schema)
+                            new ExplorerItem($"{mod.Name} ({mod.UDFs.Length})", ExplorerItemKind.Property, ExplorerIcon.Schema)
                             {
                                 IsEnumerable = false,
                                 DragText = $"{mod.SafePackageName}",
@@ -818,7 +828,7 @@ namespace {nameSpace}
 
         #endregion
 
-        public ExplorerItem CreateInformationalExploreItem(IConnectionInfo cxInfo, string souceCode)
+        public static ExplorerItem CreateInformationalExploreItem(IConnectionInfo cxInfo, string souceCode)
 		{            
             var infoItem = new ExplorerItem("Information", ExplorerItemKind.Category, ExplorerIcon.Box)
 			{
@@ -883,7 +893,7 @@ namespace {nameSpace}
 			return infoItem;
         }
 
-        public IEnumerable<ExplorerItem> CreateClusterNodesExploreItems()
+        public static IEnumerable<ExplorerItem> CreateClusterNodesExploreItems()
         {
             List<ExplorerItem> items = new List<ExplorerItem>();
 

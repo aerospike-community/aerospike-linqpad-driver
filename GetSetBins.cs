@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Aerospike.Database.LINQPadDriver.Extensions;
+using System.Threading.Tasks;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -114,18 +115,21 @@ namespace Aerospike.Database.LINQPadDriver
         }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-        private (string name, Type type) GetBinDocType(string nsName, string setName, string binName, object binValue, bool determineDocType)
+        private static (string name, Type type) GetBinDocType(string nsName, string setName, string binName, object binValue, bool determineDocType)
 #pragma warning restore IDE0060 // Remove unused parameter
         {
             return (binName, GetdocType(binValue, determineDocType));
         }
         
-        public IEnumerable<(string name, Type type, bool duplicate, bool inAllRecs)> Get(string nsName, 
-                                                                                            string setName,
-                                                                                            bool determineDocType, 
-                                                                                            int maxRecords,
-                                                                                            int minRecs)
-        {            
+        public IEnumerable<(string name, 
+                                        Type type,
+                                        bool duplicate, 
+                                        bool inAllRecs)> Get(string nsName, 
+                                                                string setName,
+                                                                bool determineDocType, 
+                                                                int maxRecords,
+                                                                int minRecs)
+        {
             if (maxRecords > 0)
                 try
                 {
