@@ -14,6 +14,7 @@ using System.Runtime.Intrinsics.X86;
 using System.Windows.Markup;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -94,10 +95,26 @@ namespace Aerospike.Database.LINQPadDriver
 												QueryExecutionManager executionManager)
         { }
 
-
-		private static DateTime SchemaExplorerVersion = DateTime.Now;
-
-		public static void UpdateSchemaExplorerVersion() => SchemaExplorerVersion = DateTime.Now;
+		static DateTime RefreshExplorerLastTime = DateTime.MinValue;
+        static long RefreshingExplorer = 0;
+		public static async Task UpdateSchemaExplorerVersion()
+		{
+			
+			if (Interlocked.Read(ref RefreshingExplorer) == 0
+					&& DateTime.Now >= RefreshExplorerLastTime.AddMinutes(1))
+            {
+				Interlocked.Increment(ref RefreshingExplorer);
+				try
+				{
+					await _Connection.CXInfo.ForceRefresh();
+				}
+				catch { }
+				finally
+				{
+					Interlocked.Decrement(ref RefreshingExplorer);
+				}
+			}
+		}
 
         /*
 		 * LINQPad calls this after the user executes an old-fashioned SQL query. 
@@ -107,7 +124,7 @@ namespace Aerospike.Database.LINQPadDriver
         /// <summary>Returns the time that the schema was last modified. If unknown, return null.</summary>
         public override DateTime? GetLastSchemaUpdate(IConnectionInfo cxInfo) 
 		{
-            return SchemaExplorerVersion;
+            return null;
 		}
         
         public override ParameterDescriptor[] GetContextConstructorParameters(IConnectionInfo cxInfo)
@@ -156,18 +173,21 @@ namespace Aerospike.Database.LINQPadDriver
 					_Connection.Open();
 				}
             }
-            
-            var buildNamespaces = BuildNamespaces(_Connection.AlwaysUseAValues);
-			var namespaceClasses = buildNamespaces.Item1;
-            var namespaceProps = buildNamespaces.Item2;
-            var namespaceConstruct = buildNamespaces.Item3;
 
-			var buildModules = BuildModules();
-			var moduleClasses = buildModules.Item1;
-			var moduleProps = buildModules.Item2;
-			var moduleConstruct = buildModules.Item3;
+            Interlocked.Increment(ref RefreshingExplorer);
+			try
+			{
+				var buildNamespaces = BuildNamespaces(_Connection.AlwaysUseAValues);
+				var namespaceClasses = buildNamespaces.Item1;
+				var namespaceProps = buildNamespaces.Item2;
+				var namespaceConstruct = buildNamespaces.Item3;
 
-			string source = $@"
+				var buildModules = BuildModules();
+				var moduleClasses = buildModules.Item1;
+				var moduleProps = buildModules.Item2;
+				var moduleConstruct = buildModules.Item3;
+
+				string source = $@"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -197,40 +217,46 @@ namespace {nameSpace}
 	{moduleClasses}
 }}";
 
-			Compile(source,
-				#pragma warning disable SYSLIB0044
-                    assemblyToBuild.CodeBase,
-				#pragma warning restore SYSLIB0044
-                    cxInfo,
-					debug: _Connection.Debug);
+				Compile(source,
+#pragma warning disable SYSLIB0044
+						assemblyToBuild.CodeBase,
+#pragma warning restore SYSLIB0044
+						cxInfo,
+						debug: _Connection.Debug);
 
-			List<ExplorerItem> items = new List<ExplorerItem>();
+				List<ExplorerItem> items = new List<ExplorerItem>();
 
-			{
-                var asyncClient = typeof(Aerospike.Client.Connection).Assembly.GetName();
-				items.Add(new ExplorerItem("Client Connection",
-														ExplorerItemKind.Property,
-														ExplorerIcon.TableFunction)
+				{
+					var asyncClient = typeof(Aerospike.Client.Connection).Assembly.GetName();
+					items.Add(new ExplorerItem("Client Connection",
+															ExplorerItemKind.Property,
+															ExplorerIcon.TableFunction)
+					{
+						IsEnumerable = false,
+						DragText = "ASClient",
+						ToolTipText = $"{asyncClient?.Name} Driver Version: {asyncClient?.Version}"
+					});
+				}
+
+				items.AddRange(CreateNamespaceExploreItems());
+
+				items.Add(new ExplorerItem("UDFs", ExplorerItemKind.Category, ExplorerIcon.Box)
 				{
 					IsEnumerable = false,
-					DragText = "ASClient",
-					ToolTipText = $"{asyncClient?.Name} Driver Version: {asyncClient?.Version}"
+					DragText = null,
+					ToolTipText = "User Defined Functions",
+					Children = CreateModuleExploreItems().ToList()
 				});
+
+				items.Add(CreateInformationalExploreItem(cxInfo, source));
+
+				return items;
+			}
+			finally
+			{
+                Interlocked.Decrement(ref RefreshingExplorer);
+				RefreshExplorerLastTime = DateTime.Now;
             }
-
-            items.AddRange(CreateNamespaceExploreItems());
-
-			items.Add(new ExplorerItem("UDFs", ExplorerItemKind.Category, ExplorerIcon.Box)
-            {
-                IsEnumerable = false,
-                DragText = null,
-                ToolTipText = "User Defined Functions",
-                Children = CreateModuleExploreItems().ToList()
-            });
-
-            items.Add(CreateInformationalExploreItem(cxInfo, source));
-
-            return items;
 		}
 
 		public override IDbConnection GetIDbConnection(IConnectionInfo cxInfo)
