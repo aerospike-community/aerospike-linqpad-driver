@@ -13,6 +13,8 @@ using System.Configuration;
 using System.Text.RegularExpressions;
 using System.DirectoryServices.ActiveDirectory;
 using System.Reflection.Metadata.Ecma335;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -20,7 +22,7 @@ namespace Aerospike.Database.LINQPadDriver
     /// This class is a wrapper around the Aerospike connection class (<see cref="Aerospike.Client.AerospikeClient"/>)
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("{ConnectionString}")]
-    public sealed class AerospikeConnection : IDbConnection, IEquatable<AerospikeConnection>
+    public  sealed partial class AerospikeConnection : IDbConnection, IEquatable<AerospikeConnection>
     {
         private bool disposedValue = false;
 
@@ -312,16 +314,19 @@ namespace Aerospike.Database.LINQPadDriver
                             #region Bins in Sets
                             if(obtainBinsInSet)
                             {
-                                var binsInSets = new List<(string, string, IEnumerable<(string, Type, bool, bool)>)>();
+                                var binsInSets = new ConcurrentBag<(string, string, IEnumerable<(string, Type, bool, bool)>)>();
                                 var getBins = new GetSetBins(this.AerospikeClient, this.SocketTimeout, this.NetworkCompression);
 
-                                foreach (var ns in this.Namespaces)
+                                foreach(var ns in this.Namespaces)                                  
                                 {
-                                    foreach (var set in ns.Sets)
+                                    Parallel.ForEach(ns.Sets,
+                                        (set, cancelationToken) =>
                                     {
-                                        if(!set.IsNullSet)
-                                            binsInSets.Add((ns.Name, set.Name, getBins.Get(ns.Name, set.Name, this.DocumentAPI, this.DBRecordSampleSet, this.DBRecordSampleSetMin)));
-                                    }
+                                        if (!set.IsNullSet)
+                                            binsInSets.Add((ns.Name,
+                                                            set.Name,
+                                                            getBins.Get(ns.Name, set.Name, this.DocumentAPI, this.DBRecordSampleSet, this.DBRecordSampleSetMin)));
+                                    });
                                 }
 
                                 this.SetBins = binsInSets.ToArray();
@@ -414,12 +419,27 @@ namespace Aerospike.Database.LINQPadDriver
             return this.ConnectionString?.GetHashCode() ?? 0;
         }
 
-        //hosts='a,b,c,d',user={1},password={2},externalIP={3},TLS='{4}',timeout={5},totaltimeout={6},sockettimeout={7},compression={8},IsProduction={9}
-        readonly static Regex ConnectionStringRegEx = new Regex(@"(?<kvp>(?<type>[^=]+)\s*=\s*('\s*(?<value>[^']+)\s*')?(?<value>[^,]+)?\s*,?)+",
-                                                                        RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        readonly static Regex ConnectionStringKVPRegEx = new Regex(@"(?<type>[^=]+)\s*=\s*('\s*(?<value>[^']+)\s*')?(?<value>[^,]+)?\s*,?",
-                                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        const string ConnectionStringRegExStr = @"(?<kvp>(?<type>[^=]+)\s*=\s*('\s*(?<value>[^']+)\s*')?(?<value>[^,]+)?\s*,?)+";
+        const string ConnectionStringKVPRegExStr = @"(?<type>[^=]+)\s*=\s*('\s*(?<value>[^']+)\s*')?(?<value>[^,]+)?\s*,?";
 
+#if NET7_0_OR_GREATER
+        //hosts='a,b,c,d',user={1},password={2},externalIP={3},TLS='{4}',timeout={5},totaltimeout={6},sockettimeout={7},compression={8},IsProduction={9}
+        [GeneratedRegex(ConnectionStringRegExStr,
+                            RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+        private static partial Regex ConnectionStringRegEx();
+
+        [GeneratedRegex(ConnectionStringKVPRegExStr,
+                            RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+        private static partial Regex ConnectionStringKVPRegEx();
+#else
+        readonly static Regex ConnectionStringRegExVar = new Regex(ConnectionStringRegExStr,
+                                                                        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static Regex ConnectionStringRegEx() => ConnectionStringRegExVar;
+
+        readonly static Regex ConnectionStringKVPRegExVar = new Regex(ConnectionStringKVPRegExStr,
+                                                                                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static Regex ConnectionStringKVPRegEx() => ConnectionStringKVPRegExVar;
+#endif
         public static bool CXInfoEquals(IConnectionInfo c1, IConnectionInfo c2)
         {            
             if(ReferenceEquals(c1, c2)) return true;
@@ -433,8 +453,8 @@ namespace Aerospike.Database.LINQPadDriver
             if (string.IsNullOrEmpty(c2.DatabaseInfo.CustomCxString)) return false;
             if (c1.DatabaseInfo.CustomCxString == c2.DatabaseInfo.CustomCxString) return true;
             
-            var c1Hosts = ConnectionStringRegEx.Match(c1.DatabaseInfo.CustomCxString.ToUpperInvariant());
-            var c2Hosts = ConnectionStringRegEx.Match(c2.DatabaseInfo.CustomCxString.ToUpperInvariant());
+            var c1Hosts = ConnectionStringRegEx().Match(c1.DatabaseInfo.CustomCxString.ToUpperInvariant());
+            var c2Hosts = ConnectionStringRegEx().Match(c2.DatabaseInfo.CustomCxString.ToUpperInvariant());
 
             if(!c1Hosts.Success 
                 || !c2Hosts.Success) return false;
@@ -445,7 +465,7 @@ namespace Aerospike.Database.LINQPadDriver
 
                 foreach (var kvpStr in kvpCaptures.Select(c => c.Value))
                 {
-                    var kvpMatch = ConnectionStringKVPRegEx.Match(kvpStr);
+                    var kvpMatch = ConnectionStringKVPRegEx().Match(kvpStr);
 
                     if(kvpMatch.Success)
                         kvpLst.Add(new KeyValuePair<string, string>(kvpMatch.Groups["type"].Captures

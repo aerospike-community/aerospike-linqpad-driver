@@ -60,7 +60,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         private void NamespaceRefresh(string setName, bool forceRefresh)
         {            
-            Helpers.CheckForNewSetNameRefresh(this.Namespace, setName, forceRefresh).Wait();
+            Helpers.CheckForNewSetNameRefresh(this.Namespace, setName, forceRefresh);
 
             this.AddDynamicSet(setName);
         }

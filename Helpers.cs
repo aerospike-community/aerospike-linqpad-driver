@@ -1735,7 +1735,7 @@ namespace Aerospike.Database.LINQPadDriver
             return (T)instance;
         }
 
-        public async static System.Threading.Tasks.Task<bool> CheckForNewSetNameRefresh(string namespaceName, string setName, bool forceRefresh = false)
+        public static bool CheckForNewSetNameRefresh(string namespaceName, string setName, bool forceRefresh = false)
         {
             var ns = DynamicDriver._Connection?.Namespaces?.FirstOrDefault(n => n.Name == namespaceName);
             var refresh = ns is null;
@@ -1746,7 +1746,7 @@ namespace Aerospike.Database.LINQPadDriver
             }
 
             if (forceRefresh || refresh)
-                await DynamicDriver._Connection.CXInfo.ForceRefresh();
+                DynamicDriver.UpdateSchemaExplorerVersion();
 
             return forceRefresh || refresh;
         }

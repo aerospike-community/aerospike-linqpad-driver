@@ -15,11 +15,11 @@
     <RepositoryUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageIcon>lib\netcoreapp3.1\Connection.png</PackageIcon>
+    <PackageIcon>lib\net7.0-windows7.0\Connection.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
-    <Version>2.0.5.17</Version>
-    <FileVersion>2.0.5.17</FileVersion>    
+    <Version>2.0.6.1</Version>
+    <FileVersion>2.0.6.1</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -136,16 +136,15 @@
 	  </Compile>
 	</ItemGroup>
   
-	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
+	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net7.0-windows'">
 		<Exec Command="xcopy /i/y/s &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)&quot;" />
 	</Target>
 
-  <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'netcoreapp3.1' AND '$(ConfigurationName)' == 'Release'">
+  <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net7.0-windows' AND '$(ConfigurationName)' == 'Release'">
     <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.LPX6&quot; &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot;" />
     <Exec Command="powershell -nologo -noprofile -command &quot;compress-archive -force -path &quot;$(TargetDir)*.*&quot; -destinationpath &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
     <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot; &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.$(FileVersion).LPX6&quot;" />
-    <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot; &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.LPX6&quot;" />
-    
+    <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot; &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.LPX6&quot;" />    
   </Target>
 
 </Project>

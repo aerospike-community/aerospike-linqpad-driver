@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Collections;
 using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
 using System.Globalization;
+using System.Windows.Input;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -198,8 +199,10 @@ namespace Aerospike.Database.LINQPadDriver
             MessageBoxImage icon = MessageBoxImage.Information;
             AerospikeConnection connection = null;
 
+            var waitCursor = new WaitCursor();
+
             try
-            {
+            {                
                 try
                 {
                     connection = new AerospikeConnection(_cxInfo);
@@ -245,6 +248,8 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
                     }
                 }
 
+                waitCursor?.Dispose();
+                waitCursor = null;
                 MessageBox.Show(this, messageBoxText, caption, button, icon, MessageBoxResult.OK);
             }
             finally
@@ -258,6 +263,7 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
                     }
                     catch { }
                 }
+                waitCursor?.Dispose();
             }
         }
 
@@ -362,5 +368,25 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
             return new ValidationResult(true, null);
         }
     }
-    
+
+    public class WaitCursor : IDisposable
+    {
+        private readonly Cursor previousCursor;
+
+        public WaitCursor()
+        {
+            previousCursor = Mouse.OverrideCursor;
+
+            Mouse.OverrideCursor = Cursors.Wait;
+        }
+
+        #region IDisposable Members
+
+        public void Dispose()
+        {
+            Mouse.OverrideCursor = previousCursor;
+        }
+
+        #endregion
+    }
 }
