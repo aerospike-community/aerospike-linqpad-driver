@@ -95,6 +95,10 @@ namespace Aerospike.Database.LINQPadDriver
         { }
 
 
+		private static DateTime SchemaExplorerVersion = DateTime.Now;
+
+		public static void UpdateSchemaExplorerVersion() => SchemaExplorerVersion = DateTime.Now;
+
         /*
 		 * LINQPad calls this after the user executes an old-fashioned SQL query. 
 		 * If it returns a non-null value that’s later than its last value, it automatically refreshes the Schema Explorer. 
@@ -103,7 +107,7 @@ namespace Aerospike.Database.LINQPadDriver
         /// <summary>Returns the time that the schema was last modified. If unknown, return null.</summary>
         public override DateTime? GetLastSchemaUpdate(IConnectionInfo cxInfo) 
 		{
-            return null;
+            return SchemaExplorerVersion;
 		}
         
         public override ParameterDescriptor[] GetContextConstructorParameters(IConnectionInfo cxInfo)
