@@ -20,8 +20,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         where T : ARecord
     {
         #region Constructors
-        public SetRecords([NotNull] ANamespaceAccess setAccess, [NotNull] string setName, params string[] bins)
-            : base(setAccess, setName, bins)
+        public SetRecords([NotNull] ASet explorerSet,
+                            [NotNull] ANamespaceAccess setAccess,
+                            [NotNull] string setName,
+                            params string[] bins)
+            : base(explorerSet, setAccess, setName, bins)
         { }
 
         public SetRecords([NotNull] SetRecords<T> clone)
@@ -545,8 +548,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     public class SetRecords : IEnumerable<ARecord>, IEquatable<ARecord>, IEquatable<SetRecords>
     {
         #region Constructors
-        public SetRecords([NotNull] ANamespaceAccess setAccess, [NotNull] string setName, params string[] bins)
+        public SetRecords([NotNull] ASet explorerSet,
+                            [NotNull] ANamespaceAccess setAccess, 
+                            [NotNull] string setName,
+                            params string[] bins)
         {
+            this.LinqPadSet = explorerSet;
             this.SetName = setName;
             this.SetAccess = setAccess;
             this.SetFullName = $"{this.Namespace}.{this.SetName}";            
@@ -561,6 +568,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public SetRecords([NotNull] SetRecords clone)
         {
+            this.LinqPadSet = clone.LinqPadSet;
             this.SetName = clone.SetName;
             this.SetAccess = clone.SetAccess;
             this._bins = clone._bins;
@@ -574,6 +582,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         #endregion
 
         #region Settings, Record State, etc.
+
+        public ASet LinqPadSet { get; }
+
         /// <summary>
         /// Sets how records are displayed using the LinqPad <see cref="LINQPad.Extensions.Dump{T}(T)"/> method.
         /// See <see cref="ARecord.DumpTypes"/> for more information.

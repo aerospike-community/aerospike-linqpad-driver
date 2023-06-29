@@ -115,9 +115,7 @@ namespace Aerospike.Database.LINQPadDriver
         public IEnumerable<ANamespace> Namespaces { get; private set; }
 
         public IEnumerable<AModule> UDFModules { get; private set; }
-
-        public (string nsName, string setname, IEnumerable<(string bin, Type type, bool dup, bool inAllRecs)>)[] SetBins { get; private set; }
-
+        
         public AerospikeClient AerospikeClient
         {
             get;
@@ -314,7 +312,6 @@ namespace Aerospike.Database.LINQPadDriver
                             #region Bins in Sets
                             if(obtainBinsInSet)
                             {
-                                var binsInSets = new ConcurrentBag<(string, string, IEnumerable<(string, Type, bool, bool)>)>();
                                 var getBins = new GetSetBins(this.AerospikeClient, this.SocketTimeout, this.NetworkCompression);
 
                                 foreach(var ns in this.Namespaces)                                  
@@ -323,13 +320,10 @@ namespace Aerospike.Database.LINQPadDriver
                                         (set, cancelationToken) =>
                                     {
                                         if (!set.IsNullSet)
-                                            binsInSets.Add((ns.Name,
-                                                            set.Name,
-                                                            getBins.Get(ns.Name, set.Name, this.DocumentAPI, this.DBRecordSampleSet, this.DBRecordSampleSetMin)));
+                                            set.GetRecordBins(getBins, this.DocumentAPI, this.DBRecordSampleSet, this.DBRecordSampleSetMin);
                                     });
                                 }
 
-                                this.SetBins = binsInSets.ToArray();
                             }
                             #endregion
 

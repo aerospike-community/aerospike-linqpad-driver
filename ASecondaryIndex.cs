@@ -1,4 +1,5 @@
 ﻿using Aerospike.Client;
+using Aerospike.Database.LINQPadDriver.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -91,6 +92,13 @@ namespace Aerospike.Database.LINQPadDriver
 
             return idxs.ToArray();
         }
+
+
+        public string GenerateCode(Type idxDataType)
+            => $@"
+		public Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess<RecordCls> {this.SafeName} 
+							{{ get => new Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess<RecordCls>(this, ""{this.Name}"", ""{this.Bin}"", ""{this.Type}"", ""{this.IndexType}"", typeof({Helpers.GetRealTypeName(idxDataType ?? typeof(AValue))})); }}
+";
 
         public override string ToString()
         {

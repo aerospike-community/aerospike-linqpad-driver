@@ -1,7 +1,9 @@
 ﻿using Aerospike.Client;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Aerospike.Database.LINQPadDriver
@@ -33,10 +35,10 @@ namespace Aerospike.Database.LINQPadDriver
 
             var nsSets = setNames
                             .Where(s => !string.IsNullOrEmpty(s))
-                            .Select(s => new ASet(s))
+                            .Select(s => new ASet(this, s))
                             .ToList();
 
-            nsSets.Add(new ASet());
+            nsSets.Add(new ASet(this));
 
             this.Sets = nsSets.ToArray();
         }
@@ -103,6 +105,73 @@ namespace Aerospike.Database.LINQPadDriver
 
             return asNamespaces.ToArray();
         }
+
+
+        #region Code Generation
+
+        public (string nsClass, string nsPropAccess, string nsConstructInstance) 
+            GenerateCode(bool alwaysUseAValues)
+        {
+            var setProps = new StringBuilder();
+            var setClasses = new StringBuilder();
+            var binNames = new StringBuilder();
+
+            //Code for getting RecordSets for Set. 
+            foreach (var set in this.Sets)
+            {
+                var (setClass, setProp) = set.GenerateCode(alwaysUseAValues);
+                setClasses.AppendLine(setClass);
+                setProps.AppendLine(setProp);
+            }
+
+            foreach (var binName in this.Bins)
+            {
+                binNames.Append('"');
+                binNames.Append(binName);
+                binNames.Append("\", ");
+            }
+
+            return ($@"
+	public class {this.SafeName}_NamespaceCls : Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess
+	{{
+
+		public {this.SafeName}_NamespaceCls(System.Data.IDbConnection dbConnection)
+			: base(dbConnection, ""{this.Name}"", new string[] {{{binNames}}})
+		{{ }}
+
+		public {this.SafeName}_NamespaceCls(Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess clone, Aerospike.Client.Expression expression)
+			: base(clone, expression)
+		{{ }}
+
+		public {this.SafeName}_NamespaceCls FilterExpression(Aerospike.Client.Expression expression)
+        {{
+            return new {this.SafeName}_NamespaceCls(this, expression);
+        }}
+
+		public {this.SafeName}_NamespaceCls FilterExpression(Aerospike.Client.Exp exp)
+        {{
+            return new {this.SafeName}_NamespaceCls(this, Aerospike.Client.Exp.Build(exp));
+        }}
+
+		public static implicit operator AerospikeClient({this.SafeName}_NamespaceCls ns) => ns.AerospikeConnection.AerospikeClient;
+		        
+		{setClasses}
+		{setProps}
+	}}",
+
+            //Code to access namespace properties. 
+            $@"
+		public {this.SafeName}_NamespaceCls {this.SafeName} {{get; }}",
+
+            //Code to construct namespace instance
+            $@"
+			this.{this.SafeName} = new {this.SafeName}_NamespaceCls(dbConnection);"
+            );
+        }
+
+
+        #endregion
+
 
         public override string ToString()
         {
