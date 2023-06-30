@@ -135,9 +135,7 @@ namespace Aerospike.Database.LINQPadDriver
         public (string setClassCode, string setDefinePropCode, string ignore) GenerateNoRecSet()
         {
             var idxProps = new StringBuilder();
-            var setClasses = new StringBuilder();
-            var setProps = new StringBuilder();
-
+            
             foreach (var sidx in this.SIndexes)
             {
                 idxProps.AppendLine(sidx.GenerateCode(null));

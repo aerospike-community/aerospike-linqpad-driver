@@ -44,6 +44,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.Namespace = clone.Namespace;
             this.BinNames = clone.BinNames;
             this.AerospikeConnection = clone.AerospikeConnection;
+            this._sets = clone._sets;
 
             this.DefaultWritePolicy = clone.DefaultWritePolicy;
             this.DefaultQueryPolicy = new QueryPolicy(clone.DefaultQueryPolicy)
@@ -66,7 +67,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         private void NamespaceRefresh(string setName, bool forceRefresh)
         {            
-            Helpers.CheckForNewSetNameRefresh(this.Namespace, setName, forceRefresh);
+            //Helpers.CheckForNewSetNameRefresh(this.Namespace, setName, forceRefresh);
 
             //this.AddDynamicSet(setName);
         }
@@ -103,10 +104,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 var accessSet = new SetRecords(lpSet, this, setName, binNames);
 
                 this.LinqPadNamespace.TryAddSet(setName, bins);
-                this._sets.Add(accessSet);
+
+                lock (this)
+                {
+                    this._sets.Add(accessSet);
+                }
 
                 this.BinNames = this.BinNames.Concat(binNames)
-                                    .Distinct().ToArray();
+                                        .Distinct().ToArray();
+                
                 if (this.NullSet == null)
                 {
                     this.AddDynamicSet(ASet.NullSetName, bins);
@@ -297,13 +303,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// The <see cref="ARecord"/>  or null
         /// </returns>
-        /// <seealso cref="Put(string, dynamic, IEnumerable{Bin}, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="Put{T}(string, dynamic, string, IEnumerable{T}, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="Put{T}(string, dynamic, string, IList{T}, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="Put{V}(string, dynamic, string, V, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Put(string, dynamic, IEnumerable{Bin}, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="Put{T}(string, dynamic, string, IEnumerable{T}, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="Put{T}(string, dynamic, string, IList{T}, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="Put{V}(string, dynamic, string, V, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="WriteObject{T}(string, dynamic, T, Func{string, string, object, bool, object}, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="WriteObject{T}(string, dynamic, T, Func{string, string, object, bool, object}, string, WritePolicy, TimeSpan?)"/>
         public ARecord Get(string setName, dynamic primaryKey, params string[] bins)
         {
             var pk = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName);
@@ -348,8 +354,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         record.Aerospike.Key,
                         record.Aerospike.GetValues(),
                         writePolicy,
-                        ttl ?? record.Aerospike.TTL,
-                        refreshOnNewSet);
+                        ttl ?? record.Aerospike.TTL);
         }
 
         /// <summary>
@@ -370,13 +375,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put<V>(string setName,
                             [NotNull] dynamic primaryKey,
                             [NotNull] IDictionary<string, V> binValues,
                             WritePolicy writePolicy = null,
-                            TimeSpan? ttl = null,
-                            bool refreshOnNewSet = true)
+                            TimeSpan? ttl = null)
         {            
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
@@ -391,10 +394,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName),
                                         bins);
 
-            if(refreshOnNewSet)
-                this.NamespaceRefresh(setName, false);
-            else
-                this.AddDynamicSet(setName, bins);
+            this.AddDynamicSet(setName, bins);
         }
 
         /// <summary>
@@ -417,14 +417,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put<V>(string setName,
                             [NotNull] dynamic primaryKey,
                             [NotNull] string bin,
                             [NotNull] V binValue,
                             WritePolicy writePolicy = null,
-                            TimeSpan? ttl = null,
-                             bool refreshOnNewSet = true)
+                            TimeSpan? ttl = null)
         {
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
@@ -439,10 +437,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName),
                                         bins);
 
-            if(refreshOnNewSet)
-                this.NamespaceRefresh(setName, false);
-            else
-                this.AddDynamicSet(setName, bins);
+            this.AddDynamicSet(setName, bins);
         }
 
         /// <summary>
@@ -464,14 +459,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param> 
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put<T>(string setName,
                             [NotNull] dynamic primaryKey,
                             [NotNull] string bin,
                             [NotNull] IList<T> listValue,
                             WritePolicy writePolicy = null,
-                            TimeSpan? ttl = null,
-                            bool refreshOnNewSet = true)
+                            TimeSpan? ttl = null)
         {
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
@@ -486,10 +479,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName),
                                         cbin);
 
-            if (refreshOnNewSet)
-                this.NamespaceRefresh(setName, false);
-            else
-                this.AddDynamicSet(setName, new Bin[] { cbin });
+            this.AddDynamicSet(setName, new Bin[] { cbin });
         }
 
 
@@ -512,14 +502,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param> 
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put<T>(string setName,
                            [NotNull] dynamic primaryKey,
                             [NotNull] string bin,
                             [NotNull] IEnumerable<T> collectionValue,
                             WritePolicy writePolicy = null,
-                            TimeSpan? ttl = null,
-                            bool refreshOnNewSet = true)
+                            TimeSpan? ttl = null)
         {
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
@@ -534,10 +522,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName),
                                         cBin);
 
-            if (refreshOnNewSet)
-                this.NamespaceRefresh(setName, false);
-            else
-                this.AddDynamicSet(setName, new Bin[] {cBin});
+            this.AddDynamicSet(setName, new Bin[] {cBin});
         }
 
         /// <summary>
@@ -557,13 +542,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         public void Put(string setName,
                             [NotNull] dynamic primaryKey,
                             [NotNull] IEnumerable<Bin> binsToWrite,
                             WritePolicy writePolicy = null,
-                            TimeSpan? ttl = null,
-                            bool refreshOnNewSet = true)
+                            TimeSpan? ttl = null)
         {
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
@@ -577,10 +560,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName),
                                         binsToWrite.ToArray());
 
-            if(refreshOnNewSet)
-                this.NamespaceRefresh(setName, false);
-            else
-                this.AddDynamicSet(setName, binsToWrite);
+            this.AddDynamicSet(setName, binsToWrite);
         }
 
         /// <summary>
@@ -609,14 +589,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </param>
         /// <param name="writePolicy"></param>
         /// <param name="ttl"></param>
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         /// <seealso cref="Aerospike.Client.BinNameAttribute"/>
         /// <seealso cref="Aerospike.Client.BinIgnoreAttribute"/>
-        /// <seealso cref="Put(string, dynamic, IEnumerable{Bin}, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="Put{T}(string, dynamic, string, IEnumerable{T}, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="Put{T}(string, dynamic, string, IList{T}, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="Put{V}(string, dynamic, string, V, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Put(string, dynamic, IEnumerable{Bin}, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="Put{T}(string, dynamic, string, IEnumerable{T}, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="Put{T}(string, dynamic, string, IList{T}, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="Put{V}(string, dynamic, string, V, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="Get(string, dynamic, string[])"/>
         /// <exception cref="TypeAccessException">Thrown if cannot write <paramref name="instance"/></exception>
@@ -626,8 +605,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     Func<string, string, object, bool, object> transform = null,
                                     string doctumentBinName = null,
                                     WritePolicy writePolicy = null,
-                                    TimeSpan? ttl = null,
-                                    bool refreshOnNewSet = true)
+                                    TimeSpan? ttl = null)
         {            
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
@@ -660,8 +638,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     .AerospikeClient.Put(writePolicyPut,
                                             key,
                                             bins);
-                if (!refreshOnNewSet)
-                    this.AddDynamicSet(setName, bins);
+                this.AddDynamicSet(setName, bins);
             }
             else
             {
@@ -673,13 +650,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 MapOperation.PutItems(mapPolicy,
                                                                         doctumentBinName,
                                                                         dictItem));
-                if (!refreshOnNewSet)
-                    this.AddDynamicSet(setName, new ASet.BinType[] 
+                this.AddDynamicSet(setName, new ASet.BinType[] 
                                                     { new ASet.BinType(doctumentBinName, typeof(JsonDocument), false, true)});
-            }
-
-            if (refreshOnNewSet)
-                this.NamespaceRefresh(setName, false);           
+            }          
         }
 
         #endregion
@@ -704,10 +677,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If true, the TTL of the record at export is used.
         /// Otherwise, <paramref name="ttl"/> is used, if provided.
         /// </param>
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         /// <returns>The number of records imported</returns>
         /// <seealso cref="Export(string, Exp, bool)"/>
-        /// <seealso cref="Import(string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="Import(string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>
         /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy)"/>
@@ -716,8 +688,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             string setName,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null,
-                            bool useImportRecTTL = false,
-                            bool refreshOnNewSet = true)
+                            bool useImportRecTTL = false)
         {
             if (this.AerospikeConnection.CXInfo.IsProduction)
                 throw new InvalidOperationException("Cannot Import into a Cluster marked \"In Production\"");
@@ -740,13 +711,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             writePolicy,
                             useImportRecTTL
                                 ? ARecord.AerospikeAPI.CalcTTLTimeSpan(item.TimeToLive)
-                                : ttl,
-                            false);
+                                : ttl);
             }
 
-            if (refreshOnNewSet)
-                this.NamespaceRefresh(setName, false);
-            
             return jsonStructs.Length;
         }
 
@@ -768,19 +735,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If true, the TTL of the record at export is used.
         /// Otherwise, <paramref name="ttl"/> is used, if provided.
         /// </param>
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         /// <returns>The number of records imported</returns>
         /// <seealso cref="Export(string, Exp, bool)"/>
-        /// <seealso cref="Import(string, string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="Import(string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>
         /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy)"/>
         public int Import([NotNull] string importJSONFile,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null,
-                            bool useImportRecTTL = false,
-                            bool refreshOnNewSet = true)
+                            bool useImportRecTTL = false)
         {
-            Debugger.Launch();
+            //Debugger.Launch();
             if (this.AerospikeConnection.CXInfo.IsProduction)
                 throw new InvalidOperationException("Cannot Truncate a Cluster marked \"In Production\"");
 
@@ -801,13 +766,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             writePolicy,
                             useImportRecTTL
                                 ? ARecord.AerospikeAPI.CalcTTLTimeSpan(item.TimeToLive)
-                                : ttl,
-                            false);
+                                : ttl);
             }
 
-            if (refreshOnNewSet)
-                this.NamespaceRefresh(null, true);
-            
             return jsonStructs.Length;
         }
 
@@ -825,8 +786,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="indented">If true the JSON string is formatted for readability</param>
         /// <returns>Number of records written</returns>
         /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.Export(bool, JsonSerializerSettings)"/>
         public int Export([NotNull] string exportJSONFile, Client.Exp filterExpression = null, bool indented = true)
         {
@@ -853,8 +814,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Default is false.
         /// </param>
         /// <returns>Json Array of the records in the set.</returns>
-        /// <seealso cref="FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool, bool)"/>
-        /// <seealso cref="FromJson(string, string, string, string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="FromJson(string, string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.ToJson(string, bool)"/>
@@ -880,7 +841,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         ///         If the Json string is a Json Object, the following behavior occurs:
         ///             If <paramref name="jsonBinName"/> is provided, the Json object is treated as an Aerospike document which will be associated with that bin.
         ///             if <paramref name="jsonBinName"/> is null, each json property in that Json object is treated as a separate bin/value.
-        ///         You can also insert individual records by calling <see cref="FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool, bool)"/>.
+        ///         You can also insert individual records by calling <see cref="FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>.
         /// </summary>
         /// <param name="setName">Set name or null for the null set. This can be a new set that will be created.</param>
         /// <param name="json">
@@ -906,11 +867,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         /// <returns>The number of items put.</returns>
         /// <seealso cref="ToJson(string, string, bool)"/>
         /// <seealso cref="ARecord.ToJson(string, bool)"/>
-        /// <seealso cref="FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
@@ -955,8 +915,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 string jsonBinName = null,
                                 WritePolicy writePolicy = null,
                                 TimeSpan? ttl = null,
-                                bool writePKPropertyName = false,
-                                bool refreshOnNewSet = true)
+                                bool writePKPropertyName = false)
         {
             
             var converter = new CDTConverter();
@@ -983,8 +942,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             pk,
                             recBins,
                             writePolicy: writePolicy,
-                            ttl: ttl,
-                            refreshOnNewSet: false);
+                            ttl: ttl);
                 cnt++;
             }
             else if (bins is List<object> binList)
@@ -999,8 +957,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     pk,
                                     recBins,
                                     writePolicy: writePolicy,
-                                    ttl: ttl,
-                                    refreshOnNewSet: false);
+                                    ttl: ttl);
                         cnt++;
                     }
                     else
@@ -1010,9 +967,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             else
                 throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> or List<object> but received a {bins.GetType()}.");
 
-            if (refreshOnNewSet)
-                this.NamespaceRefresh(setName, false);
-           
             return cnt;
         }
 
@@ -1049,11 +1003,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         /// <returns>The number of items put.</returns>
         /// <seealso cref="ToJson(string, string, bool)"/>
         /// <seealso cref="ARecord.ToJson(string, bool)"/>
-        /// <seealso cref="FromJson(string, string, string, string, WritePolicy, TimeSpan?, bool, bool)"/>
         /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
@@ -1100,8 +1052,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 string jsonBinName = null,
                                 WritePolicy writePolicy = null,
                                 TimeSpan? ttl = null,
-                                bool writePKPropertyName = false,
-                                bool refreshOnNewSet = true)
+                                bool writePKPropertyName = false)
         {
             var converter = new CDTConverter();
             var bins = JsonConvert.DeserializeObject<object>(json, converter);
@@ -1141,8 +1092,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             pk,
                             recBins,
                             writePolicy: writePolicy,
-                            ttl: ttl,
-                            refreshOnNewSet: false);
+                            ttl: ttl);
                 cnt++;
             }
             else if (bins is List<object> binList)
@@ -1158,17 +1108,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             pk,
                             recBins,
                             writePolicy: writePolicy,
-                            ttl: ttl,
-                            refreshOnNewSet: false);
+                            ttl: ttl);
                 cnt++;
             }
             else
                 throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> or List<object> but received a {bins.GetType()}.");
 
-
-            if (refreshOnNewSet)
-                this.NamespaceRefresh(setName, false);
-           
             return cnt;
         }
 

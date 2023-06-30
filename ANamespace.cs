@@ -83,7 +83,7 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public IEnumerable<string> SafeBins { get => this.safeBins; }
 
-        private List<ASet> aSets = new List<ASet>();
+        private readonly List<ASet> aSets = new List<ASet>();
         /// <summary>
         /// DB Sets
         /// </summary>

@@ -754,8 +754,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 record.Aerospike.Key, 
                                 record.Aerospike.GetValues(), 
                                 writePolicy, 
-                                ttl ?? record.Aerospike.TTL, 
-                                refreshOnNewSet: false);
+                                ttl ?? record.Aerospike.TTL);
         }
 
         /// <summary>
@@ -780,7 +779,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
-            this.SetAccess.Put(primaryKey, binValues, this.SetName, writePolicy, ttl, false);
+            this.SetAccess.Put(primaryKey, binValues, this.SetName, writePolicy, ttl);
         }
 
         /// <summary>
@@ -808,7 +807,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
-            this.SetAccess.Put(this.SetName, primaryKey, bin, binValue, writePolicy, ttl, false);
+            this.SetAccess.Put(this.SetName, primaryKey, bin, binValue, writePolicy, ttl);
         }
 
         /// <summary>
@@ -835,7 +834,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
-            this.SetAccess.Put(this.SetName, primaryKey, bin, listValue, writePolicy, ttl, false);
+            this.SetAccess.Put(this.SetName, primaryKey, bin, listValue, writePolicy, ttl);
         }
 
 
@@ -863,7 +862,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
-            this.SetAccess.Put(this.SetName, primaryKey, bin, collectionValue, writePolicy, ttl, false);
+            this.SetAccess.Put(this.SetName, primaryKey, bin, collectionValue, writePolicy, ttl);
         }
 
         /// <summary>
@@ -887,7 +886,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
-            this.SetAccess.Put(primaryKey, binsToWrite, this.SetName, writePolicy, ttl, false);
+            this.SetAccess.Put(primaryKey, binsToWrite, this.SetName, writePolicy, ttl);
         }
         #endregion
 
@@ -921,7 +920,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     WritePolicy writePolicy = null,
                                     TimeSpan? ttl = null)
         {
-            this.SetAccess.WriteObject<T>(this.SetName, primaryKey, instance, transform, doctumentBinName, writePolicy, ttl, false);
+            this.SetAccess.WriteObject<T>(this.SetName, primaryKey, instance, transform, doctumentBinName, writePolicy, ttl);
         }
 
         #region Delete/Trunc Methods
@@ -1628,8 +1627,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>Number of records written</returns>
         /// <seealso cref="ANamespaceAccess.Export(string, Exp, bool)"/>
         /// <seealso cref="Import(string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.Export(bool, JsonSerializerSettings)"/>
         public int Export([NotNull] string exportJSONFile, Client.Exp filterExpression = null, bool indented = true)
         {
@@ -1684,8 +1683,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </param>
         /// <returns>The number of records imported</returns>
         /// <seealso cref="Export(string, Exp, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy)"/>
         /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
         public int Import([NotNull] string importJSONFile,
@@ -1697,8 +1696,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             this.SetName,
                                             writePolicy ?? this.DefaultWritePolicy,
                                             ttl,
-                                            useImportRecTTL,
-                                            false);
+                                            useImportRecTTL);
         }
 
         /// <summary>
@@ -1772,7 +1770,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
-        /// <seealso cref="ANamespaceAccess.FromJson(string, string, string, string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="ANamespaceAccess.FromJson(string, string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="Put(ARecord, WritePolicy, TimeSpan?)"/>
         /// <exception cref="KeyNotFoundException">
         /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 
@@ -1821,8 +1819,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             jsonBinName: jsonBinName,
                                             writePolicy: writePolicy,
                                             ttl: ttl,
-                                            writePKPropertyName: writePKPropertyName,
-                                            refreshOnNewSet: false);
+                                            writePKPropertyName: writePKPropertyName);
         }
 
         /// <summary>
@@ -1863,7 +1860,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
-        /// <seealso cref="ANamespaceAccess.FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="ANamespaceAccess.FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="Put(ARecord, WritePolicy, TimeSpan?)"/>
         /// <exception cref="KeyNotFoundException">
         /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 
@@ -1915,8 +1912,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             jsonBinName: jsonBinName,
                                             writePolicy: writePolicy,
                                             ttl: ttl,
-                                            writePKPropertyName: writePKPropertyName,
-                                            refreshOnNewSet: false);
+                                            writePKPropertyName: writePKPropertyName);
         }
 
         #endregion

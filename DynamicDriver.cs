@@ -15,6 +15,7 @@ using System.Windows.Markup;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
+using Aerospike.Client;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -22,6 +23,7 @@ namespace Aerospike.Database.LINQPadDriver
 	{
 		static internal volatile AerospikeConnection _Connection;
         static internal object ConnectionLock = new object();
+		const string AppDataKey = "Aerospike_LiinqPad_Driver_Connection";
 
         static DynamicDriver()
 		{
@@ -33,16 +35,16 @@ namespace Aerospike.Database.LINQPadDriver
 					Debugger.Launch ();
 			};*/
             
-        }		
-
+        }
+		
         public override string Name => "Aerospike DB";
 
 		public override string Author => "Richard Andersen";
 
 		public override string GetConnectionDescription (IConnectionInfo cxInfo)
 		{
-
-			if(_Connection != null)
+			var connection = GetConnection();
+			if(connection != null)
 			{
 				return $"Aerospike Cluster {cxInfo.DatabaseInfo.Database}";
             }
@@ -52,6 +54,54 @@ namespace Aerospike.Database.LINQPadDriver
 
 		public override bool ShowConnectionDialog (IConnectionInfo cxInfo, ConnectionDialogOptions dialogOptions)
 			=> new ConnectionDialog (cxInfo).ShowDialog () == true;
+
+		static AerospikeConnection ObtainConnection(IConnectionInfo cxInfo, bool openIfClosed)
+		{
+			AerospikeConnection connection;
+
+            lock (ConnectionLock)
+            {
+                connection = _Connection;
+
+                if (connection == null)
+                {
+                    connection = _Connection = (AerospikeConnection)AppDomain.CurrentDomain.GetData(AppDataKey);
+                    if (connection == null)
+                    {
+						connection = _Connection = new AerospikeConnection(cxInfo);
+                        AppDomain.CurrentDomain.SetData(AppDataKey, connection);
+                    }
+                }
+
+                if (openIfClosed && connection.State != ConnectionState.Open)
+                {
+                    connection.Open();
+                }
+            }
+
+			return connection;
+        }
+
+        static AerospikeConnection GetConnection(bool setToStaticConnection = false)
+        {
+            AerospikeConnection connection;
+			lock (ConnectionLock)
+            {
+                connection = _Connection;
+
+                if (connection == null)
+                {
+                    connection = (AerospikeConnection)AppDomain.CurrentDomain.GetData(AppDataKey);
+                    if (setToStaticConnection)
+					{                        
+                        _Connection = connection;
+					}
+                }
+            }
+
+            return connection;
+        }
+
 
         /// <summary>This virtual method is called after a data context object has been instantiated, in
         /// preparation for a query. You can use this hook to perform additional initialization work.
@@ -64,7 +114,10 @@ namespace Aerospike.Database.LINQPadDriver
 		///					executionManager.SqlTranslationWriter.WriteLine(e.Request.RequestUri);
         /// </summary>
         public override void InitializeContext(IConnectionInfo cxInfo, object context, QueryExecutionManager executionManager)
-		{           
+		{
+			ObtainConnection(cxInfo, true);
+
+            base.InitializeContext (cxInfo, context, executionManager);
         }
 
         /// <summary>This virtual method is called after a query has completed. You can use this hook to
@@ -74,18 +127,16 @@ namespace Aerospike.Database.LINQPadDriver
                                                 QueryExecutionManager executionManager,
                                                 object[] constructorArguments)
         {
+			base.TearDownContext(cxInfo, context, executionManager, constructorArguments);
         }
 
         public override void ClearConnectionPools(IConnectionInfo cxInfo)
         {
-            lock (ConnectionLock)
-            {
-                if (_Connection != null)
-                {
-                    _Connection.Dispose();
-                    _Connection = null;
-                }
-            }
+			GetConnection()?.Dispose();
+			AppDomain.CurrentDomain.SetData(AppDataKey, null);
+            _Connection = null;
+
+			base.ClearConnectionPools (cxInfo);
         }
 
         /// <summary>This method is called after the query's main thread has finished running the user's code,
@@ -93,27 +144,14 @@ namespace Aerospike.Database.LINQPadDriver
         /// use this method to wait out those threads.</summary>
         public override void OnQueryFinishing(IConnectionInfo cxInfo, object context,
 												QueryExecutionManager executionManager)
-        { }
-
-		static DateTime RefreshExplorerLastTime = DateTime.MinValue;
-        static long RefreshingExplorer = 0;
-		public static async Task UpdateSchemaExplorerVersion()
-		{
-			
-			if (Interlocked.Read(ref RefreshingExplorer) == 0
-					&& DateTime.Now >= RefreshExplorerLastTime.AddMinutes(1))
-            {
-				Interlocked.Increment(ref RefreshingExplorer);
-				try
-				{
-					await _Connection.CXInfo.ForceRefresh();
-				}
-				catch { }
-				finally
-				{
-					Interlocked.Decrement(ref RefreshingExplorer);
-				}
+        {
+            System.Diagnostics.Debugger.Launch();
+            if (_Connection?.Namespaces.Any(n => n.CodeNeedsUpdating) ?? false) 
+			{				
+				cxInfo.ForceRefresh();
 			}
+
+			base.OnQueryFinishing (cxInfo, context, executionManager);
 		}
 
         /*
@@ -124,7 +162,7 @@ namespace Aerospike.Database.LINQPadDriver
         /// <summary>Returns the time that the schema was last modified. If unknown, return null.</summary>
         public override DateTime? GetLastSchemaUpdate(IConnectionInfo cxInfo) 
 		{
-            return null;
+			return null;
 		}
         
         public override ParameterDescriptor[] GetContextConstructorParameters(IConnectionInfo cxInfo)
@@ -134,19 +172,7 @@ namespace Aerospike.Database.LINQPadDriver
 
 		public override object[] GetContextConstructorArguments(IConnectionInfo cxInfo)
 		{
-			AerospikeConnection connection;
-
-			lock (ConnectionLock)
-			{
-				connection = _Connection;
-
-				if (connection == null)
-				{					
-					connection = _Connection = new AerospikeConnection(cxInfo);
-					connection.Open();
-				}
-			}
-			return new[] { connection };
+			return new[] { ObtainConnection(cxInfo, true) };
 		}
 
 		public override bool AreRepositoriesEquivalent(IConnectionInfo c1, IConnectionInfo c2)
@@ -157,37 +183,22 @@ namespace Aerospike.Database.LINQPadDriver
 		public override List<ExplorerItem> GetSchemaAndBuildAssembly (
 			IConnectionInfo cxInfo, AssemblyName assemblyToBuild, ref string nameSpace, ref string typeName)
 		{
-            //Debugger.Launch();
+			//System.Diagnostics.Debugger.Launch();
 
-            lock (ConnectionLock)
-			{
-				var connection = _Connection;
+			var connection = ObtainConnection(cxInfo, false);
+			connection.ObtainMetaDate();
 
-				if (connection == null)
-				{
-					_Connection = new AerospikeConnection(cxInfo);
-					_Connection.Open();
-				}
-				else if(_Connection.State != ConnectionState.Open)
-				{
-					_Connection.Open();
-				}
-            }
+			var buildNamespaces = BuildNamespaces(connection, connection.AlwaysUseAValues);
+			var namespaceClasses = buildNamespaces.Item1;
+			var namespaceProps = buildNamespaces.Item2;
+			var namespaceConstruct = buildNamespaces.Item3;
 
-            Interlocked.Increment(ref RefreshingExplorer);
-			try
-			{
-				var buildNamespaces = BuildNamespaces(_Connection.AlwaysUseAValues);
-				var namespaceClasses = buildNamespaces.Item1;
-				var namespaceProps = buildNamespaces.Item2;
-				var namespaceConstruct = buildNamespaces.Item3;
+			var buildModules = BuildModules(connection);
+			var moduleClasses = buildModules.Item1;
+			var moduleProps = buildModules.Item2;
+			var moduleConstruct = buildModules.Item3;
 
-				var buildModules = BuildModules();
-				var moduleClasses = buildModules.Item1;
-				var moduleProps = buildModules.Item2;
-				var moduleConstruct = buildModules.Item3;
-
-				string source = $@"
+			string source = $@"
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -198,71 +209,66 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 
 namespace {nameSpace}
 {{	
-	public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAccess
-	{{
-		public {typeName}(System.Data.IDbConnection dbConnection)
-			: base(dbConnection)
-			{{
-				{namespaceConstruct}
-				{moduleConstruct}
-			}}
+public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAccess
+{{
+	public {typeName}(System.Data.IDbConnection dbConnection)
+		: base(dbConnection)
+		{{
+			{namespaceConstruct}
+			{moduleConstruct}
+		}}
 
-		public AerospikeClient ASClient => AerospikeConnection.AerospikeClient;
+	public AerospikeClient ASClient => AerospikeConnection.AerospikeClient;
 		
-		{namespaceProps}
-		{moduleProps}
-	}}
+	{namespaceProps}
+	{moduleProps}
+}}
 
-	{namespaceClasses}
-	{moduleClasses}
+{namespaceClasses}
+{moduleClasses}
 }}";
 
-				Compile(source,
+			Compile(source,
 #pragma warning disable SYSLIB0044
-						assemblyToBuild.CodeBase,
+					assemblyToBuild.CodeBase,
 #pragma warning restore SYSLIB0044
-						cxInfo,
-						debug: _Connection.Debug);
+					cxInfo,
+					debug: connection.Debug);
 
-				List<ExplorerItem> items = new List<ExplorerItem>();
+			List<ExplorerItem> items = new List<ExplorerItem>();
 
-				{
-					var asyncClient = typeof(Aerospike.Client.Connection).Assembly.GetName();
-					items.Add(new ExplorerItem("Client Connection",
-															ExplorerItemKind.Property,
-															ExplorerIcon.TableFunction)
-					{
-						IsEnumerable = false,
-						DragText = "ASClient",
-						ToolTipText = $"{asyncClient?.Name} Driver Version: {asyncClient?.Version}"
-					});
-				}
-
-				items.AddRange(CreateNamespaceExploreItems());
-
-				items.Add(new ExplorerItem("UDFs", ExplorerItemKind.Category, ExplorerIcon.Box)
+			{
+				var asyncClient = typeof(Aerospike.Client.Connection).Assembly.GetName();
+				items.Add(new ExplorerItem("Client Connection",
+														ExplorerItemKind.Property,
+														ExplorerIcon.TableFunction)
 				{
 					IsEnumerable = false,
-					DragText = null,
-					ToolTipText = "User Defined Functions",
-					Children = CreateModuleExploreItems().ToList()
+					DragText = "ASClient",
+					ToolTipText = $"{asyncClient?.Name} Driver Version: {asyncClient?.Version}"
 				});
-
-				items.Add(CreateInformationalExploreItem(cxInfo, source));
-
-				return items;
 			}
-			finally
+
+			items.AddRange(CreateNamespaceExploreItems(connection));
+
+			items.Add(new ExplorerItem("UDFs", ExplorerItemKind.Category, ExplorerIcon.Box)
 			{
-                RefreshExplorerLastTime = DateTime.Now;
-                Interlocked.Decrement(ref RefreshingExplorer);				
-            }
+				IsEnumerable = false,
+				DragText = null,
+				ToolTipText = "User Defined Functions",
+				Children = CreateModuleExploreItems(connection).ToList()
+			});
+
+			items.Add(CreateInformationalExploreItem(cxInfo, connection, source));
+
+			return items;			
 		}
 
-		public override IDbConnection GetIDbConnection(IConnectionInfo cxInfo)
-		{            
+		/*public override IDbConnection GetIDbConnection(IConnectionInfo cxInfo)
+		{
+			//Debugger.Launch();
             return new AerospikeConnection(cxInfo);
-		}
+		}*/
 
 		public override IEnumerable<string> GetAssembliesToAdd(IConnectionInfo cxInfo)
 		{
@@ -271,17 +277,9 @@ namespace {nameSpace}
 
         public override IEnumerable<string> GetNamespacesToAdd(IConnectionInfo cxInfo)
         {
-            lock (ConnectionLock)
-            {
-                var connection = _Connection;
-
-                if (connection == null)
-                {
-                    _Connection = new AerospikeConnection(cxInfo);                    
-                }                
-            }
+			var connection = ObtainConnection(cxInfo, false);
             
-			if(_Connection.DocumentAPI)
+			if(connection.DocumentAPI)
 				return new[] { "Aerospike.Database.LINQPadDriver.Extensions",
 										"Aerospike.Client",
 										"Newtonsoft.Json.Linq"};
@@ -327,16 +325,17 @@ namespace {nameSpace}
         /// Creates namespace/set/bin C# code strings
         /// </summary>
 		/// <param name="alwaysUseAValues"></param>
+		/// <param name="connection"></param>
         /// <returns>
         /// Item1 -- Namespace classes
         /// Item2 -- Namespace Properties
         /// Item3 -- Namespace constructors 
         /// </returns>
-        public static Tuple<StringBuilder, StringBuilder, StringBuilder> BuildNamespaces(bool alwaysUseAValues)
+        public static Tuple<StringBuilder, StringBuilder, StringBuilder> BuildNamespaces(AerospikeConnection connection, bool alwaysUseAValues)
 		{
 			var nsStack = new ConcurrentStack<(string classes, string props, string constructs)>();
 
-			Parallel.ForEach(_Connection.Namespaces, ns =>
+			Parallel.ForEach(connection.Namespaces, ns =>
 			{
 				var (nsClass, nsProp, nsInstance) = ns.CodeGeneration(alwaysUseAValues);
 
@@ -451,11 +450,11 @@ namespace {nameSpace}
             return items;
         }
 
-        public static IEnumerable<ExplorerItem> CreateNamespaceExploreItems()
+        public static IEnumerable<ExplorerItem> CreateNamespaceExploreItems(AerospikeConnection connection)
 		{
             List<ExplorerItem> items = new List<ExplorerItem>();
             
-            foreach (var ns in _Connection.Namespaces.OrderBy(n => n.Name))
+            foreach (var ns in connection.Namespaces.OrderBy(n => n.Name))
             {
                 items.Add(
                             new ExplorerItem($"{ns.Name} ({ns.Sets.Count()})", ExplorerItemKind.Property, ExplorerIcon.Table)
@@ -483,13 +482,13 @@ namespace {nameSpace}
         /// Item2 -- Module Properties
         /// Item3 -- Module constructors 
         /// </returns>
-        public static Tuple<StringBuilder, StringBuilder, StringBuilder> BuildModules()
+        public static Tuple<StringBuilder, StringBuilder, StringBuilder> BuildModules(AerospikeConnection connection)
         {			
             var moduleClasses = new StringBuilder();
             var moduleProps = new StringBuilder();
             var moduleConstruct = new StringBuilder();
             
-            foreach (var mod in _Connection.UDFModules)
+            foreach (var mod in connection.UDFModules)
             {
                 var udfProps = new StringBuilder();
                 var udfClasses = new StringBuilder();
@@ -599,11 +598,11 @@ namespace {nameSpace}
             return items;
         }
 
-        public static IEnumerable<ExplorerItem> CreateModuleExploreItems()
+        public static IEnumerable<ExplorerItem> CreateModuleExploreItems(AerospikeConnection connection)
         {
             List<ExplorerItem> items = new List<ExplorerItem>();
 
-            foreach (var mod in _Connection.UDFModules.OrderBy(u => u.Name))
+            foreach (var mod in connection.UDFModules.OrderBy(u => u.Name))
             {
                 items.Add(
                             new ExplorerItem($"{mod.Name} ({mod.UDFs.Length})", ExplorerItemKind.Property, ExplorerIcon.Schema)
@@ -621,7 +620,7 @@ namespace {nameSpace}
 
         #endregion
 
-        public static ExplorerItem CreateInformationalExploreItem(IConnectionInfo cxInfo, string souceCode)
+        public static ExplorerItem CreateInformationalExploreItem(IConnectionInfo cxInfo, AerospikeConnection connection, string souceCode)
 		{            
             var infoItem = new ExplorerItem("Information", ExplorerItemKind.Category, ExplorerIcon.Box)
 			{
@@ -646,13 +645,13 @@ namespace {nameSpace}
 														DragText = null,
 														ToolTipText= cxInfo.DatabaseInfo.Provider
 													},
-                                    new ExplorerItem($"Nodes ({_Connection.Nodes.Length})",
+                                    new ExplorerItem($"Nodes ({connection.Nodes.Length})",
                                                         ExplorerItemKind.Category,
                                                         ExplorerIcon.OneToMany)
                                                     {
                                                         IsEnumerable = false,
                                                         DragText = null,
-														Children = CreateClusterNodesExploreItems().ToList(),
+														Children = CreateClusterNodesExploreItems(connection).ToList(),
                                                         ToolTipText= "Nodes within the Cluster"
                                                     },
                                     new ExplorerItem("Stats",
@@ -663,19 +662,19 @@ namespace {nameSpace}
 														DragText = null,
 														Children = new List<ExplorerItem>()
 														{
-															new ExplorerItem($"Total Namespaces: {_Connection.Namespaces.Count()}",
+															new ExplorerItem($"Total Namespaces: {connection.Namespaces.Count()}",
 																				ExplorerItemKind.Parameter,
 																				ExplorerIcon.ScalarFunction),
-															new ExplorerItem($"Total Sets: {_Connection.Namespaces.Sum(n => n.Sets.Count())}",
+															new ExplorerItem($"Total Sets: {connection.Namespaces.Sum(n => n.Sets.Count())}",
 																				ExplorerItemKind.Parameter,
 																				ExplorerIcon.ScalarFunction),
-															new ExplorerItem($"Total Bins: {_Connection.Namespaces.Sum(n => n.Bins.Count())}",
+															new ExplorerItem($"Total Bins: {connection.Namespaces.Sum(n => n.Bins.Count())}",
 																				ExplorerItemKind.Parameter,
 																				ExplorerIcon.ScalarFunction),
-                                                            new ExplorerItem($"Total SIdx: {_Connection.Namespaces.Sum(n => n.SIndexes.Count())}",
+                                                            new ExplorerItem($"Total SIdx: {connection.Namespaces.Sum(n => n.SIndexes.Count())}",
                                                                                 ExplorerItemKind.Parameter,
                                                                                 ExplorerIcon.ScalarFunction),
-                                                            new ExplorerItem($"Total UDFs: {_Connection.UDFModules.Count()}",
+                                                            new ExplorerItem($"Total UDFs: {connection.UDFModules.Count()}",
                                                                                 ExplorerItemKind.Parameter,
                                                                                 ExplorerIcon.ScalarFunction)
                                                         }
@@ -686,7 +685,7 @@ namespace {nameSpace}
 			return infoItem;
         }
 
-        public static IEnumerable<ExplorerItem> CreateClusterNodesExploreItems()
+        public static IEnumerable<ExplorerItem> CreateClusterNodesExploreItems(AerospikeConnection connection)
         {
             List<ExplorerItem> items = new List<ExplorerItem>();
 
@@ -700,7 +699,7 @@ namespace {nameSpace}
 										{
 											IsEnumerable = false,
 											DragText = $"\"{node.Host.name}\"",
-											ToolTipText = $"Node \"{node.Host.name}\" ({node.Name}) in Cluster \"{_Connection.Database}\""
+											ToolTipText = $"Node \"{node.Host.name}\" ({node.Name}) in Cluster \"{connection.Database}\""
 										}
                         );
             }

@@ -1734,23 +1734,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             return (T)instance;
         }
-
-        public static bool CheckForNewSetNameRefresh(string namespaceName, string setName, bool forceRefresh = false)
-        {
-            var ns = DynamicDriver._Connection?.Namespaces?.FirstOrDefault(n => n.Name == namespaceName);
-            var refresh = ns is null;
-
-            if (!forceRefresh && !string.IsNullOrEmpty(setName) && !refresh)
-            {
-                refresh = !ns.Sets.Any(s => s.Name == setName);
-            }
-
-            if (forceRefresh || refresh)
-                DynamicDriver.UpdateSchemaExplorerVersion();
-
-            return forceRefresh || refresh;
-        }
-
+        
         public static Client.Key DetermineAerospikeKey(dynamic primaryKey, string nameSpace, string setName)
         {
             Client.Key key;
