@@ -356,7 +356,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
             return new Tuple<StringBuilder, StringBuilder, StringBuilder>(namespaceClasses, namespaceProps, namespaceConstruct);
         }
 
-		public static List<ExplorerItem> AddSetBinItems(ANamespace ns, ASet set)
+		public static List<ExplorerItem> AddSetBinItems(LPNamespace ns, LPSet set)
 		{
 
 			static string GetBinTypeDupIndicator(Type type, bool dup, bool notInAllRecs)
@@ -422,7 +422,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
             return items;
         }
 
-        public static List<ExplorerItem> AddSetBinExplorerItems(ANamespace ns)
+        public static List<ExplorerItem> AddSetBinExplorerItems(LPNamespace ns)
         {
             var items = new List<ExplorerItem>();
 
@@ -577,7 +577,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
             return new Tuple<StringBuilder, StringBuilder, StringBuilder>(moduleClasses, moduleProps, moduleConstruct);
         }
 
-        public static List<ExplorerItem> AddUDFChildrenExplorerItems(AModule mod)
+        public static List<ExplorerItem> AddUDFChildrenExplorerItems(LPModule mod)
         {
             var items = new List<ExplorerItem>();
 

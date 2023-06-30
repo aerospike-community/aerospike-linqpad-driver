@@ -33,7 +33,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         }
 
-        public ANamespaceAccess(IDbConnection dbConnection, ANamespace lpNamespace, string ns, string[] binNames)
+        public ANamespaceAccess(IDbConnection dbConnection, LPNamespace lpNamespace, string ns, string[] binNames)
             : this(dbConnection, ns, binNames)
         {
             this.LinqPadNamespace = lpNamespace;
@@ -84,13 +84,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 return false;
 
             return this.AddDynamicSet(setName,
-                                        bins.Select(b => new ASet.BinType(b.name,
+                                        bins.Select(b => new LPSet.BinType(b.name,
                                                                             b.value.Object.GetType(),
                                                                             false,
                                                                             false)));
         }
 
-        private bool AddDynamicSet(string setName, IEnumerable<ASet.BinType> bins)
+        private bool AddDynamicSet(string setName, IEnumerable<LPSet.BinType> bins)
         {            
             if (string.IsNullOrEmpty(setName))
                 return false;
@@ -100,7 +100,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if (recordSet == null)
             {
                 var binNames = bins?.Select(b => b.BinName).ToArray();
-                var lpSet = new ASet(this.LinqPadNamespace, setName, bins);
+                var lpSet = new LPSet(this.LinqPadNamespace, setName, bins);
                 var accessSet = new SetRecords(lpSet, this, setName, binNames);
 
                 this.LinqPadNamespace.TryAddSet(setName, bins);
@@ -115,7 +115,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 
                 if (this.NullSet == null)
                 {
-                    this.AddDynamicSet(ASet.NullSetName, bins);
+                    this.AddDynamicSet(LPSet.NullSetName, bins);
                 }
                 else
                 {
@@ -147,7 +147,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return true;
         }
 
-        public ANamespace LinqPadNamespace { get; }
+        public LPNamespace LinqPadNamespace { get; }
 
         private List<SetRecords> _sets = new List<SetRecords>();
 
@@ -205,7 +205,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Returns the Aerospike Null Set for this namespace.
         /// The Null Set will contain all the records with a namespace.
         /// </summary>
-        public SetRecords NullSet { get => this[ASet.NullSetName]; }
+        public SetRecords NullSet { get => this[LPSet.NullSetName]; }
 
         #region Aerospike API items
 
@@ -245,7 +245,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using (var recordset = this.AerospikeConnection
                                     .AerospikeClient
                                     .Query(this.DefaultQueryPolicy,
-                                            string.IsNullOrEmpty(setName) || setName == ASet.NullSetName
+                                            string.IsNullOrEmpty(setName) || setName == LPSet.NullSetName
                                                 ? new Statement() { Namespace = this.Namespace}
                                                 : new Statement() { Namespace = this.Namespace, SetName = setName }))
 
@@ -275,7 +275,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using (var recordset = this.AerospikeConnection
                                     .AerospikeClient
                                     .Query(this.DefaultQueryPolicy,
-                                            string.IsNullOrEmpty(setName) || setName == ASet.NullSetName
+                                            string.IsNullOrEmpty(setName) || setName == LPSet.NullSetName
                                                 ? new Statement() { Namespace = nsName }
                                                 : new Statement() { Namespace = nsName, SetName = setName }))
 
@@ -650,8 +650,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 MapOperation.PutItems(mapPolicy,
                                                                         doctumentBinName,
                                                                         dictItem));
-                this.AddDynamicSet(setName, new ASet.BinType[] 
-                                                    { new ASet.BinType(doctumentBinName, typeof(JsonDocument), false, true)});
+                this.AddDynamicSet(setName, new LPSet.BinType[] 
+                                                    { new LPSet.BinType(doctumentBinName, typeof(JsonDocument), false, true)});
             }          
         }
 

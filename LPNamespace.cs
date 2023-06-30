@@ -8,6 +8,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -15,22 +17,22 @@ namespace Aerospike.Database.LINQPadDriver
     /// 
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-    public sealed class ANamespace : IGenerateCode
+    public sealed class LPNamespace : IGenerateCode
     {
 
-        private readonly static ConcurrentBag<ANamespace> LPNamespacesBag = new ConcurrentBag<ANamespace>();
+        private readonly static ConcurrentBag<LPNamespace> LPNamespacesBag = new ConcurrentBag<LPNamespace>();
 
-        public ANamespace(string name)
+        public LPNamespace(string name)
         {
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Namespace");
             LPNamespacesBag.Add(this);
         }
-
+       
         static private readonly Regex SetNameRegEx = new Regex("set=(?<setname>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         static private readonly Regex NameSpaceRegEx = new Regex("ns=(?<namespace>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        public ANamespace(string name, IEnumerable<string> setAttribs)
+        public LPNamespace(string name, IEnumerable<string> setAttribs)
             : this(name)
         {
             /*
@@ -42,15 +44,15 @@ namespace Aerospike.Database.LINQPadDriver
 
             var nsSets = setNames
                             .Where(s => !string.IsNullOrEmpty(s))
-                            .Select(s => new ASet(this, s))
+                            .Select(s => new LPSet(this, s))
                             .ToList();
 
-            nsSets.Add(new ASet(this));
+            nsSets.Add(new LPSet(this));
 
             this.aSets = nsSets.ToList();
         }
 
-        public ANamespace(string name, IEnumerable<string> setAttribs, string binNames)
+        public LPNamespace(string name, IEnumerable<string> setAttribs, string binNames)
             : this(name, setAttribs ?? Enumerable.Empty<string>())
         {
             /*
@@ -60,6 +62,23 @@ namespace Aerospike.Database.LINQPadDriver
 
             this.bins = binNameSplit.Where(s => !s.Contains('=')).ToList();
             this.safeBins = this.Bins.Select(s => Helpers.CheckName(s, "Bin")).ToList();
+        }
+
+        [JsonConstructor]
+        public LPNamespace(string name,
+                            string safename,
+                            IEnumerable<string> bins,
+                            IEnumerable<string> safebins,
+                            IEnumerable<LPSet> sets,
+                            IEnumerable<LPSecondaryIndex> sindexes)
+        {
+            this.Name = name;
+            this.SafeName = safename;
+            this.bins = bins.ToList();
+            this.safeBins = safebins.ToList();
+            this.aSets = sets.ToList();
+            this.SIndexes = sindexes;
+            LPNamespacesBag.Add(this);
         }
 
         /// <summary>
@@ -83,18 +102,18 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public IEnumerable<string> SafeBins { get => this.safeBins; }
 
-        private readonly List<ASet> aSets = new List<ASet>();
+        private readonly List<LPSet> aSets = new List<LPSet>();
         /// <summary>
         /// DB Sets
         /// </summary>
-        public IEnumerable<ASet> Sets { get => this.aSets; }
+        public IEnumerable<LPSet> Sets { get => this.aSets; }
 
         /// <summary>
         /// DB Secondary Indexes  
         /// </summary>
-        public IEnumerable<ASecondaryIndex> SIndexes { get; internal set; } = Enumerable.Empty<ASecondaryIndex>();
+        public IEnumerable<LPSecondaryIndex> SIndexes { get; internal set; } = Enumerable.Empty<LPSecondaryIndex>();
 
-        public static IEnumerable<ANamespace> Create(Client.Connection asConnection)
+        public static IEnumerable<LPNamespace> Create(Client.Connection asConnection)
         {
             var setsAttrib = Info.Request(asConnection, "sets");
 
@@ -102,7 +121,7 @@ namespace Aerospike.Database.LINQPadDriver
                                 let ns = NameSpaceRegEx.Match(nsSets).Groups["namespace"].Value
                                 group nsSets by ns into nsGrp
                                 let nsBins = Info.Request(asConnection, $"bins/{nsGrp.Key}")
-                                select new ANamespace(nsGrp.Key, nsGrp.ToList(), nsBins)).ToList();
+                                select new LPNamespace(nsGrp.Key, nsGrp.ToList(), nsBins)).ToList();
 
             var namespaces = Info.Request(asConnection, "namespaces")?.Split(';');
 
@@ -111,7 +130,7 @@ namespace Aerospike.Database.LINQPadDriver
                 foreach(var ns in namespaces)
                 {
                     if(!asNamespaces.Any(ans => ans.Name == ns))
-                        asNamespaces.Add(new ANamespace(ns));
+                        asNamespaces.Add(new LPNamespace(ns));
                 }
             }
 
@@ -119,14 +138,14 @@ namespace Aerospike.Database.LINQPadDriver
             return asNamespaces.ToArray();
         }
 
-        public ASet TryAddSet(string setName, IEnumerable<ASet.BinType> binTypes)
+        public LPSet TryAddSet(string setName, IEnumerable<LPSet.BinType> binTypes)
         {
             var fndASet = this.Sets.FirstOrDefault(s => s.Name == setName);
             var updateCnt = true;
 
             if(fndASet is null)
             {
-                fndASet = new ASet(this, setName, binTypes);
+                fndASet = new LPSet(this, setName, binTypes);
                 this.aSets.Add(fndASet);
                 Interlocked.Increment(ref nbrCodeUpdates);
                 updateCnt = false;
@@ -158,11 +177,14 @@ namespace Aerospike.Database.LINQPadDriver
 
         #region Code Generation
 
+        [JsonIgnore]
         public (string classCode, string definePropCode, string createInstanceCode)
            CodeCache
         { get; private set; }
 
+        [JsonIgnore]
         internal long nbrCodeUpdates = 0;
+        [JsonIgnore]
         public bool CodeNeedsUpdating { get => Interlocked.Read(ref nbrCodeUpdates) > 0; }
 
         /// <summary>
@@ -216,7 +238,7 @@ namespace Aerospike.Database.LINQPadDriver
 
 		public {this.SafeName}_NamespaceCls(System.Data.IDbConnection dbConnection)
 			: base(dbConnection,
-                    Aerospike.Database.LINQPadDriver.ANamespace.GetNamepsace(""{this.Name}""), 
+                    Aerospike.Database.LINQPadDriver.LPNamespace.GetNamepsace(""{this.Name}""), 
                     ""{this.Name}"", 
                     new string[] {{{binNames}}})
 		{{ }}
@@ -251,7 +273,6 @@ namespace Aerospike.Database.LINQPadDriver
             );
         }
 
-
         #endregion
 
         public override string ToString()
@@ -259,7 +280,7 @@ namespace Aerospike.Database.LINQPadDriver
             return this.Name;
         }
 
-        public static ANamespace GetNamepsace(string namespaceName) => LPNamespacesBag.FirstOrDefault(n => n.Name == namespaceName);
+        public static LPNamespace GetNamepsace(string namespaceName) => LPNamespacesBag.FirstOrDefault(n => n.Name == namespaceName);
 
         private string DebuggerDisplay => $"{Name} {Sets.Count()} {Bins.Count()}";
 

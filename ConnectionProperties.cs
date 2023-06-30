@@ -459,8 +459,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             private void NotifyPropertyChanged(String info)
             {
-                if (PropertyChanged != null)
-                    PropertyChanged(this, new PropertyChangedEventArgs(info));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(info));
             }
 
             public void NotifyIsCheckedProperty()
@@ -637,8 +636,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             private void NotifyPropertyChanged(String info)
             {
-                if (PropertyChanged != null)
-                    PropertyChanged(this, new PropertyChangedEventArgs(info));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(info));
             }
 
             public void NotifyIsCheckedProperty()

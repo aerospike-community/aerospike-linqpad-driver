@@ -114,9 +114,9 @@ namespace Aerospike.Database.LINQPadDriver
             get;
         }
 
-        public IEnumerable<ANamespace> Namespaces { get; private set; }
+        public IEnumerable<LPNamespace> Namespaces { get; private set; }
 
-        public IEnumerable<AModule> UDFModules { get; private set; }
+        public IEnumerable<LPModule> UDFModules { get; private set; }
         
         public AerospikeClient AerospikeClient
         {
@@ -261,9 +261,9 @@ namespace Aerospike.Database.LINQPadDriver
 
                                 this.CXInfo.DatabaseInfo.Provider = Info.Request(this.Connection, "version");
 
-                                this.Namespaces = ANamespace.Create(this.Connection);
+                                this.Namespaces = LPNamespace.Create(this.Connection);
 
-                                this.UDFModules = AModule.Create(this.Connection);                               
+                                this.UDFModules = LPModule.Create(this.Connection);                               
 
                                 #region Bins in Sets
                                 if (obtainBinsInSet)
@@ -285,7 +285,7 @@ namespace Aerospike.Database.LINQPadDriver
 
                                 #region Secondary Indexes
                                 {
-                                    var sIdxGrp = ASecondaryIndex.Create(this.Connection, this.Namespaces)
+                                    var sIdxGrp = LPSecondaryIndex.Create(this.Connection, this.Namespaces)
                                                             .GroupBy(idx => new { ns = idx.Namespace?.Name, set = idx.Set?.Name });
 
                                     foreach (var setIdxs in sIdxGrp)

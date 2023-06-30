@@ -6,14 +6,17 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver
 {
     [System.Diagnostics.DebuggerDisplay("{Name}")]
-    public sealed class ASet : IGenerateCode
+    public sealed class LPSet : IGenerateCode
     {        
         public class BinType
         {
+            [JsonConstructor]
             internal BinType(string name, Type type, bool dup, bool allRecs, bool detected = false)
             {
                 this.BinName = name;
@@ -30,14 +33,15 @@ namespace Aerospike.Database.LINQPadDriver
             /// <summary>
             /// True if the bin was found after the initial scan of the set.
             /// </summary>
+            [JsonIgnore]
             public bool Detected { get; set; }
         }
 
-        static readonly ConcurrentBag<ASet> SetsBag = new ConcurrentBag<ASet>();
+        static readonly ConcurrentBag<LPSet> SetsBag = new ConcurrentBag<LPSet>();
 
         public const string NullSetName = "NullSet";
 
-        public ASet(ANamespace aNamespace, string name)
+        public LPSet(LPNamespace aNamespace, string name)
         {
             this.ANamespace = aNamespace;
             this.Name = name;
@@ -45,7 +49,7 @@ namespace Aerospike.Database.LINQPadDriver
             SetsBag.Add(this);
         }
 
-        public ASet(ANamespace aNamespace, string name, IEnumerable<BinType> binTypes)
+        public LPSet(LPNamespace aNamespace, string name, IEnumerable<BinType> binTypes)
         {
             this.ANamespace = aNamespace;
             this.Name = name;
@@ -54,7 +58,7 @@ namespace Aerospike.Database.LINQPadDriver
             SetsBag.Add(this);
         }
 
-        public ASet(ANamespace aNamespace)
+        public LPSet(LPNamespace aNamespace)
         {
             this.ANamespace = aNamespace;
             this.Name = NullSetName;
@@ -64,7 +68,24 @@ namespace Aerospike.Database.LINQPadDriver
             SetsBag.Add(this);
         }
 
-        public ANamespace ANamespace { get; }
+        [JsonConstructor]
+        public LPSet(LPNamespace anamespace,
+                        string name,
+                        string safename,
+                        bool isnullset,
+                        IEnumerable<BinType> binTypes,
+                        IEnumerable<LPSecondaryIndex> sindexes)
+        {
+            this.ANamespace = anamespace;
+            this.Name = name;
+            this.SafeName = safename;
+            this.IsNullSet = isnullset;
+            this.binTypes = binTypes.ToList();
+            this.SIndexes = sindexes;
+            SetsBag.Add(this);
+        }
+
+        public LPNamespace ANamespace { get; }
 
         /// <summary>
         /// The DB Name of the Set
@@ -92,7 +113,7 @@ namespace Aerospike.Database.LINQPadDriver
         /// <summary>
         /// Returns the Secondary Indexes associated with this set.
         /// </summary>
-        public IEnumerable<ASecondaryIndex> SIndexes { get; internal set; } = Enumerable.Empty<ASecondaryIndex>();
+        public IEnumerable<LPSecondaryIndex> SIndexes { get; internal set; } = Enumerable.Empty<LPSecondaryIndex>();
 
         internal void GetRecordBins(GetSetBins getBins,
                                         bool determineDocType,
@@ -125,11 +146,13 @@ namespace Aerospike.Database.LINQPadDriver
 
         #region Code Generation
 
+        [JsonIgnore]
         public (string classCode, string definePropCode, string createInstanceCode)
             CodeCache
         { get; private set; }
 
         private long nbrCodeUpdates = 0;
+        [JsonIgnore]
         public bool CodeNeedsUpdating { get => Interlocked.Read(ref nbrCodeUpdates) > 0; }
 
         public (string setClassCode, string setDefinePropCode, string ignore) GenerateNoRecSet()
@@ -272,7 +295,7 @@ namespace Aerospike.Database.LINQPadDriver
 	public class {this.SafeName}_SetCls : Aerospike.Database.LINQPadDriver.Extensions.SetRecords<{this.SafeName}_SetCls.RecordCls>
 	{{
 		public {this.SafeName}_SetCls (Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess setAccess)
-			: base(Aerospike.Database.LINQPadDriver.ASet.GetSet(""{this.ANamespace.Name}"", ""{this.Name}""),
+			: base(Aerospike.Database.LINQPadDriver.LPSet.GetSet(""{this.ANamespace.Name}"", ""{this.Name}""),
 						setAccess, 
 						""{this.Name}"",
 						bins: new string[] {{ {binsString} }})
@@ -329,12 +352,11 @@ namespace Aerospike.Database.LINQPadDriver
 
         #endregion
 
-
         public override string ToString()
         {
             return this.ANamespace?.Name + '.' + this.Name;
         }
 
-        public static ASet GetSet(string namespaceName, string setName) => SetsBag.FirstOrDefault(s => s.ANamespace.Name == namespaceName && s.Name == setName);
+        public static LPSet GetSet(string namespaceName, string setName) => SetsBag.FirstOrDefault(s => s.ANamespace.Name == namespaceName && s.Name == setName);
     }
 }

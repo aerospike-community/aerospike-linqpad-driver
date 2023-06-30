@@ -5,14 +5,23 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver
 {
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-    public sealed class ASecondaryIndex
+    public sealed class LPSecondaryIndex
     {
 
-        public ASecondaryIndex(string name, ANamespace aNamespace, ASet set, string bin, string type, string indexType, string context)
+        [JsonConstructor]
+        public LPSecondaryIndex(string name, 
+                                LPNamespace aNamespace,
+                                LPSet set,
+                                string bin,
+                                string type,
+                                string indexType, 
+                                string context)
         {
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Idx");            
@@ -23,7 +32,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.IndexType = indexType;
             this.Context = context == "null" ? null : context;
         }
-
+        
         /// <summary>
         /// ns=test:indexname=State_index:set=players:bin=State:type=string:indextype=default:context=null:state=RW;
         /// ns=test:indexname=idx_list_map_bin_subobj:set=expressionExp:bin=map_bin:type=numeric:indextype=mapvalues:context=[list_value(*):state=RW
@@ -41,11 +50,11 @@ namespace Aerospike.Database.LINQPadDriver
         /// <summary>
         /// Associated namespace
         /// </summary>
-        public ANamespace Namespace { get; }
+        public LPNamespace Namespace { get; }
         /// <summary>
         /// Associated Set
         /// </summary>
-        public ASet Set { get; }
+        public LPSet Set { get; }
         /// <summary>
         /// The bin used to maintain the secondary index
         /// </summary>
@@ -59,9 +68,9 @@ namespace Aerospike.Database.LINQPadDriver
 
         public string Context { get; }
 
-        public static IEnumerable<ASecondaryIndex> Create(Client.Connection asConnection, IEnumerable<ANamespace> namespaces)
+        public static IEnumerable<LPSecondaryIndex> Create(Client.Connection asConnection, IEnumerable<LPNamespace> namespaces)
         {
-            ASet FindSet(ANamespace ns, string set)
+            LPSet FindSet(LPNamespace ns, string set)
             {
                 return ns?.Sets?.FirstOrDefault(s => s.Name == set);
             }
@@ -80,9 +89,9 @@ namespace Aerospike.Database.LINQPadDriver
                                 let aNamespace = namespaces.FirstOrDefault(n => n.Name == ns)
                                 let aSet = FindSet(aNamespace,
                                                         set == "NULL" || string.IsNullOrEmpty(set)
-                                                            ? ASet.NullSetName
+                                                            ? LPSet.NullSetName
                                                             : set)
-                                select new ASecondaryIndex(idxName,
+                                select new LPSecondaryIndex(idxName,
                                                                 aNamespace,
                                                                 aSet,
                                                                 bin,

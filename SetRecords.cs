@@ -20,7 +20,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         where T : ARecord
     {
         #region Constructors
-        public SetRecords([NotNull] ASet lpSet,
+        public SetRecords([NotNull] LPSet lpSet,
                             [NotNull] ANamespaceAccess setAccess,
                             [NotNull] string setName,
                             params string[] bins)
@@ -143,7 +143,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             stmt.SetNamespace(this.Namespace);
 
-            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != ASet.NullSetName)
+            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != LPSet.NullSetName)
                 stmt.SetSetName(this.SetName);
 
             stmt.SetBinNames(bins);
@@ -188,7 +188,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using var recordset = this.SetAccess.AerospikeConnection
                                    .AerospikeClient
                                    .Query(queryPolicy,
-                                           string.IsNullOrEmpty(this.SetName) || this.SetName == ASet.NullSetName
+                                           string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
                                                    ? new Statement() { Namespace = this.Namespace, BinNames = bins }
                                                    : new Statement() { Namespace = this.Namespace, SetName = this.SetName, BinNames = bins });
 
@@ -224,7 +224,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             stmt.SetNamespace(this.Namespace);
 
-            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != ASet.NullSetName)
+            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != LPSet.NullSetName)
                 stmt.SetSetName(this.SetName);
 
             stmt.SetFilter(secondaryIdxFilter);
@@ -276,7 +276,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             stmt.SetNamespace(this.Namespace);
 
-            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != ASet.NullSetName)
+            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != LPSet.NullSetName)
                 stmt.SetSetName(this.SetName);
 
             stmt.SetFilter(secondaryIdxFilter);
@@ -324,7 +324,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using var recordset = this.SetAccess.AerospikeConnection
                                    .AerospikeClient
                                    .Query(queryPolicy,
-                                           string.IsNullOrEmpty(this.SetName) || this.SetName == ASet.NullSetName
+                                           string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
                                            ? new Statement() { Namespace = this.Namespace, MaxRecords = numberRecords }
                                            : new Statement() { Namespace = this.Namespace, SetName = this.SetName, MaxRecords = numberRecords });
 
@@ -395,7 +395,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using var recordset = this.SetAccess.AerospikeConnection
                                    .AerospikeClient
                                    .Query(queryPolicy,
-                                           string.IsNullOrEmpty(this.SetName) || this.SetName == ASet.NullSetName
+                                           string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
                                            ? new Statement() { Namespace = this.Namespace }
                                            : new Statement() { Namespace = this.Namespace, SetName = this.SetName });
 
@@ -442,7 +442,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using var recordset = this.SetAccess.AerospikeConnection
                                     .AerospikeClient
                                     .Query(queryPolicy,
-                                            string.IsNullOrEmpty(this.SetName) || this.SetName == ASet.NullSetName
+                                            string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
                                             ? new Statement() { Namespace = this.Namespace }
                                             : new Statement() { Namespace = this.Namespace, SetName = this.SetName });
 
@@ -524,7 +524,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using var recordset = this.SetAccess.AerospikeConnection
                                     .AerospikeClient
                                     .Query(this.DefaultQueryPolicy,
-                                            string.IsNullOrEmpty(this.SetName) || this.SetName == ASet.NullSetName
+                                            string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
                                             ? new Statement() { Namespace = this.Namespace }
                                             : new Statement() { Namespace = this.Namespace, SetName = this.SetName });
 
@@ -554,7 +554,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     public class SetRecords : IEnumerable<ARecord>, IEquatable<ARecord>, IEquatable<SetRecords>
     {
         #region Constructors
-        public SetRecords([NotNull] ASet lpSet,
+        public SetRecords([NotNull] LPSet lpSet,
                             [NotNull] ANamespaceAccess setAccess, 
                             [NotNull] string setName,
                             params string[] bins)
@@ -596,7 +596,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         #region Settings, Record State, etc.
 
-        public ASet LinqPadSet { get; }
+        public LPSet LinqPadSet { get; }
 
         internal bool TryAddBin(string binName, Type dataType, bool updateNamespace)
         {
@@ -1085,7 +1085,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             stmt.SetNamespace(this.Namespace);
 
-            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != ASet.NullSetName)
+            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != LPSet.NullSetName)
                 stmt.SetSetName(this.SetName);
 
             stmt.SetBinNames(bins);
@@ -1130,7 +1130,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using var recordset = this.SetAccess.AerospikeConnection
                                    .AerospikeClient
                                    .Query(queryPolicy,
-                                           string.IsNullOrEmpty(this.SetName) || this.SetName == ASet.NullSetName
+                                           string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
                                                    ? new Statement() { Namespace = this.Namespace, BinNames = bins }
                                                    : new Statement() { Namespace = this.Namespace, SetName = this.SetName, BinNames = bins });
 
@@ -1166,7 +1166,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             stmt.SetNamespace(this.Namespace);
 
-            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != ASet.NullSetName)
+            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != LPSet.NullSetName)
                 stmt.SetSetName(this.SetName);
 
             stmt.SetFilter(secondaryIdxFilter);
@@ -1216,7 +1216,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             stmt.SetNamespace(this.Namespace);
 
-            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != ASet.NullSetName)
+            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != LPSet.NullSetName)
                 stmt.SetSetName(this.SetName);
 
             stmt.SetFilter(secondaryIdxFilter);
@@ -1262,7 +1262,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             stmt.SetNamespace(this.Namespace);
 
-            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != ASet.NullSetName)
+            if (!string.IsNullOrEmpty(this.SetName) && this.SetName != LPSet.NullSetName)
                 stmt.SetSetName(this.SetName);
 
             if(secondaryIdxFilter != null)
@@ -1421,7 +1421,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using var recordset = this.SetAccess.AerospikeConnection
                                    .AerospikeClient
                                    .Query(queryPolicy,
-                                           string.IsNullOrEmpty(this.SetName) || this.SetName == ASet.NullSetName
+                                           string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
                                            ? new Statement() { Namespace = this.Namespace, MaxRecords = numberRecords }
                                            : new Statement() { Namespace = this.Namespace, SetName = this.SetName, MaxRecords = numberRecords });
 
@@ -1491,7 +1491,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using var recordset = this.SetAccess.AerospikeConnection
                                    .AerospikeClient
                                    .Query(queryPolicy,
-                                           string.IsNullOrEmpty(this.SetName) || this.SetName == ASet.NullSetName
+                                           string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
                                            ? new Statement() { Namespace = this.Namespace }
                                            : new Statement() { Namespace = this.Namespace, SetName = this.SetName });
                
@@ -1539,7 +1539,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using var recordset = this.SetAccess.AerospikeConnection
                                     .AerospikeClient
                                     .Query(queryPolicy,
-                                            string.IsNullOrEmpty(this.SetName) || this.SetName == ASet.NullSetName
+                                            string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
                                             ? new Statement() { Namespace = this.Namespace }
                                             : new Statement() { Namespace = this.Namespace, SetName = this.SetName });
 
@@ -1967,7 +1967,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             using var recordset = this.SetAccess.AerospikeConnection
                                     .AerospikeClient
                                     .Query(this.DefaultQueryPolicy,
-                                            string.IsNullOrEmpty(this.SetName) || this.SetName == ASet.NullSetName
+                                            string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
                                             ? new Statement() { Namespace = this.Namespace }
                                             : new Statement() { Namespace = this.Namespace, SetName = this.SetName });
 

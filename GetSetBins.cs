@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using System.Threading.Tasks;
-using static Aerospike.Database.LINQPadDriver.ASet;
+using static Aerospike.Database.LINQPadDriver.LPSet;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -122,7 +122,7 @@ namespace Aerospike.Database.LINQPadDriver
             return (binName, GetdocType(binValue, determineDocType));
         }
         
-        public List<ASet.BinType> Get(string nsName, 
+        public List<LPSet.BinType> Get(string nsName, 
                                         string setName,
                                         bool determineDocType, 
                                         int maxRecords,
@@ -141,14 +141,14 @@ namespace Aerospike.Database.LINQPadDriver
                                     .GroupBy(x => x)
                                     .Select(y => (y.Key.name, y.Key.type, y.Count()))
                                     .GroupBy(y => y.name)
-                                    .SelectMany(x => x.Select(i => new ASet.BinType(i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs))).ToList();
+                                    .SelectMany(x => x.Select(i => new LPSet.BinType(i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs))).ToList();
                     }
                 }
                 catch
                 {                    
                 }
 
-            return new List<ASet.BinType>(0);
+            return new List<LPSet.BinType>(0);
         }
     }
 }
