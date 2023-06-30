@@ -33,6 +33,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         }
 
+        public ANamespaceAccess(IDbConnection dbConnection, ANamespace lpNamespace, string ns, string[] binNames)
+            : this(dbConnection, ns, binNames)
+        {
+            this.LinqPadNamespace = lpNamespace;
+        }
+
         public ANamespaceAccess(ANamespaceAccess clone, Expression expression)
         {
             this.Namespace = clone.Namespace;
@@ -62,7 +68,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {            
             Helpers.CheckForNewSetNameRefresh(this.Namespace, setName, forceRefresh);
 
-            this.AddDynamicSet(setName);
+            //this.AddDynamicSet(setName);
         }
 
         /// <summary>
@@ -71,16 +77,73 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="setName"></param>
         /// <param name="bins"></param>
         /// <returns></returns>
-        private bool AddDynamicSet(string setName, params string[] bins)
+        private bool AddDynamicSet(string setName, IEnumerable<Bin> bins)
         {
-            if (string.IsNullOrEmpty(setName) || this._sets.Any(s => s.SetName == setName))
+            if (string.IsNullOrEmpty(setName) || this.Sets.Any(s => s.SetName == setName))
                 return false;
+
+            return this.AddDynamicSet(setName,
+                                        bins.Select(b => new ASet.BinType(b.name,
+                                                                            b.value.Object.GetType(),
+                                                                            false,
+                                                                            false)));
+        }
+
+        private bool AddDynamicSet(string setName, IEnumerable<ASet.BinType> bins)
+        {            
+            if (string.IsNullOrEmpty(setName))
+                return false;
+
+            var recordSet = this.Sets.FirstOrDefault(s => s.SetName == setName);
+
+            if (recordSet == null)
+            {
+                var binNames = bins?.Select(b => b.BinName).ToArray();
+                var lpSet = new ASet(this.LinqPadNamespace, setName, bins);
+                var accessSet = new SetRecords(lpSet, this, setName, binNames);
+
+                this.LinqPadNamespace.TryAddSet(setName, bins);
+                this._sets.Add(accessSet);
+
+                this.BinNames = this.BinNames.Concat(binNames)
+                                    .Distinct().ToArray();
+                if (this.NullSet == null)
+                {
+                    this.AddDynamicSet(ASet.NullSetName, bins);
+                }
+                else
+                {
+                    foreach (var b in bins)
+                    {
+                        this.NullSet.TryAddBin(b.BinName, b.DataType, false);
+                    }
+                }
+                return true;
+            }
+
+            bool result = false;
+            foreach (var b in bins)
+            {
+                result = recordSet.TryAddBin(b.BinName, b.DataType, false) || result;
+                if(this.NullSet != null)
+                    result = this.NullSet.TryAddBin(b.BinName, b.DataType, false) || result;
+            }
+
+            return result;
+        }
+
+        internal bool TryAddBin(string binName)
+        {
+            if(this.BinNames.Contains(binName)) return false;
             
-            this._sets = this._sets.Append(new SetRecords(this, setName, bins));
+            this.BinNames = this.BinNames.Append(binName).ToArray();
+
             return true;
         }
 
-        private IEnumerable<SetRecords> _sets = Enumerable.Empty<SetRecords>();
+        public ANamespace LinqPadNamespace { get; }
+
+        private List<SetRecords> _sets = new List<SetRecords>();
 
         /// <summary>
         /// Returns the associated set instances for this namespace.
@@ -107,7 +170,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     setInstances.Add((SetRecords)Activator.CreateInstance(prop, this));
                 }
 
-                return this._sets = setInstances.ToArray();
+                return this._sets = setInstances.ToList();
             }
         }
 
@@ -146,7 +209,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Returns all the bins used within this namespace.
         /// </summary>
-        public string[] BinNames { get; }
+        public string[] BinNames { get; private set; }
 
         public AerospikeConnection AerospikeConnection { get; }
 
@@ -322,15 +385,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
             }
 
+            var bins = Helpers.CreateBinRecord(binValues);
             this.AerospikeConnection
                 .AerospikeClient.Put(writePolicyPut,
                                         Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName),
-                                        Helpers.CreateBinRecord(binValues));
+                                        bins);
 
             if(refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
             else
-                this.AddDynamicSet(setName);
+                this.AddDynamicSet(setName, bins);
         }
 
         /// <summary>
@@ -369,15 +433,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
             }
 
+            var bins = Helpers.CreateBinRecord(binValue, bin);
             this.AerospikeConnection
                 .AerospikeClient.Put(writePolicyPut,
                                         Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName),
-                                        Helpers.CreateBinRecord(binValue, bin));
+                                        bins);
 
             if(refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
             else
-                this.AddDynamicSet(setName);
+                this.AddDynamicSet(setName, bins);
         }
 
         /// <summary>
@@ -415,15 +480,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
             }
 
+            var cbin = Helpers.CreateBinRecord(listValue, bin);
             this.AerospikeConnection
                 .AerospikeClient.Put(writePolicyPut,
                                         Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName),
-                                        Helpers.CreateBinRecord(listValue, bin));
+                                        cbin);
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
             else
-                this.AddDynamicSet(setName);
+                this.AddDynamicSet(setName, new Bin[] { cbin });
         }
 
 
@@ -461,16 +527,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
             }
-            
+
+            var cBin = Helpers.CreateBinRecord(collectionValue, bin);
             this.AerospikeConnection
                 .AerospikeClient.Put(writePolicyPut,
                                         Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName),
-                                        Helpers.CreateBinRecord(collectionValue, bin));
+                                        cBin);
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
             else
-                this.AddDynamicSet(setName);
+                this.AddDynamicSet(setName, new Bin[] {cBin});
         }
 
         /// <summary>
@@ -513,7 +580,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if(refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
             else
-                this.AddDynamicSet(setName);
+                this.AddDynamicSet(setName, binsToWrite);
         }
 
         /// <summary>
@@ -593,6 +660,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     .AerospikeClient.Put(writePolicyPut,
                                             key,
                                             bins);
+                if (!refreshOnNewSet)
+                    this.AddDynamicSet(setName, bins);
             }
             else
             {
@@ -603,13 +672,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 key,
                                                 MapOperation.PutItems(mapPolicy,
                                                                         doctumentBinName,
-                                                                        dictItem));            
+                                                                        dictItem));
+                if (!refreshOnNewSet)
+                    this.AddDynamicSet(setName, new ASet.BinType[] 
+                                                    { new ASet.BinType(doctumentBinName, typeof(JsonDocument), false, true)});
             }
 
             if (refreshOnNewSet)
-                this.NamespaceRefresh(setName, false);
-            else
-                this.AddDynamicSet(setName);
+                this.NamespaceRefresh(setName, false);           
         }
 
         #endregion
@@ -676,9 +746,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
-            else
-                this.AddDynamicSet(setName);
-
+            
             return jsonStructs.Length;
         }
 
@@ -712,7 +780,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             bool useImportRecTTL = false,
                             bool refreshOnNewSet = true)
         {
-            //Debugger.Launch();
+            Debugger.Launch();
             if (this.AerospikeConnection.CXInfo.IsProduction)
                 throw new InvalidOperationException("Cannot Truncate a Cluster marked \"In Production\"");
 
@@ -944,9 +1012,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
-            else
-                this.AddDynamicSet(setName);
-
+           
             return cnt;
         }
 
@@ -1102,9 +1168,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (refreshOnNewSet)
                 this.NamespaceRefresh(setName, false);
-            else
-                this.AddDynamicSet(setName);
-
+           
             return cnt;
         }
 

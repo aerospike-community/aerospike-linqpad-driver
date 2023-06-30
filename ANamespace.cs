@@ -1,10 +1,13 @@
 ﻿using Aerospike.Client;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -12,12 +15,16 @@ namespace Aerospike.Database.LINQPadDriver
     /// 
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-    public sealed class ANamespace
+    public sealed class ANamespace : IGenerateCode
     {
+
+        private readonly static ConcurrentBag<ANamespace> LPNamespacesBag = new ConcurrentBag<ANamespace>();
+
         public ANamespace(string name)
         {
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Namespace");
+            LPNamespacesBag.Add(this);
         }
 
         static private readonly Regex SetNameRegEx = new Regex("set=(?<setname>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -40,7 +47,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             nsSets.Add(new ASet(this));
 
-            this.Sets = nsSets.ToArray();
+            this.aSets = nsSets.ToList();
         }
 
         public ANamespace(string name, IEnumerable<string> setAttribs, string binNames)
@@ -51,8 +58,8 @@ namespace Aerospike.Database.LINQPadDriver
              */
             var binNameSplit = binNames.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-            this.Bins = binNameSplit.Where(s => !s.Contains('=')).ToArray();
-            this.SafeBins = this.Bins.Select(s => Helpers.CheckName(s, "Bin")).ToArray();
+            this.bins = binNameSplit.Where(s => !s.Contains('=')).ToList();
+            this.safeBins = this.Bins.Select(s => Helpers.CheckName(s, "Bin")).ToList();
         }
 
         /// <summary>
@@ -64,18 +71,24 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public string SafeName { get; }
 
+        private List<string> bins = new List<string>();
         /// <summary>
         /// The Actual DB Bin Names
         /// </summary>
-        public IEnumerable<string> Bins { get; } = Enumerable.Empty<string>();
+        public IEnumerable<string> Bins { get => this.bins; }
+
+        private List<string> safeBins = new List<string> ();
         /// <summary>
         /// Bin names that are safe to use as C# class name or properties.
         /// </summary>
-        public IEnumerable<string> SafeBins { get; } = Enumerable.Empty<string>();
+        public IEnumerable<string> SafeBins { get => this.safeBins; }
+
+        private List<ASet> aSets = new List<ASet>();
         /// <summary>
         /// DB Sets
         /// </summary>
-        public IEnumerable<ASet> Sets { get; } = Enumerable.Empty<ASet>();
+        public IEnumerable<ASet> Sets { get => this.aSets; }
+
         /// <summary>
         /// DB Secondary Indexes  
         /// </summary>
@@ -106,37 +119,106 @@ namespace Aerospike.Database.LINQPadDriver
             return asNamespaces.ToArray();
         }
 
+        public ASet TryAddSet(string setName, IEnumerable<ASet.BinType> binTypes)
+        {
+            var fndASet = this.Sets.FirstOrDefault(s => s.Name == setName);
+            var updateCnt = true;
+
+            if(fndASet is null)
+            {
+                fndASet = new ASet(this, setName, binTypes);
+                this.aSets.Add(fndASet);
+                Interlocked.Increment(ref nbrCodeUpdates);
+                updateCnt = false;
+            }
+
+            foreach (var binType in binTypes)
+            {
+                this.TryAddBin(binType.BinName, updateCnt);
+            }
+            
+            return fndASet;
+        }
+
+        public bool TryAddBin(string binName, bool incUpdateCnt = true)
+        {
+            var fndBin = this.Bins.FirstOrDefault(b => b == binName);
+
+            if (fndBin is null)
+            {
+                this.bins.Add(binName);
+                this.safeBins.Add(Helpers.CheckName(binName, "Bin"));
+                if (incUpdateCnt) Interlocked.Increment(ref nbrCodeUpdates);
+                return true;
+            }
+
+            return false;
+        }
+
 
         #region Code Generation
 
-        public (string nsClass, string nsPropAccess, string nsConstructInstance) 
-            GenerateCode(bool alwaysUseAValues)
+        public (string classCode, string definePropCode, string createInstanceCode)
+           CodeCache
+        { get; private set; }
+
+        internal long nbrCodeUpdates = 0;
+        public bool CodeNeedsUpdating { get => Interlocked.Read(ref nbrCodeUpdates) > 0; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="alwaysUseAValues"></param>
+        /// <param name="forceGeneration"></param>
+        /// <returns>
+        /// classCode -- Code used to define this Namespace&apos;s class
+        /// definePropCode -- Code used to define the property used to reference this Namespace
+        /// createInstanceCode -- Code used to create an instance of this Namespace
+        /// </returns>
+        public (string classCode, string definePropCode, string createInstanceCode)
+            CodeGeneration(bool alwaysUseAValues, bool forceGeneration = false)
         {
+            if (!this.CodeNeedsUpdating && !forceGeneration && this.CodeCache.classCode != null)
+                return this.CodeCache;
+
             var setProps = new StringBuilder();
             var setClasses = new StringBuilder();
             var binNames = new StringBuilder();
 
-            //Code for getting RecordSets for Set. 
-            foreach (var set in this.Sets)
+            var generateSetsTask = Task.Run(() =>
             {
-                var (setClass, setProp) = set.GenerateCode(alwaysUseAValues);
-                setClasses.AppendLine(setClass);
-                setProps.AppendLine(setProp);
-            }
+                //Code for getting RecordSets for Set. 
+                foreach (var set in this.Sets)
+                {
+                    var (setClass, setProp, ignore) = set.CodeGeneration(alwaysUseAValues);
+                    setClasses.AppendLine(setClass);
+                    setProps.AppendLine(setProp);
+                }
+            });
 
-            foreach (var binName in this.Bins)
+            var generateBinsTask = Task.Run(() =>
             {
-                binNames.Append('"');
-                binNames.Append(binName);
-                binNames.Append("\", ");
-            }
+                foreach (var binName in this.Bins)
+                {
+                    binNames.Append('"');
+                    binNames.Append(binName);
+                    binNames.Append("\", ");
+                }
+            });
 
-            return ($@"
+            Task.WaitAll(generateSetsTask, generateBinsTask);
+
+            Interlocked.Exchange(ref nbrCodeUpdates, 0);
+
+            return this.CodeCache = ($@"
 	public class {this.SafeName}_NamespaceCls : Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess
 	{{
 
 		public {this.SafeName}_NamespaceCls(System.Data.IDbConnection dbConnection)
-			: base(dbConnection, ""{this.Name}"", new string[] {{{binNames}}})
+			: base(dbConnection,
+                    Aerospike.Database.LINQPadDriver.ANamespace.GetNamepsace(""{this.Name}""), 
+                    ""{this.Name}"", 
+                    new string[] {{{binNames}}})
 		{{ }}
 
 		public {this.SafeName}_NamespaceCls(Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess clone, Aerospike.Client.Expression expression)
@@ -172,11 +254,12 @@ namespace Aerospike.Database.LINQPadDriver
 
         #endregion
 
-
         public override string ToString()
         {
             return this.Name;
         }
+
+        public static ANamespace GetNamepsace(string namespaceName) => LPNamespacesBag.FirstOrDefault(n => n.Name == namespaceName);
 
         private string DebuggerDisplay => $"{Name} {Sets.Count()} {Bins.Count()}";
 

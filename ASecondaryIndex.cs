@@ -92,8 +92,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             return idxs.ToArray();
         }
-
-
+        
         public string GenerateCode(Type idxDataType)
             => $@"
 		public Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess<RecordCls> {this.SafeName} 

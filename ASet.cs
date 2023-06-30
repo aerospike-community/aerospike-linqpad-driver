@@ -4,11 +4,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Aerospike.Database.LINQPadDriver
 {
     [System.Diagnostics.DebuggerDisplay("{Name}")]
-    public sealed class ASet
+    public sealed class ASet : IGenerateCode
     {        
         public class BinType
         {
@@ -28,7 +30,7 @@ namespace Aerospike.Database.LINQPadDriver
             /// <summary>
             /// True if the bin was found after the initial scan of the set.
             /// </summary>
-            public bool Detected { get; private set; }
+            public bool Detected { get; set; }
         }
 
         static readonly ConcurrentBag<ASet> SetsBag = new ConcurrentBag<ASet>();
@@ -40,6 +42,15 @@ namespace Aerospike.Database.LINQPadDriver
             this.ANamespace = aNamespace;
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Set");
+            SetsBag.Add(this);
+        }
+
+        public ASet(ANamespace aNamespace, string name, IEnumerable<BinType> binTypes)
+        {
+            this.ANamespace = aNamespace;
+            this.Name = name;
+            this.SafeName = Helpers.CheckName(name, "Set");
+            this.binTypes = binTypes?.ToList() ?? new List<BinType>();
             SetsBag.Add(this);
         }
 
@@ -88,10 +99,15 @@ namespace Aerospike.Database.LINQPadDriver
                                         int maxRecords,
                                         int minRecs)
         {
-            this.binTypes = getBins.Get(this.ANamespace.Name, this.Name, determineDocType, maxRecords, minRecs);
+            lock (binTypes)
+            {
+                this.binTypes = getBins.Get(this.ANamespace.Name, this.Name, determineDocType, maxRecords, minRecs);
+                Interlocked.Increment(ref nbrCodeUpdates);
+                Interlocked.Increment(ref ANamespace.nbrCodeUpdates);
+            }
         }
 
-        public bool AddNewlyFndBin(string binName, Type dataType)
+        public bool AddBin(string binName, Type dataType)
         {
             bool dup;
 
@@ -100,6 +116,8 @@ namespace Aerospike.Database.LINQPadDriver
                 dup = binTypes.Any(b => b.BinName == binName && b.DataType == dataType);
 
                 this.binTypes.Add(new BinType(binName, dataType, dup, false, true));
+                Interlocked.Increment(ref nbrCodeUpdates);
+                Interlocked.Increment(ref ANamespace.nbrCodeUpdates);
             }
 
             return dup; 
@@ -107,7 +125,14 @@ namespace Aerospike.Database.LINQPadDriver
 
         #region Code Generation
 
-        public (string setClass, string propInstance) GenerateNoRecSet()
+        public (string classCode, string definePropCode, string createInstanceCode)
+            CodeCache
+        { get; private set; }
+
+        private long nbrCodeUpdates = 0;
+        public bool CodeNeedsUpdating { get => Interlocked.Read(ref nbrCodeUpdates) > 0; }
+
+        public (string setClassCode, string setDefinePropCode, string ignore) GenerateNoRecSet()
         {
             var idxProps = new StringBuilder();
             var setClasses = new StringBuilder();
@@ -118,7 +143,10 @@ namespace Aerospike.Database.LINQPadDriver
                 idxProps.AppendLine(sidx.GenerateCode(null));
             }
 
-            return($@"
+            Interlocked.Exchange(ref nbrCodeUpdates, 0);
+            Interlocked.Decrement(ref ANamespace.nbrCodeUpdates);
+
+            return this.CodeCache = ($@"
         public class {SafeName}_SetCls : Aerospike.Database.LINQPadDriver.Extensions.SetRecords
 		{{
 			public {SafeName}_SetCls (Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess setAccess)
@@ -129,13 +157,27 @@ namespace Aerospike.Database.LINQPadDriver
 		}}", //End of Class string
         ///////////////////////////////////////////////////////////////////////
         $@"
-		public {SafeName}_SetCls {SafeName} {{ get => new {SafeName}_SetCls(this); }}"
-            ); //End of property string
+		public {SafeName}_SetCls {SafeName} {{ get => new {SafeName}_SetCls(this); }}",//End of property string
+        null
+            ); 
         }
 
-
-        public (string setClass, string propInstance) GenerateCode(bool alwaysUseAValues)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="alwaysUseAValues"></param>
+        /// <param name="forceGeneration"></param>
+        /// <returns>
+        /// classCode -- Code used to define this set&apos;s class
+        /// definePropCode -- Code used to define the property used to reference this Set
+        /// createInstanceCode -- ignored, always null
+        /// </returns>
+        public (string classCode, string definePropCode, string createInstanceCode) 
+            CodeGeneration(bool alwaysUseAValues, bool forceGeneration = false)
         {
+            if (!this.CodeNeedsUpdating && !forceGeneration && this.CodeCache.classCode != null)
+                return this.CodeCache;
+
             var bins = this.BinTypes.ToArray();
 
             if (this.IsNullSet || !bins.Any())
@@ -152,72 +194,81 @@ namespace Aerospike.Database.LINQPadDriver
             setClassFlds.AppendLine($"\t\t\tpublic APrimaryKey {ARecord.DefaultASPIKeyName} {{ get; }}");
             setClassFldsConst.AppendLine($"\t\t\t\t\t{ARecord.DefaultASPIKeyName} = new APrimaryKey(this.Aerospike.Key);");
 
-            foreach (var setBinType in bins)
+            var generateBinsTask = Task.Run(() =>
             {
-                if (fldSeen.Contains(setBinType.BinName))
+                foreach (var setBinType in bins)
                 {
-                    continue;
+                    if (fldSeen.Contains(setBinType.BinName))
+                    {
+                        continue;
+                    }
+
+                    var fldName = Helpers.CheckName(setBinType.BinName, "Bin");
+                    var fldType = setBinType.Duplicate || alwaysUseAValues
+                                        ? "AValue"
+                                        : Helpers.GetRealTypeName(setBinType.DataType, !setBinType.FndAllRecs);
+
+                    flds.Add(fldName);
+
+                    setClassFlds.Append("\t\t\tpublic ");
+                    setClassFlds.Append(fldType);
+                    setClassFlds.Append(' ');
+                    setClassFlds.Append(fldName);
+                    setClassFlds.Append("{ get; }");
+                    setClassFlds.AppendLine();
+
+                    setClassFldsConst.Append("\t\t\t\t\t");
+                    setClassFldsConst.Append(fldName);
+                    setClassFldsConst.Append(" = (");
+                    setClassFldsConst.Append(fldType);
+                    setClassFldsConst.Append(") ");
+
+                    if (setBinType.Duplicate || alwaysUseAValues)
+                    {
+                        setClassFldsConst.Append($" new AValue(this.Aerospike.GetValue(\"");
+                        setClassFldsConst.Append(setBinType.BinName);
+                        setClassFldsConst.Append($"\"), \"{setBinType.BinName}\",  \"{fldName}\" );");
+                    }
+                    else if (setBinType.DataType.IsValueType)
+                    {
+                        setClassFldsConst.Append($" (Helpers.CastToNativeType(this, \"{fldName}\", typeof({fldType}), \"{setBinType.BinName}\", this.Aerospike.GetValue(\"");
+                        setClassFldsConst.Append(setBinType.BinName);
+                        setClassFldsConst.Append("\"))");
+                        setClassFldsConst.Append($" ?? default({fldType}));");
+                    }
+                    else
+                    {
+                        setClassFldsConst.Append($" Helpers.CastToNativeType(this, \"{fldName}\", typeof({fldType}), \"{setBinType.BinName}\", this.Aerospike.GetValue(\"");
+                        setClassFldsConst.Append(setBinType.BinName);
+                        setClassFldsConst.Append("\"));");
+                    }
+
+                    if (setBinType.Duplicate)
+                        setClassFldsConst.Append("\t//Multiple Type Bin");
+                    if (!setBinType.FndAllRecs)
+                        setClassFldsConst.Append("\t//Bin not found in all records");
+
+                    setClassFldsConst.AppendLine();
+
+                    fldSeen.Add(setBinType.BinName);
+
+                    setBinType.Detected = false;
                 }
+            });
 
-                var fldName = Helpers.CheckName(setBinType.BinName, "Bin");
-                var fldType = setBinType.Duplicate || alwaysUseAValues
-                                    ? "AValue"
-                                    : Helpers.GetRealTypeName(setBinType.DataType, !setBinType.FndAllRecs);
-
-                flds.Add(fldName);
-
-                setClassFlds.Append("\t\t\tpublic ");
-                setClassFlds.Append(fldType);
-                setClassFlds.Append(' ');
-                setClassFlds.Append(fldName);
-                setClassFlds.Append("{ get; }");
-                setClassFlds.AppendLine();
-
-                setClassFldsConst.Append("\t\t\t\t\t");
-                setClassFldsConst.Append(fldName);
-                setClassFldsConst.Append(" = (");
-                setClassFldsConst.Append(fldType);
-                setClassFldsConst.Append(") ");
-
-                if (setBinType.Duplicate || alwaysUseAValues)
-                {
-                    setClassFldsConst.Append($" new AValue(this.Aerospike.GetValue(\"");
-                    setClassFldsConst.Append(setBinType.BinName);
-                    setClassFldsConst.Append($"\"), \"{setBinType.BinName}\",  \"{fldName}\" );");
-                }
-                else if (setBinType.DataType.IsValueType)
-                {
-                    setClassFldsConst.Append($" (Helpers.CastToNativeType(this, \"{fldName}\", typeof({fldType}), \"{setBinType.BinName}\", this.Aerospike.GetValue(\"");
-                    setClassFldsConst.Append(setBinType.BinName);
-                    setClassFldsConst.Append("\"))");
-                    setClassFldsConst.Append($" ?? default({fldType}));");
-                }
-                else
-                {
-                    setClassFldsConst.Append($" Helpers.CastToNativeType(this, \"{fldName}\", typeof({fldType}), \"{setBinType.BinName}\", this.Aerospike.GetValue(\"");
-                    setClassFldsConst.Append(setBinType.BinName);
-                    setClassFldsConst.Append("\"));");
-                }
-
-                if (setBinType.Duplicate)
-                    setClassFldsConst.Append("\t//Multiple Type Bin");
-                if (!setBinType.FndAllRecs)
-                    setClassFldsConst.Append("\t//Bin not found in all records");
-
-                setClassFldsConst.AppendLine();
-
-                fldSeen.Add(setBinType.BinName);
-            }
-
-            foreach (var sidx in this.SIndexes)
+            var generateSIdxTask = Task.Run(() =>
             {
-                var idxDataType = alwaysUseAValues
-                                    ? typeof(AValue)
-                                    : bins.FirstOrDefault(b => b.BinName == sidx.Bin && !b.Duplicate).DataType;
+                foreach (var sidx in this.SIndexes)
+                {
+                    var idxDataType = alwaysUseAValues
+                                        ? typeof(AValue)
+                                        : bins.FirstOrDefault(b => b.BinName == sidx.Bin && !b.Duplicate).DataType;
 
-                idxProps.AppendLine(sidx.GenerateCode(idxDataType));
-            }
+                    idxProps.AppendLine(sidx.GenerateCode(idxDataType));
+                }
+            });
 
+            Task.WaitAll(generateBinsTask, generateSIdxTask);
 
             var settClasses = $@"
 	public class {this.SafeName}_SetCls : Aerospike.Database.LINQPadDriver.Extensions.SetRecords<{this.SafeName}_SetCls.RecordCls>
@@ -271,7 +322,11 @@ namespace Aerospike.Database.LINQPadDriver
 	public {this.SafeName}_SetCls {this.SafeName} {{ get => new {this.SafeName}_SetCls(this); }}"
             ; //End of property string
 
-            return (settClasses, setProps);
+            this.CodeCache = (settClasses, setProps, null);
+            Interlocked.Exchange(ref nbrCodeUpdates, 0);
+            Interlocked.Decrement(ref ANamespace.nbrCodeUpdates);
+
+            return CodeCache;
         }
 
         #endregion

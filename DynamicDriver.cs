@@ -338,7 +338,7 @@ namespace {nameSpace}
 
 			Parallel.ForEach(_Connection.Namespaces, ns =>
 			{
-				var (nsClass, nsProp, nsInstance) = ns.GenerateCode(alwaysUseAValues);
+				var (nsClass, nsProp, nsInstance) = ns.CodeGeneration(alwaysUseAValues);
 
 				nsStack.Push( (nsClass, nsProp, nsInstance) );
 			});
@@ -379,21 +379,17 @@ namespace {nameSpace}
 																					ExplorerIcon.Column)));                
             }
             else
-			{
-				var binsSet = _Connection.SetBins?
-									.FirstOrDefault(b => b.nsName == ns.Name && b.setname == set.Name)
-									.Item3;
-
-				if (binsSet == null) return items;
+			{				
+				if (!set.BinTypes.Any()) return items;
 				
-				items.AddRange(binsSet
-									.OrderBy(b => b.bin)
-									.Select(b => new ExplorerItem($"{b.bin} ({GetBinTypeDupIndicator(b.type, b.dup, !b.inAllRecs)})",
+				items.AddRange(set.BinTypes
+									.OrderBy(b => b.BinName)
+									.Select(b => new ExplorerItem($"{b.BinName} ({GetBinTypeDupIndicator(b.DataType, b.Duplicate, !b.FndAllRecs)})",
 																	ExplorerItemKind.Schema,
 																	ExplorerIcon.Column)
 													{
 														IsEnumerable = false,
-														DragText = b.bin
+														DragText = b.BinName
 													}
 				));				
 			}

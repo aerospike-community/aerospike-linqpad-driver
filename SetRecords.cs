@@ -20,11 +20,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         where T : ARecord
     {
         #region Constructors
-        public SetRecords([NotNull] ASet explorerSet,
+        public SetRecords([NotNull] ASet lpSet,
                             [NotNull] ANamespaceAccess setAccess,
                             [NotNull] string setName,
                             params string[] bins)
-            : base(explorerSet, setAccess, setName, bins)
+            : base(lpSet, setAccess, setName, bins)
+        { }
+
+        public SetRecords([NotNull] ANamespaceAccess setAccess,
+                           [NotNull] string setName,
+                           params string[] bins)
+           : base(setAccess, setName, bins)
         { }
 
         public SetRecords([NotNull] SetRecords<T> clone)
@@ -548,18 +554,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     public class SetRecords : IEnumerable<ARecord>, IEquatable<ARecord>, IEquatable<SetRecords>
     {
         #region Constructors
-        public SetRecords([NotNull] ASet explorerSet,
+        public SetRecords([NotNull] ASet lpSet,
                             [NotNull] ANamespaceAccess setAccess, 
                             [NotNull] string setName,
                             params string[] bins)
+            : this(setAccess, setName, bins) 
         {
-            this.LinqPadSet = explorerSet;
+            this.LinqPadSet = lpSet;            
+        }
+
+        public SetRecords([NotNull] ANamespaceAccess setAccess,
+                            [NotNull] string setName,
+                            params string[] bins)
+        {            
             this.SetName = setName;
             this.SetAccess = setAccess;
-            this.SetFullName = $"{this.Namespace}.{this.SetName}";            
+            this.SetFullName = $"{this.Namespace}.{this.SetName}";
             this._bins = Helpers.RemoveDups(bins);
 
-            this.DefaultWritePolicy = new WritePolicy(this.SetAccess.DefaultWritePolicy);                        
+            this.DefaultWritePolicy = new WritePolicy(this.SetAccess.DefaultWritePolicy);
             this.DefaultReadPolicy = new Policy(this.SetAccess.DefaultReadPolicy);
             this.DefaultQueryPolicy = new QueryPolicy(this.SetAccess.DefaultQueryPolicy);
             this.DefaultRecordView = this.SetAccess.AerospikeConnection.RecordView;
@@ -584,6 +597,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         #region Settings, Record State, etc.
 
         public ASet LinqPadSet { get; }
+
+        internal bool TryAddBin(string binName, Type dataType, bool updateNamespace)
+        {
+            var added = this.LinqPadSet?.AddBin(binName, dataType ?? typeof(AValue)) ?? false;
+
+            if (updateNamespace)
+                added = this.SetAccess.TryAddBin(binName) || added;
+            
+            if (this._bins.Length == 0)
+            {
+                if (this.BinNames.Contains(binName)) return added;
+                this._bins = this.SetAccess.BinNames;
+            }
+
+            this._bins = this._bins.Append(binName).ToArray();
+            this._binsHashCode = 0;
+
+            return true;
+        }
 
         /// <summary>
         /// Sets how records are displayed using the LinqPad <see cref="LINQPad.Extensions.Dump{T}(T)"/> method.
