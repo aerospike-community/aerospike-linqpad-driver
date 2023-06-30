@@ -8,9 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.IO;
-using static Aerospike.Client.Value;
 using Newtonsoft.Json.Linq;
-using System.Windows.Data;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {

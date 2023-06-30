@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver

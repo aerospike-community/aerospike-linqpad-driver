@@ -5,8 +5,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Aerospike.Database.LINQPadDriver.Extensions;
-using System.Threading.Tasks;
-using static Aerospike.Database.LINQPadDriver.LPSet;
 
 namespace Aerospike.Database.LINQPadDriver
 {

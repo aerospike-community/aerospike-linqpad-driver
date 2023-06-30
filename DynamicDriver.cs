@@ -10,12 +10,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Aerospike.Database.LINQPadDriver.Extensions;
-using System.Runtime.Intrinsics.X86;
-using System.Windows.Markup;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using System.Threading;
-using Aerospike.Client;
 
 namespace Aerospike.Database.LINQPadDriver
 {

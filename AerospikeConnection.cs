@@ -8,14 +8,8 @@ using System.Linq;
 using System.Diagnostics;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.VisualBasic;
-using System.Configuration;
 using System.Text.RegularExpressions;
-using System.DirectoryServices.ActiveDirectory;
-using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using LINQPad.Internal;
 
 namespace Aerospike.Database.LINQPadDriver
 {
