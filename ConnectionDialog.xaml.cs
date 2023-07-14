@@ -206,11 +206,11 @@ namespace Aerospike.Database.LINQPadDriver
                 try
                 {
                     connection = new AerospikeConnection(_cxInfo);
-                    connection.Open(false);
+                    connection.ObtainMetaDate(false);
 
                     messageBoxText = $@"
 Cluster Name: ""{_cxInfo.DatabaseInfo.Database}""
-DB Version: {_cxInfo.DatabaseInfo.Provider}
+DB Version: {_cxInfo.DatabaseInfo.DbVersion}
 Nodes: {connection.Nodes.Length}
 Namespaces: {connection.Namespaces.Count()}
 Sets: {connection.Namespaces.Sum(n => n.Sets.Count())}
@@ -236,33 +236,13 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
 ";
                     }                   
                 }
-                finally
-                {
-                    if (connection != null)
-                    {
-                        try
-                        {
-                            connection.Close();
-                        }
-                        catch { }
-                    }
-                }
-
+                
                 waitCursor?.Dispose();
                 waitCursor = null;
                 MessageBox.Show(this, messageBoxText, caption, button, icon, MessageBoxResult.OK);
             }
             finally
-            {
-                if (connection != null)
-                {
-                    try
-                    {
-                        connection.Dispose();
-                        connection = null;
-                    }
-                    catch { }
-                }
+            {                
                 waitCursor?.Dispose();
             }
         }
@@ -314,7 +294,7 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
 
         public override ValidationResult Validate(object value, CultureInfo cultureInfo)
         {
-            int nValue = -1;
+            int nValue;
 
             if(value  is null) 
             {
@@ -369,7 +349,7 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
         }
     }
 
-    public class WaitCursor : IDisposable
+    public sealed class WaitCursor : IDisposable
     {
         private readonly Cursor previousCursor;
 

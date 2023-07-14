@@ -3,20 +3,21 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Linq;
 
 namespace Aerospike.Database.LINQPadDriver
 {
     /// <summary>
     /// A class used to represent Aerospike UDG Modules
     /// </summary>
-    public sealed class AModule
+    public sealed class LPModule
     {
         public enum Types
         {
             LUA
         }
         
-        public AModule(string name,
+        public LPModule(string name,
                         string type,
                         string hash)
         {
@@ -26,6 +27,23 @@ namespace Aerospike.Database.LINQPadDriver
             this.Hash = hash;
             this.PackageName = Path.GetFileNameWithoutExtension(name);
             this.SafePackageName = Helpers.CheckName(this.PackageName, "Pkg");
+        }
+      
+        public LPModule(string name,
+                        string safename,
+                        Types type,
+                        string hash,
+                        string packagename,
+                        string safepackagenamne,
+                        IEnumerable<LPUDF> udfs)
+        {
+            this.Name = name;
+            this.SafeName = safename;
+            this.Type = type;
+            this.Hash = hash;
+            this.PackageName = packagename;
+            this.SafePackageName = safepackagenamne;
+            this.UDFs = udfs.ToArray();
         }
 
         /// <summary>
@@ -56,16 +74,15 @@ namespace Aerospike.Database.LINQPadDriver
         /// <summary>
         /// All associated UDFs in the module
         /// </summary>
-        public AUDF[] UDFs { get; private set; }
+        public LPUDF[] UDFs { get; private set; }
 
         public static readonly Regex ModuleRegEx = new Regex(@"filename\s*=\s*(?<filename>[^,;]+)((,|;)\s*hash\s*=\s*(?<hash>[^,;]+)(,|;)\s*type\s*=\s*(?<type>[^,;]+))",
                                                                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        public static IEnumerable<AModule> Create(Connection connection)
+        public static IEnumerable<LPModule> Create(Connection connection)
         {            
-            var modules = new List<AModule>();
-            var udfs = new List<AUDF>();
-
+            var modules = new List<LPModule>();
+            
             /*
              * filename=record_example.lua,hash=f1070efb0343c3b5296175eb3da6a6d9c5148a2e,type=LUA;filename=average_example.lua,hash=cfbd1d1aeb2c4a47687058673296ec36b14ebec2,type=LUA;filename=filter_example.lua,hash=289f38fb9f8afefd3d02f58c79763b0408ae88e3,type=LUA;
              */
@@ -79,10 +96,10 @@ namespace Aerospike.Database.LINQPadDriver
                 var type = udflistMatch.Groups["type"].Value;
                 var hash = udflistMatch.Groups["hash"].Value;
 
-                var module = new AModule(name, type, hash);
+                var module = new LPModule(name, type, hash);
                 modules.Add(module);
 
-                module.UDFs = AUDF.Create(connection, module);
+                module.UDFs = LPUDF.Create(connection, module);
             }
 
 

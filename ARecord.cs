@@ -11,7 +11,6 @@ using LPU = LINQPad.Util;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System.Windows.Input;
 using System.IO;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions

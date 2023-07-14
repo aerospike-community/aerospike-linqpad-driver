@@ -4,7 +4,7 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <DisplayName>Aerospike Cluster (Local)</DisplayName>
+    <DisplayName>Aerospike Cluster (Demo)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
@@ -15,7 +15,7 @@
 </Query>
 
 /*
-This program will read the CustInvsDoc (Customer-Invoice documents) set and cast the result into a .Net list of user defined classes by means of the driver’s ORM.
+This program will read the CustInvsDoc (Customer-Invoice documents) set (create in "Create CustInvsDoc set" script) and cast the result into a .Net list of user defined classes by means of the driver’s ORM.
      
 Note: this is not meant to be used in a production environment and there can be performance implications using this LinqPad driver!  
 */
@@ -28,7 +28,7 @@ void Main()
 							.AsEnumerable()
 							.Select(cid => cid.Cast<Customer>(cid.PK)).ToArray();
 
-	customerInvoices.Dump("Customer Invoices as POCO", 0);
+	customerInvoices.Dump("Customer Invoices (class) as POCO", 0);
 	
 	
 	if(reWriteAsDiffPK)
@@ -43,7 +43,8 @@ void Main()
 			newRecs.Add(newPK); //Removed new record later...
 		}
 		
-		Demo.CustInvsDoc.Dump("Customer Invoices From DB (rewritten)", 0);
+		//Note that bin "Company"is present in the DB but not present as a property in the Customer Class
+		Demo.CustInvsDoc.Dump("Customer Invoices Docs set From DB (rewritten)", 1);
 
 		LINQPad.Util.ReadLine("Press <Enter> to continue and remove newly written records!".Dump());
 

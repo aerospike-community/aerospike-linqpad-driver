@@ -4,7 +4,7 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <DisplayName>Aerospike Cluster (Local)</DisplayName>
+    <DisplayName>Aerospike Cluster (Demo)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
@@ -17,7 +17,7 @@
 #load ".\POCO"
 
 /* 
-This will show how to use CDT/Json/Documents with the driver.
+This will show how to use CDT/Json/Documents with the driver. You can create the required set by running "Create CustInvsDoc set" script.
    
 Note: this is not meant to be used in a production environment and there can be performance implications using this LinqPad driver!  
 */
@@ -57,12 +57,15 @@ void Main()
 	var fndTrackIdsJPath = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
 						   where custInvoices.Invoices.ToJArray().SelectToken("$..Lines[?(@.TrackId == 2527)]") != null
 						   select custInvoices;
-	//fndTrackIdsJPath.Dump("Found Using Json Path");
+	fndTrackIdsJPath.Dump("Found Using Json Path");
 
-	// 1) add (append) a new invoice to the CustnvsDoc set Invoice bin list
-	// 2) Add 1 to that new invoice's Total,
-	// 3) remove the newly created invoice from the list (last item in the list)
 	{
+		//Using Aerospike CDT/Expressions
+
+		// 1) add (append) a new invoice to the CustnvsDoc set Invoice bin list
+		// 2) Add 1 to that new invoice's Total,
+		// 3) remove the newly created invoice from the list (last item in the list)
+		
 		var customer = fndTrackIdsJPath.First(); //Just use the first customer in fndTrackIdsJPath from above
 		var invoiceId = DateTime.Now.Ticks;
 		var invoiceLine = new InvoiceLine(invoiceId, 10, 1, 0.93m);
@@ -82,6 +85,7 @@ void Main()
 															invoice.ToAerospikeValue() //Need to make sure to convert the invoice instance into an Aerospike Map Value (ORM)
 								)) 
 								.Dump($"Append Result Using Aerospike Operate Expression for Customer {customer.Aerospike.PrimaryKey}");
+		
 		Demo.CustInvsDoc.Get(customer.Aerospike.PrimaryKey)
 				.Dump("Check Append Result (should be last item in the list of invoices)");
 
@@ -94,6 +98,7 @@ void Main()
 															Value.Get(1), //Add 1
 															CTX.ListIndex(-1) //Get last item in the list
 								)).Dump($"Add 1 to the \"Total\" of the Last Invoice Using Aerospike Operate Expression for Customer {customer.Aerospike.PrimaryKey}");
+		
 		Demo.CustInvsDoc.Get(customer.Aerospike.PrimaryKey)
 				.Dump("Check Adding 1 to Total Result (should be last item in the list of invoices)");
 
@@ -104,6 +109,7 @@ void Main()
 																	ListReturnType.VALUE //Return removed item
 																)) 
 									.Dump($"Remove Last Invoice Result Using Aerospike Operate Expression for Customer {customer.Aerospike.PrimaryKey}");
+		
 		Demo.CustInvsDoc.Get(customer.Aerospike.PrimaryKey)
 				.Dump("Check Removing of the Last Item Result");				
 	}
@@ -115,7 +121,6 @@ void Main()
 	
 	//Load Json from a MongoDB collection and put it into an Aerospike Set called jsonTest
 	Demo.Truncate("jsonTest");
-	Demo.RefreshSet("jsonTest");
 	
 	JSONValues.MonogoDB.Dump("MongoDB Json String", 0);
 	
@@ -123,6 +128,7 @@ void Main()
 					JSONValues.MonogoDB, //Json String
 					pkPropertyName: "_id" //The Primary Key's associated Property Name in Json.
 				).Dump("Number of Records Inserted");
+				
 	Demo.GetRecords("jsonTest").Dump("Newly inserted records in the Json Set");
 	
 	//Return the Json from the newly updated set...

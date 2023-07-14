@@ -4,7 +4,7 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <DisplayName>Aerospike Cluster (Local)</DisplayName>
+    <DisplayName>Aerospike Cluster (Demo)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
@@ -59,8 +59,7 @@ void Main()
 																				
 		//Put the new customer with invoice record into the DB. The driver will transform the dictionary into bins plus 
 		//takes the invoice collection and transforms this into an Aerospike collection (document). 
-		Demo.Put(setName, ciRecords.Customer.PK, customerDict, refreshOnNewSet: false);		
+		Demo.Put(setName, ciRecords.Customer.PK, customerDict);		
 	}
 	
-	Demo.RefreshSet(setName);
 }

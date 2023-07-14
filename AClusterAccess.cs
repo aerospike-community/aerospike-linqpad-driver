@@ -65,8 +65,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="importJSONFile">The JSON file where the JSON will be written</param>
         /// <param name="writePolicy">The write policy</param>
         /// <returns>The number of records imported</returns>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>        
         public int Import([NotNull] string nameSpace,
                             [NotNull] string setName,
@@ -91,8 +91,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             item.Values.Select(v => new Client.Bin(v.Key, v.Value)).ToArray());
             }
 
-            Helpers.CheckForNewSetNameRefresh(nameSpace, setName, true);
-
             return jsonStructs.Length;
         }
 
@@ -102,8 +100,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="importJSONFile">The JSON file where the JSON will be written</param>
         /// <param name="writePolicy">The write policy</param>
         /// <returns>The number of records imported</returns>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>        
         public int Import([NotNull] string importJSONFile,
                             WritePolicy writePolicy = null)
@@ -125,8 +123,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             key,
                                             item.Values.Select(v => new Client.Bin(v.Key, v.Value)).ToArray());
             }
-
-            Helpers.CheckForNewSetNameRefresh(null, null, true);
 
             return jsonStructs.Length;
         }

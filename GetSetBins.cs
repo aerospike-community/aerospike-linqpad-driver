@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Aerospike.Database.LINQPadDriver.Extensions;
-using System.Threading.Tasks;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -121,14 +120,11 @@ namespace Aerospike.Database.LINQPadDriver
             return (binName, GetdocType(binValue, determineDocType));
         }
         
-        public IEnumerable<(string name, 
-                                        Type type,
-                                        bool duplicate, 
-                                        bool inAllRecs)> Get(string nsName, 
-                                                                string setName,
-                                                                bool determineDocType, 
-                                                                int maxRecords,
-                                                                int minRecs)
+        public List<LPSet.BinType> Get(string nsName, 
+                                        string setName,
+                                        bool determineDocType, 
+                                        int maxRecords,
+                                        int minRecs)
         {
             if (maxRecords > 0)
                 try
@@ -143,14 +139,14 @@ namespace Aerospike.Database.LINQPadDriver
                                     .GroupBy(x => x)
                                     .Select(y => (y.Key.name, y.Key.type, y.Count()))
                                     .GroupBy(y => y.name)
-                                    .SelectMany(x => x.Select(i => (i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs))).ToArray();
+                                    .SelectMany(x => x.Select(i => new LPSet.BinType(i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs))).ToList();
                     }
                 }
                 catch
                 {                    
                 }
 
-            return Enumerable.Empty<(string name, Type type, bool duplicate, bool inAllRecs)>();
+            return new List<LPSet.BinType>(0);
         }
     }
 }

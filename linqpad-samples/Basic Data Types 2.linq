@@ -4,8 +4,7 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <DisplayName>Aerospike Cluster (Local)</DisplayName>
-    <Persist>true</Persist>
+    <DisplayName>Aerospike Cluster (Demo)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
@@ -24,9 +23,7 @@ Note: this is not meant to be used in a production environment and there can be 
 
 */
 void Main()
-{
-	var demoSet = "DataTypes"; //The name os the set in the Demo nameospace.
-	
+{	
 	Demo.DataTypes.Dump("DataTypes Set");
 	
 	//We are going to add a row where "BinA" will now contain a list (currently has double and string values)

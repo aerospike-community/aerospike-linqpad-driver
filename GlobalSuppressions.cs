@@ -5,7 +5,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>", Scope = "member", Target = "~M:Aerospike.Database.LINQPadDriver.ConnectionDialog.btnOK_Click(System.Object,System.Windows.RoutedEventArgs)")]
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>", Scope = "member", Target = "~M:Aerospike.Database.LINQPadDriver.ConnectionDialog.btnCertFile_Click(System.Object,System.Windows.RoutedEventArgs)")]
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>", Scope = "member", Target = "~M:Aerospike.Database.LINQPadDriver.ConnectionDialog.cbAllDTNumeric_Checked(System.Object,System.Windows.RoutedEventArgs)")]
-[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>", Scope = "member", Target = "~M:Aerospike.Database.LINQPadDriver.ConnectionDialog.lbProtocols_Checked(System.Object,System.Windows.RoutedEventArgs)")]
+[assembly: SuppressMessage("Style", "IDE1006:Naming Styles", Scope = "module")]
+[assembly: SuppressMessage("Style", "IDE0090:Use 'new(...)'", Scope = "module")]
+[assembly: SuppressMessage("Usage", "CA2211:Non-constant fields should not be visible", Scope = "module")]

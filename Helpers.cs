@@ -13,10 +13,6 @@ using Newtonsoft.Json.Linq;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using LPEDC = LINQPad.Extensibility.DataContext;
 using System.Runtime.InteropServices;
-using static Aerospike.Client.Value;
-using System.Collections.Specialized;
-using System.Runtime.CompilerServices;
-using System.CodeDom;
 
 namespace Aerospike.Client
 {
@@ -82,7 +78,7 @@ namespace Aerospike.Client
                 }
         }
 
-        public static T Cast<T>(this Bin bin) => bin is null ? default : (T) Helpers.CastToNativeType(bin.name, typeof(T), bin.name, bin.value.Object);
+        public static T Cast<T>(this Bin bin) => (T) Helpers.CastToNativeType(bin.name, typeof(T), bin.name, bin.value.Object);
         public static T Cast<T>(this Value value) => value is null ? default : (T) Helpers.CastToNativeType("Value", typeof(T), "Value", value.Object);
 
         public static AValue ToAValue(this Bin bin) => new AValue(bin);
@@ -1734,23 +1730,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             return (T)instance;
         }
-
-        public static bool CheckForNewSetNameRefresh(string namespaceName, string setName, bool forceRefresh = false)
-        {
-            var ns = DynamicDriver._Connection?.Namespaces?.FirstOrDefault(n => n.Name == namespaceName);
-            var refresh = ns is null;
-
-            if (!forceRefresh && !string.IsNullOrEmpty(setName) && !refresh)
-            {
-                refresh = !ns.Sets.Any(s => s.Name == setName);
-            }
-
-            if (forceRefresh || refresh)
-                DynamicDriver.UpdateSchemaExplorerVersion();
-
-            return forceRefresh || refresh;
-        }
-
+        
         public static Client.Key DetermineAerospikeKey(dynamic primaryKey, string nameSpace, string setName)
         {
             Client.Key key;
@@ -1777,7 +1757,7 @@ namespace Aerospike.Database.LINQPadDriver
             else if (primaryKey is Value value)
                 key = new Client.Key(nameSpace, setName, value);
             else if (primaryKey is byte[] digest)
-                key = new Client.Key(nameSpace, digest, setName, Value.NULL);
+                key = new Client.Key(nameSpace, digest, setName, Value.AsNull);
             else
                 key = new Client.Key(nameSpace, setName, Value.Get(primaryKey));
 
@@ -1951,5 +1931,43 @@ namespace Aerospike.Database.LINQPadDriver
                                                         || checkType == typeof(JToken)
                                                         || checkType == typeof(JArray)
                                                         || checkType == typeof(JsonDocument);
+
+        public static string ToLiteral(string input)
+        {
+            StringBuilder literal = new StringBuilder(input.Length + 2);
+            literal.Append("\"");
+            foreach (var c in input)
+            {
+                switch (c)
+                {
+                    case '\"': literal.Append("\\\""); break;
+                    case '\\': literal.Append(@"\\"); break;
+                    case '\0': literal.Append(@"\0"); break;
+                    case '\a': literal.Append(@"\a"); break;
+                    case '\b': literal.Append(@"\b"); break;
+                    case '\f': literal.Append(@"\f"); break;
+                    case '\n': literal.Append(@"\n"); break;
+                    case '\r': literal.Append(@"\r"); break;
+                    case '\t': literal.Append(@"\t"); break;
+                    case '\v': literal.Append(@"\v"); break;
+                    default:
+                        literal.Append(c);
+                        // ASCII printable character
+                        /*if (c >= 0x20 && c <= 0x7e)
+                        {
+                            literal.Append(c);
+                            // As UTF16 escaped character
+                        }
+                        else
+                        {
+                            literal.Append(@"\u");
+                            literal.Append(((int)c).ToString("x4"));
+                        }*/
+                        break;
+                }
+            }
+            literal.Append("\"");
+            return literal.ToString();
+        }
     }
 }

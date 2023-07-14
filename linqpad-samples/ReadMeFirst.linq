@@ -4,8 +4,7 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <DisplayName>Aerospike Cluster (Local)</DisplayName>
-    <Persist>true</Persist>
+    <DisplayName>Aerospike Cluster (Demo)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
@@ -19,7 +18,7 @@
 /* 
 This LINQPad script will create the Aerospike sets needed to run the different sample script. 
 
-For this to be able to run correctly, you are required to create an Aerospike namepsace named "Demo". Also, the LINQPad connection object (“Aerospike Cluster (Local)”) will need to be modified to point to your Aerospike cluster if it is not running locally. To modify the Aerospike connection, right-click and select properties. The connection dialog, also, has a “Test” feature to ensure you are able to connect to the cluster.
+For this to be able to run correctly, you are required to create an Aerospike namepsace named "Demo". Also, the LINQPad connection object (“Aerospike Cluster (Demo)”) will need to be modified to point to your Aerospike cluster if it is not running locally. To modify the Aerospike connection, right-click and select properties. The connection dialog, also, has a “Test” feature to ensure you are able to connect to the cluster.
 
 To create an Aerospike namespace, follow the instructions in this link:
 https://docs.aerospike.com/server/operations/manage/namespaces 
@@ -48,6 +47,6 @@ void Main()
 	//Import Aerospike Set Records...	
 	Demo.Import(LINQPad.Util.GetFullPath("aerospike.json"))
 		.Dump("Number of Records Imported");
-	Demo.RefreshSet(null);
+	Demo.Sets.Select(s => s.SetName).Dump("Sets in Demo Namespace");
 }
 

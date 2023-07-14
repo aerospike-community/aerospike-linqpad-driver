@@ -4,8 +4,7 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <DisplayName>Aerospike Cluster (Local)</DisplayName>
-    <Persist>true</Persist>
+    <DisplayName>Aerospike Cluster (Demo)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
@@ -43,7 +42,7 @@ Note: this is not meant to be used in a production environment and there can be 
 void Main()
 {
 
-	var demoSet = "DataTypes"; //The name os the set in the Demo nameospace.
+	var demoSet = "DataTypes"; //The name of the set in the Demo nameospace.
 
 	//Remove all records from the demo set.
 	Demo.Truncate(demoSet);
@@ -115,6 +114,4 @@ void Main()
 	
 	Demo[demoSet].Where(x => x["BinA"] == "10.01" || x["BinB"] == "1001").Dump("\"BinA == \"10.01\" || BinB == \"1001\"\" Records using Where");
 	Demo[demoSet].Query(Exp.Or(Exp.EQ(Exp.StringBin("BinA"), Exp.Val("10.01")), Exp.EQ(Exp.StringBin("BinB"), Exp.Val("1001")))).Dump("\"BinA == \"10.01\" || BinB == \"1001\"\" Records using Expressions");
-
-	Demo.RefreshSet(demoSet);
 }
