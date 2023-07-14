@@ -4,7 +4,7 @@
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
     <Server>localhost</Server>
-    <DisplayName>Aerospike Cluster (Local)</DisplayName>
+    <DisplayName>Aerospike Cluster (Demo)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
       <Debug>false</Debug>
@@ -30,8 +30,6 @@ Note that you can always force a refresh of the cluster by right clicking on the
 */
 void Main()
 {
-	//Refresh schema for set...
-	Demo.RefreshSet("Artist");
 	
 	Demo.Artist.Get(188).Dump("Artist 188 Before Adding a new Bin to the Record");
 	
@@ -47,5 +45,5 @@ void Main()
 	
 	Demo.Customer.Get(20).Dump("This Customer's Record doesn't actual have a \"Company\" nor \"Fax\" bins since their values are null");
 	
-	Demo.Customer.ChangeRecordView(ARecord.DumpTypes.Dynamic).Get(20).Dump("By changing the display view to Dynamic, we can see the actual bins in this record via the \"Values\" column in the display grid");
+	Demo.Customer.ChangeRecordView(ARecord.DumpTypes.Dynamic).Get(20).Dump("By changing the display view to Dynamic, we can see the actual bins returned from the DB in this record via the \"Values\" column in the display grid");
 }

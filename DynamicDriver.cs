@@ -12,6 +12,7 @@ using System.Text;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -19,8 +20,7 @@ namespace Aerospike.Database.LINQPadDriver
 	{
 		static internal volatile AerospikeConnection _Connection;
         static internal object ConnectionLock = new object();
-		const string AppDataKey = "Aerospike_LiinqPad_Driver_Connection";
-
+		
         static DynamicDriver()
 		{
             // Uncomment the following code to attach to Visual Studio's debugger when an exception is thrown:
@@ -39,8 +39,7 @@ namespace Aerospike.Database.LINQPadDriver
 
 		public override string GetConnectionDescription (IConnectionInfo cxInfo)
 		{
-			var connection = GetConnection();
-			if(connection != null)
+			if(string.IsNullOrEmpty(cxInfo?.DatabaseInfo?.Database))
 			{
 				return $"Aerospike Cluster {cxInfo.DatabaseInfo.Database}";
             }
@@ -59,15 +58,10 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 connection = _Connection;
 
-                if (connection == null)
+				if (connection is null)
                 {
-                    connection = _Connection = (AerospikeConnection)AppDomain.CurrentDomain.GetData(AppDataKey);
-                    if (connection == null)
-                    {
-						connection = _Connection = new AerospikeConnection(cxInfo);
-                        AppDomain.CurrentDomain.SetData(AppDataKey, connection);
-                    }
-                }
+					connection = _Connection = new AerospikeConnection(cxInfo);                    
+                }                
 
                 if (openIfClosed && connection.State != ConnectionState.Open)
                 {
@@ -78,26 +72,13 @@ namespace Aerospike.Database.LINQPadDriver
 			return connection;
         }
 
-        static AerospikeConnection GetConnection(bool setToStaticConnection = false)
+        static AerospikeConnection GetConnection()
         {
-            AerospikeConnection connection;
-			lock (ConnectionLock)
+            lock (ConnectionLock)
             {
-                connection = _Connection;
-
-                if (connection == null)
-                {
-                    connection = (AerospikeConnection)AppDomain.CurrentDomain.GetData(AppDataKey);
-                    if (setToStaticConnection)
-					{                        
-                        _Connection = connection;
-					}
-                }
+                return _Connection;
             }
-
-            return connection;
         }
-
 
         /// <summary>This virtual method is called after a data context object has been instantiated, in
         /// preparation for a query. You can use this hook to perform additional initialization work.
@@ -129,8 +110,7 @@ namespace Aerospike.Database.LINQPadDriver
         public override void ClearConnectionPools(IConnectionInfo cxInfo)
         {
 			GetConnection()?.Dispose();
-			AppDomain.CurrentDomain.SetData(AppDataKey, null);
-            _Connection = null;
+			_Connection = null;
 
 			base.ClearConnectionPools (cxInfo);
         }
@@ -141,9 +121,10 @@ namespace Aerospike.Database.LINQPadDriver
         public override void OnQueryFinishing(IConnectionInfo cxInfo, object context,
 												QueryExecutionManager executionManager)
         {
-            System.Diagnostics.Debugger.Launch();
-            if (_Connection?.Namespaces.Any(n => n.CodeNeedsUpdating) ?? false) 
-			{				
+            //System.Diagnostics.Debugger.Launch();
+            if (_Connection?.Namespaces?.Any(n => n.CodeNeedsUpdating) ?? Interlocked.Read(ref ANamespaceAccess.ForceExplorerRefresh) > 0) 
+			{
+				Interlocked.Exchange(ref ANamespaceAccess.ForceExplorerRefresh, 0);
 				cxInfo.ForceRefresh();
 			}
 
@@ -259,13 +240,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
 			return items;			
 		}
-
-		/*public override IDbConnection GetIDbConnection(IConnectionInfo cxInfo)
-		{
-			//Debugger.Launch();
-            return new AerospikeConnection(cxInfo);
-		}*/
-
+		
 		public override IEnumerable<string> GetAssembliesToAdd(IConnectionInfo cxInfo)
 		{
 			return new[] { typeof(Aerospike.Client.Connection).Assembly.Location, typeof(Newtonsoft.Json.Linq.JObject).Assembly.Location };
@@ -342,11 +317,11 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
             var namespaceProps = new StringBuilder();
             var namespaceConstruct = new StringBuilder();
 
-			foreach((string classes, string props, string constructs) nsItem in nsStack)
+			foreach((string classes, string props, string constructs) in nsStack)
 			{
-				namespaceClasses.AppendLine(nsItem.classes);
-				namespaceProps.AppendLine(nsItem.props);
-				namespaceConstruct.AppendLine(nsItem.constructs);
+				namespaceClasses.AppendLine(classes);
+				namespaceProps.AppendLine(props);
+				namespaceConstruct.AppendLine(constructs);
 			}
 
             return new Tuple<StringBuilder, StringBuilder, StringBuilder>(namespaceClasses, namespaceProps, namespaceConstruct);
@@ -633,13 +608,13 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 														DragText = null,
 														ToolTipText= cxInfo.DatabaseInfo.Database
 													},
-									new ExplorerItem($"DB Version {cxInfo.DatabaseInfo.Provider}",
+									new ExplorerItem($"DB Version {cxInfo.DatabaseInfo.DbVersion}",
 														ExplorerItemKind.Parameter,
 														ExplorerIcon.ScalarFunction)
 													{
 														IsEnumerable = false,
 														DragText = null,
-														ToolTipText= cxInfo.DatabaseInfo.Provider
+														ToolTipText= cxInfo.DatabaseInfo.DbVersion
 													},
                                     new ExplorerItem($"Nodes ({connection.Nodes.Length})",
                                                         ExplorerItemKind.Category,

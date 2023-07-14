@@ -6,6 +6,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
@@ -36,7 +38,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public ANamespaceAccess(IDbConnection dbConnection, LPNamespace lpNamespace, string ns, string[] binNames)
             : this(dbConnection, ns, binNames)
         {
-            this.LinqPadNamespace = lpNamespace;
+            this.LPnamespace = lpNamespace;
         }
 
         public ANamespaceAccess(ANamespaceAccess clone, Expression expression)
@@ -54,22 +56,19 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultReadPolicy = new QueryPolicy(this.DefaultQueryPolicy);
         }
 
+        internal static long ForceExplorerRefresh = 0;
 
         /// <summary>
-        /// Refreshes the set name schema by querying the Aerospike DB. 
-        /// This function is not thread safe!!
-        /// </summary>
-        /// <param name="setName">The name of the set</param>
-        public void RefreshSet(string setName)
+        /// Refreshes the Connection Explorer
+        /// </summary>        
+        public static void RefreshExplorer()
         {
-            this.NamespaceRefresh(setName, true);
+            Interlocked.Increment(ref ForceExplorerRefresh);    
         }
 
-        private void NamespaceRefresh(string setName, bool forceRefresh)
-        {            
-            //Helpers.CheckForNewSetNameRefresh(this.Namespace, setName, forceRefresh);
-
-            //this.AddDynamicSet(setName);
+        internal static void UpdateExplorer()
+        {
+            Interlocked.Increment(ref ForceExplorerRefresh);
         }
 
         /// <summary>
@@ -100,10 +99,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if (recordSet == null)
             {
                 var binNames = bins?.Select(b => b.BinName).ToArray();
-                var lpSet = new LPSet(this.LinqPadNamespace, setName, bins);
+                var lpSet = new LPSet(this.LPnamespace, setName, bins);
                 var accessSet = new SetRecords(lpSet, this, setName, binNames);
 
-                this.LinqPadNamespace.TryAddSet(setName, bins);
+                this.LPnamespace?.TryAddSet(setName, bins);
 
                 lock (this)
                 {
@@ -124,6 +123,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         this.NullSet.TryAddBin(b.BinName, b.DataType, false);
                     }
                 }
+
+                UpdateExplorer();
+
                 return true;
             }
 
@@ -134,6 +136,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 if(this.NullSet != null)
                     result = this.NullSet.TryAddBin(b.BinName, b.DataType, false) || result;
             }
+
+            if(result)
+                UpdateExplorer();
 
             return result;
         }
@@ -147,7 +152,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return true;
         }
 
-        public LPNamespace LinqPadNamespace { get; }
+        public LPNamespace LPnamespace { get; }
 
         private List<SetRecords> _sets = new List<SetRecords>();
 
@@ -308,7 +313,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Put{T}(string, dynamic, string, IList{T}, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put{V}(string, dynamic, string, V, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="WriteObject{T}(string, dynamic, T, Func{string, string, object, bool, object}, string, WritePolicy, TimeSpan?)"/>
         public ARecord Get(string setName, dynamic primaryKey, params string[] bins)
         {
@@ -342,13 +347,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Time-to-live of the record. 
         /// If null (default), the TTL of <paramref name="record"/> is used.
         /// </param>
-        /// <param name="refreshOnNewSet">If true, the sets in the connection explorer are refreshed.</param>
         /// <seealso cref="Get(string, dynamic, string[])"/>
         public void Put([NotNull] ARecord record,
                             string setName = null,
                             WritePolicy writePolicy = null,
-                            TimeSpan? ttl = null,
-                            bool refreshOnNewSet = true)
+                            TimeSpan? ttl = null)
         {
             this.Put(setName ?? record.Aerospike.SetName,
                         record.Aerospike.Key,
@@ -596,7 +599,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Put{T}(string, dynamic, string, IList{T}, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put{V}(string, dynamic, string, V, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Get(string, dynamic, string[])"/>
         /// <exception cref="TypeAccessException">Thrown if cannot write <paramref name="instance"/></exception>
         public void WriteObject<T>(string setName,
@@ -874,7 +877,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="SetRecords.FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
-        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?)"/>
         /// <exception cref="KeyNotFoundException">
         /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 
         /// </exception>
@@ -1009,7 +1012,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
-        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?)"/>
         /// <exception cref="KeyNotFoundException">
         /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 
         /// </exception>

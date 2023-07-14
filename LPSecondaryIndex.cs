@@ -5,15 +5,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver
 {
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
     public sealed class LPSecondaryIndex
     {
-
-        [JsonConstructor]
+        
         public LPSecondaryIndex(string name, 
                                 LPNamespace aNamespace,
                                 LPSet set,

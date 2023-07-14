@@ -1,6 +1,4 @@
-﻿using Aerospike.Client;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.IO;
+using Aerospike.Client;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -558,7 +558,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             params string[] bins)
             : this(setAccess, setName, bins) 
         {
-            this.LinqPadSet = lpSet;            
+            this.LPset = lpSet;            
         }
 
         public SetRecords([NotNull] ANamespaceAccess setAccess,
@@ -579,7 +579,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public SetRecords([NotNull] SetRecords clone)
         {
-            this.LinqPadSet = clone.LinqPadSet;
+            this.LPset = clone.LPset;
             this.SetName = clone.SetName;
             this.SetAccess = clone.SetAccess;
             this._bins = clone._bins;
@@ -594,11 +594,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         #region Settings, Record State, etc.
 
-        public LPSet LinqPadSet { get; }
+        public LPSet LPset { get; }
 
         internal bool TryAddBin(string binName, Type dataType, bool updateNamespace)
         {
-            var added = this.LinqPadSet?.AddBin(binName, dataType ?? typeof(AValue)) ?? false;
+            var added = this.LPset?.AddBin(binName, dataType ?? typeof(AValue)) ?? false;
 
             if (updateNamespace)
                 added = this.SetAccess.TryAddBin(binName) || added;

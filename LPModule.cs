@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Linq;
-using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -29,8 +28,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.PackageName = Path.GetFileNameWithoutExtension(name);
             this.SafePackageName = Helpers.CheckName(this.PackageName, "Pkg");
         }
-
-        [JsonConstructor]
+      
         public LPModule(string name,
                         string safename,
                         Types type,

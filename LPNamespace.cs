@@ -8,7 +8,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -62,8 +61,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.bins = binNameSplit.Where(s => !s.Contains('=')).ToList();
             this.safeBins = this.Bins.Select(s => Helpers.CheckName(s, "Bin")).ToList();
         }
-
-        [JsonConstructor]
+       
         public LPNamespace(string name,
                             string safename,
                             IEnumerable<string> bins,
@@ -89,13 +87,13 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public string SafeName { get; }
 
-        private List<string> bins = new List<string>();
+        private readonly List<string> bins = new List<string>();
         /// <summary>
         /// The Actual DB Bin Names
         /// </summary>
         public IEnumerable<string> Bins { get => this.bins; }
 
-        private List<string> safeBins = new List<string> ();
+        private readonly List<string> safeBins = new List<string> ();
         /// <summary>
         /// Bin names that are safe to use as C# class name or properties.
         /// </summary>
@@ -176,14 +174,12 @@ namespace Aerospike.Database.LINQPadDriver
 
         #region Code Generation
 
-        [JsonIgnore]
         public (string classCode, string definePropCode, string createInstanceCode)
            CodeCache
         { get; private set; }
 
-        [JsonIgnore]
+        
         internal long nbrCodeUpdates = 0;
-        [JsonIgnore]
         public bool CodeNeedsUpdating { get => Interlocked.Read(ref nbrCodeUpdates) > 0; }
 
         /// <summary>

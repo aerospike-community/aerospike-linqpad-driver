@@ -210,7 +210,7 @@ namespace Aerospike.Database.LINQPadDriver
 
                     messageBoxText = $@"
 Cluster Name: ""{_cxInfo.DatabaseInfo.Database}""
-DB Version: {_cxInfo.DatabaseInfo.Provider}
+DB Version: {_cxInfo.DatabaseInfo.DbVersion}
 Nodes: {connection.Nodes.Length}
 Namespaces: {connection.Namespaces.Count()}
 Sets: {connection.Namespaces.Sum(n => n.Sets.Count())}
@@ -349,7 +349,7 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
         }
     }
 
-    public class WaitCursor : IDisposable
+    public sealed class WaitCursor : IDisposable
     {
         private readonly Cursor previousCursor;
 

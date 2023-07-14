@@ -62,6 +62,7 @@ namespace Aerospike.Database.LINQPadDriver
                                                     this.CXInfo.IsProduction);
 
             cxInfo.DatabaseInfo.CustomCxString = this.ConnectionString;
+            cxInfo.DatabaseInfo.Provider = "Aerospike";
 
             this.SeedHosts = connectionInfo.SeedHosts
                                 .Select(s => new Host(s, dbPort))
@@ -253,8 +254,8 @@ namespace Aerospike.Database.LINQPadDriver
                                     this.Database = this.AerospikeClient.Cluster.GetStats().ToString();
                                 }
 
-                                this.CXInfo.DatabaseInfo.Provider = Info.Request(this.Connection, "version");
-
+                                this.CXInfo.DatabaseInfo.DbVersion = Info.Request(this.Connection, "version");
+                                 
                                 this.Namespaces = LPNamespace.Create(this.Connection);
 
                                 this.UDFModules = LPModule.Create(this.Connection);                               
@@ -470,16 +471,21 @@ namespace Aerospike.Database.LINQPadDriver
         private static Regex ConnectionStringKVPRegEx() => ConnectionStringKVPRegExVar;
 #endif
         public static bool CXInfoEquals(IConnectionInfo c1, IConnectionInfo c2)
-        {            
-            if(ReferenceEquals(c1, c2)) return true;
+        {
+            if (ReferenceEquals(c1, c2)) return true;
             if (c1.DisplayName == c2.DisplayName) return true;
 
             if (string.IsNullOrEmpty(c1.DatabaseInfo.CustomCxString)
-                    && string.IsNullOrEmpty(c2.DatabaseInfo.CustomCxString))
-                return false;
+                    || string.IsNullOrEmpty(c2.DatabaseInfo.CustomCxString))
+            {
+                return c1.DatabaseInfo.Provider == c2.DatabaseInfo.Provider
+                        && c1.DatabaseInfo.DbVersion == c2.DatabaseInfo.DbVersion
+                        && c1.DatabaseInfo.Server == c2.DatabaseInfo.Server
+                        && c1.DatabaseInfo.UserName == c2.DatabaseInfo.UserName
+                        && c1.IsProduction == c2.IsProduction
+                        && c1.DatabaseInfo.EncryptTraffic == c2.DatabaseInfo.EncryptTraffic;
+            }
 
-            if (string.IsNullOrEmpty(c1.DatabaseInfo.CustomCxString)) return false;
-            if (string.IsNullOrEmpty(c2.DatabaseInfo.CustomCxString)) return false;
             if (c1.DatabaseInfo.CustomCxString == c2.DatabaseInfo.CustomCxString) return true;
             
             var c1Hosts = ConnectionStringRegEx().Match(c1.DatabaseInfo.CustomCxString.ToUpperInvariant());

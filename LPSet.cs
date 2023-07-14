@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -14,8 +13,7 @@ namespace Aerospike.Database.LINQPadDriver
     public sealed class LPSet : IGenerateCode
     {        
         public class BinType
-        {
-            [JsonConstructor]
+        {            
             internal BinType(string name, Type type, bool dup, bool allRecs, bool detected = false)
             {
                 this.BinName = name;
@@ -31,8 +29,7 @@ namespace Aerospike.Database.LINQPadDriver
             public readonly bool FndAllRecs;
             /// <summary>
             /// True if the bin was found after the initial scan of the set.
-            /// </summary>
-            [JsonIgnore]
+            /// </summary>            
             public bool Detected { get; set; }
         }
 
@@ -42,7 +39,7 @@ namespace Aerospike.Database.LINQPadDriver
 
         public LPSet(LPNamespace aNamespace, string name)
         {
-            this.ANamespace = aNamespace;
+            this.LPnamespace = aNamespace;
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Set");
             SetsBag.Add(this);
@@ -50,7 +47,7 @@ namespace Aerospike.Database.LINQPadDriver
 
         public LPSet(LPNamespace aNamespace, string name, IEnumerable<BinType> binTypes)
         {
-            this.ANamespace = aNamespace;
+            this.LPnamespace = aNamespace;
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Set");
             this.binTypes = binTypes?.ToList() ?? new List<BinType>();
@@ -59,15 +56,14 @@ namespace Aerospike.Database.LINQPadDriver
 
         public LPSet(LPNamespace aNamespace)
         {
-            this.ANamespace = aNamespace;
+            this.LPnamespace = aNamespace;
             this.Name = NullSetName;
             this.SafeName = Helpers.CheckName(this.Name, "Set");
 
             this.IsNullSet = true;
             SetsBag.Add(this);
         }
-
-        [JsonConstructor]
+        
         public LPSet(LPNamespace anamespace,
                         string name,
                         string safename,
@@ -75,7 +71,7 @@ namespace Aerospike.Database.LINQPadDriver
                         IEnumerable<BinType> binTypes,
                         IEnumerable<LPSecondaryIndex> sindexes)
         {
-            this.ANamespace = anamespace;
+            this.LPnamespace = anamespace;
             this.Name = name;
             this.SafeName = safename;
             this.IsNullSet = isnullset;
@@ -84,7 +80,7 @@ namespace Aerospike.Database.LINQPadDriver
             SetsBag.Add(this);
         }
 
-        public LPNamespace ANamespace { get; }
+        public LPNamespace LPnamespace { get; }
 
         /// <summary>
         /// The DB Name of the Set
@@ -121,9 +117,9 @@ namespace Aerospike.Database.LINQPadDriver
         {
             lock (binTypes)
             {
-                this.binTypes = getBins.Get(this.ANamespace.Name, this.Name, determineDocType, maxRecords, minRecs);
+                this.binTypes = getBins.Get(this.LPnamespace.Name, this.Name, determineDocType, maxRecords, minRecs);
                 Interlocked.Increment(ref nbrCodeUpdates);
-                Interlocked.Increment(ref ANamespace.nbrCodeUpdates);
+                Interlocked.Increment(ref LPnamespace.nbrCodeUpdates);
             }
         }
 
@@ -137,21 +133,21 @@ namespace Aerospike.Database.LINQPadDriver
 
                 this.binTypes.Add(new BinType(binName, dataType, dup, false, true));
                 Interlocked.Increment(ref nbrCodeUpdates);
-                Interlocked.Increment(ref ANamespace.nbrCodeUpdates);
+                if(this.LPnamespace != null)
+                    Interlocked.Increment(ref this.LPnamespace.nbrCodeUpdates);
             }
 
             return dup; 
         }
 
         #region Code Generation
-
-        [JsonIgnore]
+        
         public (string classCode, string definePropCode, string createInstanceCode)
             CodeCache
         { get; private set; }
 
         private long nbrCodeUpdates = 0;
-        [JsonIgnore]
+        
         public bool CodeNeedsUpdating { get => Interlocked.Read(ref nbrCodeUpdates) > 0; }
 
         public (string setClassCode, string setDefinePropCode, string ignore) GenerateNoRecSet()
@@ -164,7 +160,7 @@ namespace Aerospike.Database.LINQPadDriver
             }
 
             Interlocked.Exchange(ref nbrCodeUpdates, 0);
-            Interlocked.Decrement(ref ANamespace.nbrCodeUpdates);
+            Interlocked.Decrement(ref LPnamespace.nbrCodeUpdates);
 
             return this.CodeCache = ($@"
         public class {SafeName}_SetCls : Aerospike.Database.LINQPadDriver.Extensions.SetRecords
@@ -294,7 +290,7 @@ namespace Aerospike.Database.LINQPadDriver
 	public class {this.SafeName}_SetCls : Aerospike.Database.LINQPadDriver.Extensions.SetRecords<{this.SafeName}_SetCls.RecordCls>
 	{{
 		public {this.SafeName}_SetCls (Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess setAccess)
-			: base(Aerospike.Database.LINQPadDriver.LPSet.GetSet(""{this.ANamespace.Name}"", ""{this.Name}""),
+			: base(Aerospike.Database.LINQPadDriver.LPSet.GetSet(""{this.LPnamespace.Name}"", ""{this.Name}""),
 						setAccess, 
 						""{this.Name}"",
 						bins: new string[] {{ {binsString} }})
@@ -344,7 +340,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             this.CodeCache = (settClasses, setProps, null);
             Interlocked.Exchange(ref nbrCodeUpdates, 0);
-            Interlocked.Decrement(ref ANamespace.nbrCodeUpdates);
+            Interlocked.Decrement(ref LPnamespace.nbrCodeUpdates);
 
             return CodeCache;
         }
@@ -353,9 +349,9 @@ namespace Aerospike.Database.LINQPadDriver
 
         public override string ToString()
         {
-            return this.ANamespace?.Name + '.' + this.Name;
+            return this.LPnamespace?.Name + '.' + this.Name;
         }
 
-        public static LPSet GetSet(string namespaceName, string setName) => SetsBag.FirstOrDefault(s => s.ANamespace.Name == namespaceName && s.Name == setName);
+        public static LPSet GetSet(string namespaceName, string setName) => SetsBag.FirstOrDefault(s => s.LPnamespace?.Name == namespaceName && s.Name == setName);
     }
 }
