@@ -72,7 +72,7 @@ namespace Aerospike.Database.LINQPadDriver
 			return connection;
         }
 
-        static AerospikeConnection GetConnection()
+        internal static AerospikeConnection GetConnection()
         {
             lock (ConnectionLock)
             {

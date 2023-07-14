@@ -61,9 +61,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Refreshes the Connection Explorer
         /// </summary>        
-        public static void RefreshExplorer()
+#pragma warning disable CA1822 // Mark members as static
+        public async void RefreshExplorer()
+#pragma warning restore CA1822 // Mark members as static
         {
-            Interlocked.Increment(ref ForceExplorerRefresh);    
+            await DynamicDriver.GetConnection()?.CXInfo?.ForceRefresh();
         }
 
         internal static void UpdateExplorer()
