@@ -263,15 +263,22 @@ namespace Aerospike.Database.LINQPadDriver
                                 #region Bins in Sets
                                 if (obtainBinsInSet)
                                 {
-                                    var getBins = new GetSetBins(this.AerospikeClient, this.SocketTimeout, this.NetworkCompression);
+                                    var getBins = new GetSetBins(this.AerospikeClient,
+                                                                    this.SocketTimeout,
+                                                                    this.NetworkCompression);
 
                                     foreach (var ns in this.Namespaces)
                                     {
                                         Parallel.ForEach(ns.Sets,
                                             (set, cancelationToken) =>
                                             {
-                                                if (!set.IsNullSet)
-                                                    set.GetRecordBins(getBins, this.DocumentAPI, this.DBRecordSampleSet, this.DBRecordSampleSetMin);
+                                                if (set.IsNullSet)
+                                                    set.UpdateTypeBins(ns.Bins);
+                                                else
+                                                    set.GetRecordBins(getBins,
+                                                                        this.DocumentAPI,
+                                                                        this.DBRecordSampleSet,
+                                                                        this.DBRecordSampleSetMin);
                                             });
                                     }
 

@@ -1,4 +1,5 @@
 ﻿using Aerospike.Client;
+using LINQPad.Extensibility.DataContext;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -15,7 +16,7 @@ namespace Aerospike.Database.LINQPadDriver
     /// 
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-    public sealed class LPNamespace : IGenerateCode
+    public sealed class LPNamespace : IGenerateCode, ILPExplorer
     {
 
         private readonly static ConcurrentBag<LPNamespace> LPNamespacesBag = new ConcurrentBag<LPNamespace>();
@@ -266,6 +267,23 @@ namespace Aerospike.Database.LINQPadDriver
             $@"
 			this.{this.SafeName} = new {this.SafeName}_NamespaceCls(dbConnection);"
             );
+        }
+
+        #endregion
+
+        #region Explorer 
+
+        public ExplorerItem CreateExplorerItem()
+        {
+            return new ExplorerItem($"{this.Name} ({this.Sets.Count()})",
+                                    ExplorerItemKind.Property,
+                                    ExplorerIcon.Table)
+            {
+                IsEnumerable = false,
+                DragText = this.SafeName,
+                Children = this.Sets.Select(s => s.CreateExplorerItem()).ToList(),
+                ToolTipText = $"Sets associated with namespace \"{this.Name}\""
+            };
         }
 
         #endregion

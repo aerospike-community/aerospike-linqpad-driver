@@ -9,6 +9,7 @@ using System.IO;
 using Aerospike.Client;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using System.Windows.Media;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -417,9 +418,22 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// A collection of filtered items.
         /// </returns>
         public IEnumerable<T> Where(Func<T, bool> predicate)
-        {
-            return this.AsEnumerable().Where(predicate);
-        }
+                    => this.AsEnumerable().Where(predicate);
+
+        /// <summary>
+        /// Projects each element of an <see cref="ARecord"/> into a new form.
+        /// </summary>
+        /// <typeparam name="TResult">
+        /// The type of the value returned by <paramref name="selector"/>.
+        /// </typeparam>
+        /// <param name="selector">
+        /// A transform function to apply to each element.
+        /// </param>
+        /// <returns>
+        /// An IEnumerable&lt;T&gt; whose elements are the result of invoking the transform function on each element of <paramref name="selector"/>.
+        /// </returns>
+        public IEnumerable<TResult> Select<TResult>(Func<T, TResult> selector)
+            => this.AsEnumerable().Select(selector);
 
         /// <summary>
         /// Returns IEnumerable&gt;<see cref="ARecord"/>&lt; for the records of this set based on <see cref="SetRecords.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
@@ -1513,10 +1527,22 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// A collection of filtered items.
         /// </returns>
         public IEnumerable<ARecord> Where(Func<ARecord,bool> predicate)
-        {
-            return this.AsEnumerable().Where(predicate);
-        }
-
+                    => this.AsEnumerable().Where(predicate);
+        
+        /// <summary>
+        /// Projects each element of an <see cref="ARecord"/> into a new form.
+        /// </summary>
+        /// <typeparam name="TResult">
+        /// The type of the value returned by <paramref name="selector"/>.
+        /// </typeparam>
+        /// <param name="selector">
+        /// A transform function to apply to each element.
+        /// </param>
+        /// <returns>
+        /// An IEnumerable&lt;T&gt; whose elements are the result of invoking the transform function on each element of <paramref name="selector"/>.
+        /// </returns>
+        public IEnumerable<TResult> Select<TResult>(Func<ARecord, TResult> selector)
+            => this.AsEnumerable().Select(selector);
 
         /// <summary>
         /// Returns IEnumerable&gt;<see cref="ARecord"/>&lt; for the records of this set based on <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.

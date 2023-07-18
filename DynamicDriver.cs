@@ -326,120 +326,12 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
             return new Tuple<StringBuilder, StringBuilder, StringBuilder>(namespaceClasses, namespaceProps, namespaceConstruct);
         }
-
-		public static List<ExplorerItem> AddSetBinItems(LPNamespace ns, LPSet set)
-		{
-
-			static string GetBinTypeDupIndicator(Type type, bool dup, bool notInAllRecs)
-			{
-				var binName = new StringBuilder(Helpers.GetRealTypeName(type));
-
-				if (dup) binName.Append('*');
-				if(notInAllRecs) binName.Append('?');
-
-				return binName.ToString();
-            }
-
-            var items = new List<ExplorerItem>();
-
-			if (set.IsNullSet)
-			{               
-                items.AddRange(ns.Bins.OrderBy(b => b).Select(b => new ExplorerItem(b,
-																					ExplorerItemKind.Schema,
-																					ExplorerIcon.Column)));                
-            }
-            else
-			{				
-				if (!set.BinTypes.Any()) return items;
-				
-				items.AddRange(set.BinTypes
-									.OrderBy(b => b.BinName)
-									.Select(b => new ExplorerItem($"{b.BinName} ({GetBinTypeDupIndicator(b.DataType, b.Duplicate, !b.FndAllRecs)})",
-																	ExplorerItemKind.Schema,
-																	ExplorerIcon.Column)
-													{
-														IsEnumerable = false,
-														DragText = b.BinName
-													}
-				));				
-			}
-
-            if (set.SIndexes.Any())
-            {
-				static string DetermineContext(string context) => string.IsNullOrEmpty(context) ? string.Empty : ":" + context;
-
-                items.Add(new ExplorerItem($"Secondary Indexes",
-                                                ExplorerItemKind.Category,
-                                                ExplorerIcon.Key)
-                {
-                    IsEnumerable = false,
-                    Children = set.SIndexes
-									.OrderBy(i => i.Name)
-									.Select(i => new ExplorerItem($"{i.Name} ({i.Bin})",
-                                                                    ExplorerItemKind.Schema,
-                                                                    ExplorerIcon.Key)
-													{
-														DragText = $"{i.Namespace.SafeName}.{i.Set.SafeName}.{i.SafeName}",
-														Children = new List<ExplorerItem>() { new ExplorerItem($"{i.Bin} ({i.Type}:{i.IndexType}{DetermineContext(i.Context)})",
-																											ExplorerItemKind.Schema,
-																											ExplorerIcon.Column)
-																									{ DragText = i.Bin }
-																							}
-													})
-									.ToList()
-                });
-            }
-
-            return items;
-        }
-
-        public static List<ExplorerItem> AddSetBinExplorerItems(LPNamespace ns)
-        {
-            var items = new List<ExplorerItem>();
-
-            items.AddRange(ns.Sets
-								.Where(s => !s.IsNullSet)
-								.OrderBy(s => s.Name).Select(b => new ExplorerItem(b.Name,
-																						ExplorerItemKind.QueryableObject,
-																						ExplorerIcon.Schema)
-																		{
-																			IsEnumerable = true,
-																			DragText = $"{ns.SafeName}.{b.SafeName}",
-																			Children = AddSetBinItems(ns, b)
-																		}
-				));
-            items.AddRange(ns.Sets
-                                .Where(s => s.IsNullSet).Select(b => new ExplorerItem(b.Name,
-                                                                                        ExplorerItemKind.QueryableObject,
-                                                                                        ExplorerIcon.Schema)
-																		{
-																			IsEnumerable = true,
-																			DragText = $"{ns.SafeName}.{b.SafeName}",
-																			Children = AddSetBinItems(ns, b)
-																		}
-                ));
-            return items;
-        }
-
+		
         public static IEnumerable<ExplorerItem> CreateNamespaceExploreItems(AerospikeConnection connection)
-		{
-            List<ExplorerItem> items = new List<ExplorerItem>();
-            
-            foreach (var ns in connection.Namespaces.OrderBy(n => n.Name))
-            {
-                items.Add(
-                            new ExplorerItem($"{ns.Name} ({ns.Sets.Count()})", ExplorerItemKind.Property, ExplorerIcon.Table)
-                            {
-                                IsEnumerable = false,
-                                DragText = $"{ns.SafeName}",
-                                Children = AddSetBinExplorerItems(ns),
-                                ToolTipText = $"Sets associated with namespace \"{ns.Name}\""
-                            }
-                        );
-            }
-
-			return items;
-        }
+			=> connection.Namespaces
+							.AsParallel()
+							.OrderBy(ns => ns.Name)
+                            .Select(ns => ns.CreateExplorerItem());
 
         #endregion
 
