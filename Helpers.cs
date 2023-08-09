@@ -121,6 +121,32 @@ namespace Aerospike.Database.LINQPadDriver
     public static class Helpers
     {
 
+        public static bool IsPrivateAddress(string ipAddress)
+        {
+            if (string.IsNullOrEmpty(ipAddress)
+                || ipAddress.ToLower() == "localhost"
+                || ipAddress.ToLower() == "local")
+                return true;
+            
+            try
+            {
+                int[] ipParts = ipAddress.Split('.', StringSplitOptions.RemoveEmptyEntries)
+                                     .Select(s => int.Parse(s)).ToArray();
+                // in private ip range
+                if (ipParts[0] == 10 || ipParts[0] == 127 ||
+                    (ipParts[0] == 192 && ipParts[1] == 168) ||
+                    (ipParts[0] == 172 && (ipParts[1] >= 16 && ipParts[1] <= 31)))
+                {
+                    return true;
+                }
+            }
+            catch { return false; }
+
+            // IP Address is probably public.
+            // This doesn't catch some VPN ranges like OpenVPN and Hamachi.
+            return false;
+        }
+
         /// <summary>
         /// Checks to see if <paramref name="interfaceClass"/> is a subclass of <paramref name="classToCheck"/>.
         /// If the types are generic, the underlying types are ignored.

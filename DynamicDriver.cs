@@ -554,8 +554,14 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
             foreach (var node in _Connection.Nodes)
             {
-				var nodeState = node.Active ? "Active" : "Inactive";
-                items.Add(
+				string nodeState;
+
+				if (connection.UseExternalIP)
+					nodeState = "External/Alternate IP";
+				else
+					nodeState = node.Active ? "Active" : "Inactive";
+
+				items.Add(
                             new ExplorerItem($"{node.Host.name} ({nodeState})",
 												ExplorerItemKind.Property,
 												ExplorerIcon.LinkedDatabase)
