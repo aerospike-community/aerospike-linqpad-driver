@@ -1,5 +1,6 @@
 ﻿using Aerospike.Client;
 using Aerospike.Database.LINQPadDriver.Extensions;
+using LINQPad.Extensibility.DataContext;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,7 +10,7 @@ using System.Text.RegularExpressions;
 namespace Aerospike.Database.LINQPadDriver
 {
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-    public sealed class LPSecondaryIndex
+    public sealed class LPSecondaryIndex : ILPExplorer
     {
         
         public LPSecondaryIndex(string name, 
@@ -104,6 +105,24 @@ namespace Aerospike.Database.LINQPadDriver
 		public Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess<RecordCls> {this.SafeName} 
 							{{ get => new Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess<RecordCls>(this, ""{this.Name}"", ""{this.Bin}"", ""{this.Type}"", ""{this.IndexType}"", typeof({Helpers.GetRealTypeName(idxDataType ?? typeof(AValue))})); }}
 ";
+
+        public ExplorerItem CreateExplorerItem()
+        {
+            static string DetermineContext(string context) => string.IsNullOrEmpty(context) ? string.Empty : ":" + context;
+
+            return new ExplorerItem($"{this.Name} ({this.Bin})",
+                                    ExplorerItemKind.Schema,
+                                    ExplorerIcon.Key)
+            {
+                DragText = $"{this.Namespace.SafeName}.{this.Set.SafeName}.{this.SafeName}",
+                Children = new List<ExplorerItem>() { new ExplorerItem($"{this.Bin} ({this.Type}:{this.IndexType}{DetermineContext(this.Context)})",
+                                                                            ExplorerItemKind.Schema,
+                                                                            ExplorerIcon.Column)
+                                                            { DragText = this.Bin }
+                                                    }
+            };
+        }
+
 
         public override string ToString()
         {

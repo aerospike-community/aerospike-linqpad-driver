@@ -234,7 +234,29 @@ Inner Exception is ""{ex.InnerException.GetType().Name}"",
 {ex.InnerException.Message}
 Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}"" HResult: ""{ex.InnerException.HResult}"" TargetSite: ""{ex.InnerException.TargetSite}""
 ";
-                    }                   
+                    }
+                    if (connection != null)
+                    {
+                        if (Helpers.IsPrivateAddress(connection.SeedHosts.FirstOrDefault().name))
+                        {
+                            if (connection.UseExternalIP)
+                            {
+                                messageBoxText += $@"
+
+Note: The DB seems to be on a private network
+      and ""Public Address"" option is enabled! Should this be disabled?
+";
+                            }
+                        }
+                        else if (!connection.UseExternalIP)
+                        {
+                            messageBoxText += $@"
+
+Note: If the DB has Public/NATted/Alternate Addresses,
+      you may need to enable ""Public Address"" option!
+";
+                        }
+                    }
                 }
                 
                 waitCursor?.Dispose();

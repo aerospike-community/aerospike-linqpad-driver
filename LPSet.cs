@@ -1,4 +1,5 @@
 ﻿using Aerospike.Database.LINQPadDriver.Extensions;
+using LINQPad.Extensibility.DataContext;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ namespace Aerospike.Database.LINQPadDriver
     [System.Diagnostics.DebuggerDisplay("{Name}")]
     public sealed class LPSet : IGenerateCode
     {        
-        public class BinType
+        public class BinType : ILPExplorer
         {            
             internal BinType(string name, Type type, bool dup, bool allRecs, bool detected = false)
             {
@@ -31,6 +32,35 @@ namespace Aerospike.Database.LINQPadDriver
             /// True if the bin was found after the initial scan of the set.
             /// </summary>            
             public bool Detected { get; set; }
+
+            public string GenerateExplorerName()
+            {
+                var binName = new StringBuilder(this.BinName);
+
+                if (this.DataType != null)
+                {
+                    binName.Append(" (");
+                    binName.Append(Helpers.GetRealTypeName(this.DataType));
+
+                    if (this.Duplicate) binName.Append('*');
+                    if (!this.FndAllRecs) binName.Append('?');
+
+                    binName.Append(')');
+                }
+
+                return binName.ToString();
+            }
+
+            public ExplorerItem CreateExplorerItem()
+            {
+                return new ExplorerItem(this.GenerateExplorerName(),
+                                        ExplorerItemKind.Schema,
+                                        ExplorerIcon.Column)
+                {
+                    IsEnumerable = false,
+                    DragText = this.BinName
+                };
+            }
         }
 
         static readonly ConcurrentBag<LPSet> SetsBag = new ConcurrentBag<LPSet>();
@@ -118,6 +148,16 @@ namespace Aerospike.Database.LINQPadDriver
             lock (binTypes)
             {
                 this.binTypes = getBins.Get(this.LPnamespace.Name, this.Name, determineDocType, maxRecords, minRecs);
+                Interlocked.Increment(ref nbrCodeUpdates);
+                Interlocked.Increment(ref LPnamespace.nbrCodeUpdates);
+            }
+        }
+
+        internal void UpdateTypeBins(IEnumerable<string> bins)
+        {
+            lock (binTypes)
+            {
+                this.binTypes = bins.Select(b => new BinType(b, null, false, false)).ToList();
                 Interlocked.Increment(ref nbrCodeUpdates);
                 Interlocked.Increment(ref LPnamespace.nbrCodeUpdates);
             }
@@ -343,6 +383,29 @@ namespace Aerospike.Database.LINQPadDriver
             Interlocked.Decrement(ref LPnamespace.nbrCodeUpdates);
 
             return CodeCache;
+        }
+
+        #endregion
+
+        #region Explorer 
+
+        public ExplorerItem CreateExplorerItem()
+        {
+            var bins = this.BinTypes
+                        .OrderBy(b => b.BinName)
+                        .Select(b => b.CreateExplorerItem());
+            var sIdxs = this.SIndexes
+                            .OrderBy(sIdx => sIdx.Name)
+                            .Select(sIdx => sIdx.CreateExplorerItem());
+
+            return new ExplorerItem(this.Name,
+                                        ExplorerItemKind.QueryableObject,
+                                        ExplorerIcon.Schema)
+            {
+                IsEnumerable = true,
+                DragText = $"{this.LPnamespace.SafeName}.{this.SafeName}",
+                Children = bins.Concat(sIdxs).ToList()
+            };
         }
 
         #endregion
