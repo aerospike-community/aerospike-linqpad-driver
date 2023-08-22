@@ -1159,6 +1159,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         /// <summary>
         /// Performs a secondary index query using the provided <see cref="Client.Filter"/>.
+        /// See <see cref="ASecondaryIndexAccess"/> for directly using secondary indexes.
         /// </summary>
         /// <param name="secondaryIdxFilter">The filter used against the secondary index</param>
         /// <param name="bins">Only include these bins in the result.</param>
@@ -1171,6 +1172,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Query(string[])"/>
         /// <seealso cref="CreateIndex(string, string, IndexType)"/>
         /// <seealso cref="CreateIndex(string, string, IndexType, IndexCollectionType, CTX[])"/>
+        /// <seealso cref="ASecondaryIndexAccess.Query(Filter, Exp, string[])"/>
+        /// <seealso cref="ASecondaryIndexAccess.Query(long, long, string[])"/>
+        /// <seealso cref="ASecondaryIndexAccess.Query(dynamic, string[])"/>
+        /// <seealso cref="ASecondaryIndexAccess.GetFilter(object, CTX[])"/>
+        /// <seealso cref="ASecondaryIndexAccess.GetFilter(long, long, CTX[])"/>
         public IEnumerable<ARecord> Query([NotNull] Client.Filter secondaryIdxFilter, params string[] bins)
         {
             var queryPolicy = new QueryPolicy(this.DefaultQueryPolicy);
@@ -1201,6 +1207,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         
         /// <summary>
         /// Performs a secondary index query using the provided <see cref="Client.Filter"/> and than apply the filter expression.
+        /// See <see cref="ASecondaryIndexAccess"/> for directly using secondary indexes.
         /// </summary>
         /// <param name="secondaryIdxFilter">The filter used against the secondary index</param>
         /// <param name="filterExpression">
@@ -1218,6 +1225,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Query(Filter, string[])"/>
         /// <seealso cref="Query(string[])"/>
         /// <seealso cref="Query(Exp, string[])"/>
+        /// <seealso cref="ASecondaryIndexAccess.Query(Filter, Exp, string[])"/>
+        /// <seealso cref="ASecondaryIndexAccess.Query(long, long, string[])"/>
+        /// <seealso cref="ASecondaryIndexAccess.Query(dynamic, string[])"/>
+        /// <seealso cref="ASecondaryIndexAccess.GetFilter(object, CTX[])"/>
+        /// <seealso cref="ASecondaryIndexAccess.GetFilter(long, long, CTX[])"/>
         /// <seealso cref="CreateIndex(string, string, IndexType)"/>
         /// <seealso cref="CreateIndex(string, string, IndexType, IndexCollectionType, CTX[])"/>
         public IEnumerable<ARecord> Query([NotNull] Client.Filter secondaryIdxFilter, [NotNull] Client.Exp filterExpression, params string[] bins)

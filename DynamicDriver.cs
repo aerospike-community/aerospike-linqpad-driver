@@ -578,24 +578,65 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
 
         #region Data Grid
-       
+
+		/*
+        public class SaveChangesAdapterTest : SaveChangesAdapter
+        {
+			public SaveChangesAdapterTest()
+				: base()
+			{ 
+			}
+
+            public override void DeleteRows<T>(T[] rows)
+            {
+                
+            }
+
+            public override string[] GetEditableMembers()
+            {
+				return null;
+            }
+
+            public override void SaveEditedRow(object row)
+            {
+                
+            }
+
+            public override void SaveNewRow(object originalCollection, object row)
+            {
+                
+            }
+
+            public override bool StartEditSession(object owningControl)
+            {
+				return true;
+            }
+        }
+
         //
         // Summary:
         //     Override this is you want to allow the user to edit data in the DataGrid and
         //     save the changes (usually to a database).
-        //public override SaveChangesAdapter CreateSaveChangesAdapter(BinType elementType, object dataSource, object elementSample, object parent)
-		//{
-         //   Debugger.Launch();
-         //   return new sca();
-		//}
+        public override SaveChangesAdapter CreateSaveChangesAdapter(Type elementType, object dataSource, object elementSample, object parent)
+		{
+            Debugger.Launch();
+			return new SaveChangesAdapterTest();
+        }
         //
         // Summary:
         //     Override this is you want to customize how an object is displayed in the DataGrid.
-        //public override void DisplayObjectInGrid(object objectToDisplay, GridOptions options)
-		//{
-		//	Debugger.Launch();
-		//}
+        public override void DisplayObjectInGrid(object objectToDisplay, GridOptions options)
+		{
+			Debugger.Launch();
 
+            var x = (SetRecords)objectToDisplay.GetType().GetField("<>4__this").GetValue(objectToDisplay);
+
+            options.MembersToInclude = x.BinNames;
+			options.PanelTitle = x.SetFullName;
+
+            base.DisplayObjectInGrid(objectToDisplay, options);
+		}
+		*/
 
         #endregion
 
