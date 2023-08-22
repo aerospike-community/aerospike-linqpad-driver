@@ -1,4 +1,5 @@
 ﻿using Aerospike.Client;
+using LINQPad.Internal;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -39,103 +40,39 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Performs a secondary index query using the provided <see cref="Client.Filter"/>.
         /// </summary>
-        /// <param name="secondaryIdxFilter">The filter used against the secondary index</param>
+        /// <param name="secondaryIdxFilter">The <see cref="Client.Filter"/> used against the secondary index</param>
         /// <param name="bins">Only include these bins in the result.</param>
         /// <returns>
         /// A collection of records that match the filter.
         /// </returns>
         /// <exception cref="AerospikeException">Thrown if an index cannot be found to match the filter</exception>
-        /// <seealso cref="Query(Filter, Exp, string[])"/>    
+        /// <seealso cref="Query(Filter, Exp, string[])"/> 
+        /// <seealso cref="Query(dynamic, string[])"/>
+        /// <seealso cref="Query(long, long, string[])"/>
         /// <seealso cref="SetRecords.Query(Filter, string[])"/>
         new public IEnumerable<T> Query([NotNull] Client.Filter secondaryIdxFilter, params string[] bins)
-        {
-            return this.SetRecords.Query(secondaryIdxFilter, bins);
-        }
-
+                    => this.SetRecords.Query(secondaryIdxFilter, bins);
+        
         /// <summary>
         /// Performs a secondary index query using the provided <see cref="Client.Filter"/> and than apply the filter expression.
         /// </summary>
-        /// <param name="secondaryIdxFilter">The filter used against the secondary index</param>
+        /// <param name="secondaryIdxFilter">The <see cref="Client.Filter"/> used against the secondary index</param>
         /// <param name="filterExpression">The Aerospike filter <see cref="Client.Exp"/> that will be applied after the index filter is applied.</param>
         /// <param name="bins">Only include these bins in the result.</param>
         /// <returns>
         /// A collection of records that match the filters.
         /// </returns>
         /// <exception cref="AerospikeException">Thrown if an index cannot be found to match the filter</exception>
-        /// <seealso cref="Query(Filter, string[])"/>              
+        /// <seealso cref="Query(Filter, string[])"/>  
+        /// <seealso cref="Query(long, long, string[])"/>
+        /// <seealso cref="Query(dynamic, string[])"/>
         /// <seealso cref="SetRecords.Query(Filter, Exp, string[])"/>
         new public IEnumerable<T> Query([NotNull] Client.Filter secondaryIdxFilter, [NotNull] Client.Exp filterExpression, params string[] bins)
-        {
-            return this.SetRecords.Query(secondaryIdxFilter, filterExpression, bins);
-        }
-
-        Client.Filter GetFilter(Client.Value searchValue)
-        {
-            return GetFilter(searchValue.Object);
-        }
-
-        Client.Filter GetFilter(object searchValue)
-        {
-
-            if (this.CollectionType == Client.IndexCollectionType.MAPKEYS)
-            {
-                return searchValue switch
-                {
-                    string strValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, strValue),
-                    long lValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, lValue),
-                    int iValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, (long)iValue),
-                    short sValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, (long)sValue),
-                    ulong ulValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, (long)ulValue),
-                    ushort usValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, (long)usValue),
-                    uint uiValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, (long)uiValue),
-                    _ => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, searchValue?.ToString())
-                };
-            }            
-            else if (this.CollectionType == Client.IndexCollectionType.MAPVALUES)
-            {
-                return searchValue switch
-                {
-                    string strValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, strValue),
-                    long lValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, lValue),
-                    int iValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, (long)iValue),
-                    short sValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, (long)sValue),
-                    ulong ulValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, (long)ulValue),
-                    ushort usValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, (long)usValue),
-                    uint uiValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, (long)uiValue),
-                    _ => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, searchValue?.ToString())
-                }; 
-            }
-            else if (this.CollectionType == Client.IndexCollectionType.LIST)
-            {
-                return searchValue switch
-                {
-                    string strValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, strValue),
-                    long lValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, lValue),
-                    int iValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, (long)iValue),
-                    short sValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, (long)sValue),
-                    ulong ulValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, (long)ulValue),
-                    ushort usValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, (long)usValue),
-                    uint uiValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, (long)uiValue),
-                    _ => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, searchValue?.ToString())
-                };
-            }
-            
-            return searchValue switch
-            {
-                string strValue => Client.Filter.Equal(this.BinName, strValue),
-                long lValue => Client.Filter.Equal(this.BinName, lValue),
-                int iValue => Client.Filter.Equal(this.BinName, (long)iValue),
-                short sValue => Client.Filter.Equal(this.BinName, (long)sValue),
-                ulong ulValue => Client.Filter.Equal(this.BinName, (long)ulValue),
-                ushort usValue => Client.Filter.Equal(this.BinName, (long)usValue),
-                uint uiValue => Client.Filter.Equal(this.BinName, (long)uiValue),
-                _ => Client.Filter.Equal(this.BinName, searchValue?.ToString())
-            };
-        }
-
-
+                        => this.SetRecords.Query(secondaryIdxFilter, filterExpression, bins);
+        
         /// <summary>
         /// Performs a search on the secondary index based <paramref name="idxBinValue"/> and the properties associated with the index. 
+        /// For more information see <see cref="Client.Filter"/>.
         /// </summary>
         /// <param name="idxBinValue">The searchValue used to conduct the search associated with bin</param>
         /// <param name = "bins" > Only include these bins in the result.</param>
@@ -144,6 +81,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </returns>
         /// <exception cref="AerospikeException">Thrown if an index cannot be found to match the filter</exception>
         /// <seealso cref="Query(Filter, string[])"/>
+        /// <seealso cref="Query(long, long, string[])"/>
         /// <seealso cref="BinDataType"/>
         /// <seealso cref="IndexCollectionType"/>
         new public IEnumerable<T> Query([NotNull] dynamic idxBinValue, params string[] bins)
@@ -156,12 +94,28 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             };
         }
 
+        /// <summary>
+        /// Performs a secondary index range search based on <paramref name="inclusiveStartRange"/> and <paramref name="inclusiveEndRange"/>, inclusively.
+        /// For more information see <see cref="Client.Filter"/>.
+        /// </summary>
+        /// <param name="inclusiveStartRange">Start Rage, inclusive</param>
+        /// <param name="inclusiveEndRange">End Range, inclusive</param>
+        /// <param name="bins">Only include these bins in the result.</param>
+        /// <returns>A collection of records that match the filters.</returns>
+        /// <exception cref="AerospikeException">Thrown if an index cannot be found to match the filter</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="inclusiveStartRange"/> is greater than <paramref name="inclusiveEndRange"/></exception>
+        /// <seealso cref="Query(Filter, string[])"/>
+        /// <seealso cref="Query(dynamic, string[])"/>
+        /// <seealso cref="SetRecords.Query(Filter, Exp, string[])"/>        
+        new public IEnumerable<T> Query(long inclusiveStartRange, long inclusiveEndRange, params string[] bins)
+                    => this.Query(GetFilter(inclusiveStartRange, inclusiveEndRange), bins);
+
         #endregion
 
         #region IEnumerable        
 
         /// <summary>
-        /// Returns IEnumerable&gt;<see cref="AQueryRecord"/>&lt; based on the index and <paramref name="filterExpression"/>.
+        /// Returns IEnumerable&gt;<see cref="AQueryRecord"/>&lt; based on <see cref="ASecondaryIndexAccess.DefaultFilter"/> and <paramref name="filterExpression"/>.
         /// </summary>
         /// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>        
         /// <param name="returningOnlyMatchingCT">
@@ -172,6 +126,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Query(dynamic, string[])"/>
         /// <seealso cref="Query(Filter, Exp, string[])"/>
         /// <seealso cref="Query(Filter, string[])"/>   
+        /// <seealso cref="ASecondaryIndexAccess.DefaultFilter"/>
         /// <seealso cref="ASecondaryIndexAccess.AsEnumerable(Exp, bool)"/>
         public new IEnumerable<AQueryRecord<T>> AsEnumerable(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
         {
@@ -186,7 +141,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     .GroupBy(dnis => dnis.GrpkeyValue)
                             .Select(dnis => new AQueryRecord<T>(dnis.Key, dnis.Select(r => (T) r.Record)));
         }
-
 
         public new IEnumerator<AQueryRecord<T>> GetEnumerator()
         {
@@ -263,7 +217,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public SetRecords SetRecords { get; }
 
         /// <summary>
-        /// Sets the default filter for this index. It can be overridden by using the <see cref="Query(Filter, string[])"/> methods
+        /// Sets the default filter for this index used to obtain the record set. It can be overridden by using the <see cref="Query(Filter, string[])"/> methods
         /// </summary>
         /// <seealso cref="SetFilter(Filter)"/>
         /// <seealso cref="Query(Filter, Exp, string[])"/>
@@ -275,9 +229,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Set the filter that will be used by this secondary index as the default filter. See <see cref="DefaultFilter"/>
         /// </summary>
-        /// <param name="secondaryIdxFilter"></param>
+        /// <param name="secondaryIdxFilter">Set&apos;s the default filter. See <see cref="Client.Filter"/></param>
         /// <returns>This object</returns>
         /// <seealso cref="DefaultFilter"/>
+        /// <seealso cref="AsEnumerable(Exp, bool)"/>
         public ASecondaryIndexAccess SetFilter(Client.Filter secondaryIdxFilter)
         {
             this.DefaultFilter= secondaryIdxFilter;
@@ -338,38 +293,164 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Performs a secondary index query using the provided <see cref="Client.Filter"/>.
         /// </summary>
-        /// <param name="secondaryIdxFilter">The filter used against the secondary index</param>
+        /// <param name="secondaryIdxFilter">The <see cref="Client.Filter"/> used against the secondary index</param>
         /// <param name="bins">Only include these bins in the result.</param>
         /// <returns>
         /// A collection of records that match the filter.
         /// </returns>
         /// <exception cref="AerospikeException">Thrown if an index cannot be found to match the filter</exception>
         /// <seealso cref="Query(Filter, Exp, string[])"/>    
+        /// <seealso cref="Query(dynamic, string[])"/>
+        /// <seealso cref="Query(long, long, string[])"/>   
         /// <seealso cref="SetRecords.Query(Filter, string[])"/>
         public IEnumerable<ARecord> Query([NotNull] Client.Filter secondaryIdxFilter, params string[] bins)
-        {
-            return this.SetRecords.Query(secondaryIdxFilter, bins);
-        }
+                    => this.SetRecords.Query(secondaryIdxFilter, bins);        
 
         /// <summary>
         /// Performs a secondary index query using the provided <see cref="Client.Filter"/> and than apply the filter expression.
         /// </summary>
-        /// <param name="secondaryIdxFilter">The filter used against the secondary index</param>
+        /// <param name="secondaryIdxFilter">The <see cref="Client.Filter"/> used against the secondary index</param>
         /// <param name="filterExpression">The Aerospike filter <see cref="Client.Exp"/> that will be applied after the index filter is applied.</param>
         /// <param name="bins">Only include these bins in the result.</param>
         /// <returns>
         /// A collection of records that match the filters.
         /// </returns>
         /// <exception cref="AerospikeException">Thrown if an index cannot be found to match the filter</exception>
-        /// <seealso cref="Query(Filter, string[])"/>              
+        /// <seealso cref="Query(Filter, string[])"/>    
+        /// <seealso cref="Query(dynamic, string[])"/>
+        /// <seealso cref="Query(long, long, string[])"/>
         /// <seealso cref="SetRecords.Query(Filter, Exp, string[])"/>
         public IEnumerable<ARecord> Query([NotNull] Client.Filter secondaryIdxFilter, [NotNull] Client.Exp filterExpression, params string[] bins)
+                    => this.SetRecords.Query(secondaryIdxFilter, filterExpression, bins);
+
+        /// <summary>
+        /// See <see cref="GetFilter(object, CTX[])"/>
+        /// </summary>
+        /// <param name="searchValue"></param>
+        /// <param name="ctxArgs"></param>
+        /// <returns>A <see cref="Client.Filter"/> to perform the search based on <paramref name="searchValue"/> and the secondary index attributes.</returns>
+        /// <seealso cref="GetFilter(object, CTX[])"/>
+        /// <seealso cref="GetFilter(long, long, CTX[])"/>
+        public Client.Filter GetFilter(Client.Value searchValue, params Client.CTX[] ctxArgs)
+                    => GetFilter(searchValue.Object,ctxArgs);
+
+        /// <summary>
+        /// Creates a <see cref="Client.Filter"/> based on <paramref name="searchValue"/> type and the secondary index attributes.
+        /// </summary>
+        /// <param name="searchValue">The value used to search within the secondary index.</param>
+        /// <param name="ctxArgs">Advance criteria for the search. See  <see cref="Client.CTX"/>.</param>
+        /// <returns>A <see cref="Client.Filter"/> to perform the search</returns>
+        /// <seealso cref="GetFilter(Value, CTX[])"/>
+        /// <seealso cref="GetFilter(long, long, CTX[])"/>
+        /// <seealso cref="Client.Filter"/>
+        /// <seealso cref="Client.CTX"/>
+        /// <seealso cref="DefaultFilter"/>
+        /// <seealso cref="SetFilter(Filter)"/>
+        /// <seealso cref="Query(Filter, Exp, string[])"/>
+        /// <seealso cref="Query(Filter, string[])"/>
+        /// <seealso cref="Query(long, long, string[])"/>
+        public Client.Filter GetFilter(object searchValue, params Client.CTX[] ctxArgs)
         {
-            return this.SetRecords.Query(secondaryIdxFilter, filterExpression, bins);
+
+            if (this.CollectionType == Client.IndexCollectionType.MAPKEYS)
+            {
+                return searchValue switch
+                {
+                    string strValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, strValue, ctxArgs),
+                    long lValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, lValue, ctxArgs),
+                    int iValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, (long)iValue),
+                    short sValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, (long)sValue, ctxArgs),
+                    ulong ulValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, (long)ulValue, ctxArgs),
+                    ushort usValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, (long)usValue, ctxArgs),
+                    uint uiValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, (long)uiValue, ctxArgs),
+                    _ => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPKEYS, searchValue?.ToString(), ctxArgs)
+                };
+            }
+            else if (this.CollectionType == Client.IndexCollectionType.MAPVALUES)
+            {
+                return searchValue switch
+                {
+                    string strValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, strValue, ctxArgs),
+                    long lValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, lValue, ctxArgs),
+                    int iValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, (long)iValue, ctxArgs),
+                    short sValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, (long)sValue, ctxArgs),
+                    ulong ulValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, (long)ulValue, ctxArgs),
+                    ushort usValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, (long)usValue, ctxArgs),
+                    uint uiValue => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, (long)uiValue, ctxArgs),
+                    _ => Client.Filter.Contains(this.BinName, IndexCollectionType.MAPVALUES, searchValue?.ToString(), ctxArgs)
+                };
+            }
+            else if (this.CollectionType == Client.IndexCollectionType.LIST)
+            {
+                return searchValue switch
+                {
+                    string strValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, strValue, ctxArgs),
+                    long lValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, lValue, ctxArgs),
+                    int iValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, (long)iValue, ctxArgs),
+                    short sValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, (long)sValue, ctxArgs),
+                    ulong ulValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, (long)ulValue, ctxArgs),
+                    ushort usValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, (long)usValue, ctxArgs),
+                    uint uiValue => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, (long)uiValue, ctxArgs),
+                    _ => Client.Filter.Contains(this.BinName, IndexCollectionType.LIST, searchValue?.ToString(), ctxArgs)
+                };
+            }
+
+            return searchValue switch
+            {
+                string strValue => Client.Filter.Equal(this.BinName, strValue, ctxArgs),
+                long lValue => Client.Filter.Equal(this.BinName, lValue, ctxArgs),
+                int iValue => Client.Filter.Equal(this.BinName, (long)iValue, ctxArgs),
+                short sValue => Client.Filter.Equal(this.BinName, (long)sValue, ctxArgs),
+                ulong ulValue => Client.Filter.Equal(this.BinName, (long)ulValue, ctxArgs),
+                ushort usValue => Client.Filter.Equal(this.BinName, (long)usValue, ctxArgs),
+                uint uiValue => Client.Filter.Equal(this.BinName, (long)uiValue, ctxArgs),
+                _ => Client.Filter.Equal(this.BinName, searchValue?.ToString(), ctxArgs)
+            };
+        }
+
+        /// <summary>
+        /// Creates a <see cref="Client.Filter.Range(string, long, long, CTX[])"/> based on the secondary index attributes.
+        /// </summary>
+        /// <param name="inclusiveStartRange">Start range, inclusive</param>
+        /// <param name="inclusiveEndRange">End range, inclusive</param>
+        /// <param name="ctxArgs">Advance criteria for the search. See  <see cref="Client.CTX"/>.</param>
+        /// <returns>A <see cref="Client.Filter.Range(string, IndexCollectionType, long, long, CTX[])"/> filter</returns>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="inclusiveStartRange"/> is greater than <paramref name="inclusiveEndRange"/></exception>
+        /// <seealso cref="GetFilter(object, CTX[])"/>
+        /// <seealso cref="Client.Filter"/>
+        /// <seealso cref="Client.CTX"/>
+        /// <seealso cref="DefaultFilter"/>
+        /// <seealso cref="SetFilter(Filter)"/>
+        /// <seealso cref="Query(Filter, Exp, string[])"/>
+        /// <seealso cref="Query(Filter, string[])"/>
+        /// <seealso cref="Query(long, long, string[])"/>
+        public Client.Filter GetFilter(long inclusiveStartRange, long inclusiveEndRange, params Client.CTX[] ctxArgs)
+        {
+            if (inclusiveStartRange > inclusiveEndRange)
+                throw new ArgumentException($"Argument {nameof(inclusiveStartRange)} ({inclusiveStartRange}) is greater than {nameof(inclusiveEndRange)} ({inclusiveEndRange}).", nameof(inclusiveStartRange));
+
+            if (this.CollectionType == Client.IndexCollectionType.MAPKEYS)
+            {
+                return Client.Filter.Range(this.BinName, IndexCollectionType.MAPKEYS, inclusiveStartRange, inclusiveEndRange, ctxArgs);
+                
+            }
+            else if (this.CollectionType == Client.IndexCollectionType.MAPVALUES)
+            {
+                return Client.Filter.Range(this.BinName, IndexCollectionType.MAPVALUES, inclusiveStartRange, inclusiveEndRange, ctxArgs);
+               
+            }
+            else if (this.CollectionType == Client.IndexCollectionType.LIST)
+            {
+                return Client.Filter.Range(this.BinName, IndexCollectionType.LIST, inclusiveStartRange, inclusiveEndRange, ctxArgs);
+               
+            }
+
+            return Client.Filter.Range(this.BinName, inclusiveStartRange, inclusiveEndRange, ctxArgs);            
         }
 
         /// <summary>
         /// Performs a search on the secondary index based <paramref name="idxBinValue"/> and the index associated bin (<seealso cref="BinName"/>). 
+        /// For more information see <see cref="Client.Filter"/>.
         /// </summary>
         /// <param name="idxBinValue">The searchValue used to conduct the search associated with <see cref="BinName"/></param>
         /// <param name = "bins" > Only include these bins in the result.</param>
@@ -379,38 +460,35 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <exception cref="AerospikeException">Thrown if an index cannot be found to match the filter</exception>
         /// <seealso cref="BinName"/>
         /// <seealso cref="Query(Filter, string[])"/>
+        /// <seealso cref="Query(long, long, string[])"/>
+        /// <seealso cref="SetRecords.Query(Filter, Exp, string[])"/>
         public IEnumerable<ARecord> Query([NotNull] dynamic idxBinValue, params string[] bins)
-        {            
-            Filter GetValue(Client.Value value)
-            {
-                return value.Object switch
-                {
-                    string strValue => Filter.Equal(this.BinName, strValue),
-                    long lValue => Filter.Equal(this.BinName, lValue),
-                    int iValue => Filter.Equal(this.BinName, iValue),
-                    short sValue => Filter.Equal(this.BinName, sValue),
-                    ulong ulValue => Filter.Equal(this.BinName, (long) ulValue),
-                    ushort usValue => Filter.Equal(this.BinName, usValue),
-                    uint uiValue => Filter.Equal(this.BinName, uiValue),
-                    _ => Filter.Equal(this.BinName, value.Object?.ToString())
-                };                
-            }
-
+        {
             return idxBinValue switch
             {
-                Client.Key keyValue => this.Query(GetValue(keyValue.userKey), bins),
-                Client.Value vValue => this.Query(GetValue(vValue), bins),
-                string strValue => this.Query(Filter.Equal(this.BinName, strValue), bins),
-                long lValue => this.Query(Filter.Equal(this.BinName, lValue), bins),
-                int iValue => this.Query(Filter.Equal(this.BinName, iValue), bins),
-                short sValue => this.Query(Filter.Equal(this.BinName, sValue), bins),
-                ulong ulValue => this.Query(Filter.Equal(this.BinName, (long)ulValue), bins),
-                ushort usValue => this.Query(Filter.Equal(this.BinName, usValue), bins),
-                uint uiValue => this.Query(Filter.Equal(this.BinName, uiValue), bins),
-                _ => this.Query(Filter.Equal(this.BinName, idxBinValue?.ToString()), bins)
+                Client.Key keyValue => this.Query(GetFilter(keyValue.userKey), bins),
+                Client.Value vValue => this.Query(GetFilter(vValue), bins),
+                _ => this.Query(GetFilter(idxBinValue), bins)
             };
         }
 
+        /// <summary>
+        /// Performs a secondary index range search based on <paramref name="inclusiveStartRange"/> and <paramref name="inclusiveEndRange"/>, inclusively.
+        /// For more information see <see cref="Client.Filter"/>.
+        /// </summary>
+        /// <param name="inclusiveStartRange">Start Rage, inclusive</param>
+        /// <param name="inclusiveEndRange">End Range, inclusive</param>
+        /// <param name="bins">Only include these bins in the result.</param>
+        /// <returns>A collection of records that match the filters.</returns>
+        /// <exception cref="AerospikeException">Thrown if an index cannot be found to match the filter</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="inclusiveStartRange"/> is greater than <paramref name="inclusiveEndRange"/></exception>
+        /// <seealso cref="Query(Filter, string[])"/>
+        /// <seealso cref="Query(dynamic, string[])"/>
+        /// <seealso cref="GetFilter(long, long, CTX[])"/>
+        /// <seealso cref="SetRecords.Query(Filter, Exp, string[])"/>        
+        public IEnumerable<ARecord> Query(long inclusiveStartRange, long inclusiveEndRange, params string[] bins)
+                    => this.Query(GetFilter(inclusiveStartRange, inclusiveEndRange), bins);
+        
         #endregion
 
         /// <summary>
@@ -596,7 +674,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Returns IEnumerable&gt;<see cref="AQueryRecord"/>&lt; based on the index and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+        /// Returns IEnumerable&gt;<see cref="AQueryRecord"/>&lt; based on <see cref="DefaultFilter"/> and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
         /// </summary>
         /// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>        
         /// <param name="returningOnlyMatchingCT">
@@ -605,10 +683,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </param>
         /// <returns/>
         /// <seealso cref="DefaultQueryPolicy"/>
+        /// <seealso cref="DefaultFilter"/>
         /// <seealso cref="Query(dynamic, string[])"/>
         /// <seealso cref="Query(Filter, Exp, string[])"/>
-        /// <seealso cref="Query(Filter, string[])"/>   
-        /// <seealso cref="DefaultFilter"/>
+        /// <seealso cref="Query(Filter, string[])"/>           
         public IEnumerable<AQueryRecord> AsEnumerable(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
         {
             var setRecs = this.DefaultFilter == null
