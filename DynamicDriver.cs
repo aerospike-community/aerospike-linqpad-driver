@@ -160,7 +160,7 @@ namespace Aerospike.Database.LINQPadDriver
 		public override List<ExplorerItem> GetSchemaAndBuildAssembly (
 			IConnectionInfo cxInfo, AssemblyName assemblyToBuild, ref string nameSpace, ref string typeName)
 		{
-			//System.Diagnostics.Debugger.Launch();
+			System.Diagnostics.Debugger.Launch();
 
 			var connection = ObtainConnection(cxInfo, false);
 			connection.ObtainMetaDate();

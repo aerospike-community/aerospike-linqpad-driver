@@ -196,7 +196,7 @@ namespace Aerospike.Database.LINQPadDriver
             
             foreach (var sidx in this.SIndexes)
             {
-                idxProps.AppendLine(sidx.GenerateCode(null));
+                idxProps.AppendLine(sidx.GenerateCode(null, true));
             }
 
             Interlocked.Exchange(ref nbrCodeUpdates, 0);
@@ -318,9 +318,10 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     var idxDataType = alwaysUseAValues
                                         ? typeof(AValue)
-                                        : bins.FirstOrDefault(b => b.BinName == sidx.Bin && !b.Duplicate).DataType;
+                                        : bins.FirstOrDefault(b => b.BinName == sidx.Bin && !b.Duplicate)
+                                            ?.DataType ?? typeof(AValue);
 
-                    idxProps.AppendLine(sidx.GenerateCode(idxDataType));
+                    idxProps.AppendLine(sidx.GenerateCode(idxDataType, false));
                 }
             });
 
