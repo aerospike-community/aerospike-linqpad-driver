@@ -99,12 +99,21 @@ namespace Aerospike.Database.LINQPadDriver
 
             return idxs.ToArray();
         }
-        
-        public string GenerateCode(Type idxDataType)
-            => $@"
+
+        //Aerospike.Database.LINQPadDriver.Extensions.ARecord
+        public string GenerateCode(Type idxDataType, bool useARecord)
+        {
+            if(useARecord)
+                return $@"
+		public Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess {this.SafeName} 
+							{{ get => new Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess(this, ""{this.Name}"", ""{this.Bin}"", ""{this.Type}"", ""{this.IndexType}""); }}
+";
+
+            return $@"
 		public Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess<RecordCls> {this.SafeName} 
 							{{ get => new Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess<RecordCls>(this, ""{this.Name}"", ""{this.Bin}"", ""{this.Type}"", ""{this.IndexType}"", typeof({Helpers.GetRealTypeName(idxDataType ?? typeof(AValue))})); }}
 ";
+        }
 
         public ExplorerItem CreateExplorerItem()
         {

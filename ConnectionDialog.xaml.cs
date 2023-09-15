@@ -12,29 +12,54 @@ using System.Collections;
 using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
 using System.Globalization;
 using System.Windows.Input;
+using System.Xml.Linq;
 
 namespace Aerospike.Database.LINQPadDriver
 {
 	public partial class ConnectionDialog : Window
 	{
 		readonly IConnectionInfo _cxInfo;
+        readonly ConnectionProperties _connectionProps;
 
-		public ConnectionDialog (IConnectionInfo cxInfo)
+        public ConnectionDialog (IConnectionInfo cxInfo)
 		{
 			_cxInfo = cxInfo;
 
             // ConnectionProperties is your view-model.
             DataContext = new ConnectionProperties (cxInfo);
+            _connectionProps = (ConnectionProperties)DataContext;
 
-			InitializeComponent ();
+            InitializeComponent ();
 
-            if(!string.IsNullOrEmpty(((ConnectionProperties)DataContext).TLSProtocols))
+            if(!string.IsNullOrEmpty(_connectionProps.TLSProtocols))
             {
                 cbTLSOnlyLogin.IsEnabled = true;
                 txtCertFile.IsEnabled = true;
                 txtRejectCerts.IsEnabled = true;
                 btnCertFile.IsEnabled = true;
             }
+
+            {
+                var nameFnd = false;
+
+                this.comboPasswordNames.Items.Clear();
+                foreach (var name in PasswordManagerNames)
+                {
+                    if (!this.comboPasswordNames.Items.Contains(name))
+                        this.comboPasswordNames.Items.Add(name);
+                    if(name == _connectionProps.PasswordManagerName)
+                        nameFnd = true;
+                }
+
+                if(!string.IsNullOrEmpty(_connectionProps.PasswordManagerName))
+                {
+                        if(!nameFnd)
+                            this.comboPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
+                        this.comboPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
+                }
+
+                cbUsePassMgr_Click(this.cbUsePassMgr, new RoutedEventArgs());
+            }            
         }
         
         void btnOK_Click (object sender, RoutedEventArgs e)
@@ -304,7 +329,45 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 }
             }
         }
-        
+
+        private string[] PasswordManagerNames
+        {
+            get
+            {
+                try
+                {
+                    return (string[])typeof(LINQPad.Util).Assembly.GetType("LINQPad.PasswordManager")
+                            .GetMethod("GetAllPasswordNames").Invoke(null, null);
+                }
+                catch (Exception ex)
+                {
+                    LINQPad.Extensions.Dump(ex, "Exception obtaining LINQPad.PasswordManager.GetAllPasswordNames");
+                }
+                return null;
+            }
+        }
+
+        private void cbUsePassMgr_Click(object sender, RoutedEventArgs e)
+        {
+            //Debugger.Launch ();
+
+            var cb = (CheckBox)sender;
+
+            if (cb.IsChecked == true)
+            {                
+                this.spPassword.IsEnabled = false;
+                this.spPassword.Visibility = Visibility.Hidden;
+                this.spPasswordNames.IsEnabled = true;
+                this.spPasswordNames.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                this.spPassword.IsEnabled = true;
+                this.spPassword.Visibility = Visibility.Visible;
+                this.spPasswordNames.IsEnabled = false;
+                this.spPasswordNames.Visibility = Visibility.Hidden;                
+            }
+        }
     }
 
     public class NumericValidationRule : ValidationRule

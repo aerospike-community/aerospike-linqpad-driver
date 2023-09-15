@@ -56,10 +56,22 @@
                     <Label Padding="0,0,0,2" VerticalAlignment="Center">UserName:</Label>
                     <TextBox Name="txtUserName" Padding="2" ToolTip="User Name used for login" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.UserName}" Width="250" HorizontalAlignment="Left" Margin="5,0,0,5"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <Label Padding="0,0,0,2" VerticalAlignment="Center">Password:</Label>
-                    <TextBox Name="txtPassword" Padding="0,0,0,2" ToolTip="Password" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.Password}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5"/>
-                </StackPanel>
+                <CheckBox IsChecked="{Binding UsePasswordManager}" Name="cbUsePassMgr" Click="cbUsePassMgr_Click" ToolTip="Use the LINQPad Password Manager is available via the File menu" HorizontalAlignment="Left" Margin="12,0,0,5">
+                    LINQPad Password Manager
+                </CheckBox>
+                
+                <Grid>
+                    <StackPanel Grid.Row="0" Grid.ZIndex="1" Orientation="Horizontal" Name="spPassword">
+                        <Label Padding="0,0,0,2" VerticalAlignment="Center">Password:</Label>
+                        <TextBox Name="txtPassword" Padding="0,0,0,2" ToolTip="Password" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.Password}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.ZIndex="2" Orientation="Horizontal" Name="spPasswordNames">
+                        <Label Padding="0,0,0,2" VerticalAlignment="Center">Password Name:</Label>
+                        <ComboBox Name="comboPasswordNames" Padding="0,0,0,2" Text="{Binding PasswordManagerName}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" ToolTip="Name associated with the password in LINQPad Password Manager">
+                            <ComboBoxItem Content="&lt;None&gt;"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
                 <GroupBox Header="Timeout" BorderThickness="4" Margin="5,0,5,0">
                     <StackPanel Margin="5,0,0,0" Orientation="Horizontal">
                         <StackPanel Orientation="Horizontal">
