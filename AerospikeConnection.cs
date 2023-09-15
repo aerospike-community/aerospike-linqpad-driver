@@ -29,6 +29,8 @@ namespace Aerospike.Database.LINQPadDriver
             var connectionInfo = new ConnectionProperties(cxInfo);
             var dbPort = connectionInfo.Port;
             this.UseExternalIP = connectionInfo.UseExternalIP;
+            this.UsePasswordManager = connectionInfo.UsePasswordManager;
+            this.PasswordManagerName = connectionInfo.PasswordManagerName;
             this.Debug = connectionInfo.Debug;
             this.RecordView = connectionInfo.RecordView;
             this.DBRecordSampleSet = connectionInfo.DBRecordSampleSet;
@@ -46,11 +48,15 @@ namespace Aerospike.Database.LINQPadDriver
 
             cxInfo.DatabaseInfo.EncryptTraffic = !string.IsNullOrEmpty(connectionInfo.TLSProtocols);
             
-            this.ConnectionString = string.Format("hosts='{0}',user={1},password={2},externalIP={3},TLS='{4}',timeout={5},totaltimeout={6},sockettimeout={7},compression={8},IsProduction={9}",
+            this.ConnectionString = string.Format("hosts='{0}',user={1}{2},externalIP={3},TLS='{4}',timeout={5},totaltimeout={6},sockettimeout={7},compression={8},IsProduction={9}",
                                                     string.Join(",", connectionInfo.SeedHosts
                                                                         .Select(s => String.Format("{0}:{1}", s, dbPort))),
                                                     cxInfo.DatabaseInfo.UserName,
-                                                    cxInfo.DatabaseInfo.Password,
+                                                    this.UsePasswordManager
+                                                        ? $",passwordmgrname={this.PasswordManagerName}"
+                                                        : (cxInfo.DatabaseInfo.Password is null 
+                                                                ? string.Empty 
+                                                                : ",password=" + new string('*', cxInfo.DatabaseInfo.Password.Length)), 
                                                     this.UseExternalIP,
                                                     cxInfo.DatabaseInfo.EncryptTraffic
                                                         ? connectionInfo.TLSProtocols
@@ -81,8 +87,7 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     throw new AerospikeException($"Exception Occurred while creating the TLS Policy. Error is \"{ex.Message}\"");
                 }
-            }
-            
+            }            
         }
 
         public IConnectionInfo CXInfo { get; }
@@ -94,6 +99,9 @@ namespace Aerospike.Database.LINQPadDriver
         public Node[] Nodes { get { return this.AerospikeClient?.Nodes; } }
 
         public bool UseExternalIP { get; }
+
+        public bool UsePasswordManager { get; }
+        public string PasswordManagerName { get; }
 
         public bool Debug { get; }
 
@@ -331,10 +339,26 @@ namespace Aerospike.Database.LINQPadDriver
 
         public void Open()
         {
+            static string GetPasswordName(string name)
+            {
+                return (string)typeof(LINQPad.Util).Assembly.GetType("LINQPad.PasswordManager")
+                            .GetMethod("GetPassword").Invoke(null, new object[] {name});
+            }
+
             this.State = ConnectionState.Connecting;
 
             try
             {
+                var password = this.CXInfo.DatabaseInfo.Password;
+
+                if(this.UsePasswordManager)
+                {
+                    var newPassword = GetPasswordName(this.PasswordManagerName);
+                    if (newPassword is null)
+                        throw new NullReferenceException($"A LINQPad Password Manager Name of \"{this.PasswordManagerName}\" was provided but was not found in LINQPAD. You need to define the password association or disable Password Manager use!");
+                    password = newPassword;
+                }
+
                 var policy = new ClientPolicy()
                 {
                     timeout = this.SocketTimeout,
@@ -342,8 +366,7 @@ namespace Aerospike.Database.LINQPadDriver
                     useServicesAlternate = this.UseExternalIP,
                     tlsPolicy = this.TLS,
                     user = this.CXInfo.DatabaseInfo.UserName,
-                    password = this.CXInfo.DatabaseInfo.Password,
-
+                    password = password,
                     writePolicyDefault = new WritePolicy()
                     {
                         compress = this.NetworkCompression,

@@ -92,6 +92,42 @@ namespace Aerospike.Database.LINQPadDriver
             }
         }
 
+        public bool UsePasswordManager
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    DriverData.SetElementValue("UsePasswordManager", false);
+                    return false;
+                }
+
+                return (bool?)DriverData.Element("UsePasswordManager") ?? false;
+            }
+            set
+            {
+                DriverData.SetElementValue("UsePasswordManager", value);
+            }
+        }
+
+        public string PasswordManagerName
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    DriverData.SetElementValue("PasswordManagerName", false);
+                    return null;
+                }
+
+                return DriverData.Element("PasswordManagerName")?.Value;
+            }
+            set
+            {
+                DriverData.SetElementValue("PasswordManagerName", value);
+            }
+        }        
+
         public bool Debug
         {
             get
@@ -309,11 +345,11 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 if (DriverData.IsEmpty)
                 {
-                    DriverData.SetElementValue("AlwaysUseAValues", false);
-                    return false;
+                    DriverData.SetElementValue("AlwaysUseAValues", true);
+                    return true;
                 }
 
-                return (bool?)DriverData.Element("AlwaysUseAValues") ?? false;
+                return (bool?)DriverData.Element("AlwaysUseAValues") ?? true;
             }
             set
             {
@@ -830,5 +866,6 @@ namespace Aerospike.Database.LINQPadDriver
                 ARecord.DefaultASPIKeyName = value ?? "PK";
             }
         }
+
     }
 }

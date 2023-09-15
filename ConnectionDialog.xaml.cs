@@ -35,6 +35,8 @@ namespace Aerospike.Database.LINQPadDriver
                 txtRejectCerts.IsEnabled = true;
                 btnCertFile.IsEnabled = true;
             }
+
+            cbUsePassMgr_Click(this.cbUsePassMgr, new RoutedEventArgs());
         }
         
         void btnOK_Click (object sender, RoutedEventArgs e)
@@ -304,7 +306,52 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 }
             }
         }
-        
+
+        private string[] PasswordManagerNames
+        {
+            get
+            {
+                try
+                {
+                    return (string[])typeof(LINQPad.Util).Assembly.GetType("LINQPad.PasswordManager")
+                            .GetMethod("GetAllPasswordNames").Invoke(null, null);
+                }
+                catch (Exception ex)
+                {
+                    LINQPad.Extensions.Dump(ex, "Exception obtaining LINQPad.PasswordManager.GetAllPasswordNames");
+                }
+                return null;
+            }
+        }
+
+        private void cbUsePassMgr_Click(object sender, RoutedEventArgs e)
+        {
+            //Debugger.Launch ();
+
+            var cb = (CheckBox)sender;
+
+            if (cb.IsChecked == true)
+            {
+                foreach (var name in PasswordManagerNames)
+                {
+                    if (!this.comboPasswordNames.Items.Contains(name))
+                        this.comboPasswordNames.Items.Add(name);
+                }
+                this.spPassword.IsEnabled = false;
+                this.spPassword.Visibility = Visibility.Hidden;
+                this.spPasswordNames.IsEnabled = true;
+                this.spPasswordNames.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                this.spPassword.IsEnabled = true;
+                this.spPassword.Visibility = Visibility.Visible;
+                this.comboPasswordNames.Items.Clear();
+                this.comboPasswordNames.Text = null;
+                this.spPasswordNames.IsEnabled = false;
+                this.spPasswordNames.Visibility = Visibility.Hidden;                
+            }
+        }
     }
 
     public class NumericValidationRule : ValidationRule
