@@ -355,7 +355,7 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     var newPassword = GetPasswordName(this.PasswordManagerName);
                     if (newPassword is null)
-                        throw new NullReferenceException($"A LINQPad Password Manager Name of \"{this.PasswordManagerName}\" was provided but was not found in LINQPAD. You need to define the password association or disable Password Manager use!");
+                        throw new KeyNotFoundException($"A LINQPad Password Manager Name of \"{this.PasswordManagerName}\" was provided but was not found in LINQPAD. You need to define the password association with name or disable Password Manager use!");
                     password = newPassword;
                 }
 
