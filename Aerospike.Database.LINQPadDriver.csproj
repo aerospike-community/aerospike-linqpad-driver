@@ -18,8 +18,8 @@
     <PackageIcon>lib\net7.0-windows7.0\Connection.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
-    <Version>2.2.0.0</Version>
-    <FileVersion>2.2.0.0</FileVersion>    
+    <Version>2.2.1.0</Version>
+    <FileVersion>2.2.1.0</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>
