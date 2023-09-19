@@ -614,7 +614,10 @@ namespace Aerospike.Database.LINQPadDriver
 
             return this.SeedHosts.Any(x => other.SeedHosts.Any(y => y.Equals(x)))
                     && this.CXInfo.DatabaseInfo.UserName == other.CXInfo.DatabaseInfo.UserName
-                    && this.CXInfo.DatabaseInfo.Password == other.CXInfo.DatabaseInfo.Password
+                    && this.UsePasswordManager == other.UsePasswordManager
+                    && (this.UsePasswordManager
+                            ? this.PasswordManagerName == other.PasswordManagerName
+                            : this.CXInfo.DatabaseInfo.Password == other.CXInfo.DatabaseInfo.Password)
                     && this.TLSEqual(other)
                     && this.CXInfo.IsProduction == other.CXInfo.IsProduction
                     //&& this.CXInfo.DynamicSchemaOptions == other.CXInfo.DynamicSchemaOptions

@@ -63,7 +63,9 @@
                 <Grid>
                     <StackPanel Grid.Row="0" Grid.ZIndex="1" Orientation="Horizontal" Name="spPassword">
                         <Label Padding="0,0,0,2" VerticalAlignment="Center">Password:</Label>
-                        <TextBox Name="txtPassword" Padding="0,0,0,2" ToolTip="Password" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.Password}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5"/>
+                        <PasswordBox Name="passwordBox" Padding="0,0,0,2" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" PasswordChar="*" local:PasswordHelper.Attach="True" local:PasswordHelper.Password="{Binding Path=ConnectionInfo.DatabaseInfo.Password, Mode=TwoWay}"/>
+                        <TextBox Name="txtPassword" Padding="0,0,0,2" ToolTip="Password" MaxLines="1" MinLines="1"  Text="{Binding Path=ConnectionInfo.DatabaseInfo.Password, Mode=TwoWay}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" Visibility="Collapsed" />
+                        <CheckBox Name="cbShowPasswordChars" Content="Show password" Checked="cbShowPasswordChars_Checked" Unchecked="cbShowPasswordChars_Unchecked" />
                     </StackPanel>
                     <StackPanel Grid.Row="0" Grid.ZIndex="2" Orientation="Horizontal" Name="spPasswordNames">
                         <Label Padding="0,0,0,2" VerticalAlignment="Center">Password Name:</Label>
