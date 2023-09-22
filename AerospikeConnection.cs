@@ -19,6 +19,8 @@ namespace Aerospike.Database.LINQPadDriver
     [System.Diagnostics.DebuggerDisplay("{ConnectionString}")]
     public  sealed partial class AerospikeConnection : IDbConnection, IEquatable<AerospikeConnection>
     {
+        public static readonly Version NoNSBinsRequest = new Version(7, 0, 0, 0);
+        
         private bool disposedValue = false;
 
         public AerospikeConnection(IConnectionInfo cxInfo)
@@ -45,7 +47,8 @@ namespace Aerospike.Database.LINQPadDriver
             this.DriverLogging= connectionInfo.DriverLogging;
             this.NetworkCompression= connectionInfo.NetworkCompression;
             this.RespondAllOps = connectionInfo.RespondAllOps;
-
+            this.DBVersion = new Version();
+            
             cxInfo.DatabaseInfo.EncryptTraffic = !string.IsNullOrEmpty(connectionInfo.TLSProtocols);
             
             this.ConnectionString = string.Format("hosts='{0}',user={1}{2},externalIP={3},TLS='{4}',timeout={5},totaltimeout={6},sockettimeout={7},compression={8},IsProduction={9}",
@@ -87,7 +90,8 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     throw new AerospikeException($"Exception Occurred while creating the TLS Policy. Error is \"{ex.Message}\"");
                 }
-            }            
+            }
+            
         }
 
         public IConnectionInfo CXInfo { get; }
@@ -102,6 +106,8 @@ namespace Aerospike.Database.LINQPadDriver
 
         public bool UsePasswordManager { get; }
         public string PasswordManagerName { get; }
+
+        public Version DBVersion { get; private set; }
 
         public bool Debug { get; }
 
@@ -228,10 +234,12 @@ namespace Aerospike.Database.LINQPadDriver
             throw new NotImplementedException();
         }
 
+        static private readonly Regex VersionRegEx = new Regex(@"(?<major>\d+)\.(?<minor>\d+)\.?(?<build>\d*)\.?(?<revision>\d*)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
         public void ObtainMetaDate(bool obtainBinsInSet = true, bool closeUponClompletion = true)
         {
             bool performedOpen = false;
-
+            
             //System.Diagnostics.Debugger.Launch();
             try
             {
@@ -262,9 +270,39 @@ namespace Aerospike.Database.LINQPadDriver
                                     this.Database = this.AerospikeClient.Cluster.GetStats().ToString();
                                 }
 
+                                bool noInfoRequestBins = false;
+
                                 this.CXInfo.DatabaseInfo.DbVersion = Info.Request(this.Connection, "version");
                                  
-                                this.Namespaces = LPNamespace.Create(this.Connection);
+                                if(!string.IsNullOrEmpty(this.CXInfo.DatabaseInfo.DbVersion))
+                                {
+                                    try
+                                    {
+                                        var versionMatch = VersionRegEx.Match(this.CXInfo.DatabaseInfo.DbVersion);
+
+                                        if (versionMatch.Success)
+                                        {
+                                            int major = 0;
+                                            int minor = 0;
+                                            int build = 0;
+                                            int revision = 0;
+
+                                            if (versionMatch.Groups["major"].Success)
+                                                major = int.Parse(versionMatch.Groups["major"].Value);
+                                            if (versionMatch.Groups["minor"].Success)
+                                                minor = int.Parse(versionMatch.Groups["minor"].Value);
+                                            if (versionMatch.Groups["build"].Success)
+                                                build = int.Parse(versionMatch.Groups["build"].Value);
+                                            if (versionMatch.Groups["revision"].Success)
+                                                revision = int.Parse(versionMatch.Groups["revision"].Value);
+
+                                            this.DBVersion = new Version(major, minor, build, revision);
+                                            noInfoRequestBins = this.DBVersion >= AerospikeConnection.NoNSBinsRequest;
+                                        }
+                                    } catch { }
+                                }
+
+                                this.Namespaces = LPNamespace.Create(this.Connection, this.DBVersion);
 
                                 this.UDFModules = LPModule.Create(this.Connection);                               
 
@@ -281,13 +319,17 @@ namespace Aerospike.Database.LINQPadDriver
                                             (set, cancelationToken) =>
                                             {
                                                 if (set.IsNullSet)
-                                                    set.UpdateTypeBins(ns.Bins);
+                                                    set.UpdateTypeBins(ns.Bins, false);
                                                 else
                                                     set.GetRecordBins(getBins,
                                                                         this.DocumentAPI,
-                                                                        this.DBRecordSampleSet,
-                                                                        this.DBRecordSampleSetMin);
+                                                                        noInfoRequestBins && this.DBRecordSampleSet <= 0 ? 10 : this.DBRecordSampleSet,
+                                                                        noInfoRequestBins && this.DBRecordSampleSetMin <= 0 ? 1 : this.DBRecordSampleSetMin,
+                                                                        false);
                                             });
+
+                                        if(!ns.Bins.Any())
+                                            ns.DetermineUpdateBinsBasedOnSets();
                                     }
 
                                 }
@@ -353,9 +395,8 @@ namespace Aerospike.Database.LINQPadDriver
 
                 if(this.UsePasswordManager)
                 {
-                    var newPassword = GetPasswordName(this.PasswordManagerName);
-                    if (newPassword is null)
-                        throw new KeyNotFoundException($"A LINQPad Password Manager Name of \"{this.PasswordManagerName}\" was provided but was not found in LINQPAD. You need to define the password association with name or disable Password Manager use!");
+                    var newPassword = GetPasswordName(this.PasswordManagerName)
+                                        ?? throw new KeyNotFoundException($"A LINQPad Password Manager Name of \"{this.PasswordManagerName}\" was provided but was not found in LINQPAD. You need to define the password association with name or disable Password Manager use!");
                     password = newPassword;
                 }
 

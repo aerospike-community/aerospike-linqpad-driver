@@ -25,7 +25,7 @@ namespace Aerospike.Database.LINQPadDriver
         {
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Namespace");
-            LPNamespacesBag.Add(this);
+            LPNamespacesBag.Add(this);            
         }
        
         static private readonly Regex SetNameRegEx = new Regex("set=(?<setname>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -76,7 +76,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.safeBins = safebins.ToList();
             this.aSets = sets.ToList();
             this.SIndexes = sindexes;
-            LPNamespacesBag.Add(this);
+            LPNamespacesBag.Add(this);            
         }
 
         /// <summary>
@@ -93,7 +93,7 @@ namespace Aerospike.Database.LINQPadDriver
         /// The Actual DB Bin Names
         /// </summary>
         public IEnumerable<string> Bins { get => this.bins; }
-
+        
         private readonly List<string> safeBins = new List<string> ();
         /// <summary>
         /// Bin names that are safe to use as C# class name or properties.
@@ -111,14 +111,23 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public IEnumerable<LPSecondaryIndex> SIndexes { get; internal set; } = Enumerable.Empty<LPSecondaryIndex>();
 
-        public static IEnumerable<LPNamespace> Create(Client.Connection asConnection)
-        {
+        
+        public static IEnumerable<LPNamespace> Create(Client.Connection asConnection, Version dbVersion)
+        {            
             var setsAttrib = Info.Request(asConnection, "sets");
+
+            string GetNSBins(string nsName)
+            {
+                if (dbVersion < AerospikeConnection.NoNSBinsRequest)
+                    return Info.Request(asConnection, $"bins/{nsName}");
+
+                return string.Empty;
+            }
 
             var asNamespaces = (from nsSets in setsAttrib.Split(';', StringSplitOptions.RemoveEmptyEntries)
                                 let ns = NameSpaceRegEx.Match(nsSets).Groups["namespace"].Value
                                 group nsSets by ns into nsGrp
-                                let nsBins = Info.Request(asConnection, $"bins/{nsGrp.Key}")
+                                let nsBins = GetNSBins(nsGrp.Key)
                                 select new LPNamespace(nsGrp.Key, nsGrp.ToList(), nsBins)).ToList();
 
             var namespaces = Info.Request(asConnection, "namespaces")?.Split(';');
@@ -170,6 +179,27 @@ namespace Aerospike.Database.LINQPadDriver
             }
 
             return false;
+        }
+
+        internal void DetermineUpdateBinsBasedOnSets()
+        {            
+            var binTypes = this.Sets
+                            .Where(s => !s.IsNullSet)
+                            .SelectMany(s => s.BinTypes)
+                            .Distinct(LPSet.BinType.DefaultNameComparer);
+
+            if (binTypes.Any())
+            {
+                this.bins.Clear();
+                this.bins.AddRange(binTypes.Select(b => b.BinName));
+
+                this.safeBins.Clear();
+                this.safeBins.AddRange(binTypes.Select(b => Helpers.CheckName(b.BinName, "Bin")));
+
+                var nullSet = this.Sets.First(s => s.IsNullSet);
+
+                nullSet.UpdateTypeBins(this.bins, false);
+            }
         }
 
 

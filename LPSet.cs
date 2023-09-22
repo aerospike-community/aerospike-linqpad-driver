@@ -3,6 +3,7 @@ using LINQPad.Extensibility.DataContext;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -13,7 +14,7 @@ namespace Aerospike.Database.LINQPadDriver
     [System.Diagnostics.DebuggerDisplay("{Name}")]
     public sealed class LPSet : IGenerateCode
     {        
-        public class BinType : ILPExplorer
+        public class BinType : ILPExplorer, IEqualityComparer<BinType>
         {            
             internal BinType(string name, Type type, bool dup, bool allRecs, bool detected = false)
             {
@@ -61,6 +62,46 @@ namespace Aerospike.Database.LINQPadDriver
                     DragText = this.BinName
                 };
             }
+
+            public override string ToString()
+                => $"{this.BinName}({this.DataType.Name})";
+
+            public override int GetHashCode()
+                => this.ToString().GetHashCode();
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj is null) return false;
+
+                if (obj is BinType xbinType) return this.Equals(this, xbinType);
+                if (obj is string binName) return this.BinName == binName;
+
+                return false;
+            }
+
+            public bool Equals([AllowNull] BinType x, [AllowNull] BinType y)
+            {
+                if(ReferenceEquals(x, y)) return true;
+                if (x is null || y is null) return false;
+                if (x.DataType is null  || y.DataType is null) return false;
+
+                return x.BinName == y.BinName && x.DataType.Equals(y.DataType);
+            }
+
+            public int GetHashCode([DisallowNull] BinType obj)
+                => obj?.GetHashCode() ?? 0;
+
+            public sealed class NameEqualityComparer : IEqualityComparer<BinType>
+            {
+                public bool Equals([AllowNull] BinType x, [AllowNull] BinType y)
+                    => x?.BinName == y?.BinName;
+
+                public int GetHashCode([DisallowNull] BinType obj)
+                    => obj?.GetHashCode() ?? 0;
+            }
+
+            public static readonly NameEqualityComparer DefaultNameComparer = new NameEqualityComparer();
         }
 
         static readonly ConcurrentBag<LPSet> SetsBag = new ConcurrentBag<LPSet>();
@@ -143,23 +184,31 @@ namespace Aerospike.Database.LINQPadDriver
         internal void GetRecordBins(GetSetBins getBins,
                                         bool determineDocType,
                                         int maxRecords,
-                                        int minRecs)
+                                        int minRecs,
+                                        bool updateCntd = true)
         {
             lock (binTypes)
             {
                 this.binTypes = getBins.Get(this.LPnamespace.Name, this.Name, determineDocType, maxRecords, minRecs);
-                Interlocked.Increment(ref nbrCodeUpdates);
-                Interlocked.Increment(ref LPnamespace.nbrCodeUpdates);
+
+                if (updateCntd)
+                {
+                    Interlocked.Increment(ref nbrCodeUpdates);
+                    Interlocked.Increment(ref LPnamespace.nbrCodeUpdates);
+                }
             }
         }
 
-        internal void UpdateTypeBins(IEnumerable<string> bins)
+        internal void UpdateTypeBins(IEnumerable<string> bins, bool updateCnts = true)
         {
             lock (binTypes)
             {
                 this.binTypes = bins.Select(b => new BinType(b, null, false, false)).ToList();
-                Interlocked.Increment(ref nbrCodeUpdates);
-                Interlocked.Increment(ref LPnamespace.nbrCodeUpdates);
+                if (updateCnts)
+                {
+                    Interlocked.Increment(ref nbrCodeUpdates);
+                    Interlocked.Increment(ref LPnamespace.nbrCodeUpdates);
+                }
             }
         }
 
@@ -245,11 +294,15 @@ namespace Aerospike.Database.LINQPadDriver
 
             var setClassFlds = new StringBuilder();
             var setClassFldsConst = new StringBuilder();
+            var paramsNewRec = new StringBuilder();
+            var dictValuesNewRec = new StringBuilder();
             var fldSeen = new List<string>();
 
             setClassFlds.AppendLine($"\t\t\tpublic APrimaryKey {ARecord.DefaultASPIKeyName} {{ get; }}");
             setClassFldsConst.AppendLine($"\t\t\t\t\t{ARecord.DefaultASPIKeyName} = new APrimaryKey(this.Aerospike.Key);");
 
+            paramsNewRec.AppendLine($"\t\t\tdynamic {ARecord.DefaultASPIKeyName},");
+            
             var generateBinsTask = Task.Run(() =>
             {
                 foreach (var setBinType in bins)
@@ -263,6 +316,9 @@ namespace Aerospike.Database.LINQPadDriver
                     var fldType = setBinType.Duplicate || alwaysUseAValues
                                         ? "AValue"
                                         : Helpers.GetRealTypeName(setBinType.DataType, !setBinType.FndAllRecs);
+                    var paramType = setBinType.Duplicate
+                                        ? "object"
+                                        : Helpers.GetRealTypeName(setBinType.DataType);
 
                     flds.Add(fldName);
 
@@ -283,7 +339,7 @@ namespace Aerospike.Database.LINQPadDriver
                     {
                         setClassFldsConst.Append($" new AValue(this.Aerospike.GetValue(\"");
                         setClassFldsConst.Append(setBinType.BinName);
-                        setClassFldsConst.Append($"\"), \"{setBinType.BinName}\",  \"{fldName}\" );");
+                        setClassFldsConst.Append($"\"), \"{setBinType.BinName}\",  \"{fldName}\" );");                        
                     }
                     else if (setBinType.DataType.IsValueType)
                     {
@@ -299,10 +355,30 @@ namespace Aerospike.Database.LINQPadDriver
                         setClassFldsConst.Append("\"));");
                     }
 
+                    if (setBinType.DataType.IsValueType)
+                    {
+                        paramsNewRec.Append($"\t\t\t\t{paramType}? ");
+                    }
+                    else
+                    {
+                        paramsNewRec.Append($"\t\t\t\t{paramType} ");
+                    }
+
                     if (setBinType.Duplicate)
                         setClassFldsConst.Append("\t//Multiple Type Bin");
                     if (!setBinType.FndAllRecs)
                         setClassFldsConst.Append("\t//Bin not found in all records");
+
+                    if (setBinType.Duplicate)
+                    {
+                        paramsNewRec.AppendLine($"{fldName} = null,\t//Multiple Type Bin");
+                    }
+                    else
+                    {
+                        paramsNewRec.AppendLine($"{fldName} = null,");
+                    }
+                    
+                    dictValuesNewRec.AppendLine($"\t\t\t\tif(!({fldName} is null)) dictRec.Add(\"{setBinType.BinName}\",{fldName});");
 
                     setClassFldsConst.AppendLine();
 
@@ -348,6 +424,42 @@ namespace Aerospike.Database.LINQPadDriver
 														int binsHashCode,
 														Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes recordView = global::Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes.Record) => new RecordCls(setAccess, key, record, binNames, binsHashCode, recordView);
 
+        /// <summary>
+        /// Puts (Writes) a DB record based on the provided key and bin values.
+        /// If a parameter is not provided, the associated bin is not inserted or updated. A parameter value of null is not allowed.
+        /// 
+        /// Note that if the namespace and/or set is different, this instances&apos;s values are used.
+        /// </summary>
+        /// <param name=""primaryKey"">
+        /// Primary AerospikeKey.
+        /// This can be a <see cref=""Client.Key""/>, <see cref=""Value""/>, or <see cref=""Bin""/> object besides a native, collection, etc. value/object.
+        /// </param>
+        /// <param name=""additionalValues"">
+        /// Additional values as a dictionary where the key is the bin and the value is the bin&apos;s value.
+        /// </param>
+        /// <param name=""writePolicy"">
+        /// The write policy. If not provided, the default policy is used.
+        /// <seealso cref=""Aerospike.Client.WritePolicy""/>
+        /// </param>
+        /// <param name=""ttl"">Time-to-live of the record</param>
+        public new void PutRec(
+{paramsNewRec}				IEnumerable<KeyValuePair<string,object>> additionalValues = null,
+				global::Aerospike.Client.WritePolicy writePolicy = null,
+				TimeSpan? ttl = null
+        )
+        {{
+            var dictRec = new Dictionary<string,object>( additionalValues
+                                                            ?? Enumerable.Empty<KeyValuePair<string,object>>() );
+
+{dictValuesNewRec}
+
+            this.SetAccess.Put(this.SetName, 
+                                {ARecord.DefaultASPIKeyName}, 
+                                dictRec,                                
+                                writePolicy: writePolicy,
+                                ttl: ttl);                                                               
+        }}
+
 		public new {this.SafeName}_SetCls Clone() => new {this.SafeName}_SetCls(this);
 
 		public class RecordCls : Aerospike.Database.LINQPadDriver.Extensions.ARecord
@@ -366,7 +478,8 @@ namespace Aerospike.Database.LINQPadDriver
 					this.SetException(ex);
 					this.SetDumpType(ARecord.DumpTypes.Dynamic);
 				}}
-			}}
+			}}           
+
 {setClassFlds}
 			override public object ToDump() => this.ToDump( new string[] {{ ""{ARecord.DefaultASPIKeyName}"", {string.Join(',', flds.Select(s => "\"" + s + "\""))} }} );
 		}}

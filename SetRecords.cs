@@ -761,13 +761,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public void Put([NotNull] ARecord record,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-        {
-            this.SetAccess.Put(this.SetName, 
-                                record.Aerospike.Key, 
-                                record.Aerospike.GetValues(), 
-                                writePolicy, 
-                                ttl ?? record.Aerospike.TTL);
-        }
+            => this.SetAccess.Put(this.SetName, 
+                                    record.Aerospike.Key, 
+                                    record.Aerospike.GetValues(), 
+                                    writePolicy: writePolicy, 
+                                    ttl: ttl ?? record.Aerospike.TTL);        
 
         /// <summary>
         /// Puts (Writes) a DB record based on the provided key and bin values.
@@ -779,7 +777,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </param>
         /// <param name="binValues">
         /// A dictionary where the key is the bin and the value is the bin&apos;s value.
-        /// Note the values cannot be a <see cref="Bin"/> or <see cref="Value"/> object.
         /// </param>
         /// <param name="writePolicy">
         /// The write policy. If not provided , the default policy is used.
@@ -790,9 +787,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] IDictionary<string, V> binValues,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-        {
-            this.SetAccess.Put(primaryKey, binValues, this.SetName, writePolicy, ttl);
-        }
+            => this.SetAccess.Put(this.SetName, primaryKey, binValues, 
+                                     writePolicy: writePolicy, ttl: ttl);        
 
         /// <summary>
         /// Puts (writes) a bin to the DB record.
@@ -806,21 +802,44 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="binValue">
         /// BinName&apos;s Value.
         /// If null, the bin is removed from the record.
-        /// Note the values cannot be a <see cref="Bin"/> or <see cref="Value"/> object.
         /// </param>
         /// <param name="writePolicy">
         /// The write policy. If not provided , the default policy is used.
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
-        public void Put<V>([NotNull] dynamic primaryKey,
+        public void Put([NotNull] dynamic primaryKey,
                             [NotNull] string bin,
-                            [NotNull] V binValue,
+                            [NotNull] object binValue,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-        {
-            this.SetAccess.Put(this.SetName, primaryKey, bin, binValue, writePolicy, ttl);
-        }
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, binValue, writePolicy: writePolicy, ttl: ttl);
+
+        /// <summary>
+        /// Puts (writes) a bin to the DB record.
+        /// Note that if the namespace and/or set is different, this instances&apos;s values are used.
+        /// </summary>
+        /// <param name="primaryKey">
+        /// Primary AerospikeKey.
+        /// This can be a <see cref="Client.Key"/>, <see cref="Value"/>, or <see cref="Bin"/> object besides a native, collection, etc. value/object.
+        /// </param>
+        /// <param name="bin">BinName Name</param>
+        /// <param name="binValue">
+        /// BinName&apos;s Value.
+        /// If null, the bin is removed from the record.
+        /// </param>
+        /// <param name="writePolicy">
+        /// The write policy. If not provided , the default policy is used.
+        /// <seealso cref="WritePolicy"/>
+        /// </param>
+        /// <param name="ttl">Time-to-live of the record</param>        
+        public void Put([NotNull] dynamic primaryKey,
+                            [NotNull] string bin,
+                            [NotNull] string binValue,
+                            WritePolicy writePolicy = null,
+                            TimeSpan? ttl = null)
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, binValue, writePolicy: writePolicy, ttl: ttl);
+
 
         /// <summary>
         /// Puts (writes) a bin to the DB record.
@@ -845,10 +864,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] IList<T> listValue,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-        {
-            this.SetAccess.Put(this.SetName, primaryKey, bin, listValue, writePolicy, ttl);
-        }
-
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, listValue, writePolicy: writePolicy, ttl: ttl);        
 
         /// <summary>
         /// Puts (writes) a bin to the DB record.
@@ -873,9 +889,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] IEnumerable<T> collectionValue,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-        {
-            this.SetAccess.Put(this.SetName, primaryKey, bin, collectionValue, writePolicy, ttl);
-        }
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, collectionValue, writePolicy: writePolicy, ttl: ttl);        
 
         /// <summary>
         /// Put (Writes) a DB record based on the provided key and bin values.
@@ -897,9 +911,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] IEnumerable<Bin> binsToWrite,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-        {
-            this.SetAccess.Put(primaryKey, binsToWrite, this.SetName, writePolicy, ttl);
-        }
+            => this.SetAccess.Put(this.SetName, primaryKey, binsToWrite, writePolicy: writePolicy, ttl: ttl);
+        
         #endregion
 
         /// <summary>
@@ -931,9 +944,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     string doctumentBinName = null,
                                     WritePolicy writePolicy = null,
                                     TimeSpan? ttl = null)
-        {
-            this.SetAccess.WriteObject<T>(this.SetName, primaryKey, instance, transform, doctumentBinName, writePolicy, ttl);
-        }
+            => this.SetAccess.WriteObject<T>(this.SetName, primaryKey, instance, 
+                                                transform: transform, doctumentBinName: doctumentBinName, writePolicy: writePolicy, ttl: ttl);        
 
         #region Delete/Trunc Methods
         /// <summary>
@@ -952,11 +964,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </returns>
         public bool Delete([NotNull] ARecord record,
                             WritePolicy writePolicy = null)
-        {
-            var writePolicyDelete = writePolicy ?? this.DefaultWritePolicy;
-
-            return this.Delete(record.Aerospike.Key, writePolicyDelete);
-        }
+            => this.Delete(record.Aerospike.Key, writePolicy: writePolicy ?? this.DefaultWritePolicy);        
 
         /// <summary>
         /// Deletes the DB record associated with the primary key.

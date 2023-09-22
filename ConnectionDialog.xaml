@@ -197,10 +197,9 @@
           HorizontalAlignment="Left" Header="Display/Conversion Options" 
           ExpandDirection="Down" IsExpanded="false" BorderThickness="4">
             <StackPanel>
-                <Label Padding="0,5,0,5">Sample Number of Records (0 to disable):</Label>
+                <Label Name="lblSampleNbrTxt" Padding="0,5,0,5">Sample Number of Records (0 to disable):</Label>
                 <StackPanel Orientation="Horizontal">
-                    <TextBox Name="txtSampleRecs" Padding="0,5,0,5" ToolTip="The number of records to read from a set to determine the data type usage. A value of zero will disable this feature" MaxLines="1" MinLines="1" Margin="0,0,0,5" Width="99" HorizontalAlignment="Left" TextChanged="txtSampleRecs_TextChanged"
-                        >
+                    <TextBox Name="txtSampleRecs" Padding="0,5,0,5" ToolTip="The number of records to read from a set to determine the data type usage. A value of zero will disable this feature" MaxLines="1" MinLines="1" Margin="0,0,0,5" Width="99" HorizontalAlignment="Left" TextChanged="txtSampleRecs_TextChanged">
                     <TextBox.Text>
                         <Binding Path="DBRecordSampleSet" FallbackValue="10" StringFormat="{}{0:0}"
                                  ValidatesOnExceptions="True" ValidatesOnDataErrors="True">

@@ -418,6 +418,14 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     putObject = ConvertToAerospikeType(aValue.Value);
                 }
+                else if (putObject is Aerospike.Client.Value asValue)
+                {
+                    putObject = asValue.Object;
+                }
+                else if (putObject is Aerospike.Client.Bin asBin)
+                {
+                    putObject = asBin.value?.Object;
+                }
                 else if (putObject is Decimal decValue)
                 {
                     putObject = (double)decValue;
@@ -703,6 +711,10 @@ namespace Aerospike.Database.LINQPadDriver
             if (item is IDictionary<string, object> dict)
             {
                 bins.AddRange(CreateBinRecord(dict, prefix));
+            }
+            else if (item is string strItem)
+            {
+                bins.Add(new Bin(prefix, strItem));
             }
             else if (item is IList<object> lst)
             {

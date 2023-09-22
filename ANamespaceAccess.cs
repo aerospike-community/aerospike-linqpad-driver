@@ -314,7 +314,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Put{T}(string, dynamic, string, IEnumerable{T}, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put{T}(string, dynamic, string, IList{T}, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="Put{V}(string, dynamic, string, V, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="Put(string, dynamic, string, object, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="WriteObject{T}(string, dynamic, T, Func{string, string, object, bool, object}, string, WritePolicy, TimeSpan?)"/>
         public ARecord Get(string setName, dynamic primaryKey, params string[] bins)
@@ -372,7 +372,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </param>
         /// <param name="binValues">
         /// A dictionary where the key is the bin and the value is the bin&apos;s value.
-        /// Note the values cannot be a <see cref="Bin"/> or <see cref="Value"/> object.
         /// </param>
         /// <param name="setName">Set name or null for the null set</param>
         /// <param name="writePolicy">
@@ -414,7 +413,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="binValue">
         /// BinName&apos;s Value.
         /// If null, the bin is removed from the record.
-        /// Note the values cannot be a <see cref="Bin"/> or <see cref="Value"/> object.
         /// </param>
         /// <param name="setName">Set name or null for the null set</param>
         /// <param name="writePolicy">
@@ -422,10 +420,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
-        public void Put<V>(string setName,
+        public void Put(string setName,
                             [NotNull] dynamic primaryKey,
                             [NotNull] string bin,
-                            [NotNull] V binValue,
+                            [NotNull] object binValue,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
         {
@@ -444,6 +442,33 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             this.AddDynamicSet(setName, bins);
         }
+
+        /// <summary>
+        /// Puts (writes) a bin to the DB record.
+        /// Note that if the namespace and/or set is different, this instances&apos;s values are used.
+        /// </summary>
+        /// <param name="primaryKey">
+        /// Primary AerospikeKey.
+        /// This can be a <see cref="Client.Key"/>, <see cref="Value"/>, or <see cref="Bin"/> object besides a native, collection, etc. value/object.
+        /// </param>
+        /// <param name="bin">BinName Name</param>
+        /// <param name="binValue">
+        /// BinName&apos;s Value.
+        /// If null, the bin is removed from the record.
+        /// </param>
+        /// <param name="setName">Set name or null for the null set</param>
+        /// <param name="writePolicy">
+        /// The write policy. If not provided , the default policy is used.
+        /// <seealso cref="WritePolicy"/>
+        /// </param>
+        /// <param name="ttl">Time-to-live of the record</param>
+        public void Put(string setName,
+                            [NotNull] dynamic primaryKey,
+                            [NotNull] string bin,
+                            [NotNull] string binValue,
+                            WritePolicy writePolicy = null,
+                            TimeSpan? ttl = null)
+            => this.Put(setName, primaryKey, bin, (object) binValue, writePolicy:  writePolicy, ttl: ttl);
 
         /// <summary>
         /// Puts (writes) a bin to the DB record.
@@ -513,7 +538,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] IEnumerable<T> collectionValue,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-        {
+        {            
             var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
 
             if (ttl.HasValue)
@@ -600,7 +625,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Put{T}(string, dynamic, string, IEnumerable{T}, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put{T}(string, dynamic, string, IList{T}, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="Put{V}(string, dynamic, string, V, WritePolicy, TimeSpan?)"/>
+        /// <seealso cref="Put(string, dynamic, string, object, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Get(string, dynamic, string[])"/>
         /// <exception cref="TypeAccessException">Thrown if cannot write <paramref name="instance"/></exception>
