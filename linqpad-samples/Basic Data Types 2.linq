@@ -20,7 +20,7 @@ This will demo some of the capabilities of working with set properties and auto-
 Warning: You must run "Basic Data Types" script first, otherwise this script will not compile!!
 	
 Note: this is not meant to be used in a production environment and there can be performance implications using this LinqPad driver!   
-
+		If this has compile errors, you need to run "Basic Data Types" tocreate the set.
 */
 void Main()
 {	

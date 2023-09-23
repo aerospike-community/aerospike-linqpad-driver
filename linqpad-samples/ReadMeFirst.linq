@@ -32,6 +32,7 @@ Once completed, you are ready to continue reviewing the sample scripts.
 Below is a list of sample scripts: 
 •	ReadMeFirst.linq – This script should be reviewed first. It will load the data into the “Demo” namespace which needs to exist. To create this namespace, please follow these instructions.
 •	Basic Data Types.linq - Review some of the capabilities of working with Bins from within the driver plus show how to programmatically access sets and bins
+•	Basic Data Types 2.linq - Part 2 of the above
 •	Record Display View.linq - This demonstrates how "Record Display View" works
 •	Linq Join Customer and Invoice.linq – Shows how to perform a client side join of two sets
 •	LinqWhere-AerospikePK.linq – Shows how to use primary keys with Linq and Aerospike API

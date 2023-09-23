@@ -1,5 +1,6 @@
 ﻿using Aerospike.Database.LINQPadDriver.Extensions;
 using LINQPad.Extensibility.DataContext;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -321,41 +322,62 @@ namespace Aerospike.Database.LINQPadDriver
             
             var generateBinsTask = Task.Run(() =>
             {
-                foreach (var setBinType in bins)
+            foreach (var setBinType in bins)
+            {
+                if (fldSeen.Contains(setBinType.BinName))
                 {
-                    if (fldSeen.Contains(setBinType.BinName))
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    var fldName = Helpers.CheckName(setBinType.BinName, "Bin");
-                    var fldType = setBinType.Duplicate || alwaysUseAValues
-                                        ? "AValue"
-                                        : Helpers.GetRealTypeName(setBinType.DataType, !setBinType.FndAllRecs);
-                    var paramType = setBinType.Duplicate
-                                        ? "object"
-                                        : Helpers.GetRealTypeName(setBinType.DataType);
+                var fldName = Helpers.CheckName(setBinType.BinName, "Bin");
+                var fldType = setBinType.Duplicate || alwaysUseAValues
+                                    ? "AValue"
+                                    : Helpers.GetRealTypeName(setBinType.DataType, !setBinType.FndAllRecs);
+                var paramType = setBinType.Duplicate
+                                    ? "object"
+                                    : Helpers.GetRealTypeName(setBinType.DataType);
+                var jsonType = setBinType.DataType == typeof(JsonDocument)
+                                    || setBinType.DataType == typeof(List<JsonDocument>)
+                                    || setBinType.DataType == typeof(JArray)
+                                    || setBinType.DataType == typeof(List<JArray>)
+                                    || setBinType.DataType == typeof(JToken)
+                                    || setBinType.DataType == typeof(List<JToken>)
+                                    || setBinType.DataType == typeof(JValue)
+                                    || setBinType.DataType == typeof(List<JValue>)
+                                    ? Helpers.GetRealTypeName(setBinType.DataType, !setBinType.FndAllRecs)
+                                    : null;
 
-                    flds.Add(fldName);
+                flds.Add(fldName);
 
-                    setClassFlds.Append("\t\t\tpublic ");
-                    setClassFlds.Append(fldType);
-                    setClassFlds.Append(' ');
-                    setClassFlds.Append(fldName);
-                    setClassFlds.Append("{ get; }");
-                    setClassFlds.AppendLine();
+                setClassFlds.Append("\t\t\tpublic ");
+                setClassFlds.Append(fldType);
+                setClassFlds.Append(' ');
+                setClassFlds.Append(fldName);
+                setClassFlds.Append("{ get; }");
+                setClassFlds.AppendLine();
 
-                    setClassFldsConst.Append("\t\t\t\t\t");
-                    setClassFldsConst.Append(fldName);
-                    setClassFldsConst.Append(" = (");
-                    setClassFldsConst.Append(fldType);
-                    setClassFldsConst.Append(") ");
+                setClassFldsConst.Append("\t\t\t\t\t");
+                setClassFldsConst.Append(fldName);
+                setClassFldsConst.Append(" = (");
+                setClassFldsConst.Append(fldType);
+                setClassFldsConst.Append(") ");
 
-                    if (setBinType.Duplicate || alwaysUseAValues)
-                    {
-                        setClassFldsConst.Append($" new AValue(this.Aerospike.GetValue(\"");
-                        setClassFldsConst.Append(setBinType.BinName);
-                        setClassFldsConst.Append($"\"), \"{setBinType.BinName}\",  \"{fldName}\" );");                        
+                if (setBinType.Duplicate || alwaysUseAValues)
+                {                        
+                        if (!string.IsNullOrEmpty(jsonType))
+                        {
+                            setClassFldsConst.Append($" new AValue(");
+                            setClassFldsConst.Append($" Helpers.CastToNativeType(this, \"{fldName}\", typeof({jsonType}), \"{setBinType.BinName}\", this.Aerospike.GetValue(\"");
+                            setClassFldsConst.Append(setBinType.BinName);
+                            setClassFldsConst.Append("\"))");
+                            setClassFldsConst.Append($", \"{setBinType.BinName}\",  \"{fldName}\" );");
+                        }
+                        else
+                        {
+                            setClassFldsConst.Append($" new AValue(this.Aerospike.GetValue(\"");
+                            setClassFldsConst.Append(setBinType.BinName);
+                            setClassFldsConst.Append($"\"), \"{setBinType.BinName}\",  \"{fldName}\" );");
+                        }
                     }
                     else if (setBinType.DataType.IsValueType)
                     {

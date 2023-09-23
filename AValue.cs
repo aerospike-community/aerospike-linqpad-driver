@@ -428,7 +428,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             var listItem = this.ToList();
 
             if(listItem.Count > 0)
-            {
+            {                
                 if (Helpers.IsJsonDoc(listItem.GetType().GenericTypeArguments[0]))
                 {
                     return Aerospike.Client.LPDHelpers.ToCDT(listItem.Cast<JObject>());                    
@@ -440,7 +440,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     {
                         return new JsonDocument(dict);
                     }
-                    
+                    if (value is JsonDocument jdoc)
+                    {
+                        return jdoc;
+                    }
+                    if (value is JObject jObj)
+                    {
+                        return new JsonDocument(jObj);
+                    }
+
                     return null;
                 }
 
