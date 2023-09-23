@@ -3,10 +3,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Windows.Controls;
-using Microsoft.Win32.SafeHandles;
-using System.Xml.Linq;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {

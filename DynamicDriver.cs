@@ -365,7 +365,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 						continue;
 					}
 
-                    var udfName = char.ToUpper(udf.SafeName[0]) + udf.SafeName.Substring(1) + "_UDFCls";
+                    var udfName = char.ToUpper(udf.SafeName[0]) + udf.SafeName[1..] + "_UDFCls";
 					var udfParams = udf.Params?.Split(',', StringSplitOptions.RemoveEmptyEntries);
 					var udfCode = udf.Code?.Replace("\"", "\"\"");
                     var udfFuncs = new StringBuilder();

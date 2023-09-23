@@ -121,7 +121,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.LPnamespace = aNamespace;
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Set");
-            this.binTypes = binTypes?.ToList() ?? new List<BinType>();
+            this.binTypes = binTypes?.Where(b => b.DataType != null).ToList() ?? new List<BinType>();
             SetsBag.Add(this);
         }
 
@@ -229,8 +229,24 @@ namespace Aerospike.Database.LINQPadDriver
             return dup; 
         }
 
+        public bool RemoveBin(string removeBinName)
+        {            
+            lock (binTypes)
+            {
+                if (this.binTypes.Any(b => b.BinName == removeBinName))
+                {
+                    this.binTypes.Remove(this.binTypes.First(b => b.BinName == removeBinName));
+                    Interlocked.Increment(ref nbrCodeUpdates);
+                    if (this.LPnamespace != null)
+                        Interlocked.Increment(ref this.LPnamespace.nbrCodeUpdates);
+                }               
+            }
+
+            return false;
+        }
+
         #region Code Generation
-        
+
         public (string classCode, string definePropCode, string createInstanceCode)
             CodeCache
         { get; private set; }

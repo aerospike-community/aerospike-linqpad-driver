@@ -386,6 +386,42 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
+        /// This will convert a list of <see cref="JsonDocument"/>/<see cref="JObject"/> to a list of dictionary items if they match that patterns.
+        /// If the value is already a list of dictionary items, that is returned.
+        /// </summary>
+        /// <returns>
+        /// a list of dictionary items or an empty list.
+        /// </returns>
+        public IEnumerable<IDictionary<string,object>> ToCDT()
+        {            
+            var listItem = this.ToList();
+
+            if(listItem.Count > 0)
+            {
+                if (Helpers.IsJsonDoc(listItem.GetType().GenericTypeArguments[0]))
+                {
+                    return Aerospike.Client.LPDHelpers.ToCDT(listItem.Cast<JObject>());                    
+                }
+               
+                static JsonDocument IsDoc(object value)
+                {
+                    if (value is IDictionary<object, object> dict)
+                    {
+                        return new JsonDocument(dict);
+                    }
+                    
+                    return null;
+                }
+
+                return Aerospike.Client.LPDHelpers.ToCDT(listItem
+                                                            .Select(i => IsDoc(i))
+                                                            .Where(i => i != null));
+            }
+       
+            return new List<IDictionary<string,object>>(0);;
+        }
+
+        /// <summary>
         /// Converts <see cref="Value"/> into a .net native type
         /// </summary>
         /// <typeparam name="T">.Net Type to convert to</typeparam>

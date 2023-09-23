@@ -18,8 +18,8 @@
     <PackageIcon>lib\net7.0-windows7.0\Connection.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
-    <Version>2.2.2.0</Version>
-    <FileVersion>2.2.2.0</FileVersion>    
+    <Version>2.3.0.0</Version>
+    <FileVersion>2.3.0.0</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -62,6 +62,7 @@
 	  <None Remove="linqpad-samples\LinqWhere-AerospikeExpressions.linq" />
 	  <None Remove="linqpad-samples\LinqWhere-AerospikePK.linq" />
 	  <None Remove="linqpad-samples\POCO.linq" />
+    <none Remove="linqpad-samples\Put-Aerospike.linq" />
 	  <None Remove="linqpad-samples\ReadMeFirst.linq" />
 	  <None Remove="linqpad-samples\Record Display View.linq" />
 	</ItemGroup>
@@ -99,6 +100,7 @@
 	  <Content Include="linqpad-samples\LinqWhere-AerospikeExpressions.linq" />
 	  <Content Include="linqpad-samples\LinqWhere-AerospikePK.linq" />
 	  <Content Include="linqpad-samples\POCO.linq" />
+    <Content Include="linqpad-samples\Put-Aerospike.linq" />
 	  <Content Include="linqpad-samples\ReadMeFirst.linq" />
 	  <Content Include="linqpad-samples\Record Display View.linq" />
     <Content Include="README.md">

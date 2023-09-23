@@ -629,6 +629,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return true;
         }
 
+        internal bool TryRemoveBin(string removeBinName, bool updateNamespace)
+        {
+            var removed = this.LPset?.RemoveBin(removeBinName) ?? false;
+
+            if (updateNamespace)
+                removed = this.SetAccess.TryRemoveBin(removeBinName) || removed;
+
+            if (this._bins.Length == 0 || !this._bins.Any(n => n == removeBinName))
+                return false;
+
+            this._bins = this._bins
+                            .Where(n => n != removeBinName)
+                            .ToArray();
+            this._binsHashCode = 0;
+
+            return true;
+        }
+
         /// <summary>
         /// Sets how records are displayed using the LinqPad <see cref="LINQPad.Extensions.Dump{T}(T)"/> method.
         /// See <see cref="ARecord.DumpTypes"/> for more information.
@@ -710,7 +728,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Returns all the bin names possible for this set.
         /// </summary>
-        public string[] BinNames { get { return this._bins.Length == 0 ? this.SetAccess?.BinNames : this._bins; } }
+        public string[] BinNames { get => this._bins; }
         
         /// <summary>
         /// Determines the Expiration in seconds of a record TTL

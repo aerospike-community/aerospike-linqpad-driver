@@ -81,14 +81,22 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns></returns>
         private bool AddDynamicSet(string setName, IEnumerable<Bin> bins)
         {
-            if (string.IsNullOrEmpty(setName) || this.Sets.Any(s => s.SetName == setName))
+            //System.Diagnostics.Debugger.Launch();
+            if (string.IsNullOrEmpty(setName))
                 return false;
 
-            return this.AddDynamicSet(setName,
-                                        bins.Select(b => new LPSet.BinType(b.name,
-                                                                            b.value.Object.GetType(),
-                                                                            false,
-                                                                            false)));
+            var existingBins = bins.Where(b => b.value.Object != null);
+            var removedBins = bins.Where(b => b.value.Object is null);
+            var result = false;
+
+            if(existingBins.Any())
+                result = this.AddDynamicSet(setName,
+                                            existingBins.Select(b => new LPSet.BinType(b.name,
+                                                                                        b.value.Object.GetType(),
+                                                                                        false,
+                                                                                        false)));
+
+            return result;
         }
 
         private bool AddDynamicSet(string setName, IEnumerable<LPSet.BinType> bins)
@@ -126,20 +134,50 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     }
                 }
 
-                UpdateExplorer();
+                this.TryAddBins(accessSet, bins, true);
 
                 return true;
             }
 
+            return this.TryAddBins(recordSet, bins);
+        }
+
+        private bool RemoveBinsFromSet(string setName, IEnumerable<LPSet.BinType> removeBins)
+        {
+            if (string.IsNullOrEmpty(setName))
+                return false;
+
+            var recordSet = this.Sets.FirstOrDefault(s => s.SetName == setName);
+
+            if (recordSet != null)
+            {
+                var binNames = removeBins?.Select(b => b.BinName).ToArray();
+                
+                this.LPnamespace?.TryRemoveSet(setName, removeBins);
+
+                this.BinNames = this.BinNames
+                                .Where(n => !removeBins.Any(b => b.BinName == n))
+                                .ToArray();
+               
+                this.TryRemoveBins(recordSet, removeBins, true);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryAddBins(SetRecords set, IEnumerable<LPSet.BinType> bins, bool forceExplorerUpdate = false)
+        {
             bool result = false;
             foreach (var b in bins)
             {
-                result = recordSet.TryAddBin(b.BinName, b.DataType, false) || result;
-                if(this.NullSet != null)
+                result = set.TryAddBin(b.BinName, b.DataType, false) || result;
+                if (this.NullSet != null)
                     result = this.NullSet.TryAddBin(b.BinName, b.DataType, false) || result;
             }
 
-            if(result)
+            if (result || forceExplorerUpdate)
                 UpdateExplorer();
 
             return result;
@@ -152,6 +190,34 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.BinNames = this.BinNames.Append(binName).ToArray();
 
             return true;
+        }
+
+        private bool TryRemoveBins(SetRecords set, IEnumerable<LPSet.BinType> removeBins, bool forceExplorerUpdate)
+        {
+            bool result = false;
+            foreach (var b in removeBins)
+            {
+                result = set.TryRemoveBin(b.BinName, false) || result;
+                if (this.NullSet != null)
+                    result = this.NullSet.TryRemoveBin(b.BinName, false) || result;
+            }
+
+            if (result || forceExplorerUpdate)
+                UpdateExplorer();
+
+            return result;
+        }
+
+        internal bool TryRemoveBin(string binName)
+        {
+            if (this.BinNames.Contains(binName))
+            {
+                this.BinNames = this.BinNames
+                                    .Where(n => n != binName).ToArray();
+                return true;
+            }            
+
+            return false;
         }
 
         public LPNamespace LPnamespace { get; }

@@ -181,10 +181,38 @@ namespace Aerospike.Database.LINQPadDriver
             return false;
         }
 
+        public LPSet TryRemoveSet(string setName, IEnumerable<LPSet.BinType> removeBinTypes)
+        {
+            var fndASet = this.Sets.FirstOrDefault(s => s.Name == setName);
+            
+            if (fndASet != null)
+            {
+                foreach (var removeBinType in removeBinTypes)
+                {
+                    this.TryRemoveBin(removeBinType.BinName);
+                }
+            }
+
+            return fndASet;
+        }
+
+        public bool TryRemoveBin(string removeBinName, bool incUpdateCnt = true)
+        {
+            var br = this.bins.Remove(removeBinName);
+            var sb = this.safeBins.Remove(Helpers.CheckName(removeBinName, "Bin"));
+
+            if(br || sb)
+            {                
+                if (incUpdateCnt) Interlocked.Increment(ref nbrCodeUpdates);
+                return true;
+            }
+
+            return false;
+        }
+
         internal void DetermineUpdateBinsBasedOnSets()
         {            
             var binTypes = this.Sets
-                            .Where(s => !s.IsNullSet)
                             .SelectMany(s => s.BinTypes)
                             .Distinct(LPSet.BinType.DefaultNameComparer);
 

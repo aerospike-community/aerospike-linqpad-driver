@@ -318,7 +318,7 @@ namespace Aerospike.Database.LINQPadDriver
                                         Parallel.ForEach(ns.Sets,
                                             (set, cancelationToken) =>
                                             {
-                                                if (set.IsNullSet)
+                                                if (set.IsNullSet && ns.Bins.Any())
                                                     set.UpdateTypeBins(ns.Bins, false);
                                                 else
                                                     set.GetRecordBins(getBins,
@@ -328,8 +328,8 @@ namespace Aerospike.Database.LINQPadDriver
                                                                         false);
                                             });
 
-                                        if(!ns.Bins.Any())
-                                            ns.DetermineUpdateBinsBasedOnSets();
+                                        if (!ns.Bins.Any())
+                                            ns.DetermineUpdateBinsBasedOnSets();                                        
                                     }
 
                                 }

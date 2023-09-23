@@ -440,6 +440,7 @@ The sample scripts are:
 -   LinqWhere-AerospikePK.linq – Shows how to use primary keys with Linq and Aerospike API
 -   LinqWhere-AerospikeExpressions.linq – Shows how to use a Linq Where clause and the use of Aerospike Filter [Expressions](https://docs.aerospike.com/server/guide/expressions)
 -   POCO.linq – Show the use of the ORM between complete class structures and the Aerospike DB
+-   Put-Aerospike.linq – Shows the use of the how to insert or update a record within a set using a primary key.
 -   CDT-Json-Docs.linq – Show the use of CDTs (Collection Data Types), Json, and documents by means of Linq and Aerospike [Expressions](https://docs.aerospike.com/server/guide/expressions)
 
 # Prerequisites

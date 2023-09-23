@@ -90,15 +90,30 @@ namespace Aerospike.Client
         public static JsonDocument ToJsonDocument(this IDictionary<string,object> document) => new JsonDocument(document);
 
         /// <summary>
-        /// This will convert a list of JsonDocuments to a list of dictionary items.
+        /// This will convert a list of <see cref="JObject"/> to a list of dictionary items.
         /// </summary>
-        /// <param name="documentLst">A list of JSON documents</param>
+        /// <param name="documentLst">A list of JSON documents/JObjects</param>
         /// <returns>
         /// a list of dictionary items.
         /// </returns>
-        public static IEnumerable<IDictionary<string,object>> ToCDT(this IEnumerable<JsonDocument> documentLst)
+        public static IEnumerable<IDictionary<string,object>> ToCDT(this IEnumerable<JObject> documentLst)
         {
             foreach(var document in documentLst)
+            {
+                yield return CDTConverter.ConvertToDictionary(document);
+            }
+        }
+
+        /// <summary>
+        /// This will convert a list of <see cref="JsonDocument"/> to a list of dictionary items.
+        /// </summary>
+        /// <param name="documentLst">A list of JSON documents/JObjects</param>
+        /// <returns>
+        /// a list of dictionary items.
+        /// </returns>
+        public static IEnumerable<IDictionary<string, object>> ToCDT(this IEnumerable<JsonDocument> documentLst)
+        {
+            foreach (var document in documentLst)
             {
                 yield return document.ToDictionary();
             }
@@ -1970,10 +1985,13 @@ namespace Aerospike.Database.LINQPadDriver
                                                         || checkType == typeof(JArray)
                                                         || checkType == typeof(JsonDocument);
 
+        public static bool IsJsonDoc(Type checkType) => checkType == typeof(JObject)
+                                                        || checkType == typeof(JsonDocument);
+
         public static string ToLiteral(string input)
         {
             StringBuilder literal = new StringBuilder(input.Length + 2);
-            literal.Append("\"");
+            literal.Append('"');
             foreach (var c in input)
             {
                 switch (c)
@@ -2004,7 +2022,7 @@ namespace Aerospike.Database.LINQPadDriver
                         break;
                 }
             }
-            literal.Append("\"");
+            literal.Append('"');
             return literal.ToString();
         }
     }
