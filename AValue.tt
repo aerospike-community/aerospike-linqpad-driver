@@ -409,7 +409,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     {
                         return new JsonDocument(dict);
                     }
-                    
+                    if (value is JsonDocument jdoc)
+                    {
+                        return jdoc;
+                    }
+                    if (value is JObject jObj)
+                    {
+                        return new JsonDocument(jObj);
+                    }
+
                     return null;
                 }
 
