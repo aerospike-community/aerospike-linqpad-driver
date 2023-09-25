@@ -1650,7 +1650,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <exception cref="NotImplementedException">Always throw since it must be executed from <see cref="AsEnumerable(Exp)"/></exception>
         public int Count()
         {
-            throw new NotImplementedException("Count must be executed from the \"AsEnumerable\" method. Ex: mySet.AsEnumerable().Count()");
+            throw new NotImplementedException($"Count must be executed from the \"AsEnumerable\" method. Ex: {this.SetFullName}.AsEnumerable().Count()");
         }
 
         /// <summary>
