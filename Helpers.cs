@@ -208,6 +208,9 @@ namespace Aerospike.Database.LINQPadDriver
 
             var newStr = newName.ToString();
 
+            if(Char.IsDigit(newStr.FirstOrDefault()))
+                newStr = contextType + newStr;
+
             if (LPEDC.DataContextDriver.IsCSharpKeyword(newStr))
             {
                 return newStr + '_' + contextType;
