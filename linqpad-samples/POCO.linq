@@ -28,7 +28,10 @@ void Main()
 							.AsEnumerable()
 							.Select(cid => cid.Cast<Customer>(cid.PK)).ToArray();
 
-	customerInvoices.Dump("Customer Invoices (class) as POCO", 0);
+	customerInvoices.OrderBy(i => i.LastName)
+					.ThenBy(i => i.LastName)
+					.ThenBy(i => i.Id)
+					.Dump("Customer Invoices class instances created from the DB", 0);
 	
 	
 	if(reWriteAsDiffPK)
@@ -37,14 +40,21 @@ void Main()
 		
 		foreach (var element in customerInvoices)
 		{
-			var newPK = element.Id * 1000;
+			var newPK = element.Id * 1000; //Change the PK
 			
+			//Create DB Records from the Customer instances
 			Demo.CustInvsDoc.WriteObject(newPK, element);
 			newRecs.Add(newPK); //Removed new record later...
 		}
 		
-		//Note that bin "Company"is present in the DB but not present as a property in the Customer Class
-		Demo.CustInvsDoc.Dump("Customer Invoices Docs set From DB (rewritten)", 1);
+		//Note that bin "Fax" is present in the DB (and list as a known bin in the Set's Bin list pane) but not as a property in the Customer Class
+		//	Also bin "Company" is present in the DB and wasn't detected by the Set's Bin list pane and isn't a property either. 
+		//		As such, records that have defined "Company" bin, will have an ExpandoObject value indicating that records has additional bins.
+		Demo.CustInvsDoc.AsEnumerable()
+						.OrderBy(cid => cid.LastName)
+						.ThenBy(cid => cid.FirstName)
+						.ThenBy(cid => cid.PK)
+						.Dump("Customer Invoices Docs set From DB (rewritten with new PKs)", 1);
 
 		LINQPad.Util.ReadLine("Press <Enter> to continue and remove newly written records!".Dump());
 

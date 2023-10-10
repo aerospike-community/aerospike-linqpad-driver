@@ -133,126 +133,173 @@ C\# collections will be serialized into an Aerospike CDT. C\# public properties 
 The driver can deserialize an Aerospike record into a C\# class. Just like serialization, bins are mapped to properties and fields using attributes as defined above. The driver will determine the best possible constructor to instantiate the class. This behavior can be changed by using the “Aerospike.Client.Constructor” attribute. Below is an example:
 
 ```
-public enum Tiers 
-{ 
-    None = 0, 
-    Low = 4, 
-    Medium = 3, 
-    High = 2, 
-    VeryHigh = 1 
-} 
+//This is from the POCO Aerospike LINQPad Example script
+void Main()
+{
+	//If true, the read record is re-written with a different PK to demo how PICO are written back to the DB.
+	var reWriteAsDiffPK = true;
+	
+	var customerInvoices = Demo.CustInvsDoc
+							.AsEnumerable()
+							.Select(cid => cid.Cast<Customer>(cid.PK)).ToArray();
 
-public class Player 
-{ 
-    //Attributes used to indicate which constructor to use. 
-    //If not provided, the driver will choose the best constructor based on signure. 
-    //A class constructor is NOT required. 
-    [Aerospike.Client.Constructor] 
-    public Player(int playerId, 
-                    string userName, 
-                    string firstName, 
-                    string lastname, 
-                    List<WagerResultTransaction> wagersResults) 
-    { 
-        this.PlayerId = playerId; 
-        this.UserName = userName; 
-        this.FirstName = firstName; 
-        this.LastName = lastname; 
-        this.WagersResults = wagersResults; 
-    } 
+	customerInvoicescustomerInvoices.OrderBy(i => i.LastName)
+									.ThenBy(i => i.LastName)
+									.ThenBy(i => i.Id)
+									.Dump("Customer Invoices class instances created from the DB", 0);
+	
+	
+	if(reWriteAsDiffPK)
+	{
+		var newRecs = new List<long>();
+		
+		foreach (var element in customerInvoices)
+		{
+			var newPK = element.Id * 1000; //Change the PK
+			
+			//Create DB Records from the Customer instances
+			Demo.CustInvsDoc.WriteObject(newPK, element);
+			newRecs.Add(newPK); //Removed new record later...
+		}
+		
+		/Note that bin "Fax" is present in the DB (and list as a known bin in the Set's Bin list pane) but not as a property in the Customer Class
+		//	Also bin "Company" is present in the DB and wasn't detected by the Set's Bin list pane and isn't a property either. 
+		//		As such, records that have defined "Company" bin, will have an ExpandoObject value indicating that records has additional bins.
+		Demo.CustInvsDoc.AsEnumerable()
+						.OrderBy(cid => cid.LastName)
+						.ThenBy(cid => cid.FirstName)
+						.ThenBy(cid => cid.PK)
+						.Dump("Customer Invoices Docs set From DB (rewritten with new PKs)", 1);
 
-    //Attribute to indicate that this property shoule be ignored in the Mapping 
-    [Aerospike.Client.BinIgnore] 
-    public string Tag { get; } = "Player"; 
+		LINQPad.Util.ReadLine("Press <Enter> to continue and remove newly written records!".Dump());
 
-    public int PlayerId { get; } //Note Read-Only, being set in the constructor 
-    public string UserName { get; } 
-    public string FirstName { get; } 
-    public string LastName { get; } 
+		foreach (var removePK in newRecs)
+		{
+			Demo.CustInvsDoc.Delete(removePK);
+		}
+	}
+}
 
-    //Attribute to indicate that the Bin Name is Different from the Property Name. 
-    [Aerospike.Client.BinName("EmailAddress")] 
-    public string Email { get; set; } 
+//Class definations for Customer and Invoice
+public class Customer
+{	
+	/// <summary>
+	/// The constructor used to create the object. 
+	/// Note that the property "Invoices" will be set using the accessor. 
+	/// </summary>
+	[Aerospike.Client.Constructor]
+	public Customer(long id,
+					string address,
+	                string city,
+					string country,
+					string email,
+					string firstName,
+					string lastName,
+					string phone,
+					string postalCode,
+					string state, 
+					int supportRepId)
+	{
+		this.Id = id;
+		this.Address = address;
+		this.City = city;
+		this.Country = country;
+		this.Email = email;
+		this.FirstName = firstName;
+		this.LastName = lastName;
+		this.Phone = phone;
+		this.PostalCode = postalCode;
+		this.State = state;
+		this.SupportRepId = supportRepId;
+	}
+	
+	/// <summary>
+	/// This property will contain the primary key value but will not be written in the set as a bin. 
+	/// </summary>
+	[Aerospike.Client.PrimaryKey]
+	[Aerospike.Client.BinIgnore]
+	public long Id { get; }
+	public string Address{ get; }	
+	public string City { get; }	
+	public string Country { get; }	
+	public string Email { get; }
+	public string FirstName { get; }
+	public string LastName	{ get; }
+	public string Phone { get; }
+	public string PostalCode { get; }
+	public string State { get; }
+	public int SupportRepId { get; }
+	public List<Invoice> Invoices { get; set; }
+}
 
-    public Game Game { get; set; } //nested class 
-     
-    public List<WagerResultTransaction> WagersResults { get; } //A list of objects 
-} 
+public class Invoice
+{	
+	[Aerospike.Client.Constructor]
+	public Invoice(string billingAddress,
+					string billingCity,
+					string billingCountry,
+					string billingCode,
+					string billingState,
+					DateTime invoiceDate,
+					decimal total,
+					List<InvoiceLine> lines)
+	{
+		this.BillingAddress = billingAddress;
+		this.BillingCity = billingCity;
+		this.BillingCode = billingCode;
+		this.BillingState = billingState;
+		this.BillingCountry = billingCountry;
+		this.InvoiceDate = invoiceDate;
+		this.Total = total;
+		this.Lines = lines;
+	}
+	
+	/// <summary>
+	/// Uses the bin name BillingAddr instead of the property name.
+	/// </summary>
+	[Aerospike.Client.BinName("BillingAddr")]
+	public string BillingAddress { get;}
+	public string BillingCity { get; }		
+	[Aerospike.Client.BinName("BillingCtry")]
+	public string BillingCountry { get; }
+	public string BillingCode { get; }
+	public string BillingState { get; }
+	/// <summary>
+	/// Notice that the driver will convert the DB value into the targed value automatically.
+	/// The value is stored as a sting in the DB but converted to a date/time. Upon write it will be converted from back to a native DB type (e.g., string or long depending on configuration).
+	/// </summary>
+	public DateTime InvoiceDate { get; }
+	/// <summary>
+	/// This is stored as a double in the DB but is automatically converted to a decimal.
+	/// </summary>
+	public Decimal Total { get; }
+	public IList<InvoiceLine> Lines { get; }
+}
 
-public sealed class Game 
-{ 
-    public Game() 
-    { } 
+public class InvoiceLine
+{
+	[Aerospike.Client.Constructor]
+	public InvoiceLine(long invoiceId,
+						long quantity,
+						long trackId,
+						decimal unitPrice)
+	{
+		this.InvoiceId = invoiceId;
+		this.Quantity = quantity;
+		this.TrackId = trackId;
+		this.UnitPrice = unitPrice;
+	}
 
-    public string Tag; 
-    public string Name; 
-    public decimal MinimumWager; 
-    public decimal MaximumWager; 
-} 
-
-public sealed class WagerResultTransaction 
-{ 
-    public enum Types 
-    { 
-        Wager, 
-        Win, 
-        Loss 
-    } 
-    public WagerResultTransaction(long id, DateTimeOffset timestamp) 
-    {  
-        this.Id = id; 
-        this.Timestamp = timestamp; 
-    }  
-    public long Id { get;} 
-    public DateTimeOffset Timestamp { get; } 
-     
-    public string Game { get; private set; } 
-    public string BetType { get; private set; } 
-    public Types Type { get; set; } 
-    public decimal Amount { get; set; } 
-    public decimal PlayerBalance { get; set; }     
-} 
-
-
-// Read 5 records from the Player Aerospike set. 
-// Instantiate 5 new instances of Player based on the records. 
-// Change the Primary Key Value and Player's ID and thoses changed instances back to the Player set. 
-// Read back the newly inserted records and display. 
-// Removed the newly inserted records from the Player set. 
-void Main() 
-{ 
-    var players = test.players.Take(5).Dump("DB Records", 0) //Read 5 records from the DB 
-                        .Select(i => i.Cast<Player>()); //Create 5 new instances of the Player class from the DB 
-
-    players.Dump("Player Instances", 0); 
-     
-    //Change The Player Id and Write Back to the DB 
-    var newPlayerIds = new List<int>();         
-    foreach (var player in players) 
-    { 
-        var newPlayerId = player.PlayerId * 100; 
-        newPlayerIds.Add(newPlayerId); 
-         
-        // We can write the object as a collection of bins or as a Document to a single bin in the DB. 
-        //Defaults to writing a bin for each Property in the class.  
-        //Nested classes will be treated as documents. 
-        test.players.WriteObject(newPlayerId, player); //Like Put we can set a TTL 
-    } 
-     
-    //Let’s Get the newly added players from the DB 
-    newPlayerIds 
-        .Select(pi => test.players.Get(pi)) 
-        .ToList() //Need to Get Linq to Execute the Get 
-        .Dump("New Players from the DB as Records", 0); 
-         
-    //Remove the New PlayerIds from the DB (Cleanup) 
-    newPlayerIds.All(pi => test.players.Delete(pi)).Dump("Cleanup Successfull:"); 
+	public long InvoiceId { get; }
+	public long Quantity { get; }
+	public long TrackId { get; }
+	public decimal UnitPrice { get; }
 }
 ```
 
 Below is the output from LINQPad:
 
-[SerializationObjectMapper-Output](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/SerializationObjectMapper-Output.html)
+![SerializationObjectMapper-Output](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/SerializationObjectMapper-Output.png?raw=true)
 
 # Json Support
 
@@ -301,7 +348,7 @@ The driver supports the use of the Aerospike Document API. This feature can be t
 
 Below is the output from LINQPad:
 
-![DocumentAPI-Output](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/DocumentAPI-Output.html)
+![DocumentAPI-Output](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/DocumentAPI-Output.png?raw=true)
 
 # Importing/Exporting
 
