@@ -252,7 +252,7 @@ void Main()
 
 Below is the output from LINQPad:
 
-![SerializationObjectMapper-Output](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/SerializationObjectMapper-Output.html)
+[SerializationObjectMapper-Output](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/SerializationObjectMapper-Output.html)
 
 # Json Support
 
