@@ -116,7 +116,7 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 if (DriverData.IsEmpty)
                 {
-                    DriverData.SetElementValue("PasswordManagerName", false);
+                    DriverData.SetElementValue("PasswordManagerName", null);
                     return null;
                 }
 
@@ -124,6 +124,7 @@ namespace Aerospike.Database.LINQPadDriver
             }
             set
             {
+                if (value == string.Empty) value = null;
                 DriverData.SetElementValue("PasswordManagerName", value);
             }
         }        
@@ -190,6 +191,12 @@ namespace Aerospike.Database.LINQPadDriver
             }
             set
             {
+                if(string.IsNullOrEmpty(value))
+                {
+                    this.DBRecordSampleSetPercent = 0.5m;
+                    return;
+                }
+
                 var valueWithoutPercentage = value.TrimEnd(' ', '%');
                 this.DBRecordSampleSetPercent = decimal.Parse(valueWithoutPercentage) / 100;
             }
@@ -375,6 +382,24 @@ namespace Aerospike.Database.LINQPadDriver
             }
         }
 
+        public string TLSCertName
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    DriverData.SetElementValue("TLSCertName", null);
+                    return null;
+                }
+
+                return DriverData.Element("TLSCertName")?.Value;
+            }
+            set
+            {
+                if (value == string.Empty) value = null;
+                DriverData.SetElementValue("TLSCertName", value);
+            }
+        }
 
         public bool TLSOnlyLogin
         {
@@ -408,6 +433,7 @@ namespace Aerospike.Database.LINQPadDriver
             }
             set
             {
+                if (value == string.Empty) value = null;
                 DriverData.SetElementValue("TLSRevokeCerts", value);
             }
         }
@@ -426,6 +452,7 @@ namespace Aerospike.Database.LINQPadDriver
             }
             set
             {
+                if (value == string.Empty) value = null;
                 DriverData.SetElementValue("TLSClientCertFile", value);
             }
         }
@@ -445,6 +472,7 @@ namespace Aerospike.Database.LINQPadDriver
             }
             set
             {
+                if (value == string.Empty) value = null;
                 DriverData.SetElementValue("TLSProtocols", value);
             }
         }
@@ -765,8 +793,9 @@ namespace Aerospike.Database.LINQPadDriver
             }
             set
             {
+                if (value == string.Empty) value = null;
                 DriverData.SetElementValue("DateTimeFmt", value);
-                Helpers.DateTimeFormat = value;
+                Helpers.DateTimeFormat = value ?? Helpers.defaultDateTimeFormat;
             }
         }
 
@@ -784,8 +813,9 @@ namespace Aerospike.Database.LINQPadDriver
             }
             set
             {
+                if (value == string.Empty) value = null;
                 DriverData.SetElementValue("DateTimeOffsetFmt", value);
-                Helpers.DateTimeOffsetFormat= value;
+                Helpers.DateTimeOffsetFormat= value ?? Helpers.defaultDateTimeOffsetFormat;
             }
         }
 
@@ -803,8 +833,9 @@ namespace Aerospike.Database.LINQPadDriver
             }
             set
             {
+                if (value == string.Empty) value = null;
                 DriverData.SetElementValue("TimespanFmt", value);
-                Helpers.TimeSpanFormat= value;
+                Helpers.TimeSpanFormat= value ?? Helpers.defaultTimeSpanFormat;
             }
         }
 
@@ -862,6 +893,8 @@ namespace Aerospike.Database.LINQPadDriver
             }
             set
             {
+                if (value == string.Empty) value = null;
+
                 DriverData.SetElementValue("PKName", value ?? "PK");
                 ARecord.DefaultASPIKeyName = value ?? "PK";
             }

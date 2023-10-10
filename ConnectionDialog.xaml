@@ -152,7 +152,14 @@
                                 </ListBox.ItemTemplate>
                             </ListBox>
                         </StackPanel>
-                        
+                        <StackPanel>
+                            <Label Padding="0,0,0,2">
+                                <Hyperlink NavigateUri="https://docs.aerospike.com/apidocs/csharp/html/f_aerospike_client_host_tlsname" RequestNavigate="Hyperlink_RequestNavigate">
+                                    TLS Certificate Common Name:
+                                </Hyperlink>
+                            </Label>
+                            <TextBox Name="txtTLSCertName" Padding="2" ToolTip="TLS certificate common name used for secure connections. The certificate must exist in your Trusted Root Certification repository." MaxLines="1" MinLines="1" Text="{Binding TLSCertName}" Margin="0,0,5,5" IsEnabled="False"/>
+                        </StackPanel>
                         <StackPanel>
                             <Label Padding="0,0,0,2">Client Certificate File:</Label>
                             <DockPanel HorizontalAlignment="Stretch" LastChildFill="True">

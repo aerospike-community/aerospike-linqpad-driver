@@ -17,15 +17,15 @@ namespace Aerospike.Database.LINQPadDriver
     /// This class is a wrapper around the Aerospike connection class (<see cref="Aerospike.Client.AerospikeClient"/>)
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("{ConnectionString}")]
-    public  sealed partial class AerospikeConnection : IDbConnection, IEquatable<AerospikeConnection>
+    public sealed partial class AerospikeConnection : IDbConnection, IEquatable<AerospikeConnection>
     {
         public static readonly Version NoNSBinsRequest = new Version(7, 0, 0, 0);
-        
+
         private bool disposedValue = false;
 
         public AerospikeConnection(IConnectionInfo cxInfo)
         {
-            
+
             this.CXInfo = cxInfo;
 
             var connectionInfo = new ConnectionProperties(cxInfo);
@@ -36,30 +36,31 @@ namespace Aerospike.Database.LINQPadDriver
             this.Debug = connectionInfo.Debug;
             this.RecordView = connectionInfo.RecordView;
             this.DBRecordSampleSet = connectionInfo.DBRecordSampleSet;
-            this.DBRecordSampleSetMin = (int) Math.Ceiling(this.DBRecordSampleSet * connectionInfo.DBRecordSampleSetPercent);
+            this.DBRecordSampleSetMin = (int)Math.Ceiling(this.DBRecordSampleSet * connectionInfo.DBRecordSampleSetPercent);
             this.ConnectionTimeout = connectionInfo.ConnectionTimeout;
             this.TotalTimeout = connectionInfo.TotalTimeout;
-            this.SocketTimeout= connectionInfo.SocketTimeout;
+            this.SocketTimeout = connectionInfo.SocketTimeout;
             this.SendPK = connectionInfo.SendKey;
             this.ShortQuery = connectionInfo.ShortQuery;
-            this.DocumentAPI= connectionInfo.DocumentAPI;
+            this.DocumentAPI = connectionInfo.DocumentAPI;
             this.AlwaysUseAValues = connectionInfo.AlwaysUseAValues;
-            this.DriverLogging= connectionInfo.DriverLogging;
-            this.NetworkCompression= connectionInfo.NetworkCompression;
+            this.DriverLogging = connectionInfo.DriverLogging;
+            this.NetworkCompression = connectionInfo.NetworkCompression;
             this.RespondAllOps = connectionInfo.RespondAllOps;
+            this.TLSCertName = connectionInfo.TLSCertName;
             this.DBVersion = new Version();
-            
+
             cxInfo.DatabaseInfo.EncryptTraffic = !string.IsNullOrEmpty(connectionInfo.TLSProtocols);
-            
-            this.ConnectionString = string.Format("hosts='{0}',user={1}{2},externalIP={3},TLS='{4}',timeout={5},totaltimeout={6},sockettimeout={7},compression={8},IsProduction={9}",
+
+            this.ConnectionString = string.Format("hosts='{0}',user={1}{2},externalIP={3},TLS='{4}',timeout={5},totaltimeout={6},sockettimeout={7},compression={8},{9}IsProduction={10}",
                                                     string.Join(",", connectionInfo.SeedHosts
                                                                         .Select(s => String.Format("{0}:{1}", s, dbPort))),
                                                     cxInfo.DatabaseInfo.UserName,
                                                     this.UsePasswordManager
                                                         ? $",passwordmgrname={this.PasswordManagerName}"
-                                                        : (cxInfo.DatabaseInfo.Password is null 
-                                                                ? string.Empty 
-                                                                : ",password=" + new string('*', cxInfo.DatabaseInfo.Password.Length)), 
+                                                        : (cxInfo.DatabaseInfo.Password is null
+                                                                ? string.Empty
+                                                                : ",password=" + new string('*', cxInfo.DatabaseInfo.Password.Length)),
                                                     this.UseExternalIP,
                                                     cxInfo.DatabaseInfo.EncryptTraffic
                                                         ? connectionInfo.TLSProtocols
@@ -68,16 +69,19 @@ namespace Aerospike.Database.LINQPadDriver
                                                     this.TotalTimeout,
                                                     this.SocketTimeout,
                                                     this.NetworkCompression,
+                                                    string.IsNullOrEmpty(this.TLSCertName) 
+                                                        ? string.Empty 
+                                                        : $"TLSCertName={this.TLSCertName},",
                                                     this.CXInfo.IsProduction);
 
             cxInfo.DatabaseInfo.CustomCxString = this.ConnectionString;
             cxInfo.DatabaseInfo.Provider = "Aerospike";
 
             this.SeedHosts = connectionInfo.SeedHosts
-                                .Select(s => new Host(s, dbPort))
+                                .Select(s => new Host(s, this.TLSCertName, dbPort))
                                 .ToArray();
-            
-            if(cxInfo.DatabaseInfo.EncryptTraffic)
+
+            if (cxInfo.DatabaseInfo.EncryptTraffic)
             {
                 try
                 {
@@ -86,12 +90,27 @@ namespace Aerospike.Database.LINQPadDriver
                                                 connectionInfo.TLSClientCertFile,
                                                 connectionInfo.TLSOnlyLogin);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     throw new AerospikeException($"Exception Occurred while creating the TLS Policy. Error is \"{ex.Message}\"");
                 }
             }
-            
+            else if(!string.IsNullOrEmpty(this.TLSCertName))
+            {
+                try
+                {
+                    this.TLS = new TlsPolicy()
+                                    {
+                                        forLoginOnly = true
+                                    };
+                    connectionInfo.TLSOnlyLogin = true;
+                }
+                catch (Exception ex)
+                {
+                    throw new AerospikeException($"Exception Occurred while creating the TLS Login Only Policy for Cert Name {this.TLSCertName}. Error is \"{ex.Message}\"");
+                }
+            }
+
         }
 
         public IConnectionInfo CXInfo { get; }
@@ -126,7 +145,7 @@ namespace Aerospike.Database.LINQPadDriver
         public IEnumerable<LPNamespace> Namespaces { get; private set; }
 
         public IEnumerable<LPModule> UDFModules { get; private set; }
-        
+
         public AerospikeClient AerospikeClient
         {
             get;
@@ -157,11 +176,11 @@ namespace Aerospike.Database.LINQPadDriver
             get => this._driverLogging;
             set
             {
-                if(this._driverLogging && !value)
+                if (this._driverLogging && !value)
                 {
-                    Client.Log.Disable();                    
+                    Client.Log.Disable();
                 }
-                else if(!this._driverLogging && value) 
+                else if (!this._driverLogging && value)
                 {
                     Client.Log.SetContextCallback(DriverLogCallback);
                     Client.Log.DebugEnabled();
@@ -181,6 +200,8 @@ namespace Aerospike.Database.LINQPadDriver
         }
 
         public TlsPolicy TLS { get; }
+
+        public string TLSCertName {  get; }
 
         /// <summary>
         /// Cluster Name

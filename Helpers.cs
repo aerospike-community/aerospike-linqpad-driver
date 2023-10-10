@@ -386,24 +386,28 @@ namespace Aerospike.Database.LINQPadDriver
             return UnixEpoch.AddTicks(nanoseconds / 100);
         }
 
+        internal const string defaultDateTimeFormat = "yyyy-MM-ddTHH:mm:ss.ffff";
+        internal const string defaultDateTimeOffsetFormat = "yyyy-MM-ddTHH:mm:ss.ffffzzz";
+        internal const string defaultTimeSpanFormat = "c";
+
         /// <summary>
         /// Format used to serialize or deserialize a date to/from string 
         /// A null value will use the default format.
         /// <see href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings"/>
         /// </summary>
-        public static string DateTimeFormat = "yyyy-MM-ddTHH:mm:ss.ffff";
+        public static string DateTimeFormat = defaultDateTimeFormat;
         /// <summary>
         /// Format used to serialize or deserialize a date offset to/from string 
         /// A null value will use the default format.
         /// <see href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings"/>
         /// </summary>
-        public static string DateTimeOffsetFormat = "yyyy-MM-ddTHH:mm:ss.ffffzzz";
+        public static string DateTimeOffsetFormat = defaultDateTimeOffsetFormat;
         /// <summary>
         /// Format used to serialize or deserialize a time to/from string 
         /// A null value will use the default format.
         /// <see href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings"/>
         /// </summary>
-        public static string TimeSpanFormat = "c";
+        public static string TimeSpanFormat = defaultTimeSpanFormat;
 
         /// <summary>
         /// A boolean, if true numeric values from the DB for targeted Date/Time data types are nanoseconds from Unix Epoch.
