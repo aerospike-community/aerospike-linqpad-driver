@@ -252,79 +252,7 @@ void Main()
 
 Below is the output from LINQPad:
 
-| **DB Records**                                            |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-|-----------------------------------------------------------|--------------|-------------------|---------------|--------------|-----------------------------------|----------------------------|----------------------------------------------|--------------------------------|--------------------------------|-------------|----------|------------|-------------------|---------|
-| **IEnumerable\<IEqualityComparer\<ARecord\>\> (5 items)** |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-| **PK**                                                    | **PlayerId** | **UserName**      | **FirstName** | **LastName** | **EmailAddress**                  | **Game**                   | **WagersResults**                            |                                |                                |             |          |            |                   |         |
-| 5220                                                      | 522          | Roberts.Eunice    | Eunice        | Roberts      | RobertsEunice52@prohaska.name     | **JsonDocument (4 items)** | **List\<JsonDocument\> (2 items)**           |                                |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | **Name**                   | **Value**                                    | **JsonDocument (7 items)**     |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | Tag                        | Game                                         | **Name**                       | **Value**                      |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | Name                       | Roulette                                     | Id                             | 1                              |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | MinimumWager               | 0.1                                          | Timestamp                      | 2022-12-20T09:18:33.3706-04:00 |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | MaximumWager               | 50                                           | Game                           | Roulette                       |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | BetType                                      | Dozen                          |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Type                                         | Loss                           |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Amount                                       | 9.15                           |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | PlayerBalance                                | 821.57                         |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | **JsonDocument (7 items)**                   |                                |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | **Name**                                     | **Value**                      |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Id                                           | 2                              |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Timestamp                                    | 2022-12-20T09:18:25.3706-04:00 |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Game                                         | Roulette                       |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | BetType                                      |                                |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Type                                         | Wager                          |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Amount                                       | 9.15                           |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | PlayerBalance                                | 830.72                         |                                |             |          |            |                   |         |
-| 5850                                                      | 585          | Daugherty.Tad     | Tad           | Daugherty    | DaughertyTad64@morissetteryan.biz | JsonDocument (4 items)     | List\<JsonDocument\> (10 items)              |                                |                                |             |          |            |                   |         |
-| 5320                                                      | 532          | Nicolas.Cleveland | Cleveland     | Nicolas      | NicolasCleveland46@batz.uk        | JsonDocument (4 items)     | List\<JsonDocument\> (10 items)              |                                |                                |             |          |            |                   |         |
-| 5210                                                      | 521          | Cormier.Taya      | Taya          | Cormier      | CormierTaya92@rodriguez.com       | JsonDocument (4 items)     | List\<JsonDocument\> (10 items)              |                                |                                |             |          |            |                   |         |
-| 5690                                                      | 569          | Kuphal.Giovani    | Giovani       | Kuphal       | KuphalGiovani7@koepp.name         | JsonDocument (4 items)     | List\<JsonDocument\> (10 items)              |                                |                                |             |          |            |                   |         |
-| 27290                                                     |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-| **Player Instances**                                      |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-| **IEnumerable\<Player\> (5 items)**                       |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-| **Tag**                                                   | **PlayerId** | **UserName**      | **FirstName** | **LastName** | **Email**                         | **Game**                   | **WagersResults**                            |                                |                                |             |          |            |                   |         |
-| Player                                                    | 522          | Roberts.Eunice    | Eunice        | Roberts      | RobertsEunice52@prohaska.name     | **Game**                   | **List\<WagerResultTransaction\> (2 items)** |                                |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | UserQuery+Game             | **Id**                                       | **Timestamp**                  | **Game**                       | **BetType** | **Type** | **Amount** | **PlayerBalance** |         |
-|                                                           |              |                   |               |              |                                   | **Tag**                    | Game                                         | 1                              | 12/20/2022 9:18:33 AM -04:00   | Roulette    | Dozen    | Loss       | 9.15              | 821.57  |
-|                                                           |              |                   |               |              |                                   | **Name**                   | Roulette                                     | 2                              | 12/20/2022 9:18:25 AM -04:00   | Roulette    | null     | Wager      | 9.15              | 830.72  |
-|                                                           |              |                   |               |              |                                   | **MinimumWager**           | 0.1                                          |                                |                                |             |          |            | 18.3              | 1652.29 |
-|                                                           |              |                   |               |              |                                   | **MaximumWager**           | 50                                           |                                |                                |             |          |            |                   |         |
-| Player                                                    | 585          | Daugherty.Tad     | Tad           | Daugherty    | DaughertyTad64@morissetteryan.biz | Game                       | List\<WagerResultTransaction\> (10 items)    |                                |                                |             |          |            |                   |         |
-| Player                                                    | 532          | Nicolas.Cleveland | Cleveland     | Nicolas      | NicolasCleveland46@batz.uk        | Game                       | List\<WagerResultTransaction\> (10 items)    |                                |                                |             |          |            |                   |         |
-| Player                                                    | 521          | Cormier.Taya      | Taya          | Cormier      | CormierTaya92@rodriguez.com       | Game                       | List\<WagerResultTransaction\> (10 items)    |                                |                                |             |          |            |                   |         |
-| Player                                                    | 569          | Kuphal.Giovani    | Giovani       | Kuphal       | KuphalGiovani7@koepp.name         | Game                       | List\<WagerResultTransaction\> (10 items)    |                                |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-| **New Players from the DB as Records**                    |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-| **List\<IEqualityComparer\<ARecord\>\> (5 items)**        |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-| **PK**                                                    | **PlayerId** | **UserName**      | **FirstName** | **LastName** | **EmailAddress**                  | **Game**                   | **WagersResults**                            |                                |                                |             |          |            |                   |         |
-| 52200                                                     | 522          | Roberts.Eunice    | Eunice        | Roberts      | RobertsEunice52@prohaska.name     | **JsonDocument (4 items)** | **List\<JsonDocument\> (2 items)**           |                                |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | **Name**                   | **Value**                                    | **JsonDocument (7 items)**     |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | Tag                        | Game                                         | **Name**                       | **Value**                      |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | Name                       | Roulette                                     | Id                             | 1                              |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | MinimumWager               | 0.1                                          | Timestamp                      | 2022-12-20T09:18:33.3706-04:00 |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   | MaximumWager               | 50                                           | Game                           | Roulette                       |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | BetType                                      | Dozen                          |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Type                                         | Loss                           |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Amount                                       | 9.15                           |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | PlayerBalance                                | 821.57                         |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | **JsonDocument (7 items)**                   |                                |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | **Name**                                     | **Value**                      |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Id                                           | 2                              |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Timestamp                                    | 2022-12-20T09:18:25.3706-04:00 |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Game                                         | Roulette                       |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | BetType                                      |                                |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Type                                         | Wager                          |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | Amount                                       | 9.15                           |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            | PlayerBalance                                | 830.72                         |                                |             |          |            |                   |         |
-| 58500                                                     | 585          | Daugherty.Tad     | Tad           | Daugherty    | DaughertyTad64@morissetteryan.biz | JsonDocument (4 items)     | List\<JsonDocument\> (10 items)              |                                |                                |             |          |            |                   |         |
-| 53200                                                     | 532          | Nicolas.Cleveland | Cleveland     | Nicolas      | NicolasCleveland46@batz.uk        | JsonDocument (4 items)     | List\<JsonDocument\> (10 items)              |                                |                                |             |          |            |                   |         |
-| 52100                                                     | 521          | Cormier.Taya      | Taya          | Cormier      | CormierTaya92@rodriguez.com       | JsonDocument (4 items)     | List\<JsonDocument\> (10 items)              |                                |                                |             |          |            |                   |         |
-| 56900                                                     | 569          | Kuphal.Giovani    | Giovani       | Kuphal       | KuphalGiovani7@koepp.name         | JsonDocument (4 items)     | List\<JsonDocument\> (10 items)              |                                |                                |             |          |            |                   |         |
-| 272900                                                    |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-|                                                           |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-| **Cleanup Successful:**                                   |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
-| **TRUE**                                                  |              |                   |               |              |                                   |                            |                                              |                                |                                |             |          |            |                   |         |
+![SerializationObjectMapper-Output](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/SerializationObjectMapper-Output.html)
 
 # Json Support
 
@@ -332,83 +260,48 @@ You can read and write Json to or from an Aerospike namespace, set, or record by
 
 # Document API
 
-The driver supports the use of the Aerospike Document API. This feature can be turned on or off from within the connection dialog. Below is an example where we show three different methods of obtaining a value within a JSON document. They are:
-
--   Using the [Aerospike Operate](https://docs.aerospike.com/apidocs/csharp/html/m_aerospike_client_aerospikeclient_operate_2) API
--   Using JSON Pathing
--   Using an [Aerospike secondary index](https://docs.aerospike.com/server/architecture/secondary-index) with the driver’s Query extension method with [Aerospike filter expressions](https://docs.aerospike.com/server/operations/configure/cross-datacenter/filters)
-
-Note that the secondary index is defined on “neighbors” bin in the below example:
+The driver supports the use of the Aerospike Document API. This feature can be turned on or off from within the connection dialog. Below is an example where we obtain all artist recording track 2527 purchased by a customer.
 
 ```
-test.graphG1Set.Get("201").Dump("Obtain the complete record from the DB"); 
+    //ORM -- Find all tracks for TrackId 2527 and return those customers who bought this track
+	var fndTrackIdsInstances = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
+							   let custInstance = custInvoices.Cast<Customer>()
+							   where custInstance.Invoices
+									   .Any(d => d.Lines.Any(l => l.TrackId == 2527))
+							   select custInstance;
+	fndTrackIdsInstances.Dump("Found Using ORM/POCO", 0);
 
-test.graphG1Set.Operate("201", //PK 
-                        MapOperation.GetByKey("neighbors", //Aerospike API 
-                                                    Value.Get("attr01"), 
-                                                    MapReturnType.VALUE, 
-                                                CTX.MapKey(Value.Get("201.02")))).Dump("Using Operation"); 
-                                                 
-test.graphG1Set.Get("201") //PK 
-                .neighbors 
-                .JsonPath("$.['201.02']['attr01']").Dump("Using JSON Path (JToken)"); 
+	//.Net CDTs -- Find all tracks for TrackId 2527 and return those customers who bought this track
+	// BTW you can configure how documents from Aerospike are presented.
+	//	The default is to treat documents as JObject but you can configure this (via the connection properties)
+	//	to present them as .Net CDTs (i.e., List and Dictionary).
+	var fndTrackIdsCDT = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
+						 let custInvoiceLines = custInvoices.Invoices.ToCDT() //Not required if document mode was disabled
+						 where custInvoiceLines
+								   .SelectMany(il => ((IList<object>)il["Lines"]).Cast<IDictionary<string, object>>())
+								 .Any(l => (long)l["TrackId"] == 2527)
+						 select custInvoices;
+	fndTrackIdsCDT.Dump("Found Using Linq CDT", 0);
 
-test.graphG1Set.graphG1Set_idx.Query(Filter.Contains("neighbors", //Aerospike API 
-                                                        IndexCollectionType.MAPKEYS, 
-                                                        "201.02")) 
-                                .AsEnumerable() 
-                                .Select(gs => gs.neighbors["201.02"]["attr01"]).Dump("Linq using secondary index");
+	//JObject -- Find all tracks for TrackId 2527 and return those customers
+	var fndTrackIdsJObj = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
+						  let custInvoiceLines = custInvoices.ToJson()["Invoices"]
+													  .Children()["Lines"].Children()
+						  where custInvoiceLines.Any(l => l["TrackId"].Value<int>() == 2527)
+						  select custInvoices;
+
+	fndTrackIdsJObj.Dump("Found Using Linq JObject", 0);
+
+	//Json Pathing -- Find all tracks for TrackId 2527 and return those customers
+	var fndTrackIdsJPath = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
+						   where custInvoices.Invoices.ToJArray().SelectToken("$..Lines[?(@.TrackId == 2527)]") != null
+						   select custInvoices;
+	fndTrackIdsJPath.Dump("Found Using Json Path", 0);
 ```
 
 Below is the output from LINQPad:
 
-| **Obtain the complete record from the DB** |                             |                       |           |
-|--------------------------------------------|-----------------------------|-----------------------|-----------|
-| **IEqualityComparer\<ARecord\>**           |                             |                       |           |
-| **PK**                                     | 201                         |                       |           |
-| **nodeID**                                 | 201                         |                       |           |
-| **neighbors**                              | **JsonDocument (15 items)** |                       |           |
-|                                            | **Name**                    | **Value**             |           |
-|                                            | 201.01                      | JObject (2 items)     |           |
-|                                            | 201.02                      | **JObject (9 items)** |           |
-|                                            |                             | **Name**              | **Value** |
-|                                            |                             | attr01                | RLTZ      |
-|                                            |                             | attr02                | RJDO      |
-|                                            |                             | attr03                | SPHJ      |
-|                                            |                             | attr04                | GUBU      |
-|                                            |                             | attr05                | TZFZ      |
-|                                            |                             | attr06                | RCHM      |
-|                                            |                             | attr07                | MGED      |
-|                                            |                             | attr08                | ZTTO      |
-|                                            |                             | attr09                | KUID      |
-|                                            | 201.03                      | JObject (16 items)    |           |
-|                                            | 201.04                      | JObject (19 items)    |           |
-|                                            | 201.05                      | JObject (18 items)    |           |
-|                                            | 201.06                      | JObject (5 items)     |           |
-|                                            | 201.07                      | JObject (16 items)    |           |
-|                                            | 201.08                      | JObject (2 items)     |           |
-|                                            | 201.09                      | JObject (4 items)     |           |
-|                                            | 201.1                       | JObject (17 items)    |           |
-|                                            | 201.11                      | JObject (4 items)     |           |
-|                                            | 201.12                      | JObject (11 items)    |           |
-|                                            | 201.13                      | JObject (8 items)     |           |
-|                                            | 201.14                      | JObject (19 items)    |           |
-|                                            | 201.15                      | JObject (11 items)    |           |
-|                                            |                             |                       |           |
-| **Using Operation**                        |                             |                       |           |
-| **ARecord**                                |                             |                       |           |
-| **Namespace**                              | test                        |                       |           |
-| **SetName**                                | graphG1Set                  |                       |           |
-| **Values**                                 | **ExpandoObject**           |                       |           |
-|                                            | **PK**                      | 201                   |           |
-|                                            | **neighbors**               | RLTZ                  |           |
-|                                            |                             |                       |           |
-| **Using JSON Path (JToken)**               |                             |                       |           |
-| RLTZ                                       |                             |                       |           |
-|                                            |                             |                       |           |
-| **Linq using secondary index**             |                             |                       |           |
-| **IEnumerable\<JToken\> (1 item)**         |                             |                       |           |
-| RLTZ                                       |                             |                       |           |
+![DocumentAPI-Output](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/DocumentAPI-Output.html)
 
 # Importing/Exporting
 
@@ -426,7 +319,8 @@ Below is an example of importing a JSON file:
 test.players.Import(@"c:\users\randersen_aerospike\Desktop\player.json"); 
 test.Import(@"c:\users\randersen_aerospike\Desktop\player.json", "players");
 ```
-
+# Encryption and Authentication
+Support for TLS encryption and authentication is fully supported by enabling these options in the connection dialog. This includes the LIINQPad Password Manager intergation. If the password manager is not used, all password are encryped using the Windows Data Protection API. 
 # Examples
 
 Sample scripts can be found in the [LINQPad Sample tree view tab](https://www.linqpad.net/nugetsamples.aspx) under “nuget” or in the “linqpad-samples” folder in GitHub.
