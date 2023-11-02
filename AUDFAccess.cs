@@ -10,6 +10,18 @@ using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    public class AModuleAccess
+    {
+        public AModuleAccess(IDbConnection dbConnection)
+        {
+        }
+
+    }
+    
     public class AUDFAccess
     {
 
