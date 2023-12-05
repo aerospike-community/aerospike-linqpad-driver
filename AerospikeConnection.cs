@@ -25,14 +25,15 @@ namespace Aerospike.Database.LINQPadDriver
 
         public AerospikeConnection(IConnectionInfo cxInfo)
         {
-
+            //System.Diagnostics.Debugger.Launch();
             this.CXInfo = cxInfo;
 
             var connectionInfo = new ConnectionProperties(cxInfo);
+            
             var dbPort = connectionInfo.Port;
             this.UseExternalIP = connectionInfo.UseExternalIP;
             this.UsePasswordManager = connectionInfo.UsePasswordManager;
-            this.PasswordManagerName = connectionInfo.PasswordManagerName;
+            this.PasswordManagerName = connectionInfo.PasswordManagerName?.Trim();
             this.Debug = connectionInfo.Debug;
             this.RecordView = connectionInfo.RecordView;
             this.DBRecordSampleSet = connectionInfo.DBRecordSampleSet;
@@ -47,7 +48,11 @@ namespace Aerospike.Database.LINQPadDriver
             this.DriverLogging = connectionInfo.DriverLogging;
             this.NetworkCompression = connectionInfo.NetworkCompression;
             this.RespondAllOps = connectionInfo.RespondAllOps;
-            this.TLSCertName = connectionInfo.TLSCertName;
+            this.TLSCertName = connectionInfo.TLSCertName?.Trim();
+
+            if (this.TLSCertName == string.Empty)
+                this.TLSCertName = null;
+
             this.DBVersion = new Version();
 
             cxInfo.DatabaseInfo.EncryptTraffic = !string.IsNullOrEmpty(connectionInfo.TLSProtocols);
@@ -78,6 +83,8 @@ namespace Aerospike.Database.LINQPadDriver
             cxInfo.DatabaseInfo.Provider = "Aerospike";
 
             this.SeedHosts = connectionInfo.SeedHosts
+                                .Select(s => s?.Trim())
+                                .Where(s => !string.IsNullOrEmpty(s))
                                 .Select(s => new Host(s, this.TLSCertName, dbPort))
                                 .ToArray();
 
@@ -402,10 +409,17 @@ namespace Aerospike.Database.LINQPadDriver
 
         public void Open()
         {
+            //System.Diagnostics.Debugger.Launch();
+#if DEBUG
+            if (this.Debug)
+                System.Diagnostics.Debugger.Launch();
+#endif
+
             static string GetPasswordName(string name)
             {
                 return (string)typeof(LINQPad.Util).Assembly.GetType("LINQPad.PasswordManager")
-                            .GetMethod("GetPassword").Invoke(null, new object[] {name});
+                            ?.GetMethod("GetPassword")
+                            ?.Invoke(null, new object[] {name});
             }
 
             this.State = ConnectionState.Connecting;
@@ -421,13 +435,21 @@ namespace Aerospike.Database.LINQPadDriver
                     password = newPassword;
                 }
 
+                var userName = this.CXInfo.DatabaseInfo.UserName;
+
+                if(string.IsNullOrEmpty(userName) )
+                {
+                    userName = null;
+                    password = null;
+                }
+
                 var policy = new ClientPolicy()
                 {
                     timeout = this.SocketTimeout,
                     loginTimeout = this.ConnectionTimeout,
                     useServicesAlternate = this.UseExternalIP,
                     tlsPolicy = this.TLS,
-                    user = this.CXInfo.DatabaseInfo.UserName,
+                    user = userName,
                     password = password,
                     writePolicyDefault = new WritePolicy()
                     {
@@ -478,6 +500,22 @@ namespace Aerospike.Database.LINQPadDriver
                 }
 
                 this.State = ConnectionState.Open;
+            }
+            catch(AerospikeException.Connection ex)
+            {
+                this.Close();
+                this.State = ConnectionState.Broken;
+
+                if (ex.Result == -8
+                        && ex.Message.StartsWith("Error -8: Failed to connect to host(s):")
+                        && ex.Message.EndsWith("Error -3: Node name is null\r\n")
+                        && this.SeedHosts.All(h => !string.IsNullOrEmpty(h.name)))                        
+                {
+                    throw new AerospikeException.Connection(ex.Result,
+                                                            "Authentication Error. Invalid or Missing User Name or Password?");
+                }
+
+                throw;
             }
             catch
             {

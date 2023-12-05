@@ -11,15 +11,15 @@
     <Authors>Richard Andersen</Authors>
     <Company>Aerospike</Company>
     <Product>Aerospike LINQPad Driver</Product>
-    <Description>Aerospike for LINQPad 7 is a data context dynamic driver for querying and updating an Aerospike database.</Description>
+    <Description>Aerospike for LINQPad 7+ is a data context dynamic driver for querying and updating an Aerospike database.</Description>
     <RepositoryUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageIcon>lib\net7.0-windows7.0\Connection.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
-    <Version>2.3.3.0</Version>
-    <FileVersion>2.3.3.0</FileVersion>    
+    <Version>2.3.3.1</Version>
+    <FileVersion>2.3.3.1</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>

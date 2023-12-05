@@ -163,7 +163,13 @@ namespace Aerospike.Database.LINQPadDriver
 			//System.Diagnostics.Debugger.Launch();
 
 			var connection = ObtainConnection(cxInfo, false);
-			connection.ObtainMetaDate();
+
+#if DEBUG
+			if(connection.Debug)
+                System.Diagnostics.Debugger.Launch();
+#endif
+
+            connection.ObtainMetaDate();
 
 			var buildNamespaces = BuildNamespaces(connection, connection.AlwaysUseAValues);
 			var namespaceClasses = buildNamespaces.Item1;
