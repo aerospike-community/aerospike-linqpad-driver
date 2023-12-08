@@ -389,7 +389,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             /// <seealso cref="SetValue(string, object, bool)"/>
             /// <seealso cref="BinExists(string)"/>
             /// <see cref="Values"/>
-            public Bin this[string binName]
+            public Bin? this[string binName]
             {
                 get
                 {
@@ -565,7 +565,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             else if (value is Client.Value clientValue)
                 binValue = clientValue.Object;
             else if (value is Client.Bin bValue)
-                binValue = bValue?.value?.Object;
+                binValue = bValue.value?.Object;
 
             if (newRec.Aerospike.Record.bins.ContainsKey(binName))
             {
@@ -964,9 +964,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             var converter = new CDTConverter();
             var binDict = JsonConvert.DeserializeObject<object>(json, converter);
             
-            if (!(binDict is IDictionary<string, object>))
+            if (binDict is not IDictionary<string, object>)
             {
-                if (string.IsNullOrEmpty(jsonBinName) || !(binDict is IList<object>))
+                if (string.IsNullOrEmpty(jsonBinName) || binDict is not IList<object>)
                 {
                     throw new InvalidDataException($"An unexpected data type was encounter. Except a Dictionary<string, object> or List<object> with a jsonBinName but received a {binDict.GetType()}.");
                 }

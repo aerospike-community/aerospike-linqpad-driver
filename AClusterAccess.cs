@@ -83,7 +83,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             foreach (var item in jsonStructs)
             {
                 var key = item.KeyValue == null
-                            ? new Client.Key(nameSpace, item.Digest, setName, Value.NULL)
+                            ? new Client.Key(nameSpace, item.Digest, setName, Value.AsNull)
                             : new Client.Key(nameSpace, setName, Value.Get(item.KeyValue));
 
                 this.AerospikeClient.Put(writePolicy,
@@ -116,7 +116,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             foreach (var item in jsonStructs)
             {
                 var key = item.KeyValue == null
-                            ? new Client.Key(item.NameSpace, item.Digest, item.SetName, Value.NULL)
+                            ? new Client.Key(item.NameSpace, item.Digest, item.SetName, Value.AsNull)
                             : new Client.Key(item.NameSpace, item.SetName, Value.Get(item.KeyValue));
 
                 this.AerospikeClient.Put(writePolicy,
