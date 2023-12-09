@@ -13,6 +13,8 @@ using Newtonsoft.Json.Linq;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using LPEDC = LINQPad.Extensibility.DataContext;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace Aerospike.Client
 {
@@ -235,26 +237,83 @@ namespace Aerospike.Database.LINQPadDriver
                              .ToArray();
         }
 
-        public static string GetRealTypeName(Type t, bool makeIntoNullable = false)
+        static readonly Regex namespaceRegEx = new Regex("(?<namespace>[^.]+)+",
+                                                            RegexOptions.Compiled);
+        static readonly Regex classnameRegEx = new Regex("(?<clsname>[^+\\[]+)+",
+                                                            RegexOptions.Compiled);
+
+        public static string GetRealTypeName(Type t, bool makeIntoNullable = false, bool includeNameSpace = false)
         {
             if (t == null) return null;
+            string ns = null;
+           
+            if (includeNameSpace)
+            {
+                var parts = namespaceRegEx.Matches(t.FullName);
+                
+                ns = string.Join(',', parts.SkipLast(1).Select(a => a.Value));
+            }
+
+            static string GetDeclaringClass(Type currentType, bool makeIntoNullable)
+            {
+                if (currentType.IsGenericParameter)
+                    return "{PARAM}";
+
+                var declaringTpe = currentType.DeclaringType;
+
+                return declaringTpe is null
+                        ? currentType.Name
+                        : GetRealTypeName(declaringTpe, makeIntoNullable, false) + '.' + currentType.Name;
+            }
 
             if (!t.IsGenericType)
+            {
+                string className = GetDeclaringClass(t, makeIntoNullable);
+
                 return makeIntoNullable && t.IsValueType
-                            ? $"Nullable<{t.Name}>"
-                            : t.Name;
+                            ? $"Nullable<{className}>"
+                            : className;
+            }                
 
             StringBuilder sb = new StringBuilder();
-            sb.Append(t.Name.Substring(0, t.Name.IndexOf('`')));
-            sb.Append('<');
+            var genericName = GetDeclaringClass(t, makeIntoNullable);
+            var paramCnt = genericName.Count(c => c == '{');
+            var paramIdx = genericName.IndexOf('}');
+            var genericIdx = genericName.IndexOf('`');
             bool appendComma = false;
-            foreach (Type arg in t.GetGenericArguments())
+
+            if (genericIdx >= 0)
             {
-                if (appendComma) sb.Append(',');
-                sb.Append(GetRealTypeName(arg));
+                sb.Append(genericName.Substring(0, genericName.IndexOf('`')));
+                sb.Append('<');
+                appendComma = false;
+            }
+            else
+            {
+                sb.Append(genericName);
                 appendComma = true;
             }
-            sb.Append('>');
+
+            foreach (Type arg in t.GetGenericArguments())
+            {
+                var genericArg = GetRealTypeName(arg, makeIntoNullable, includeNameSpace);
+
+                if (paramCnt-- > 0)
+                {
+                    sb.Replace("{PARAM}", genericArg, 0, paramIdx+1);
+                    paramIdx = genericName.IndexOf('}', paramIdx+1);
+                }
+                else
+                {
+                    if (appendComma) sb.Append(',');
+                    sb.Append(genericArg);
+                    appendComma = true;
+                }
+            }
+
+            if (genericIdx >= 0)
+                sb.Append('>');
+
             return makeIntoNullable && t.IsValueType
                             ? $"Nullable<{sb}>"
                             : sb.ToString();
