@@ -254,7 +254,7 @@ namespace Aerospike.Database.LINQPadDriver
                 ns = string.Join(',', parts.SkipLast(1).Select(a => a.Value));
             }
 
-            static string GetDeclaringClass(Type currentType, bool makeIntoNullable)
+            static string GetDeclaringClass(Type currentType)
             {
                 if (currentType.IsGenericParameter)
                     return "{PARAM}";
@@ -263,24 +263,30 @@ namespace Aerospike.Database.LINQPadDriver
 
                 return declaringTpe is null
                         ? currentType.Name
-                        : GetRealTypeName(declaringTpe, makeIntoNullable, false) + '.' + currentType.Name;
+                        : GetRealTypeName(declaringTpe, false, false) + '.' + currentType.Name;
             }
 
             if (!t.IsGenericType)
             {
-                string className = GetDeclaringClass(t, makeIntoNullable);
+                string className = GetDeclaringClass(t);
+
+                if(!string.IsNullOrWhiteSpace(ns))
+                    className = ns + "." + className;
 
                 return makeIntoNullable && t.IsValueType
                             ? $"Nullable<{className}>"
                             : className;
-            }                
+            }
 
             StringBuilder sb = new StringBuilder();
-            var genericName = GetDeclaringClass(t, makeIntoNullable);
+            var genericName = GetDeclaringClass(t);
             var paramCnt = genericName.Count(c => c == '{');
             var paramIdx = genericName.IndexOf('}');
             var genericIdx = genericName.IndexOf('`');
             bool appendComma = false;
+
+            if(!string.IsNullOrEmpty(ns))
+                sb.Append(ns);
 
             if (genericIdx >= 0)
             {
@@ -296,7 +302,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             foreach (Type arg in t.GetGenericArguments())
             {
-                var genericArg = GetRealTypeName(arg, makeIntoNullable, includeNameSpace);
+                var genericArg = GetRealTypeName(arg, false, includeNameSpace);
 
                 if (paramCnt-- > 0)
                 {

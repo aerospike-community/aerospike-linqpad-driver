@@ -130,6 +130,11 @@ namespace Aerospike.Database.LINQPadDriver.Tests
 
             Assert.AreEqual(expected, result);
 
+            expected = "Nullable<Int32>";
+            result = Helpers.GetRealTypeName(typeof(int?));
+
+            Assert.AreEqual(expected, result);
+
             expected = "HelpersTests.TestInterface";
             result = Helpers.GetRealTypeName(typeof(TestInterface));
 
