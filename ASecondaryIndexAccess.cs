@@ -575,6 +575,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                                 ARecord rec,
                                                                 bool returningOnlyMatching = true)
             {
+                if (idxValue is null)
+                    return Enumerable.Empty<GroupRecord>();
+
                 static object DetermineGrpValue(object item)
                 {
                     var itemType = item.GetType();
@@ -599,6 +602,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     if (idxValue is IDictionary<object, object> mapItems)
                     {                       
                         return mapItems.Keys
+                                    .Where(k => k is not null)
                                     .Select(k => new GroupRecord()
                                     {
                                         GrpkeyValue = DetermineGrpValue(k),
@@ -608,6 +612,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     else if (idxValue is IDictionary<string, object> mapsItems)
                     {                        
                         return mapsItems.Keys
+                                    .Where(k => k is not null)
                                     .Select(k => new GroupRecord()
                                     {
                                         GrpkeyValue = k,
@@ -623,6 +628,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     if (idxValue is IDictionary<object, object> mapItems)
                     {
                         return mapItems.Values
+                                    .Where(k => k is not null)
                                     .Select(k => new GroupRecord()
                                     {
                                         GrpkeyValue = DetermineGrpValue(k),
@@ -632,6 +638,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     else if (idxValue is IDictionary<string, object> mapsItems)
                     {
                         return mapsItems.Values
+                                    .Where(k => k is not null)
                                     .Select(k => new GroupRecord()
                                     {
                                         GrpkeyValue = DetermineGrpValue(k),
@@ -646,19 +653,23 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 {
                     if (idxValue is IList<object> listItems)
                     {
-                        return listItems.Select(k => new GroupRecord()
-                        {
-                            GrpkeyValue = DetermineGrpValue(k),
-                            Record = rec
-                        });
+                        return listItems
+                            .Where(k => k is not null)
+                            .Select(k => new GroupRecord()
+                            {
+                                GrpkeyValue = DetermineGrpValue(k),
+                                Record = rec
+                            });
                     }
                     else if (idxValue is IList<JsonDocument> jlistItems)
                     {
-                        return jlistItems.Select(k => new GroupRecord()
-                        {
-                            GrpkeyValue = DetermineGrpValue(k),
-                            Record = rec
-                        });
+                        return jlistItems
+                            .Where(k => k is not null)
+                            .Select(k => new GroupRecord()
+                            {
+                                GrpkeyValue = DetermineGrpValue(k),
+                                Record = rec
+                            });
                     }
                     if (returningOnlyMatching) return Array.Empty<GroupRecord>();
 
