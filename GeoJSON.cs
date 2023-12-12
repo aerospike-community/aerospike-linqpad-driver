@@ -560,14 +560,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             if (geoValue is null) return null;
 
-            return new Value.GeoJSONValue(JsonConvert.SerializeObject(geoValue, new GeoJsonConverter()));
+            return new Value.GeoJSONValue(JsonConvert.SerializeObject(geoValue));
         }
 
         public static Value.GeoJSONValue ConvertFromGeoJson(object geoValue)
         {
             if (geoValue is null) return null;
-
-            return new Value.GeoJSONValue(JsonConvert.SerializeObject(geoValue, new GeoJsonConverter()));
+            
+            return new Value.GeoJSONValue(JsonConvert.SerializeObject(geoValue));            
         }
 
         public static bool IsGeoValue(Type checkType)

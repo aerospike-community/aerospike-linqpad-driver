@@ -543,7 +543,7 @@ namespace Aerospike.Database.LINQPadDriver
                 }                
                 else if(GeoJSONHelpers.IsGeoValue(putObject.GetType()))
                 {
-                    putObject = GeoJSONHelpers.ConvertFromGeoJson(putObject);
+                    return GeoJSONHelpers.ConvertFromGeoJson(putObject);
                 }
                 else if(putObject is JObject jObject)
                 {
