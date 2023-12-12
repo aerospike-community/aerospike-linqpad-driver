@@ -262,8 +262,15 @@ namespace Aerospike.Database.LINQPadDriver
             throw new NotImplementedException();
         }
 
-        static private readonly Regex VersionRegEx = new Regex(@"(?<major>\d+)\.(?<minor>\d+)\.?(?<build>\d*)\.?(?<revision>\d*)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
+#if NET7_0_OR_GREATER
+        [GeneratedRegex(@"(?<major>\d+)\.(?<minor>\d+)\.?(?<build>\d*)\.?(?<revision>\d*)",
+                        RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+        private static partial Regex VersionRegEx();
+#else
+        private static readonly Regex versionRegex = new Regex(@"(?<major>\d+)\.(?<minor>\d+)\.?(?<build>\d*)\.?(?<revision>\d*)",
+                                                                RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static Regex VersionRegEx() => versionRegex;
+#endif
         public void ObtainMetaDate(bool obtainBinsInSet = true, bool closeUponClompletion = true)
         {
             bool performedOpen = false;
@@ -306,7 +313,7 @@ namespace Aerospike.Database.LINQPadDriver
                                 {
                                     try
                                     {
-                                        var versionMatch = VersionRegEx.Match(this.CXInfo.DatabaseInfo.DbVersion);
+                                        var versionMatch = VersionRegEx().Match(this.CXInfo.DatabaseInfo.DbVersion);
 
                                         if (versionMatch.Success)
                                         {

@@ -16,7 +16,7 @@ namespace Aerospike.Database.LINQPadDriver
     /// 
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-    public sealed class LPNamespace : IGenerateCode, ILPExplorer
+    public sealed partial class LPNamespace : IGenerateCode, ILPExplorer
     {
 
         private readonly static ConcurrentBag<LPNamespace> LPNamespacesBag = new ConcurrentBag<LPNamespace>();
@@ -27,9 +27,19 @@ namespace Aerospike.Database.LINQPadDriver
             this.SafeName = Helpers.CheckName(name, "Namespace");
             LPNamespacesBag.Add(this);            
         }
-       
-        static private readonly Regex SetNameRegEx = new Regex("set=(?<setname>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        static private readonly Regex NameSpaceRegEx = new Regex("ns=(?<namespace>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+#if NET7_0_OR_GREATER
+        [GeneratedRegex("set=(?<setname>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+        static private partial Regex SetNameRegEx();
+        [GeneratedRegex("ns=(?<namespace>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+        static private partial Regex NameSpaceRegEx();
+#else
+        static private readonly Regex setNameRegEx = new Regex("set=(?<setname>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        static private readonly Regex nameSpaceRegEx = new Regex("ns=(?<namespace>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        static private Regex SetNameRegEx() => setNameRegEx;
+        static private Regex NameSpaceRegEx() => nameSpaceRegEx;
+
+#endif
 
         public LPNamespace(string name, IEnumerable<string> setAttribs)
             : this(name)
@@ -38,7 +48,7 @@ namespace Aerospike.Database.LINQPadDriver
              * ns=test:set=demo:objects=4:tombstones=0:memory_data_bytes=0:device_data_bytes=368:truncate_lut=0:sindexes=0:index_populating=false:disable-eviction=false:enable-index=false:stop-writes-count=0
              */
             var setNames = from setAttrib in setAttribs
-                           let matches = SetNameRegEx.Match(setAttrib)
+                           let matches = SetNameRegEx().Match(setAttrib)
                            select matches.Groups["setname"].Value;
 
             var nsSets = setNames
@@ -125,7 +135,7 @@ namespace Aerospike.Database.LINQPadDriver
             }
 
             var asNamespaces = (from nsSets in setsAttrib.Split(';', StringSplitOptions.RemoveEmptyEntries)
-                                let ns = NameSpaceRegEx.Match(nsSets).Groups["namespace"].Value
+                                let ns = NameSpaceRegEx().Match(nsSets).Groups["namespace"].Value
                                 group nsSets by ns into nsGrp
                                 let nsBins = GetNSBins(nsGrp.Key)
                                 select new LPNamespace(nsGrp.Key, nsGrp.ToList(), nsBins)).ToList();

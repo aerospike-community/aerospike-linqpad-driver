@@ -58,10 +58,7 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 connection = _Connection;
 
-				if (connection is null)
-                {
-					connection = _Connection = new AerospikeConnection(cxInfo);                    
-                }                
+				connection ??= _Connection = new AerospikeConnection(cxInfo);
 
                 if (openIfClosed && connection.State != ConnectionState.Open)
                 {
@@ -242,7 +239,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 				Children = CreateModuleExploreItems(connection).ToList()
 			});
 
-			items.Add(CreateInformationalExploreItem(cxInfo, connection, source));
+			items.Add(CreateInformationalExploreItem(cxInfo, connection));
 
 			return items;			
 		}
@@ -494,7 +491,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
         #endregion
 
-        public static ExplorerItem CreateInformationalExploreItem(IConnectionInfo cxInfo, AerospikeConnection connection, string souceCode)
+        public static ExplorerItem CreateInformationalExploreItem(IConnectionInfo cxInfo, AerospikeConnection connection)
 		{            
             var infoItem = new ExplorerItem("Information", ExplorerItemKind.Category, ExplorerIcon.Box)
 			{

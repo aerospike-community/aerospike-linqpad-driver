@@ -134,7 +134,7 @@ namespace Aerospike.Client
 
 namespace Aerospike.Database.LINQPadDriver
 {
-    public static class Helpers
+    public static partial class Helpers
     {
 
         public static bool IsPrivateAddress(string ipAddress)
@@ -236,9 +236,16 @@ namespace Aerospike.Database.LINQPadDriver
                              .ToArray();
         }
 
+#if NET7_0_OR_GREATER
+        [GeneratedRegex("(?<namespace>[^.]+)+",
+                        RegexOptions.Compiled)]
+        static private partial Regex NamespaceRegEx();
+#else
         static readonly Regex namespaceRegEx = new Regex("(?<namespace>[^.]+)+",
                                                             RegexOptions.Compiled);
-        
+        static private Regex NamespaceRegEx() => namespaceRegEx;
+#endif
+
         public static string GetRealTypeName(Type t, bool makeIntoNullable = false, bool includeNameSpace = false)
         {
             if (t == null) return null;
@@ -246,7 +253,7 @@ namespace Aerospike.Database.LINQPadDriver
            
             if (includeNameSpace)
             {
-                var parts = namespaceRegEx.Matches(t.FullName);
+                var parts = NamespaceRegEx().Matches(t.FullName);
                 
                 ns = string.Join(',', parts.SkipLast(1).Select(a => a.Value));
             }
@@ -279,15 +286,15 @@ namespace Aerospike.Database.LINQPadDriver
             var genericName = GetDeclaringClass(t);
             var paramCnt = genericName.Count(c => c == '{');
             var paramIdx = genericName.IndexOf('}');
-            var genericIdx = genericName.IndexOf('`');
+            var genericFnd = genericName.Contains('`');
             bool appendComma = false;
-
+            
             if(!string.IsNullOrEmpty(ns))
                 sb.Append(ns);
 
-            if (genericIdx >= 0)
+            if (genericFnd)
             {
-                sb.Append(genericName.Substring(0, genericName.IndexOf('`')));
+                sb.Append(genericName. AsSpan(0, genericName.IndexOf('`')));
                 sb.Append('<');
                 appendComma = false;
             }
@@ -314,7 +321,7 @@ namespace Aerospike.Database.LINQPadDriver
                 }
             }
 
-            if (genericIdx >= 0)
+            if (genericFnd)
                 sb.Append('>');
 
             return makeIntoNullable && t.IsValueType

@@ -17,7 +17,7 @@
         typeof(decimal), typeof(float), typeof(double), typeof(byte), typeof(sbyte),
         typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan) };
 
-    string[] classDataTypes = new string[] 
+    string[] jsonClassDataTypes = new string[] 
       { "JObject", "JArray", "JValue", "JToken"};
 #>
 
@@ -65,7 +65,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             , IEqualityComparer< <#= datatype #> >
             , IComparable< <#= datatype #> >            
          <#    }//end of foreach data type #>  
-         <# foreach(var datatype in classDataTypes)
+         <# foreach(var datatype in jsonClassDataTypes)
         { #>
             , IEquatable< <#= datatype #> >
             , IEqualityComparer< <#= datatype #> >
@@ -263,6 +263,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             get => Helpers.IsJson(this.UnderlyingType);
         }
 
+        public bool IsGeoJson
+        {
+            get => this.Value is Client.Value.GeoJSONValue || GeoJSONHelpers.IsGeoValue(this.UnderlyingType);
+        }
+
         public bool IsDateTime
         {
             get => this.UnderlyingType == typeof(DateTime);
@@ -285,7 +290,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public JToken ToJson()
         {
             if (
-            <# foreach(var datatype in classDataTypes)
+            <# foreach(var datatype in jsonClassDataTypes)
             { #>
                 this.UnderlyingType == typeof(<#= datatype #>) ||
             <#    }//end of foreach data type #>
@@ -430,13 +435,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Converts <see cref="Value"/> into a .net native type
+        /// Converts <see cref="Value"/> into a .net native type, a <see cref="Newtonsoft.Json"/>, or <see cref="GeoJSON.Net.GeoJSONObject"/> instance.
         /// </summary>
-        /// <typeparam name="T">.Net Type to convert to</typeparam>
+        /// <typeparam name="T">Try to convert <see cref="Value"/> to this type</typeparam>
         /// <returns>
         /// The converted value
         /// </returns>
-        public T Convert<T>() => this.Value is T ? (T) this.Value : (T) Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
+        /// <exception cref="ArgumentException">Thrown if value cannot be converted</exception>
+        public T Convert<T>() => this.Value is T tValue? tValue : (T) Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
 
         /// <summary>
         /// Returns an enumerable object, if possible.
@@ -865,8 +871,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 	    public static bool operator!=(AValue value1, AValue value2) => !(value1 == value2);
 
-        public static bool operator<(AValue value1, AValue value2) => value1 is null ? !(value2 is null) : value1.CompareTo(value2) < 0;
-	    public static bool operator>(AValue value1, AValue value2) => !(value1 is null) && value1.CompareTo(value2) > 0;
+        public static bool operator<(AValue value1, AValue value2) => value1 is null ? value2 is not null : value1.CompareTo(value2) < 0;
+	    public static bool operator>(AValue value1, AValue value2) => value1 is not null && value1.CompareTo(value2) > 0;
         public static bool operator<=(AValue value1, AValue value2) => value1 is null || value1.CompareTo(value2) <= 0;
         public static bool operator>=(AValue value1, AValue value2) => value1 is null ? value2 is null : value1.CompareTo(value2) >= 0;
        
@@ -875,13 +881,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public static bool operator==(Aerospike.Client.Value oValue, AValue aValue) => aValue?.Equals(oValue) ?? oValue is null;
 	    public static bool operator!=(Aerospike.Client.Value oValue, AValue aValue) => !(aValue?.Equals(oValue) ?? oValue is null);
        
-        public static bool operator<(Aerospike.Client.Value oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
-	    public static bool operator>(Aerospike.Client.Value oValue, AValue aValue) => aValue is null ? !(oValue is null) : aValue.CompareTo(oValue) < 0;
+        public static bool operator<(Aerospike.Client.Value oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
+	    public static bool operator>(Aerospike.Client.Value oValue, AValue aValue) => aValue is null ? oValue is not null : aValue.CompareTo(oValue) < 0;
         public static bool operator<=(Aerospike.Client.Value oValue, AValue aValue) => aValue is null ? oValue is null : aValue.CompareTo(oValue) >= 0;
         public static bool operator>=(Aerospike.Client.Value oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
-        public static bool operator<(AValue aValue, Aerospike.Client.Value oValue) => aValue is null ? !(oValue is null) : aValue.CompareTo(oValue) < 0;
-	    public static bool operator>(AValue aValue, Aerospike.Client.Value oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+        public static bool operator<(AValue aValue, Aerospike.Client.Value oValue) => aValue is null ? oValue is not null : aValue.CompareTo(oValue) < 0;
+	    public static bool operator>(AValue aValue, Aerospike.Client.Value oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
         public static bool operator<=(AValue aValue, Aerospike.Client.Value oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
         public static bool operator>=(AValue aValue, Aerospike.Client.Value oValue) => aValue is null ? oValue is null : aValue.CompareTo(oValue) >= 0;
 
@@ -890,13 +896,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public static bool operator==(Aerospike.Client.Key oValue, AValue aValue) => aValue?.Equals(oValue) ?? oValue is null;
 	    public static bool operator!=(Aerospike.Client.Key oValue, AValue aValue) => !(aValue?.Equals(oValue) ?? oValue is null);
 
-        public static bool operator<(Aerospike.Client.Key oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
-	    public static bool operator>(Aerospike.Client.Key oValue, AValue aValue) => aValue is null ? !(oValue is null) : aValue.CompareTo(oValue) < 0;
+        public static bool operator<(Aerospike.Client.Key oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
+	    public static bool operator>(Aerospike.Client.Key oValue, AValue aValue) => aValue is null ? oValue is not null : aValue.CompareTo(oValue) < 0;
         public static bool operator<=(Aerospike.Client.Key oValue, AValue aValue) => aValue is null ? oValue is null : aValue.CompareTo(oValue) >= 0;
         public static bool operator>=(Aerospike.Client.Key oValue, AValue aValue) => aValue is null || aValue?.CompareTo(oValue) <= 0;
 
-        public static bool operator<(AValue aValue, Aerospike.Client.Key oValue) => aValue is null ? !(oValue is null) : aValue?.CompareTo(oValue) < 0;
-	    public static bool operator>(AValue aValue, Aerospike.Client.Key oValue) => !(aValue is null) && aValue?.CompareTo(oValue) > 0;
+        public static bool operator<(AValue aValue, Aerospike.Client.Key oValue) => aValue is null ? oValue is not null : aValue?.CompareTo(oValue) < 0;
+	    public static bool operator>(AValue aValue, Aerospike.Client.Key oValue) => aValue is not null && aValue?.CompareTo(oValue) > 0;
         public static bool operator<=(AValue aValue, Aerospike.Client.Key oValue) => aValue is null || aValue?.CompareTo(oValue) <= 0;
         public static bool operator>=(AValue aValue, Aerospike.Client.Key oValue) => aValue is null ? oValue is null : aValue?.CompareTo(oValue) >= 0;
 
@@ -917,15 +923,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< <#= datatype #> > v, AValue av) => av == v;
 	        public static bool operator!=(List< <#= datatype #> > v, AValue av) => av != v;
 
-            public static bool operator<(<#= datatype #> oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(<#= datatype #> oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(<#= datatype #> oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(<#= datatype #> oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(<#= datatype #> oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(<#= datatype #> oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, <#= datatype #> oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, <#= datatype #> oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, <#= datatype #> oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, <#= datatype #> oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, <#= datatype #> oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, <#= datatype #> oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
             <# if(datatype != "string") { #>
             public <#= datatype #> To<#= datatype #>() => (<#= datatype #>) this;
@@ -985,7 +991,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         <#    }//end of foreach data type #>
 
-        <# foreach(var datatype in classDataTypes)
+        <# foreach(var datatype in jsonClassDataTypes)
         { #>
 
             public static implicit operator <#= datatype #> (AValue key) => key is null ? null : (<#= datatype #>) key.Convert< <#= datatype #> >();
@@ -1050,7 +1056,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             return this.Value switch
             {
-                string sValue => !(value is null)
+                string sValue => value is not null
                                     && (value is string svalue
                                             && sValue.Contains(svalue))
                                         || this.Equals(value),

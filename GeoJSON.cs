@@ -32,7 +32,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// </remarks>
     public class GeoJSONCollection : GeometryCollection, IGeoJSONCollection
     {
-        public GeoJSONCollection() : base(new IGeometryObject[0])
+        public GeoJSONCollection() : base(Array.Empty<IGeometryObject>())
         {}
 
         /// <summary>
@@ -44,6 +44,41 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         
         public GeoJSONCollection(GeometryCollection geometries)
             : base(geometries.Geometries) { }
+
+        public static bool operator ==(GeoJSONCollection left, GeoJSONCollection right)
+        {
+            if ((object)left == right)
+            {
+                return true;
+            }
+
+            if ((object)right is null)
+            {
+                return false;
+            }
+
+            if (left is not null)
+            {
+                return left.Equals(right);
+            }
+
+            return false;
+        }
+
+        public static bool operator !=(GeoJSONCollection left, GeoJSONCollection right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     /// <summary>
@@ -68,6 +103,41 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public GeoJSONLineString(LineString lineString)
             : base(lineString.Coordinates) { }
+
+        public static bool operator ==(GeoJSONLineString left, GeoJSONLineString right)
+        {
+            if ((object)left == right)
+            {
+                return true;
+            }
+
+            if ((object)right is null)
+            {
+                return false;
+            }
+
+            if (left is not null)
+            {
+                return left.Equals(right);
+            }
+
+            return false;
+        }
+
+        public static bool operator !=(GeoJSONLineString left, GeoJSONLineString right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     /// <summary>
@@ -96,6 +166,41 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public GeoJSONMultiLineString(MultiLineString multiLineString)
             : base(multiLineString.Coordinates) { }
+
+        public static bool operator ==(GeoJSONMultiLineString left, GeoJSONMultiLineString right)
+        {
+            if ((object)left == right)
+            {
+                return true;
+            }
+
+            if ((object)right is null)
+            {
+                return false;
+            }
+
+            if (left is not null)
+            {
+                return left.Equals(right);
+            }
+
+            return false;
+        }
+
+        public static bool operator !=(GeoJSONMultiLineString left, GeoJSONMultiLineString right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     /// <summary>
@@ -124,6 +229,41 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public GeoJSONMultiPoint(MultiPoint multiPoint)
             : base(multiPoint.Coordinates) { }
+
+        public static bool operator ==(GeoJSONMultiPoint left, GeoJSONMultiPoint right)
+        {
+            if ((object)left == right)
+            {
+                return true;
+            }
+
+            if ((object)right is null)
+            {
+                return false;
+            }
+
+            if (left is not null)
+            {
+                return left.Equals(right);
+            }
+
+            return false;
+        }
+
+        public static bool operator !=(GeoJSONMultiPoint left, GeoJSONMultiPoint right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     /// <summary>
@@ -152,6 +292,41 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public GeoJSONMultiPolygon(MultiPolygon multiPolygon)
             : base(multiPolygon.Coordinates) { }
+
+        public static bool operator ==(GeoJSONMultiPolygon left, GeoJSONMultiPolygon right)
+        {
+            if ((object)left == right)
+            {
+                return true;
+            }
+
+            if ((object)right is null)
+            {
+                return false;
+            }
+
+            if (left is not null)
+            {
+                return left.Equals(right);
+            }
+
+            return false;
+        }
+
+        public static bool operator !=(GeoJSONMultiPolygon left, GeoJSONMultiPolygon right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     /// <summary>
@@ -173,6 +348,41 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public GeoJSONPoint(Point point)
             : base(point.Coordinates) { }
+
+        public static bool operator ==(GeoJSONPoint left, GeoJSONPoint right)
+        {
+            if ((object)left == right)
+            {
+                return true;
+            }
+
+            if ((object)right is null)
+            {
+                return false;
+            }
+
+            if (left is not null)
+            {
+                return left.Equals(right);
+            }
+
+            return false;
+        }
+
+        public static bool operator !=(GeoJSONPoint left, GeoJSONPoint right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     /// <summary>
@@ -206,6 +416,41 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public GeoJSONPolygon(Polygon polygon)
             : base(polygon.Coordinates) { }
+
+        public static bool operator ==(GeoJSONPolygon left, GeoJSONPolygon right)
+        {
+            if ((object)left == right)
+            {
+                return true;
+            }
+
+            if ((object)right is null)
+            {
+                return false;
+            }
+
+            if (left is not null)
+            {
+                return left.Equals(right);
+            }
+
+            return false;
+        }
+
+        public static bool operator !=(GeoJSONPolygon left, GeoJSONPolygon right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     /// <summary>
@@ -236,6 +481,41 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         
         public GeoJSONPosition(IPosition position)
             : base(position.Latitude, position.Longitude, position.Altitude) { }
+
+        public static bool operator ==(GeoJSONPosition left, GeoJSONPosition right)
+        {
+            if ((object)left == right)
+            {
+                return true;
+            }
+
+            if ((object)right is null)
+            {
+                return false;
+            }
+
+            if (left is not null)
+            {
+                return left.Equals(right);
+            }
+
+            return false;
+        }
+
+        public static bool operator !=(GeoJSONPosition left, GeoJSONPosition right)
+        {
+            return !(left == right);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     public static class GeoJSONHelpers
