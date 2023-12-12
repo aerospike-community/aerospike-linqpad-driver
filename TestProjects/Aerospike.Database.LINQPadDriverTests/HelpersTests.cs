@@ -15,28 +15,28 @@ namespace Aerospike.Database.LINQPadDriver.Tests
         {
 
             Assert.IsTrue(Helpers.Equals(1, 1));
-            Assert.IsTrue(Helpers.Equals(1l, (short) 1));
-            Assert.IsTrue(Helpers.Equals((short) 1, 1l));
-            Assert.IsFalse(Helpers.Equals(1l, (short)2));
-            Assert.IsFalse(Helpers.Equals((short)1, 2l));
+            Assert.IsTrue(Helpers.Equals(1L, (short) 1));
+            Assert.IsTrue(Helpers.Equals((short) 1, 1L));
+            Assert.IsFalse(Helpers.Equals(1L, (short)2));
+            Assert.IsFalse(Helpers.Equals((short)1, 2L));
 
-            Assert.IsTrue(Helpers.Equals(1l, 1d));
-            Assert.IsTrue(Helpers.Equals(1d, 1l));
+            Assert.IsTrue(Helpers.Equals(1L, 1d));
+            Assert.IsTrue(Helpers.Equals(1d, 1L));
             Assert.IsTrue(Helpers.Equals(1d, (short)1));
             Assert.IsTrue(Helpers.Equals((short)1, 1d));
-            Assert.IsTrue(Helpers.Equals(1l, 1m));
-            Assert.IsTrue(Helpers.Equals(1m, 1l));
+            Assert.IsTrue(Helpers.Equals(1L, 1m));
+            Assert.IsTrue(Helpers.Equals(1m, 1L));
             Assert.IsTrue(Helpers.Equals(1m, (short)1));
             Assert.IsTrue(Helpers.Equals((short)1, 1m));
             Assert.IsTrue(Helpers.Equals(1m, 1d));
             Assert.IsTrue(Helpers.Equals(1d, 1m));
 
-            Assert.IsFalse(Helpers.Equals(2l, 1d));
-            Assert.IsFalse(Helpers.Equals(2d, 1l));
+            Assert.IsFalse(Helpers.Equals(2L, 1d));
+            Assert.IsFalse(Helpers.Equals(2d, 1L));
             Assert.IsFalse(Helpers.Equals(2d, (short)1));
             Assert.IsFalse(Helpers.Equals((short)2, 1d));
-            Assert.IsFalse(Helpers.Equals(2l, 1m));
-            Assert.IsFalse(Helpers.Equals(2m, 1l));
+            Assert.IsFalse(Helpers.Equals(2L, 1m));
+            Assert.IsFalse(Helpers.Equals(2m, 1L));
             Assert.IsFalse(Helpers.Equals(2m, (short)1));
             Assert.IsFalse(Helpers.Equals((short)2, 1m));
             Assert.IsFalse(Helpers.Equals(2m, 1d));
@@ -54,8 +54,8 @@ namespace Aerospike.Database.LINQPadDriver.Tests
             Assert.IsFalse(Helpers.Equals(1d, dtNow));
             Assert.IsFalse(Helpers.Equals(dtNow, 1d));
 
-            Assert.IsFalse(Helpers.Equals(1l, dtNow));
-            Assert.IsFalse(Helpers.Equals(dtNow, 1l));
+            Assert.IsFalse(Helpers.Equals(1L, dtNow));
+            Assert.IsFalse(Helpers.Equals(dtNow, 1L));
 
             Assert.IsFalse(Helpers.Equals(1, dtNow));
             Assert.IsFalse(Helpers.Equals(dtNow, 1));
@@ -67,12 +67,12 @@ namespace Aerospike.Database.LINQPadDriver.Tests
 
         }
 
-        interface TestInterface
+        interface ITestInterface
         {
 
         }
 
-        public class TestClass : TestInterface
+        public class TestClass : ITestInterface
         {
             public class TestClassInner
             {
@@ -135,8 +135,8 @@ namespace Aerospike.Database.LINQPadDriver.Tests
 
             Assert.AreEqual(expected, result);
 
-            expected = "HelpersTests.TestInterface";
-            result = Helpers.GetRealTypeName(typeof(TestInterface));
+            expected = "HelpersTests.ITestInterface";
+            result = Helpers.GetRealTypeName(typeof(ITestInterface));
 
             Assert.AreEqual(expected, result);            
 

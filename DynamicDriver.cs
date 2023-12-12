@@ -180,7 +180,7 @@ namespace Aerospike.Database.LINQPadDriver
 			var moduleClasses = buildModules.Item1;
 			var moduleProps = buildModules.Item2;
 			var moduleConstruct = buildModules.Item3;
-
+			
 			string source = $@"
 using System;
 using System.Collections.Generic;
@@ -249,7 +249,9 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 		
 		public override IEnumerable<string> GetAssembliesToAdd(IConnectionInfo cxInfo)
 		{
-			return new[] { typeof(Aerospike.Client.Connection).Assembly.Location, typeof(Newtonsoft.Json.Linq.JObject).Assembly.Location };
+			return new[] { typeof(Aerospike.Client.Connection).Assembly.Location,
+							typeof(Newtonsoft.Json.Linq.JObject).Assembly.Location,
+							typeof(GeoJSON.Net.IGeoJSONObject).Assembly.Location};
 		}
 
         public override IEnumerable<string> GetNamespacesToAdd(IConnectionInfo cxInfo)
@@ -259,7 +261,8 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 			if(connection.DocumentAPI)
 				return new[] { "Aerospike.Database.LINQPadDriver.Extensions",
 										"Aerospike.Client",
-										"Newtonsoft.Json.Linq"};
+										"Newtonsoft.Json.Linq",
+                                        "GeoJSON.Net"};
 
             return new[] { "Aerospike.Database.LINQPadDriver.Extensions",
                                         "Aerospike.Client"};
@@ -274,7 +277,9 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 			GetCoreFxReferenceAssemblies(cxInfo)
 				.Append(typeof(Aerospike.Client.Connection).Assembly.Location)
 				.Append(typeof(AClusterAccess).Assembly.Location)
-				.ToArray();
+                .Append(typeof(GeoJSON.Net.IGeoJSONObject).Assembly.Location)
+                .Append(typeof(Newtonsoft.Json.Linq.JObject).Assembly.Location)
+                .ToArray();
 
             // CompileSource is a static helper method to compile C# source code using LINQPad's built-in Roslyn libraries.
             // If you prefer, you can add a NuGet reference to the Roslyn libraries and use them directly.

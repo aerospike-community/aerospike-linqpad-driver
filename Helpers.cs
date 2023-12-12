@@ -14,7 +14,6 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 using LPEDC = LINQPad.Extensibility.DataContext;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 
 namespace Aerospike.Client
 {
@@ -239,9 +238,7 @@ namespace Aerospike.Database.LINQPadDriver
 
         static readonly Regex namespaceRegEx = new Regex("(?<namespace>[^.]+)+",
                                                             RegexOptions.Compiled);
-        static readonly Regex classnameRegEx = new Regex("(?<clsname>[^+\\[]+)+",
-                                                            RegexOptions.Compiled);
-
+        
         public static string GetRealTypeName(Type t, bool makeIntoNullable = false, bool includeNameSpace = false)
         {
             if (t == null) return null;
@@ -302,7 +299,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             foreach (Type arg in t.GetGenericArguments())
             {
-                var genericArg = GetRealTypeName(arg, false, includeNameSpace);
+                var genericArg = GetRealTypeName(arg, makeIntoNullable, includeNameSpace);
 
                 if (paramCnt-- > 0)
                 {
@@ -441,16 +438,10 @@ namespace Aerospike.Database.LINQPadDriver
 
         private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        public static long NanosFromEpoch(DateTime dt)
-        {
-            return (long)dt.ToUniversalTime().Subtract(UnixEpoch).TotalMilliseconds * 1000000;
-        }
-
-        public static DateTime NanoEpochToDateTime(long nanoseconds)
-        {
-            return UnixEpoch.AddTicks(nanoseconds / 100);
-        }
-
+        public static long NanosFromEpoch(DateTime dt) => (long)dt.ToUniversalTime().Subtract(UnixEpoch).TotalMilliseconds * 1000000;
+        
+        public static DateTime NanoEpochToDateTime(long nanoseconds) => UnixEpoch.AddTicks(nanoseconds / 100);
+        
         internal const string defaultDateTimeFormat = "yyyy-MM-ddTHH:mm:ss.ffff";
         internal const string defaultDateTimeOffsetFormat = "yyyy-MM-ddTHH:mm:ss.ffffzzz";
         internal const string defaultTimeSpanFormat = "c";
@@ -542,6 +533,10 @@ namespace Aerospike.Database.LINQPadDriver
                 else if (putObject is Guid guidValue)
                 {
                     putObject = guidValue.ToString();
+                }                
+                else if(GeoJSONHelpers.IsGeoValue(putObject.GetType()))
+                {
+                    putObject = GeoJSONHelpers.ConvertFromGeoJson(putObject);
                 }
                 else if(putObject is JObject jObject)
                 {
@@ -924,23 +919,26 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     if (fldType == typeof(JToken))
                     {
-                        return JToken.FromObject(binValue);
+                        return binValue is null ? (JToken)null : JToken.FromObject(binValue);
                     }
                     else if (fldType == typeof(JValue))
                     {
-                        return JValue.FromObject(binValue);
+                        return binValue is null ? (JValue)null :  JValue.FromObject(binValue);
                     }
                     else if (fldType == typeof(JArray))
                     {
-                        return JArray.FromObject(binValue);
+                        return binValue is null ? (JArray)null : JArray.FromObject(binValue);
                     }
                     else if (fldType == typeof(JObject))
                     {
-                        return JObject.FromObject(binValue);
+                        if (binValue is Value.GeoJSONValue geoJson)
+                            return JObject.FromObject(geoJson.value);
+
+                        return binValue is null ? (JObject)null : JObject.FromObject(binValue);
                     }
                     else if (fldType == typeof(JsonDocument))
                     {
-                        return new JsonDocument(JObject.FromObject(binValue));
+                        return binValue is null ? (JsonDocument) null : new JsonDocument(JObject.FromObject(binValue));
                     }
                     
                     switch (binValue)
@@ -1148,6 +1146,9 @@ namespace Aerospike.Database.LINQPadDriver
 
                                 if (string.IsNullOrEmpty(strValue))
                                 {
+                                    if (GeoJSONHelpers.IsGeoValue(fldType))
+                                        return null;
+
                                     return strValue;
                                 }
                                 else if (fldType == typeof(DateTime))
@@ -1231,10 +1232,22 @@ namespace Aerospike.Database.LINQPadDriver
                                 {
                                     return Enum.Parse(fldType, strValue, true);
                                 }
+                                else if(fldType == typeof(Value.GeoJSONValue))
+                                {
+                                    return new Value.GeoJSONValue(strValue);
+                                }
+                                else if (GeoJSONHelpers.IsGeoValue(fldType))
+                                {
+                                    return GeoJSONHelpers.ConvertToGeoJson(strValue);
+                                }
                                 else
                                 {
                                     throw CreateException(strValue);
                                 }
+                            }
+                        case Value.GeoJSONValue geoObj:
+                            {
+                                return GeoJSONHelpers.ConvertToGeoJson(geoObj);
                             }
                         case DateTime dtValue:
                             {
@@ -2059,6 +2072,8 @@ namespace Aerospike.Database.LINQPadDriver
 
         public static bool IsJsonDoc(Type checkType) => checkType == typeof(JObject)
                                                         || checkType == typeof(JsonDocument);
+
+        public static bool IsGeoJson(Type checkType) => GeoJSONHelpers.IsGeoValue(checkType);
 
         public static string ToLiteral(string input)
         {

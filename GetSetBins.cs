@@ -58,7 +58,22 @@ namespace Aerospike.Database.LINQPadDriver
             if (value is null) return typeof(object);
 
             if (!value.GetType().IsGenericType)
+            {
+                if(determineDocType && value is Value.GeoJSONValue geoObj)
+                {
+                    if(!string.IsNullOrEmpty(geoObj.value))
+                       try
+                        {
+                            return GeoJSONHelpers.ConvertToGeoJson(geoObj)
+                                        .GetType();
+                        }
+                        catch
+                        { }
+                    return typeof(Value.GeoJSONValue);
+                }
+                    
                 return value.GetType();
+            }
 
             try
             {
