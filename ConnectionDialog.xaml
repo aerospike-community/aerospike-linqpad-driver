@@ -31,150 +31,157 @@
 
         <GroupBox Header="Database" BorderThickness="4">
             <StackPanel Margin="5,0,0,0">
-                <Label Padding="0,0,0,2">Seed Nodes separated by a comma:</Label>
-                <TextBox Name="txtSeedNodes" Padding="2" ToolTip="Cluster Seed Node List (default localhost)" TextWrapping="WrapWithOverflow" Text="{Binding ConnectionInfo.DatabaseInfo.Server, FallbackValue='localhost'}" Margin="1,0,0,5" />
-                <CheckBox IsChecked="{Binding UseExternalIP}" ToolTip="Enable if connecting to the DB over the Internet. See useServicesAlternate client Property." HorizontalAlignment="Left" Margin="10,10,0,0">
-                    <Hyperlink NavigateUri="https://docs.aerospike.com/reference/configuration#alternate-access-address" RequestNavigate="Hyperlink_RequestNavigate">
-                        Enable Public/Alternate Address
-                    </Hyperlink>
-                </CheckBox>
 
-                <StackPanel Orientation="Horizontal">
-                    <Label Padding="0,0,0,2" Margin="0,5,0,5" HorizontalAlignment="Center">Port:</Label>
-                    <TextBox Name="txtPort" Padding="2" ToolTip="Cluster DB Port (default 3000)" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Center" Margin="0,5,0,5"
-                             >
-                        <TextBox.Text>
-                            <Binding Path="Port" FallbackValue="3000" StringFormat="{}{0:0}" 
-                                     ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
-                                <Binding.ValidationRules>
-                                    <local:NumericValidationRule ValidationStep="RawProposedValue" Min="1000"/>
-                                </Binding.ValidationRules>
-                            </Binding>
-                        </TextBox.Text>
-                    </TextBox>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <Label Padding="0,0,0,2" VerticalAlignment="Center">UserName:</Label>
-                    <TextBox Name="txtUserName" Padding="2" ToolTip="User Name used for login" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.UserName}" Width="250" HorizontalAlignment="Left" Margin="5,0,0,5"/>
-                </StackPanel>
-                <CheckBox IsChecked="{Binding UsePasswordManager}" Name="cbUsePassMgr" Click="cbUsePassMgr_Click" ToolTip="Use the LINQPad Password Manager is available via the File menu" HorizontalAlignment="Left" Margin="12,0,0,5">
-                    LINQPad Password Manager
-                </CheckBox>
-                
-                <Grid>
-                    <StackPanel Grid.Row="0" Grid.ZIndex="1" Orientation="Horizontal" Name="spPassword">
-                        <Label Padding="0,0,0,2" VerticalAlignment="Center">Password:</Label>
-                        <PasswordBox Name="passwordBox" Padding="0,0,0,2" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" PasswordChar="*" local:PasswordHelper.Attach="True" local:PasswordHelper.Password="{Binding Path=ConnectionInfo.DatabaseInfo.Password, Mode=TwoWay}"/>
-                        <TextBox Name="txtPassword" Padding="0,0,0,2" ToolTip="Password" MaxLines="1" MinLines="1"  Text="{Binding Path=ConnectionInfo.DatabaseInfo.Password, Mode=TwoWay}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" Visibility="Collapsed" />
-                        <CheckBox Name="cbShowPasswordChars" Content="Show password" Checked="cbShowPasswordChars_Checked" Unchecked="cbShowPasswordChars_Unchecked" />
-                    </StackPanel>
-                    <StackPanel Grid.Row="0" Grid.ZIndex="2" Orientation="Horizontal" Name="spPasswordNames">
-                        <Label Padding="0,0,0,2" VerticalAlignment="Center">Password Name:</Label>
-                        <ComboBox Name="comboPasswordNames" Padding="0,0,0,2" Text="{Binding PasswordManagerName}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" ToolTip="Name associated with the password in LINQPad Password Manager">
-                            <ComboBoxItem Content="&lt;None&gt;"/>
-                        </ComboBox>
-                    </StackPanel>
-                </Grid>
-                <GroupBox Header="Timeout" BorderThickness="4" Margin="5,0,5,0">
-                    <StackPanel Margin="5,0,0,0" Orientation="Horizontal">
-                        <StackPanel Orientation="Horizontal">
-                            <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Connection:</Label>
-                            <TextBox Name="txtConnTimeout" Padding="2" ToolTip="Connection Timeout in milliseconds" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="8,5,5,5"
-                                     >
-                                <TextBox.Text>
-                                    <Binding Path="ConnectionTimeout" StringFormat="{}{0:0}"
-                                             ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
-                                        <Binding.ValidationRules>
-                                            <local:NumericValidationRule ValidationStep="RawProposedValue"/>
-                                        </Binding.ValidationRules>
-                                    </Binding>
-                                </TextBox.Text>
-                            </TextBox>
+                    <TabControl>
+                        <TabItem Header="Native">
+                            <StackPanel>
+                                <Label Padding="0,0,0,2">Seed Nodes separated by a comma:</Label>
+                                <TextBox Name="txtSeedNodes" Padding="2" ToolTip="Cluster Seed Node List (default localhost)" TextWrapping="WrapWithOverflow" Text="{Binding ConnectionInfo.DatabaseInfo.Server, FallbackValue='localhost'}" Margin="1,0,0,5" />
+                                <CheckBox IsChecked="{Binding UseExternalIP}" ToolTip="Enable if connecting to the DB over the Internet. See useServicesAlternate client Property." HorizontalAlignment="Left" Margin="10,10,0,0">
+                                    <Hyperlink NavigateUri="https://docs.aerospike.com/reference/configuration#alternate-access-address" RequestNavigate="Hyperlink_RequestNavigate">
+                                        Enable Public/Alternate Address
+                                    </Hyperlink>
+                                </CheckBox>
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Padding="0,0,0,2" Margin="0,5,0,5" HorizontalAlignment="Center">Port:</Label>
+                                    <TextBox Name="txtPort" Padding="2" ToolTip="Cluster DB Port (default 3000)" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Center" Margin="0,5,0,5">
+                                        <TextBox.Text>
+                                            <Binding Path="Port" FallbackValue="3000" StringFormat="{}{0:0}" 
+                                                        ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
+                                                <Binding.ValidationRules>
+                                                    <local:NumericValidationRule ValidationStep="RawProposedValue" Min="1000"/>
+                                                </Binding.ValidationRules>
+                                            </Binding>
+                                        </TextBox.Text>
+                                    </TextBox>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Padding="0,0,0,2" VerticalAlignment="Center">UserName:</Label>
+                                    <TextBox Name="txtUserName" Padding="2" ToolTip="User Name used for login" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.UserName}" Width="250" HorizontalAlignment="Left" Margin="5,0,0,5"/>
+                                </StackPanel>
+                                <CheckBox IsChecked="{Binding UsePasswordManager}" Name="cbUsePassMgr" Click="cbUsePassMgr_Click" ToolTip="Use the LINQPad Password Manager is available via the File menu" HorizontalAlignment="Left" Margin="12,0,0,5">
+                                    LINQPad Password Manager
+                                </CheckBox>
+                                <Grid>
+                                    <StackPanel Grid.Row="0" Grid.ZIndex="1" Orientation="Horizontal" Name="spPassword">
+                                        <Label Padding="0,0,0,2" VerticalAlignment="Center">Password:</Label>
+                                        <PasswordBox Name="passwordBox" Padding="0,0,0,2" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" PasswordChar="*" local:PasswordHelper.Attach="True" local:PasswordHelper.Password="{Binding Path=ConnectionInfo.DatabaseInfo.Password, Mode=TwoWay}"/>
+                                        <TextBox Name="txtPassword" Padding="0,0,0,2" ToolTip="Password" MaxLines="1" MinLines="1"  Text="{Binding Path=ConnectionInfo.DatabaseInfo.Password, Mode=TwoWay}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" Visibility="Collapsed" />
+                                        <CheckBox Name="cbShowPasswordChars" Content="Show password" Checked="cbShowPasswordChars_Checked" Unchecked="cbShowPasswordChars_Unchecked" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.ZIndex="2" Orientation="Horizontal" Name="spPasswordNames">
+                                        <Label Padding="0,0,0,2" VerticalAlignment="Center">Password Name:</Label>
+                                        <ComboBox Name="comboPasswordNames" Padding="0,0,0,2" Text="{Binding PasswordManagerName}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" ToolTip="Name associated with the password in LINQPad Password Manager">
+                                            <ComboBoxItem Content="&lt;None&gt;"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+                                <Expander Name="TLSGrpBox" Header="TLS" ToolTip="Expands the TLS options" Background="LightGray"
+                                            BorderThickness="4" Margin="5,0,5,0" ExpandDirection="Down" IsExpanded="False">
+                                    <StackPanel Margin="5,0,0,0">
+                                        <StackPanel>
+                                            <Label Padding="0,0,0,2">Protocols:</Label>
+                                            <ListBox Name="lbProtocols" ItemsSource="{Binding TLSProtocolsList}" SelectionMode="Multiple"  Padding="2" ToolTip="A list of TLS protocols" Margin="0,0,5,5">
+                                                <ListBox.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel IsItemsHost="True" />
+                                                    </ItemsPanelTemplate>
+                                                </ListBox.ItemsPanel>
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding Content}" Tag="{Binding Name}" IsChecked="{Binding IsChecked ,Mode=TwoWay}" ToolTip="{Binding ToolTip}" Checked="lbProtocols_Checked" />
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <Label Padding="0,0,0,2">
+                                                <Hyperlink NavigateUri="https://docs.aerospike.com/apidocs/csharp/html/f_aerospike_client_host_tlsname" RequestNavigate="Hyperlink_RequestNavigate">
+                                                    TLS Certificate Common Name:
+                                                </Hyperlink>
+                                            </Label>
+                                            <TextBox Name="txtTLSCertName" Padding="2" ToolTip="TLS certificate common name used for secure connections. The certificate must exist in your Trusted Root Certification repository." MaxLines="1" MinLines="1" Text="{Binding TLSCertName}" Margin="0,0,5,5" IsEnabled="False"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <Label Padding="0,0,0,2">Client Certificate File:</Label>
+                                            <DockPanel HorizontalAlignment="Stretch" LastChildFill="True">
+                                                <Button Name="btnCertFile" Click="btnCertFile_Click" DockPanel.Dock="Right"  Margin="5,0,5,5" FontSize="8" ToolTip="Select Certificate File" IsEnabled="False">Select File</Button>
+                                                <TextBox Name="txtCertFile" Padding="2" ToolTip="File containing the client certs" MaxLines="1" MinLines="1" Text="{Binding TLSClientCertFile}" Margin="0,0,0,5" HorizontalContentAlignment="Stretch" IsEnabled="False"/>
+                                            </DockPanel>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <Label Padding="0,0,0,2">Reject Server Certificates:</Label>
+                                            <TextBox Name="txtRejectCerts" Padding="2" ToolTip="Reject server certificates whose serial numbers match a serial number in this list separated by comma" MaxLines="1" MinLines="1" Text="{Binding TLSRevokeCerts}" Margin="0,0,5,5" IsEnabled="False"/>
+                                        </StackPanel>
+                                        <CheckBox Name="cbTLSOnlyLogin" IsChecked="{Binding TLSOnlyLogin}" ToolTip="Use TLS connections only for login authentication" HorizontalAlignment="Left" Margin="5,10,0,5" IsEnabled="False">Only for Login</CheckBox>
+                                    </StackPanel>
+                                </Expander>
+                            </StackPanel>
+                        </TabItem>
+                        <TabItem Header="Cloud">
+                        </TabItem>
+                    </TabControl>
+
+                    <GroupBox Header="Timeout" BorderThickness="4" Margin="5,0,5,0">
+                        <StackPanel Margin="5,0,0,0" Orientation="Horizontal">
+                            <StackPanel Orientation="Horizontal">
+                                <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Connection:</Label>
+                                <TextBox Name="txtConnTimeout" Padding="2" ToolTip="Connection Timeout in milliseconds" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="8,5,5,5"
+                     >
+                                    <TextBox.Text>
+                                        <Binding Path="ConnectionTimeout" StringFormat="{}{0:0}"
+                             ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
+                                            <Binding.ValidationRules>
+                                                <local:NumericValidationRule ValidationStep="RawProposedValue"/>
+                                            </Binding.ValidationRules>
+                                        </Binding>
+                                    </TextBox.Text>
+                                </TextBox>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Write (Total):</Label>
+                                <TextBox Name="txtTotalTimeout" Padding="2" ToolTip="Total Timeout in milliseconds used for operations like Get, Write, Delete, etc. Does not apply to any operations with reads." MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,5,5"
+                     >
+                                    <TextBox.Text>
+                                        <Binding Path="TotalTimeout" StringFormat="{}{0:0}"
+                             ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
+                                            <Binding.ValidationRules>
+                                                <local:NumericValidationRule ValidationStep="RawProposedValue"/>
+                                            </Binding.ValidationRules>
+                                        </Binding>
+                                    </TextBox.Text>
+                                </TextBox>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Socket:</Label>
+                                <TextBox Name="txtSocketTimeout" Padding="2" ToolTip="Socket Timeout in milliseconds for all operations" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5"
+                     >
+                                    <TextBox.Text>
+                                        <Binding Path="SocketTimeout" StringFormat="{}{0:0}"
+                             ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
+                                            <Binding.ValidationRules>
+                                                <local:NumericValidationRule ValidationStep="RawProposedValue"/>
+                                            </Binding.ValidationRules>
+                                        </Binding>
+                                    </TextBox.Text>
+                                </TextBox>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Sleep:</Label>
+                                <TextBox Name="txtSleepRetries" Padding="2" ToolTip="Sleep between retrying operations in milliseconds.  Enter zero to skip sleep." MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5"
+                     >
+                                    <TextBox.Text>
+                                        <Binding Path="SleepBetweenRetries" StringFormat="{}{0:0}"
+                             ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
+                                            <Binding.ValidationRules>
+                                                <local:NumericValidationRule ValidationStep="RawProposedValue"/>
+                                            </Binding.ValidationRules>
+                                        </Binding>
+                                    </TextBox.Text>
+                                </TextBox>
+                            </StackPanel>
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Write (Total):</Label>
-                            <TextBox Name="txtTotalTimeout" Padding="2" ToolTip="Total Timeout in milliseconds used for operations like Get, Write, Delete, etc. Does not apply to any operations with reads." MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,5,5"
-                                     >
-                                <TextBox.Text>
-                                    <Binding Path="TotalTimeout" StringFormat="{}{0:0}"
-                                             ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
-                                        <Binding.ValidationRules>
-                                            <local:NumericValidationRule ValidationStep="RawProposedValue"/>
-                                        </Binding.ValidationRules>
-                                    </Binding>
-                                </TextBox.Text>
-                            </TextBox>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Socket:</Label>
-                            <TextBox Name="txtSocketTimeout" Padding="2" ToolTip="Socket Timeout in milliseconds for all operations" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5"
-                                     >
-                                <TextBox.Text>
-                                    <Binding Path="SocketTimeout" StringFormat="{}{0:0}"
-                                             ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
-                                        <Binding.ValidationRules>
-                                            <local:NumericValidationRule ValidationStep="RawProposedValue"/>
-                                        </Binding.ValidationRules>
-                                    </Binding>
-                                </TextBox.Text>
-                            </TextBox>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Sleep:</Label>
-                            <TextBox Name="txtSleepRetries" Padding="2" ToolTip="Sleep between retrying operations in milliseconds.  Enter zero to skip sleep." MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5"
-                                     >
-                                <TextBox.Text>
-                                    <Binding Path="SleepBetweenRetries" StringFormat="{}{0:0}"
-                                             ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
-                                        <Binding.ValidationRules>
-                                            <local:NumericValidationRule ValidationStep="RawProposedValue"/>
-                                        </Binding.ValidationRules>
-                                    </Binding>
-                                </TextBox.Text>
-                            </TextBox>
-                        </StackPanel>
-                    </StackPanel>
-                </GroupBox>
-                <Expander Name="TLSGrpBox" Header="TLS" ToolTip="Expands the TLS options" Background="LightGray"
-                          BorderThickness="4" Margin="5,0,5,0" ExpandDirection="Down" IsExpanded="False">
-                    <StackPanel Margin="5,0,0,0">
-                        <StackPanel>
-                            <Label Padding="0,0,0,2">Protocols:</Label>
-                            <ListBox Name="lbProtocols" ItemsSource="{Binding TLSProtocolsList}" SelectionMode="Multiple"  Padding="2" ToolTip="A list of TLS protocols" Margin="0,0,5,5">
-                                <ListBox.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel IsItemsHost="True" />
-                                    </ItemsPanelTemplate>
-                                </ListBox.ItemsPanel>
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <CheckBox Content="{Binding Content}" Tag="{Binding Name}" IsChecked="{Binding IsChecked ,Mode=TwoWay}" ToolTip="{Binding ToolTip}" Checked="lbProtocols_Checked" />
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </StackPanel>
-                        <StackPanel>
-                            <Label Padding="0,0,0,2">
-                                <Hyperlink NavigateUri="https://docs.aerospike.com/apidocs/csharp/html/f_aerospike_client_host_tlsname" RequestNavigate="Hyperlink_RequestNavigate">
-                                    TLS Certificate Common Name:
-                                </Hyperlink>
-                            </Label>
-                            <TextBox Name="txtTLSCertName" Padding="2" ToolTip="TLS certificate common name used for secure connections. The certificate must exist in your Trusted Root Certification repository." MaxLines="1" MinLines="1" Text="{Binding TLSCertName}" Margin="0,0,5,5" IsEnabled="False"/>
-                        </StackPanel>
-                        <StackPanel>
-                            <Label Padding="0,0,0,2">Client Certificate File:</Label>
-                            <DockPanel HorizontalAlignment="Stretch" LastChildFill="True">
-                                <Button Name="btnCertFile" Click="btnCertFile_Click" DockPanel.Dock="Right"  Margin="5,0,5,5" FontSize="8" ToolTip="Select Certificate File" IsEnabled="False">Select File</Button>
-                                <TextBox Name="txtCertFile" Padding="2" ToolTip="File containing the client certs" MaxLines="1" MinLines="1" Text="{Binding TLSClientCertFile}" Margin="0,0,0,5" HorizontalContentAlignment="Stretch" IsEnabled="False"/>
-                            </DockPanel>
-                        </StackPanel>
-                        <StackPanel>
-                            <Label Padding="0,0,0,2">Reject Server Certificates:</Label>
-                            <TextBox Name="txtRejectCerts" Padding="2" ToolTip="Reject server certificates whose serial numbers match a serial number in this list separated by comma" MaxLines="1" MinLines="1" Text="{Binding TLSRevokeCerts}" Margin="0,0,5,5" IsEnabled="False"/>
-                        </StackPanel>
-                        <CheckBox Name="cbTLSOnlyLogin" IsChecked="{Binding TLSOnlyLogin}" ToolTip="Use TLS connections only for login authentication" HorizontalAlignment="Left" Margin="5,10,0,5" IsEnabled="False">Only for Login</CheckBox>
-                    </StackPanel>
-                </Expander>
+                    </GroupBox>
                 <CheckBox IsChecked="{Binding SendKey}" ToolTip="If enabled, the primary key's value is saved as part of the record" HorizontalAlignment="Left" Margin="5,0,0,5">Send Key</CheckBox>
                 <CheckBox IsChecked="{Binding ShortQuery}" ToolTip="If true, queries are expected to return less than 100 records, the server will optimize the query for a small record set. This field is ignored for aggregation queries." HorizontalAlignment="Left" Margin="5,0,0,5">
                     <Hyperlink NavigateUri="https://docs.aerospike.com/apidocs/csharp/html/f_aerospike_client_querypolicy_shortquery" RequestNavigate="Hyperlink_RequestNavigate">
@@ -189,7 +196,7 @@
                         Return a result for every operational expression (Write Policy)
                     </Hyperlink>
                 </CheckBox>
-                <CheckBox IsChecked="{Binding DocumentAPI}" ToolTip="Enable Document/JSON API" HorizontalAlignment="Left" Margin="5,0,0,5">Document API</CheckBox>
+                <CheckBox IsChecked="{Binding DocumentAPI}" ToolTip="Enable Document/JSON API based on Newtonsoft.Json and GelJSON.Net." HorizontalAlignment="Left" Margin="5,0,0,5">Document/JSON API</CheckBox>
                 <CheckBox IsChecked="{Binding DriverLogging}" ToolTip="Enable Driver Logging" HorizontalAlignment="Left" Margin="5,0,0,5">Driver Logging</CheckBox>
                 <TextBlock Margin="5,0,5,0">You can override the connection polices at the namespace and set levels.</TextBlock>
                 <TextBlock Margin="5,0,5,5" ToolTip="Policies">                    

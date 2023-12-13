@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
 using Aerospike.Database.LINQPadDriver.Extensions;
+using System.Data;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -18,6 +19,99 @@ namespace Aerospike.Database.LINQPadDriver
 
 		XElement DriverData => ConnectionInfo.DriverData;
 
+        public enum DBTypes
+        {
+            Native = 0,
+            Cloud = 1
+        }
+
+        public class DBTypeCache            
+        {
+            static readonly List<DBTypeCache> cache = new();
+
+            public DBTypes DBType { get; }
+            public string Host { get; private set; }
+            public int Port { get; private set; }
+            public string UserName { get; private set; }
+            public string Password { get; private set; }
+            public bool UsePasswordManager { get; private set; }
+            public string PasswordManagerName { get; private set; }
+            public bool UseVPN { get; private set; }
+
+            private DBTypeCache(DBTypes dbType)
+            {
+                this.DBType = dbType;
+            }
+
+            static DBTypeCache DBTypeCacheNative()
+                => new DBTypeCache(DBTypes.Native)
+                {
+                    Host = "localhost",
+                    Port = 3000
+                };
+            static DBTypeCache DBTypeCacheCloud()
+                => new DBTypeCache(DBTypes.Cloud)
+                {
+                    Port = 4000
+                };
+
+            public static bool UpdateProps(DBTypes dbType, ConnectionProperties props)
+            {
+                bool result = false;
+
+                var fndDBType = cache.FirstOrDefault(c => c.DBType == dbType);
+
+                if(fndDBType is null)
+                {
+                    switch(dbType) 
+                    {
+                        case DBTypes.Native:
+                            fndDBType = DBTypeCacheNative();
+                            break;
+                        case DBTypes.Cloud:
+                            fndDBType = DBTypeCacheCloud();
+                            break;
+                    }
+                    result = true;
+                    cache.Add(fndDBType);                    
+                }
+
+                props.ConnectionInfo.DatabaseInfo.Server = fndDBType.Host;
+                props.Port = fndDBType.Port;
+                props.PasswordManagerName = fndDBType.PasswordManagerName;
+                props.UsePasswordManager = fndDBType.UsePasswordManager;
+                props.ConnectionInfo.DatabaseInfo.UserName = fndDBType.UserName;
+                props.ConnectionInfo.DatabaseInfo.Password = fndDBType.Password;
+                props.UseVPN = fndDBType.UseVPN;
+
+                return result;
+            }
+
+            public static bool SaveProps(DBTypes dbType, ConnectionProperties props)
+            {
+                bool result = false;
+
+                var fndDBType = cache.FirstOrDefault(c => c.DBType == dbType);
+
+                if (fndDBType is null)
+                {
+                    fndDBType = new DBTypeCache(dbType);
+                    result = true;
+                    cache.Add(fndDBType);
+                }
+
+                fndDBType.Host = props.ConnectionInfo.DatabaseInfo.Server;
+                fndDBType.Port = props.Port;
+                fndDBType.PasswordManagerName = props.PasswordManagerName;
+                fndDBType.UsePasswordManager = props.UsePasswordManager;
+                fndDBType.UserName = props.ConnectionInfo.DatabaseInfo.UserName;
+                fndDBType.Password = props.ConnectionInfo.DatabaseInfo.Password;
+                fndDBType.UseVPN = props.UseVPN;
+
+                return result;
+            }
+        }
+
 		public ConnectionProperties (IConnectionInfo cxInfo)
 		{
 			ConnectionInfo = cxInfo;
@@ -29,11 +123,57 @@ namespace Aerospike.Database.LINQPadDriver
             InitializeRecordViews();
 
             ARecord.DefaultASPIKeyName = this.PKName;
+
+            DBTypeCache.SaveProps(this.DBType, this);
         }
 
-		// This is how to create custom connection properties.
+        // This is how to create custom connection properties.
 
-		public IEnumerable<string> SeedHosts
+        public DBTypes DBType
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    DriverData.SetElementValue("DBType", "Native");
+                    return DBTypes.Native;
+                }
+
+                var elementValue = DriverData.Element("DBType")?.Value;
+
+                if (string.IsNullOrEmpty(elementValue))
+                {
+                    DriverData.SetElementValue("DBType", "Native");
+                    return DBTypes.Native;
+                }
+                else if (elementValue == "0")
+                {
+                    DriverData.SetElementValue("DBType", "Native");
+                    return DBTypes.Native;
+                }
+                else if (elementValue == "1")
+                {
+                    DriverData.SetElementValue("DBType", "Cloud");
+                    return DBTypes.Cloud;
+                }
+
+                if (Enum.TryParse<DBTypes>(elementValue, true, out DBTypes result))
+                {
+                    return result;
+                }
+
+                return DBTypes.Native;
+            }
+            set
+            {
+                DBTypeCache.SaveProps(this.DBType, this);
+                DriverData.SetElementValue("DBType", value.ToString());
+                DBTypeCache.UpdateProps(this.DBType, this);
+            }
+        }
+
+
+        public IEnumerable<string> SeedHosts
 		{
 			get
 			{
@@ -71,6 +211,24 @@ namespace Aerospike.Database.LINQPadDriver
             set
             {                
                 DriverData.SetElementValue("Port", value);
+            }
+        }
+
+        public bool UseVPN
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    DriverData.SetElementValue("UseVPN", false);
+                    return false;
+                }
+
+                return (bool?)DriverData.Element("UseVPN") ?? false;
+            }
+            set
+            {
+                DriverData.SetElementValue("UseVPN", value);
             }
         }
 
