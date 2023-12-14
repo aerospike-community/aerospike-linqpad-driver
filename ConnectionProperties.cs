@@ -133,24 +133,6 @@ namespace Aerospike.Database.LINQPadDriver
             }
         }
 
-        public bool UseVPN
-        {
-            get
-            {
-                if (DriverData.IsEmpty)
-                {
-                    DriverData.SetElementValue("UseVPN", false);
-                    return false;
-                }
-
-                return (bool?)DriverData.Element("UseVPN") ?? false;
-            }
-            set
-            {
-                DriverData.SetElementValue("UseVPN", value);
-            }
-        }
-
         public bool UseExternalIP
         {
             get

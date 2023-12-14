@@ -14,6 +14,9 @@ using System.Globalization;
 using System.Windows.Input;
 using System.Xml.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows.Data;
+using LINQPad.Extensibility.DataContext.UI;
+using System.Windows.Media;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -68,6 +71,7 @@ namespace Aerospike.Database.LINQPadDriver
                 cbCldUsePassMgr_Click(this.cbCldUsePassMgr, new RoutedEventArgs());
             }
 
+            defaultBolderBrush = this.txtCldhostName.BorderBrush;
             DBTypeCache.Save(this._connectionProps);
             DBTypeCache.Update(this._connectionProps.DBType, this, this._connectionProps);
             priorTab = _connectionProps.DBType;
@@ -418,6 +422,22 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 this.spCldPasswordNames.IsEnabled = false;
                 this.spCldPasswordNames.Visibility = Visibility.Hidden;
             }
+
+            var currentTab = (DBTypes)this.tcDBType.SelectedIndex;
+
+            if (currentTab == DBTypes.Cloud)
+            {
+                if (CloudDisableBtns())
+                {
+                    this.btnOK.IsEnabled = false;
+                    this.btnTest.IsEnabled = false;
+                }
+                else
+                {
+                    this.btnOK.IsEnabled = true;
+                    this.btnTest.IsEnabled = true;
+                }
+            }
         }
 
         private void cbCldShowPasswordChars_Checked(object sender, RoutedEventArgs e)
@@ -436,7 +456,102 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             CldpasswordBox.Focus();
         }
 
+        bool CloudDisableBtns()
+        {
+            if(string.IsNullOrEmpty(this.txtCldhostName.Text)
+                        || string.IsNullOrEmpty(this.txtAPIKey.Text))
+                return true;
+
+            if(this.cbUsePassMgr.IsChecked ?? false)
+            {
+                if (this.comboCldPasswordNames.SelectedIndex <= 0)
+                    return true;
+                return false;
+            }
+
+            return string.IsNullOrEmpty(this.txtCldPassword.Text)
+                            && string.IsNullOrEmpty(this.CldpasswordBox.Password);
+        }
+
+        readonly Brush defaultBolderBrush = null;
+
+        void CloudCheckRequiredFlds()
+        {
+            var currentTab = (DBTypes)this.tcDBType.SelectedIndex;
+
+            if (currentTab == DBTypes.Cloud)
+            {
+                if (CloudDisableBtns())
+                {
+                    if (string.IsNullOrEmpty(this.txtCldhostName.Text))
+                    {
+                        this.txtCldhostName.BorderBrush = System.Windows.Media.Brushes.Red;
+                    }
+                    else
+                    {
+                        this.txtCldhostName.BorderBrush = defaultBolderBrush;
+                    }
+
+                    if (string.IsNullOrEmpty(this.txtAPIKey.Text))
+                    {
+                        this.txtAPIKey.BorderBrush = System.Windows.Media.Brushes.Red;
+                    }
+                    else
+                    {
+                        this.txtAPIKey.BorderBrush = defaultBolderBrush;
+                    }
+
+                    if (this.cbUsePassMgr.IsChecked ?? false)
+                    {
+                        if (this.comboCldPasswordNames.SelectedIndex <= 0)
+                        {
+                            this.comboCldPasswordNames.BorderBrush = System.Windows.Media.Brushes.Red;
+                        }
+                        else
+                        {
+                            this.comboCldPasswordNames.BorderBrush = defaultBolderBrush;
+                        }
+                    }
+                    else
+                    {
+                        if (string.IsNullOrEmpty(this.txtCldPassword.Text))
+                        {
+                            this.txtCldPassword.BorderBrush = System.Windows.Media.Brushes.Red;
+                        }
+                        else
+                        {
+                            this.txtCldPassword.BorderBrush = defaultBolderBrush;
+                        }
+
+                        if (string.IsNullOrEmpty(this.CldpasswordBox.Password))
+                        {
+                            this.CldpasswordBox.BorderBrush = System.Windows.Media.Brushes.Red;
+                        }
+                        else
+                        {
+                            this.CldpasswordBox.BorderBrush = defaultBolderBrush;
+                        }
+                    }
+
+                    this.btnOK.IsEnabled = false;
+                    this.btnTest.IsEnabled = false;
+                }
+                else
+                {
+                    this.txtCldhostName.BorderBrush = defaultBolderBrush;
+                    this.txtAPIKey.BorderBrush = defaultBolderBrush;
+                    this.comboCldPasswordNames.BorderBrush = defaultBolderBrush;
+                    this.txtCldPassword.BorderBrush = defaultBolderBrush;
+                    this.CldpasswordBox.BorderBrush = defaultBolderBrush;
+
+                    this.btnOK.IsEnabled = true;
+                    this.btnTest.IsEnabled = true;
+                }
+            }
+        }
+
         DBTypes priorTab = DBTypes.None;
+        
         private void tcDBType_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (priorTab == DBTypes.None) return;
@@ -450,11 +565,49 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 DBTypeCache.Update(newType, this, this._connectionProps);
                 priorTab = newType;
 
+                var recViewRecord = lbRecordViews.ItemsSource
+                                        .Cast<RecordViewItem>()
+                                        .FirstOrDefault(i => i.Name == "Record");
+
                 if (newType == DBTypes.Native)
+                {
                     this.cbNetworkCompression.Visibility = Visibility.Visible;
+                    this.spSampleRecs.IsEnabled = true;
+                    this.cbUseAValues.IsEnabled = true;
+                    this.cbUseDocAPI.IsEnabled = true;
+                    this.txtSleepRetries.IsEnabled = true;
+                    recViewRecord.IsEnabled = true;
+                    
+                    this.btnOK.IsEnabled = true;
+                    this.btnTest.IsEnabled = true;
+                }
                 else
-                    this.cbNetworkCompression.Visibility = Visibility.Collapsed;                
+                {                    
+                    this.cbNetworkCompression.Visibility = Visibility.Collapsed;
+                    this.spSampleRecs.IsEnabled = false;
+                    this.cbUseAValues.IsEnabled = false;
+                    this.cbUseDocAPI.IsEnabled = false;
+                    this.txtSleepRetries.IsEnabled = false;
+                    recViewRecord.IsEnabled = false;
+
+                    CloudCheckRequiredFlds();
+                }
             }
+        }
+
+        private void txtCloudField_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            CloudCheckRequiredFlds();
+        }
+
+        private void CldpasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            CloudCheckRequiredFlds();
+        }
+
+        private void comboCldPasswordNames_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            CloudCheckRequiredFlds();
         }
     }
 
@@ -642,7 +795,10 @@ Note: If the DB has Public/NATted/Alternate Addresses,
         public bool ShowPassword { get; private set; }
         public bool? UsePasswordManager { get; private set; }
         public string PasswordManagerName { get; private set; }
-        public bool? UseVPN { get; private set; }
+        public string TLSCertName { get; private set; }
+        public string RecordView { get; private set; }
+        public bool UseDocAPI { get; private set; }
+        public bool UseAValue { get; private set; }
 
         private DBTypeCache(DBTypes dbType)
         {
@@ -659,6 +815,10 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 UsePasswordManager = false,
                 PasswordManagerName = null,
                 ShowPassword = false,
+                TLSCertName = null,
+                RecordView = Extensions.ARecord.DumpTypes.Record.ToString(),
+                UseDocAPI = true,
+                UseAValue = true
             };
         static DBTypeCache DBTypeCacheCloud()
             => new DBTypeCache(DBTypes.Cloud)
@@ -668,10 +828,20 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 UserName = null,
                 Password = null,
                 UsePasswordManager = false,
-                PasswordManagerName = null,
-                UseVPN = false,
-                ShowPassword = false
+                PasswordManagerName = null,               
+                ShowPassword = false,
+                TLSCertName = null,
+                RecordView = Extensions.ARecord.DumpTypes.Dynamic.ToString(),
+                UseDocAPI = false, 
+                UseAValue = true
             };
+
+        static RecordViewItem FindRecordViewItem(ConnectionDialog dialog, string type)
+            => dialog.lbRecordViews.ItemsSource.Cast<RecordViewItem>().FirstOrDefault(i => i.Name == type);
+        static RecordViewItem GetSelectedRecordView(ConnectionDialog dialog)
+            => dialog.lbRecordViews.ItemsSource
+                                    .Cast<RecordViewItem>()                                  
+                                    .FirstOrDefault(i => i.IsChecked);
 
         internal static bool Update(DBTypes dbType, ConnectionDialog dialog, ConnectionProperties props)
         {
@@ -704,8 +874,9 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     dialog.txtUserName.Text = fndDBType.UserName;
                     dialog.txtPassword.Text = fndDBType.Password;
                     dialog.cbShowPasswordChars.IsChecked = fndDBType.ShowPassword;
-
-                    //props.UseVPN = fndDBType.UseVPN;
+                    dialog.txtTLSCertName.Text = fndDBType.TLSCertName;
+                    dialog.cbUseDocAPI.IsChecked = fndDBType.UseDocAPI;
+                    dialog.cbUseAValues.IsChecked = fndDBType.UseAValue;
                     break;
                 case DBTypes.Cloud:
                     dialog.txtCldhostName.Text = fndDBType.Host;
@@ -715,7 +886,8 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     dialog.txtAPIKey.Text = fndDBType.UserName;
                     dialog.txtCldPassword.Text = fndDBType.Password;
                     dialog.cbCldShowPasswordChars.IsChecked = fndDBType.ShowPassword;
-                    //props.UseVPN = fndDBType.UseVPN;
+                    dialog.cbUseDocAPI.IsChecked = fndDBType.UseDocAPI;
+                    dialog.cbUseAValues.IsChecked = fndDBType.UseAValue;
                     break;
             }
 
@@ -726,7 +898,12 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             props.ConnectionInfo.DatabaseInfo.Password = fndDBType.Password;
             props.UsePasswordManager = fndDBType.UsePasswordManager ?? false;
             props.PasswordManagerName = fndDBType.PasswordManagerName;
-            props.UseVPN = fndDBType.UseVPN ?? false;
+            props.TLSCertName = fndDBType.TLSCertName;
+            props.AlwaysUseAValues = fndDBType.UseAValue;
+            props.DocumentAPI = fndDBType.UseDocAPI;
+
+            GetSelectedRecordView(dialog).IsChecked = false;
+            FindRecordViewItem(dialog, fndDBType.RecordView).IsChecked = true;
 
             return result;
         }
@@ -754,7 +931,8 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     fndDBType.UserName = dialog.txtUserName.Text;
                     fndDBType.Password = dialog.txtPassword.Text;
                     fndDBType.ShowPassword = dialog.cbShowPasswordChars.IsChecked ?? false;
-                    //props.UseVPN = fndDBType.UseVPN;
+                    fndDBType.UseDocAPI = dialog.cbUseDocAPI.IsChecked ?? true;
+                    fndDBType.UseAValue = dialog.cbUseAValues.IsChecked ?? true;
                     break;
                 case DBTypes.Cloud:
                     fndDBType.Host = dialog.txtCldhostName.Text;
@@ -763,11 +941,12 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     fndDBType.UsePasswordManager = dialog.cbCldUsePassMgr.IsChecked;
                     fndDBType.UserName = dialog.txtAPIKey.Text;
                     fndDBType.Password = dialog.txtCldPassword.Text;
-                    fndDBType.ShowPassword = dialog.cbCldShowPasswordChars.IsChecked ?? false;
-                    //props.UseVPN = fndDBType.UseVPN;
+                    fndDBType.ShowPassword = dialog.cbCldShowPasswordChars.IsChecked ?? false;                     
                     break;
             }
-            
+
+            fndDBType.RecordView = GetSelectedRecordView(dialog)?.Name;
+
             return result;
         }
 
@@ -781,7 +960,10 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 Password = props.ConnectionInfo.DatabaseInfo.Password,
                 UsePasswordManager = props.UsePasswordManager,
                 PasswordManagerName = props.PasswordManagerName,
-                UseVPN = props.UseVPN
+                TLSCertName = props.TLSCertName,
+                RecordView = props.RecordView.ToString(),
+                UseDocAPI = props.DocumentAPI,
+                UseAValue = props.AlwaysUseAValues
             };
 
             cache.Add(cacheType);
