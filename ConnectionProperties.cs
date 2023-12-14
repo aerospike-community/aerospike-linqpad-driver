@@ -10,111 +10,27 @@ using System.Data;
 
 namespace Aerospike.Database.LINQPadDriver
 {
-	/// <summary>
-	/// Wrapper to read/write connection properties. This acts as our ViewModel - we will bind to it in ConnectionDialog.xaml.
-	/// </summary>
-	class ConnectionProperties
+    public enum DBTypes
+    {
+        None = -1,
+        Native = 0,
+        Cloud = 1
+    }
+
+    /// <summary>
+    /// Wrapper to read/write connection properties. This acts as our ViewModel - we will bind to it in ConnectionDialog.xaml.
+    /// </summary>
+    internal class ConnectionProperties
 	{
 		public IConnectionInfo ConnectionInfo { get; private set; }
 
 		XElement DriverData => ConnectionInfo.DriverData;
-
-        public enum DBTypes
-        {
-            Native = 0,
-            Cloud = 1
-        }
-
-        public class DBTypeCache            
-        {
-            static readonly List<DBTypeCache> cache = new();
-
-            public DBTypes DBType { get; }
-            public string Host { get; private set; }
-            public int Port { get; private set; }
-            public string UserName { get; private set; }
-            public string Password { get; private set; }
-            public bool UsePasswordManager { get; private set; }
-            public string PasswordManagerName { get; private set; }
-            public bool UseVPN { get; private set; }
-
-            private DBTypeCache(DBTypes dbType)
-            {
-                this.DBType = dbType;
-            }
-
-            static DBTypeCache DBTypeCacheNative()
-                => new DBTypeCache(DBTypes.Native)
-                {
-                    Host = "localhost",
-                    Port = 3000
-                };
-            static DBTypeCache DBTypeCacheCloud()
-                => new DBTypeCache(DBTypes.Cloud)
-                {
-                    Port = 4000
-                };
-
-            public static bool UpdateProps(DBTypes dbType, ConnectionProperties props)
-            {
-                bool result = false;
-
-                var fndDBType = cache.FirstOrDefault(c => c.DBType == dbType);
-
-                if(fndDBType is null)
-                {
-                    switch(dbType) 
-                    {
-                        case DBTypes.Native:
-                            fndDBType = DBTypeCacheNative();
-                            break;
-                        case DBTypes.Cloud:
-                            fndDBType = DBTypeCacheCloud();
-                            break;
-                    }
-                    result = true;
-                    cache.Add(fndDBType);                    
-                }
-
-                props.ConnectionInfo.DatabaseInfo.Server = fndDBType.Host;
-                props.Port = fndDBType.Port;
-                props.PasswordManagerName = fndDBType.PasswordManagerName;
-                props.UsePasswordManager = fndDBType.UsePasswordManager;
-                props.ConnectionInfo.DatabaseInfo.UserName = fndDBType.UserName;
-                props.ConnectionInfo.DatabaseInfo.Password = fndDBType.Password;
-                props.UseVPN = fndDBType.UseVPN;
-
-                return result;
-            }
-
-            public static bool SaveProps(DBTypes dbType, ConnectionProperties props)
-            {
-                bool result = false;
-
-                var fndDBType = cache.FirstOrDefault(c => c.DBType == dbType);
-
-                if (fndDBType is null)
-                {
-                    fndDBType = new DBTypeCache(dbType);
-                    result = true;
-                    cache.Add(fndDBType);
-                }
-
-                fndDBType.Host = props.ConnectionInfo.DatabaseInfo.Server;
-                fndDBType.Port = props.Port;
-                fndDBType.PasswordManagerName = props.PasswordManagerName;
-                fndDBType.UsePasswordManager = props.UsePasswordManager;
-                fndDBType.UserName = props.ConnectionInfo.DatabaseInfo.UserName;
-                fndDBType.Password = props.ConnectionInfo.DatabaseInfo.Password;
-                fndDBType.UseVPN = props.UseVPN;
-
-                return result;
-            }
-        }
-
+        
 		public ConnectionProperties (IConnectionInfo cxInfo)
 		{
-			ConnectionInfo = cxInfo;
+            //Debugger.Launch();
+
+            ConnectionInfo = cxInfo;
 
             if (string.IsNullOrEmpty(cxInfo.DatabaseInfo.Server))
                 cxInfo.DatabaseInfo.Server = "localhost";
@@ -124,7 +40,6 @@ namespace Aerospike.Database.LINQPadDriver
 
             ARecord.DefaultASPIKeyName = this.PKName;
 
-            DBTypeCache.SaveProps(this.DBType, this);
         }
 
         // This is how to create custom connection properties.
@@ -166,10 +81,14 @@ namespace Aerospike.Database.LINQPadDriver
             }
             set
             {
-                DBTypeCache.SaveProps(this.DBType, this);
-                DriverData.SetElementValue("DBType", value.ToString());
-                DBTypeCache.UpdateProps(this.DBType, this);
+                DriverData.SetElementValue("DBType", value.ToString());                
             }
+        }
+
+        public int DBTypeIdx
+        {
+            get => (int)this.DBType;
+            set => this.DBType = (DBTypes)value;
         }
 
 

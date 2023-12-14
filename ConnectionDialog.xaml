@@ -32,8 +32,8 @@
         <GroupBox Header="Database" BorderThickness="4">
             <StackPanel Margin="5,0,0,0">
 
-                    <TabControl>
-                        <TabItem Header="Native">
+                    <TabControl x:Name="tcDBType" SelectedIndex="{Binding DBTypeIdx}" SelectionChanged="tcDBType_SelectionChanged">
+                        <TabItem Header="Native" Name="Native">
                             <StackPanel>
                                 <Label Padding="0,0,0,2">Seed Nodes separated by a comma:</Label>
                                 <TextBox Name="txtSeedNodes" Padding="2" ToolTip="Cluster Seed Node List (default localhost)" TextWrapping="WrapWithOverflow" Text="{Binding ConnectionInfo.DatabaseInfo.Server, FallbackValue='localhost'}" Margin="1,0,0,5" />
@@ -118,7 +118,44 @@
                                 </Expander>
                             </StackPanel>
                         </TabItem>
-                        <TabItem Header="Cloud">
+                        <TabItem Header="Cloud" Name="Cloud">
+                            <StackPanel>
+                                <Label Padding="0,0,0,2">Host name:</Label>
+                                <TextBox Name="txtCldhostName" Padding="2" ToolTip="Database host name provided in the dashboard" TextWrapping="WrapWithOverflow" Text="{Binding ConnectionInfo.DatabaseInfo.Server}" Margin="1,0,0,5" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Padding="0,0,0,2" Margin="0,5,0,5" HorizontalAlignment="Center">Port:</Label>
+                                    <TextBox Name="txtCldPort" Padding="2" ToolTip="Cluster DB Port (default 4000)" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Center" Margin="0,5,0,5">
+                                        <TextBox.Text>
+                                            <Binding Path="Port" FallbackValue="4000" StringFormat="{}{0:0}" ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
+                                                <Binding.ValidationRules>
+                                                    <local:NumericValidationRule ValidationStep="RawProposedValue" Min="1000"/>
+                                                </Binding.ValidationRules>
+                                            </Binding>
+                                        </TextBox.Text>
+                                    </TextBox>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Padding="0,0,0,2" VerticalAlignment="Center">API Key:</Label>
+                                    <TextBox Name="txtAPIKey" Padding="2" ToolTip="API Key" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.UserName}" Width="250" HorizontalAlignment="Left" Margin="5,0,0,5"/>
+                                </StackPanel>
+                                <CheckBox IsChecked="{Binding UsePasswordManager}" Name="cbCldUsePassMgr" Click="cbCldUsePassMgr_Click" ToolTip="Use the LINQPad Password Manager is available via the File menu" HorizontalAlignment="Left" Margin="12,0,0,5">
+                                    LINQPad Password Manager
+                                </CheckBox>
+                                <Grid>
+                                    <StackPanel Grid.Row="0" Grid.ZIndex="1" Orientation="Horizontal" Name="spCldPassword">
+                                        <Label Padding="0,0,0,2" VerticalAlignment="Center">API Secret:</Label>
+                                        <PasswordBox Name="CldpasswordBox" Padding="0,0,0,2" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" PasswordChar="*" local:PasswordHelper.Attach="True" local:PasswordHelper.Password="{Binding Path=ConnectionInfo.DatabaseInfo.Password, Mode=TwoWay}"/>
+                                        <TextBox Name="txtCldPassword" Padding="0,0,0,2" ToolTip="API Secret" MaxLines="1" MinLines="1"  Text="{Binding Path=ConnectionInfo.DatabaseInfo.Password, Mode=TwoWay}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" Visibility="Collapsed" />
+                                        <CheckBox Name="cbCldShowPasswordChars" Content="Show Secret" Checked="cbCldShowPasswordChars_Checked" Unchecked="cbCldShowPasswordChars_Unchecked" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.ZIndex="2" Orientation="Horizontal" Name="spCldPasswordNames">
+                                        <Label Padding="0,0,0,2" VerticalAlignment="Center">Secret Name:</Label>
+                                        <ComboBox Name="comboCldPasswordNames" Padding="0,0,0,2" Text="{Binding PasswordManagerName}" Width="250" HorizontalAlignment="Left" Margin="12,0,0,5" ToolTip="Name associated with the password in LINQPad Password Manager">
+                                            <ComboBoxItem Content="&lt;None&gt;"/>
+                                        </ComboBox>
+                                    </StackPanel>
+                                </Grid>
+                                </StackPanel>
                         </TabItem>
                     </TabControl>
 
@@ -188,7 +225,7 @@
                         Short Query (Query Policy)
                     </Hyperlink>
                 </CheckBox>
-                <CheckBox IsChecked="{Binding NetworkCompression}" ToolTip="Enable Network Compression" HorizontalAlignment="Left" Margin="5,0,0,5">
+                <CheckBox Name="cbNetworkCompression" IsChecked="{Binding NetworkCompression}" ToolTip="Enable Network Compression" HorizontalAlignment="Left" Margin="5,0,0,5">
                     Use Compression
                 </CheckBox>
                 <CheckBox IsChecked="{Binding RespondAllOps}" ToolTip="Enabling makes it easier to debug operational expressions by returning all results of each operation" HorizontalAlignment="Left" Margin="5,0,0,5">

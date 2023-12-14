@@ -13,6 +13,7 @@ using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
 using System.Globalization;
 using System.Windows.Input;
 using System.Xml.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -47,21 +48,31 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     if (!this.comboPasswordNames.Items.Contains(name))
                         this.comboPasswordNames.Items.Add(name);
-                    if(name == _connectionProps.PasswordManagerName)
+                    if (!this.comboCldPasswordNames.Items.Contains(name))
+                        this.comboCldPasswordNames.Items.Add(name);
+                    if (name == _connectionProps.PasswordManagerName)
                         nameFnd = true;
                 }
 
                 if(!string.IsNullOrEmpty(_connectionProps.PasswordManagerName))
                 {
-                        if(!nameFnd)
-                            this.comboPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
-                        this.comboPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
+                    if(!nameFnd)
+                        this.comboPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
+                    this.comboPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
+                    if (!nameFnd)
+                        this.comboCldPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
+                    this.comboCldPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
                 }
 
                 cbUsePassMgr_Click(this.cbUsePassMgr, new RoutedEventArgs());
+                cbCldUsePassMgr_Click(this.cbCldUsePassMgr, new RoutedEventArgs());
             }
+
+            DBTypeCache.Save(this._connectionProps);
+            DBTypeCache.Update(this._connectionProps.DBType, this, this._connectionProps);
+            priorTab = _connectionProps.DBType;
         }
-        
+
         void btnOK_Click (object sender, RoutedEventArgs e)
 		{
             //Debugger.Launch ();
@@ -352,6 +363,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             //Debugger.Launch ();
 
             var cb = (CheckBox)sender;
+           
 
             if (cb.IsChecked == true)
             {                
@@ -383,7 +395,67 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             passwordBox.Visibility = Visibility.Visible;
 
             passwordBox.Focus();
-        }        
+        }
+
+        private void cbCldUsePassMgr_Click(object sender, RoutedEventArgs e)
+        {
+            //Debugger.Launch ();
+
+            var cb = (CheckBox)sender;
+
+
+            if (cb.IsChecked == true)
+            {
+                this.spCldPassword.IsEnabled = false;
+                this.spCldPassword.Visibility = Visibility.Hidden;
+                this.spCldPasswordNames.IsEnabled = true;
+                this.spCldPasswordNames.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                this.spCldPassword.IsEnabled = true;
+                this.spCldPassword.Visibility = Visibility.Visible;
+                this.spCldPasswordNames.IsEnabled = false;
+                this.spCldPasswordNames.Visibility = Visibility.Hidden;
+            }
+        }
+
+        private void cbCldShowPasswordChars_Checked(object sender, RoutedEventArgs e)
+        {
+            CldpasswordBox.Visibility = Visibility.Collapsed;
+            txtCldPassword.Visibility = Visibility.Visible;
+
+            txtCldPassword.Focus();
+        }
+
+        private void cbCldShowPasswordChars_Unchecked(object sender, RoutedEventArgs e)
+        {
+            txtCldPassword.Visibility = Visibility.Collapsed;
+            CldpasswordBox.Visibility = Visibility.Visible;
+
+            CldpasswordBox.Focus();
+        }
+
+        DBTypes priorTab = DBTypes.None;
+        private void tcDBType_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (priorTab == DBTypes.None) return;
+
+            var tab = (TabControl)sender;
+            var newType = (DBTypes)tab.SelectedIndex;
+
+            if (priorTab != newType)
+            { 
+                DBTypeCache.Save(priorTab, this);                
+                DBTypeCache.Update(newType, this, this._connectionProps);
+                priorTab = newType;
+
+                if (newType == DBTypes.Native)
+                    this.cbNetworkCompression.Visibility = Visibility.Visible;
+                else
+                    this.cbNetworkCompression.Visibility = Visibility.Collapsed;                
+            }
+        }
     }
 
     public class NumericValidationRule : ValidationRule
@@ -557,4 +629,163 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             SetIsUpdating(passwordBox, false);            
         }
     }
+
+    public class DBTypeCache
+    {
+        static readonly List<DBTypeCache> cache = new();
+
+        public DBTypes DBType { get; }
+        public string Host { get; private set; }
+        public string Port { get; private set; }
+        public string UserName { get; private set; }
+        public string Password { get; private set; }
+        public bool ShowPassword { get; private set; }
+        public bool? UsePasswordManager { get; private set; }
+        public string PasswordManagerName { get; private set; }
+        public bool? UseVPN { get; private set; }
+
+        private DBTypeCache(DBTypes dbType)
+        {
+            this.DBType = dbType;
+        }
+
+        static DBTypeCache DBTypeCacheNative()
+            => new DBTypeCache(DBTypes.Native)
+            {
+                Host = "localhost",
+                Port = "3000",
+                UserName = null,
+                Password = null,
+                UsePasswordManager = false,
+                PasswordManagerName = null,
+                ShowPassword = false,
+            };
+        static DBTypeCache DBTypeCacheCloud()
+            => new DBTypeCache(DBTypes.Cloud)
+            {
+                Host = null,
+                Port = "4000",
+                UserName = null,
+                Password = null,
+                UsePasswordManager = false,
+                PasswordManagerName = null,
+                UseVPN = false,
+                ShowPassword = false
+            };
+
+        internal static bool Update(DBTypes dbType, ConnectionDialog dialog, ConnectionProperties props)
+        {
+            bool result = false;
+
+            var fndDBType = cache.FirstOrDefault(c => c.DBType == dbType);
+
+            if (fndDBType is null)
+            {
+                switch (dbType)
+                {
+                    case DBTypes.Native:
+                        fndDBType = DBTypeCacheNative();
+                        break;
+                    case DBTypes.Cloud:
+                        fndDBType = DBTypeCacheCloud();
+                        break;
+                }
+                result = true;
+                cache.Add(fndDBType);
+            }
+
+            switch(fndDBType.DBType)
+            { 
+                case DBTypes.Native:
+                    dialog.txtSeedNodes.Text = fndDBType.Host;
+                    dialog.txtPort.Text = fndDBType.Port;
+                    dialog.comboPasswordNames.SelectedItem = fndDBType.PasswordManagerName;
+                    dialog.cbUsePassMgr.IsChecked = fndDBType.UsePasswordManager;
+                    dialog.txtUserName.Text = fndDBType.UserName;
+                    dialog.txtPassword.Text = fndDBType.Password;
+                    dialog.cbShowPasswordChars.IsChecked = fndDBType.ShowPassword;
+
+                    //props.UseVPN = fndDBType.UseVPN;
+                    break;
+                case DBTypes.Cloud:
+                    dialog.txtCldhostName.Text = fndDBType.Host;
+                    dialog.txtCldPort.Text = fndDBType.Port;
+                    dialog.comboCldPasswordNames.SelectedItem = fndDBType.PasswordManagerName;
+                    dialog.cbCldUsePassMgr.IsChecked = fndDBType.UsePasswordManager;
+                    dialog.txtAPIKey.Text = fndDBType.UserName;
+                    dialog.txtCldPassword.Text = fndDBType.Password;
+                    dialog.cbCldShowPasswordChars.IsChecked = fndDBType.ShowPassword;
+                    //props.UseVPN = fndDBType.UseVPN;
+                    break;
+            }
+
+            props.ConnectionInfo.DatabaseInfo.Server = fndDBType.Host;
+            if(!string.IsNullOrEmpty(fndDBType.Port))
+                props.Port = int.Parse(fndDBType.Port);
+            props.ConnectionInfo.DatabaseInfo.UserName = fndDBType.UserName;
+            props.ConnectionInfo.DatabaseInfo.Password = fndDBType.Password;
+            props.UsePasswordManager = fndDBType.UsePasswordManager ?? false;
+            props.PasswordManagerName = fndDBType.PasswordManagerName;
+            props.UseVPN = fndDBType.UseVPN ?? false;
+
+            return result;
+        }
+
+        public static bool Save(DBTypes dbType, ConnectionDialog dialog)
+        {
+            bool result = false;
+
+            var fndDBType = cache.FirstOrDefault(c => c.DBType == dbType);
+
+            if (fndDBType is null)
+            {
+                fndDBType = new DBTypeCache(dbType);
+                result = true;
+                cache.Add(fndDBType);
+            }
+
+            switch (fndDBType.DBType)
+            {
+                case DBTypes.Native:
+                    fndDBType.Host = dialog.txtSeedNodes.Text;
+                    fndDBType.Port = dialog.txtPort.Text;
+                    fndDBType.PasswordManagerName = (string) dialog.comboPasswordNames.SelectedItem;
+                    fndDBType.UsePasswordManager = dialog.cbUsePassMgr.IsChecked;
+                    fndDBType.UserName = dialog.txtUserName.Text;
+                    fndDBType.Password = dialog.txtPassword.Text;
+                    fndDBType.ShowPassword = dialog.cbShowPasswordChars.IsChecked ?? false;
+                    //props.UseVPN = fndDBType.UseVPN;
+                    break;
+                case DBTypes.Cloud:
+                    fndDBType.Host = dialog.txtCldhostName.Text;
+                    fndDBType.Port = dialog.txtCldPort.Text;
+                    fndDBType.PasswordManagerName = (string) dialog.comboCldPasswordNames.SelectedItem;
+                    fndDBType.UsePasswordManager = dialog.cbCldUsePassMgr.IsChecked;
+                    fndDBType.UserName = dialog.txtAPIKey.Text;
+                    fndDBType.Password = dialog.txtCldPassword.Text;
+                    fndDBType.ShowPassword = dialog.cbCldShowPasswordChars.IsChecked ?? false;
+                    //props.UseVPN = fndDBType.UseVPN;
+                    break;
+            }
+            
+            return result;
+        }
+
+        internal static void Save(ConnectionProperties props)
+        {
+            var cacheType = new DBTypeCache(props.DBType)
+            {
+                Host = props.ConnectionInfo.DatabaseInfo.Server,
+                Port = props.Port.ToString(),
+                UserName = props.ConnectionInfo.DatabaseInfo.UserName,
+                Password = props.ConnectionInfo.DatabaseInfo.Password,
+                UsePasswordManager = props.UsePasswordManager,
+                PasswordManagerName = props.PasswordManagerName,
+                UseVPN = props.UseVPN
+            };
+
+            cache.Add(cacheType);
+        }
+    }
+
 }
