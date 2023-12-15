@@ -25,7 +25,7 @@ namespace Aerospike.Database.LINQPadDriver
 
         public AerospikeConnection(IConnectionInfo cxInfo)
         {
-            //System.Diagnostics.Debugger.Launch();
+            System.Diagnostics.Debugger.Launch();
             this.CXInfo = cxInfo;
 
             var connectionInfo = new ConnectionProperties(cxInfo);
@@ -441,7 +441,7 @@ namespace Aerospike.Database.LINQPadDriver
 
         public void Open()
         {
-            //System.Diagnostics.Debugger.Launch();
+            System.Diagnostics.Debugger.Launch();
 #if DEBUG
             if (this.Debug)
                 System.Diagnostics.Debugger.Launch();
@@ -517,17 +517,24 @@ namespace Aerospike.Database.LINQPadDriver
                     }
                 };
 
-                this.AerospikeClient = new AerospikeClient(policy, this.SeedHosts);
-
-                var connectionNode = this.AerospikeClient.Nodes.FirstOrDefault(n => n.Active);
-
-                if (connectionNode != null)
+                if (this.DBType == DBTypes.Cloud)
                 {
-                    this.Connection = connectionNode.GetConnection(this.ConnectionTimeout);
+                    this.AerospikeClient = new AerospikeClientProxy(policy, this.SeedHosts);
+                }
+                else
+                {
+                    this.AerospikeClient = new AerospikeClient(policy, this.SeedHosts);
 
-                    if (this.Connection == null)
+                    var connectionNode = this.AerospikeClient.Nodes.FirstOrDefault(n => n.Active);
+
+                    if (connectionNode != null)
                     {
-                        throw new AerospikeException(11, $"Connection to {connectionNode.Name} failed or timed out. Cannot obtain meta-data for cluster.");
+                        this.Connection = connectionNode.GetConnection(this.ConnectionTimeout);
+
+                        if (this.Connection == null)
+                        {
+                            throw new AerospikeException(11, $"Connection to {connectionNode.Name} failed or timed out. Cannot obtain meta-data for cluster.");
+                        }
                     }
                 }
 
