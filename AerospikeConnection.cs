@@ -31,27 +31,49 @@ namespace Aerospike.Database.LINQPadDriver
             var connectionInfo = new ConnectionProperties(cxInfo);
             
             var dbPort = connectionInfo.Port;
-            this.UseExternalIP = connectionInfo.UseExternalIP;
+            var encryptTraffic = cxInfo.DatabaseInfo.EncryptTraffic;
+
+            this.DBType = connectionInfo.DBType;
+            this.CloudNamespace = connectionInfo.NamespaceCloud;
+
             this.UsePasswordManager = connectionInfo.UsePasswordManager;
             this.PasswordManagerName = connectionInfo.PasswordManagerName?.Trim();
             this.Debug = connectionInfo.Debug;
-            this.RecordView = connectionInfo.RecordView;
-            this.DBRecordSampleSet = connectionInfo.DBRecordSampleSet;
-            this.DBRecordSampleSetMin = (int)Math.Ceiling(this.DBRecordSampleSet * connectionInfo.DBRecordSampleSetPercent);
             this.ConnectionTimeout = connectionInfo.ConnectionTimeout;
             this.TotalTimeout = connectionInfo.TotalTimeout;
             this.SocketTimeout = connectionInfo.SocketTimeout;
             this.SendPK = connectionInfo.SendKey;
             this.ShortQuery = connectionInfo.ShortQuery;
-            this.DocumentAPI = connectionInfo.DocumentAPI;
-            this.AlwaysUseAValues = connectionInfo.AlwaysUseAValues;
             this.DriverLogging = connectionInfo.DriverLogging;
-            this.NetworkCompression = connectionInfo.NetworkCompression;
             this.RespondAllOps = connectionInfo.RespondAllOps;
+            this.RecordView = connectionInfo.RecordView;
             this.TLSCertName = connectionInfo.TLSCertName?.Trim();
-
             if (this.TLSCertName == string.Empty)
                 this.TLSCertName = null;
+
+            if (this.DBType == DBTypes.Cloud)
+            {
+                this.UseExternalIP = false;
+                if (this.RecordView == ARecord.DumpTypes.Record)
+                    this.RecordView = ARecord.DumpTypes.Dynamic;
+                this.DBRecordSampleSet = 0;
+                this.DocumentAPI = false;
+                this.AlwaysUseAValues = true;
+                this.NetworkCompression = false;
+                encryptTraffic = false;
+
+                if (string.IsNullOrEmpty(this.TLSCertName))
+                    this.TLSCertName = connectionInfo.SeedHosts.FirstOrDefault();
+            }
+            else
+            {
+                this.UseExternalIP = connectionInfo.UseExternalIP;                
+                this.DBRecordSampleSet = connectionInfo.DBRecordSampleSet;
+                this.DBRecordSampleSetMin = (int)Math.Ceiling(this.DBRecordSampleSet * connectionInfo.DBRecordSampleSetPercent);
+                this.DocumentAPI = connectionInfo.DocumentAPI;
+                this.AlwaysUseAValues = connectionInfo.AlwaysUseAValues;                
+                this.NetworkCompression = connectionInfo.NetworkCompression;
+            }            
 
             this.DBVersion = new Version();
 
@@ -88,7 +110,7 @@ namespace Aerospike.Database.LINQPadDriver
                                 .Select(s => new Host(s, this.TLSCertName, dbPort))
                                 .ToArray();
 
-            if (cxInfo.DatabaseInfo.EncryptTraffic)
+            if (encryptTraffic)
             {
                 try
                 {
@@ -128,6 +150,9 @@ namespace Aerospike.Database.LINQPadDriver
 
         public Node[] Nodes { get { return this.AerospikeClient?.Nodes; } }
 
+        public string CloudNamespace { get; }
+        public DBTypes DBType { get; }
+
         public bool UseExternalIP { get; }
 
         public bool UsePasswordManager { get; }
@@ -153,7 +178,7 @@ namespace Aerospike.Database.LINQPadDriver
 
         public IEnumerable<LPModule> UDFModules { get; private set; }
 
-        public AerospikeClient AerospikeClient
+        public IAerospikeClient AerospikeClient
         {
             get;
             private set;
@@ -252,7 +277,7 @@ namespace Aerospike.Database.LINQPadDriver
                     || this.State == ConnectionState.Broken)
             {
                 this.Connection?.Close();
-                this.AerospikeClient?.Dispose();
+                this.AerospikeClient?.Close();
                 this.State = ConnectionState.Closed;
             }
         }

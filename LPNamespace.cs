@@ -321,7 +321,7 @@ namespace Aerospike.Database.LINQPadDriver
             return new {this.SafeName}_NamespaceCls(this, Aerospike.Client.Exp.Build(exp));
         }}
 
-		public static implicit operator AerospikeClient({this.SafeName}_NamespaceCls ns) => ns.AerospikeConnection.AerospikeClient;
+		public IAerospikeClient ASClient() => this.AerospikeConnection.AerospikeClient;
 		        
 		{setClasses}
 		{setProps}

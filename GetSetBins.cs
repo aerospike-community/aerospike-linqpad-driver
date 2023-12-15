@@ -11,13 +11,13 @@ namespace Aerospike.Database.LINQPadDriver
     internal sealed class GetSetBins
     {
         
-        public GetSetBins(AerospikeClient connection, int timeout, bool compression)
+        public GetSetBins(IAerospikeClient connection, int timeout, bool compression)
         {
             this.Connection = connection;
             this.QueryPolicy = new QueryPolicy() { socketTimeout = timeout, totalTimeout = 0, compress = compression };
         }
 
-        AerospikeClient Connection { get; }
+        IAerospikeClient Connection { get; }
 
         /// <summary>
         /// <see href="https://docs.aerospike.com/apidocs/csharp/html/t_aerospike_client_querypolicy"/>

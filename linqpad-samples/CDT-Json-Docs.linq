@@ -47,8 +47,8 @@ void Main()
 	//JObject -- Find all tracks for TrackId 2527 and return those customers
 	var fndTrackIdsJObj = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
 						  let custInvoiceLines = custInvoices.ToJson()["Invoices"]
-													  .Children()["Lines"].Children()
-						  where custInvoiceLines.Any(l => l["TrackId"].Value<int>() == 2527)
+													  .Children()["Lines"].SelectMany(a => a)
+						  where custInvoiceLines.Any(l => l.Value<int>("TrackId") == 2527)
 						  select custInvoices;
 
 	fndTrackIdsJObj.Dump("Found Using Linq JObject");

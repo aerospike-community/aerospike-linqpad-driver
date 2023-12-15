@@ -198,7 +198,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 			{moduleConstruct}
 		}}
 
-	public AerospikeClient ASClient => AerospikeConnection.AerospikeClient;
+	public IAerospikeClient ASClient => AerospikeConnection.AerospikeClient;
 		
 	{namespaceProps}
 	{moduleProps}

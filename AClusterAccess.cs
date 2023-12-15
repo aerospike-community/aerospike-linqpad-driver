@@ -45,7 +45,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// The actual Aerospike client connection 
         /// </summary>
-        public AerospikeClient AerospikeClient { get => this.AerospikeConnection.AerospikeClient; }
+        public IAerospikeClient AerospikeClient { get => this.AerospikeConnection.AerospikeClient; }
 
         /// <summary>
         /// The name of the cluster.
