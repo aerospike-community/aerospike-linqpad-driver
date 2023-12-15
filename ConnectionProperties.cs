@@ -204,7 +204,27 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 DriverData.SetElementValue("Debug", value);
             }
-        }        
+        }
+
+        public string NamespaceCloud
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    DriverData.SetElementValue("NamespaceCloud", "aerospike_cloud");
+                    return "aerospike_cloud";
+                }
+
+                return (string)DriverData.Element("NamespaceCloud") ?? "aerospike_cloud";
+            }
+            set
+            {
+                if (value == string.Empty) value = null;
+                DriverData.SetElementValue("NamespaceCloud", value);
+            }
+        }
+
 
         public int DBRecordSampleSet
         {

@@ -459,7 +459,8 @@ Note: If the DB has Public/NATted/Alternate Addresses,
         bool CloudDisableBtns()
         {
             if(string.IsNullOrEmpty(this.txtCldhostName.Text)
-                        || string.IsNullOrEmpty(this.txtAPIKey.Text))
+                        || string.IsNullOrEmpty(this.txtAPIKey.Text)
+                        || string.IsNullOrEmpty(this.txtCldNamespace.Text))
                 return true;
 
             if(this.cbUsePassMgr.IsChecked ?? false)
@@ -499,6 +500,15 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     else
                     {
                         this.txtAPIKey.BorderBrush = defaultBolderBrush;
+                    }
+
+                    if (string.IsNullOrEmpty(this.txtCldNamespace.Text))
+                    {
+                        this.txtCldNamespace.BorderBrush = System.Windows.Media.Brushes.Red;
+                    }
+                    else
+                    {
+                        this.txtCldNamespace.BorderBrush = defaultBolderBrush;
                     }
 
                     if (this.cbUsePassMgr.IsChecked ?? false)
@@ -543,6 +553,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     this.comboCldPasswordNames.BorderBrush = defaultBolderBrush;
                     this.txtCldPassword.BorderBrush = defaultBolderBrush;
                     this.CldpasswordBox.BorderBrush = defaultBolderBrush;
+                    this.txtCldNamespace.BorderBrush = defaultBolderBrush;
 
                     this.btnOK.IsEnabled = true;
                     this.btnTest.IsEnabled = true;
@@ -556,11 +567,36 @@ Note: If the DB has Public/NATted/Alternate Addresses,
         {
             if (priorTab == DBTypes.None) return;
 
-            var tab = (TabControl)sender;
+            var tab = (TabControl)sender;            
             var newType = (DBTypes)tab.SelectedIndex;
 
             if (priorTab != newType)
-            { 
+            {
+                /*switch (priorTab)
+                {
+                    case DBTypes.Native:
+                        if (Validation.GetHasError(this.txtPort)
+                            || Validation.GetHasError(this.txtConnTimeout)
+                            || Validation.GetHasError(txtTotalTimeout)
+                            || Validation.GetHasError(txtSocketTimeout)
+                            || Validation.GetHasError(txtSleepRetries)
+                            || Validation.GetHasError(txtSampleRecs)
+                            || Validation.GetHasError(txtSampleRecsPercent))
+                        {
+                            tab.SelectedIndex = (int)priorTab;
+                        }
+                        return;
+                    case DBTypes.Cloud:
+                        if (Validation.GetHasError(this.txtCldPort)
+                           || Validation.GetHasError(this.txtConnTimeout)
+                           || Validation.GetHasError(txtTotalTimeout)
+                           || Validation.GetHasError(txtSocketTimeout))
+                        {                       
+                            tab.SelectedIndex = (int)priorTab;
+                        }
+                        return;
+                }*/
+
                 DBTypeCache.Save(priorTab, this);                
                 DBTypeCache.Update(newType, this, this._connectionProps);
                 priorTab = newType;
@@ -799,6 +835,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
         public string RecordView { get; private set; }
         public bool UseDocAPI { get; private set; }
         public bool UseAValue { get; private set; }
+        public string SampleRecs {  get; private set; }
 
         private DBTypeCache(DBTypes dbType)
         {
@@ -818,7 +855,8 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 TLSCertName = null,
                 RecordView = Extensions.ARecord.DumpTypes.Record.ToString(),
                 UseDocAPI = true,
-                UseAValue = true
+                UseAValue = true,
+                SampleRecs = "10"
             };
         static DBTypeCache DBTypeCacheCloud()
             => new DBTypeCache(DBTypes.Cloud)
@@ -833,7 +871,8 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 TLSCertName = null,
                 RecordView = Extensions.ARecord.DumpTypes.Dynamic.ToString(),
                 UseDocAPI = false, 
-                UseAValue = true
+                UseAValue = true,
+                SampleRecs = "0"
             };
 
         static RecordViewItem FindRecordViewItem(ConnectionDialog dialog, string type)
@@ -877,6 +916,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     dialog.txtTLSCertName.Text = fndDBType.TLSCertName;
                     dialog.cbUseDocAPI.IsChecked = fndDBType.UseDocAPI;
                     dialog.cbUseAValues.IsChecked = fndDBType.UseAValue;
+                    dialog.txtSampleRecs.Text = fndDBType.SampleRecs;
                     break;
                 case DBTypes.Cloud:
                     dialog.txtCldhostName.Text = fndDBType.Host;
@@ -888,6 +928,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     dialog.cbCldShowPasswordChars.IsChecked = fndDBType.ShowPassword;
                     dialog.cbUseDocAPI.IsChecked = fndDBType.UseDocAPI;
                     dialog.cbUseAValues.IsChecked = fndDBType.UseAValue;
+                    dialog.txtSampleRecs.Text = fndDBType.SampleRecs;
                     break;
             }
 
@@ -901,6 +942,8 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             props.TLSCertName = fndDBType.TLSCertName;
             props.AlwaysUseAValues = fndDBType.UseAValue;
             props.DocumentAPI = fndDBType.UseDocAPI;
+            if(!string.IsNullOrEmpty(fndDBType.SampleRecs))
+                props.DBRecordSampleSet = int.Parse(fndDBType.SampleRecs);
 
             GetSelectedRecordView(dialog).IsChecked = false;
             FindRecordViewItem(dialog, fndDBType.RecordView).IsChecked = true;
@@ -933,6 +976,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     fndDBType.ShowPassword = dialog.cbShowPasswordChars.IsChecked ?? false;
                     fndDBType.UseDocAPI = dialog.cbUseDocAPI.IsChecked ?? true;
                     fndDBType.UseAValue = dialog.cbUseAValues.IsChecked ?? true;
+                    fndDBType.SampleRecs = dialog.txtSampleRecs.Text;
                     break;
                 case DBTypes.Cloud:
                     fndDBType.Host = dialog.txtCldhostName.Text;
@@ -963,7 +1007,8 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 TLSCertName = props.TLSCertName,
                 RecordView = props.RecordView.ToString(),
                 UseDocAPI = props.DocumentAPI,
-                UseAValue = props.AlwaysUseAValues
+                UseAValue = props.AlwaysUseAValues,
+                SampleRecs = props.DBRecordSampleSet.ToString(),
             };
 
             cache.Add(cacheType);

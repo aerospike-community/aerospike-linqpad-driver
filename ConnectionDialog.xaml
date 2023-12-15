@@ -20,42 +20,14 @@
                         <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSleepRetries}" Value="False"/>
                         <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSampleRecs}" Value="False"/>
                         <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtCldPort}" Value="False"/>
+                        <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSampleRecsPercent}" Value="False"/>
                     </MultiDataTrigger.Conditions>
                     <Setter Property="IsEnabled" Value="True"/>
                 </MultiDataTrigger>
             </Style.Triggers>
-        </Style>
-        <Style x:Key="NativeDisableOnError" TargetType="TabItem">
-            <Setter Property="IsEnabled" Value="False"/>
-            <Style.Triggers>
-                <MultiDataTrigger>
-                    <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtPort}" Value="False"/>
-                        <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtConnTimeout}" Value="False"/>
-                        <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtTotalTimeout}" Value="False"/>
-                        <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSocketTimeout}" Value="False"/>
-                        <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSleepRetries}" Value="False"/>
-                        <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSampleRecs}" Value="False"/>
-                    </MultiDataTrigger.Conditions>
-                    <Setter Property="IsEnabled" Value="True"/>
-                </MultiDataTrigger>
-            </Style.Triggers>
-        </Style>
-        <Style x:Key="CloudDisableOnError" TargetType="TabItem">
-        <Setter Property="IsEnabled" Value="False"/>
-        <Style.Triggers>
-            <MultiDataTrigger>
-                <MultiDataTrigger.Conditions>
-                    <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtCblPort}" Value="False"/>
-                    <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtConnTimeout}" Value="False"/>
-                    <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtTotalTimeout}" Value="False"/>
-                    <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSocketTimeout}" Value="False"/>
-                </MultiDataTrigger.Conditions>
-                <Setter Property="IsEnabled" Value="True"/>
-            </MultiDataTrigger>
-        </Style.Triggers>
         </Style>
     </Window.Resources>
+    
     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
         
         <StackPanel Margin="12" Name="StackPanelMain">
@@ -63,7 +35,7 @@
         <GroupBox Header="Database" BorderThickness="4">
             <StackPanel Margin="5,0,0,0">
                 <TabControl x:Name="tcDBType" SelectedIndex="{Binding DBTypeIdx}" SelectionChanged="tcDBType_SelectionChanged">
-                        <TabItem Header="Native" Name="Native" Style="{StaticResource CloudDisableOnError}">
+                        <TabItem Header="Self Managed" Name="Native">
                             <StackPanel>
                                 <Label Padding="0,0,0,2">Seed Nodes separated by a comma:</Label>
                                 <TextBox Name="txtSeedNodes" Padding="2" ToolTip="Cluster Seed Node List (default localhost)" TextWrapping="WrapWithOverflow" Text="{Binding ConnectionInfo.DatabaseInfo.Server, FallbackValue='localhost'}" Margin="1,0,0,5" />
@@ -148,7 +120,7 @@
                                 </Expander>
                             </StackPanel>
                         </TabItem>
-                        <TabItem Header="Cloud" Name="Cloud" Style="{StaticResource NativeDisableOnError}">
+                        <TabItem Header="Cloud" Name="Cloud">
                             <StackPanel>
                                 <Label Padding="0,0,0,2">Host Name:</Label>
                                 <TextBox Name="txtCldhostName" Padding="2" ToolTip="Database host name provided in the dashboard" TextWrapping="WrapWithOverflow" Text="{Binding ConnectionInfo.DatabaseInfo.Server}" Margin="1,0,0,5" TextChanged="txtCloudField_TextChanged" />
@@ -191,6 +163,10 @@
                                         </ComboBox>
                                     </StackPanel>
                                 </Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Padding="0,0,0,2" VerticalAlignment="Center">Namespace:</Label>
+                                    <TextBox Name="txtCldNamespace" Padding="2" ToolTip="Namespace" MaxLines="1" MinLines="1" Text="{Binding NamespaceCloud, FallbackValue='aerospike_cloud'}" Width="250" HorizontalAlignment="Left" Margin="5,0,0,5" TextChanged="txtCloudField_TextChanged"/>
+                                </StackPanel>
                                 <Label Padding="0,0,0,2" Margin="0,5,0,5" HorizontalAlignment="Left">
                                     Note: Not all client operations are currently available.
                                 </Label>
@@ -298,7 +274,7 @@
                         <Binding Path="DBRecordSampleSet" FallbackValue="10" StringFormat="{}{0:0}"
                                  ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
                             <Binding.ValidationRules>
-                                <local:NumericValidationRule ValidationStep="RawProposedValue"/>
+                                <local:NumericValidationRule ValidationStep="RawProposedValue" Min="0"/>
                             </Binding.ValidationRules>
                         </Binding>
                     </TextBox.Text>
