@@ -359,7 +359,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             }
         }
 
-        private string[] PasswordManagerNames
+        static private string[] PasswordManagerNames
         {
             get
             {

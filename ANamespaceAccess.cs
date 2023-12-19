@@ -786,8 +786,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Export(string, Exp, bool)"/>
         /// <seealso cref="Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>
-        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy)"/>
+        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy, int, CancellationToken)"/>
         /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>        
         public int Import([NotNull] string importJSONFile,
                             string setName,
@@ -861,7 +861,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Export(string, Exp, bool)"/>
         /// <seealso cref="Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>
-        /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy)"/>
+        /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy, int, CancellationToken)"/>
         public int Import([NotNull] string importJSONFile,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null,
@@ -916,9 +916,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="filterExpression">A filter expression that will be applied that will determine the result set.</param>
         /// <param name="indented">If true the JSON string is formatted for readability</param>
         /// <returns>Number of records written</returns>
-        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
         /// <seealso cref="ARecord.Export(bool, JsonSerializerSettings)"/>
         public int Export([NotNull] string exportJSONFile, Client.Exp filterExpression = null, bool indented = true)
         {
