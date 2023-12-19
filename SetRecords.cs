@@ -10,6 +10,8 @@ using Aerospike.Client;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Windows.Media;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -1743,22 +1745,34 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If true, the TTL of the record at export is used.
         /// Otherwise, <paramref name="ttl"/> is used, if provided.
         /// </param>
+        /// <param name="maxDegreeOfParallelism">
+        /// The maximum degree of parallelism.
+        /// <see cref="ParallelOptions.MaxDegreeOfParallelism"/>
+        /// </param>
+        /// The <see cref="System.Threading.CancellationToken">CancellationToken</see>
+        /// associated with this <see cref="ParallelOptions"/> instance.
+        /// <param name="cancellationToken">
+        /// </param>
         /// <returns>The number of records imported</returns>
         /// <seealso cref="Export(string, Exp, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
         /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy)"/>
         /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
         public int Import([NotNull] string importJSONFile,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null,
-                            bool useImportRecTTL = false)
+                            bool useImportRecTTL = false,
+                            int maxDegreeOfParallelism = -1,
+                            CancellationToken cancellationToken = default)
         {
             return this.SetAccess.Import(importJSONFile,
                                             this.SetName,
                                             writePolicy ?? this.DefaultWritePolicy,
                                             ttl,
-                                            useImportRecTTL);
+                                            useImportRecTTL,
+                                            maxDegreeOfParallelism,
+                                            cancellationToken);
         }
 
         /// <summary>
