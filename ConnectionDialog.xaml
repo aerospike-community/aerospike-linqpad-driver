@@ -167,6 +167,10 @@
                                     <Label Padding="0,0,0,2" VerticalAlignment="Center">Namespace:</Label>
                                     <TextBox Name="txtCldNamespace" Padding="2" ToolTip="Namespace" MaxLines="1" MinLines="1" Text="{Binding NamespaceCloud, FallbackValue='aerospike_cloud'}" Width="250" HorizontalAlignment="Left" Margin="5,0,0,5" TextChanged="txtCloudField_TextChanged"/>
                                 </StackPanel>
+                                <StackPanel Orientation="Vertical">
+                                    <Label Padding="0,0,0,2" VerticalAlignment="Center">Set Names (separated by comma):</Label>
+                                    <TextBox Name="txtCldSetNames" Padding="2" ToolTip="Static list of Set Names that can be in this Namespace." MaxLines="10" MinLines="1" Text="{Binding SetNamesCloud}" HorizontalAlignment="Left" Margin="5,0,0,5" Width="473"/>
+                                </StackPanel>
                                 <Label Padding="0,0,0,2" Margin="0,5,0,5" HorizontalAlignment="Left">
                                     Note: Not all client operations are currently available.
                                 </Label>

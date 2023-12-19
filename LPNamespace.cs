@@ -121,11 +121,16 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public IEnumerable<LPSecondaryIndex> SIndexes { get; internal set; } = Enumerable.Empty<LPSecondaryIndex>();
 
-        public static IEnumerable<LPNamespace> Create(string staticNamespace)
+        public static IEnumerable<LPNamespace> Create(string staticNamespace, IEnumerable<string> staticSets)
         {
             var ns = new LPNamespace(staticNamespace);
-            var lpNullSet = new LPSet(ns, LPSet.NullSetName);
-            ns.aSets.Add(lpNullSet);
+
+            foreach(var setName in staticSets)
+            {
+                var lpSet = new LPSet(ns, setName);
+                ns.aSets.Add(lpSet);
+            }
+            ns.aSets.Add(new LPSet(ns, LPSet.NullSetName));
 
             return new List<LPNamespace> { ns };
         }

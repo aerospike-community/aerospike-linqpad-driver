@@ -67,6 +67,13 @@ namespace Aerospike.Database.LINQPadDriver
 
                 if (string.IsNullOrEmpty(this.TLSCertName))
                     this.TLSCertName = connectionInfo.SeedHosts.FirstOrDefault();
+
+                if(!string.IsNullOrEmpty(connectionInfo.SetNamesCloud)) 
+                {
+                    this.CloudSetNames = connectionInfo.SetNamesCloud.Split(new char[] { ',', ' ' },
+                                                                                StringSplitOptions.TrimEntries
+                                                                                | StringSplitOptions.RemoveEmptyEntries);
+                }
             }
             else
             {
@@ -154,6 +161,9 @@ namespace Aerospike.Database.LINQPadDriver
         public Node[] Nodes { get => this.DBType == DBTypes.Cloud ? null : this.AerospikeClient?.Nodes; }
 
         public string CloudNamespace { get; }
+
+        public IEnumerable<string> CloudSetNames { get; } = Array.Empty<string>();
+
         public DBTypes DBType { get; }
 
         public bool UseExternalIP { get; }
@@ -312,6 +322,35 @@ namespace Aerospike.Database.LINQPadDriver
                     performedOpen = true;
                 }
 
+                #region Bins in Sets
+                void DetermineBins(bool noInfoRequestBins)
+                {
+                    var getBins = new GetSetBins(this.AerospikeClient,
+                                                    this.SocketTimeout,
+                                                    this.NetworkCompression);
+
+                    foreach (var ns in this.Namespaces)
+                    {
+                        Parallel.ForEach(ns.Sets,
+                            (set, cancelationToken) =>
+                            {
+                                if (set.IsNullSet && ns.Bins.Any())
+                                    set.UpdateTypeBins(ns.Bins, false);
+                                else
+                                    set.GetRecordBins(getBins,
+                                                        this.DocumentAPI,
+                                                        noInfoRequestBins && this.DBRecordSampleSet <= 0 ? 10 : this.DBRecordSampleSet,
+                                                        noInfoRequestBins && this.DBRecordSampleSetMin <= 0 ? 1 : this.DBRecordSampleSetMin,
+                                                        false);
+                            });
+
+                        if (!ns.Bins.Any())
+                            ns.DetermineUpdateBinsBasedOnSets();
+                    }
+
+                }
+                #endregion
+
                 try
                 {
                     if (this.DBType == DBTypes.Cloud)
@@ -323,7 +362,9 @@ namespace Aerospike.Database.LINQPadDriver
                             var dbIDIdx = hostName.IndexOf('.');
 
                             this.Database = dbIDIdx <=0 ? hostName : hostName[0..dbIDIdx];
-                            this.Namespaces = LPNamespace.Create(this.CloudNamespace);
+                            this.Namespaces = LPNamespace.Create(this.CloudNamespace, this.CloudSetNames);
+
+                            DetermineBins(true);
 
                             this.UDFModules = Array.Empty<LPModule>();
                         }
@@ -389,36 +430,12 @@ namespace Aerospike.Database.LINQPadDriver
                                     this.Namespaces = LPNamespace.Create(this.Connection, this.DBVersion);
 
                                     this.UDFModules = LPModule.Create(this.Connection);
-
-                                    #region Bins in Sets
+                                   
                                     if (obtainBinsInSet)
                                     {
-                                        var getBins = new GetSetBins(this.AerospikeClient,
-                                                                        this.SocketTimeout,
-                                                                        this.NetworkCompression);
-
-                                        foreach (var ns in this.Namespaces)
-                                        {
-                                            Parallel.ForEach(ns.Sets,
-                                                (set, cancelationToken) =>
-                                                {
-                                                    if (set.IsNullSet && ns.Bins.Any())
-                                                        set.UpdateTypeBins(ns.Bins, false);
-                                                    else
-                                                        set.GetRecordBins(getBins,
-                                                                            this.DocumentAPI,
-                                                                            noInfoRequestBins && this.DBRecordSampleSet <= 0 ? 10 : this.DBRecordSampleSet,
-                                                                            noInfoRequestBins && this.DBRecordSampleSetMin <= 0 ? 1 : this.DBRecordSampleSetMin,
-                                                                            false);
-                                                });
-
-                                            if (!ns.Bins.Any())
-                                                ns.DetermineUpdateBinsBasedOnSets();
-                                        }
-
+                                        DetermineBins(noInfoRequestBins);
                                     }
-                                    #endregion
-
+                                    
                                     #region Secondary Indexes
                                     {
                                         var sIdxGrp = LPSecondaryIndex.Create(this.Connection, this.Namespaces)
