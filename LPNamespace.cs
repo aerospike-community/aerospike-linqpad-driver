@@ -121,9 +121,17 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public IEnumerable<LPSecondaryIndex> SIndexes { get; internal set; } = Enumerable.Empty<LPSecondaryIndex>();
 
-        
+        public static IEnumerable<LPNamespace> Create(string staticNamespace)
+        {
+            var ns = new LPNamespace(staticNamespace);
+            var lpNullSet = new LPSet(ns, LPSet.NullSetName);
+            ns.aSets.Add(lpNullSet);
+
+            return new List<LPNamespace> { ns };
+        }
+
         public static IEnumerable<LPNamespace> Create(Client.Connection asConnection, Version dbVersion)
-        {            
+        {
             var setsAttrib = Info.Request(asConnection, "sets");
 
             string GetNSBins(string nsName)

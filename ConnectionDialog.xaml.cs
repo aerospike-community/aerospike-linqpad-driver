@@ -245,10 +245,21 @@ namespace Aerospike.Database.LINQPadDriver
             {                
                 try
                 {
-                    connection = new AerospikeConnection(_cxInfo);
-                    connection.ObtainMetaDate(false);
+                    var testTask = System.Threading.Tasks.Task.Run(() =>
+                    {
+                        connection = new AerospikeConnection(_cxInfo);
+                        connection.ObtainMetaDate(false);
+                    });
+                    testTask.Wait();
 
-                    messageBoxText = $@"
+                    if (connection.DBType == DBTypes.Cloud)
+                    {
+                        messageBoxText = $@"
+Cloud Database Id ""{_cxInfo.DatabaseInfo.Database}"" Successfully Connected!";
+                    }
+                    else
+                    {
+                        messageBoxText = $@"
 Cluster Name: ""{_cxInfo.DatabaseInfo.Database}""
 DB Version: {_cxInfo.DatabaseInfo.DbVersion}
 Nodes: {connection.Nodes.Length}
@@ -257,7 +268,7 @@ Sets: {connection.Namespaces.Sum(n => n.Sets.Count())}
 Bins: {connection.Namespaces.Sum(n => n.Bins.Count())}
 Secondary Indexes: {connection.Namespaces.Sum(n => n.SIndexes.Count())}
 UDFs: {connection.UDFModules.Count()}";
-
+                    }
                 }
                 catch(Exception ex)
                 {
@@ -277,24 +288,27 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
                     }
                     if (connection != null)
                     {
-                        if (Helpers.IsPrivateAddress(connection.SeedHosts.FirstOrDefault().name))
+                        if (connection.DBType != DBTypes.Cloud)
                         {
-                            if (connection.UseExternalIP)
+                            if (Helpers.IsPrivateAddress(connection.SeedHosts.FirstOrDefault().name))
                             {
-                                messageBoxText += $@"
+                                if (connection.UseExternalIP)
+                                {
+                                    messageBoxText += $@"
 
 Note: The DB seems to be on a private network
       and ""Public Address"" option is enabled! Should this be disabled?
 ";
+                                }
                             }
-                        }
-                        else if (!connection.UseExternalIP)
-                        {
-                            messageBoxText += $@"
+                            else if (!connection.UseExternalIP)
+                            {
+                                messageBoxText += $@"
 
 Note: If the DB has Public/NATted/Alternate Addresses,
       you may need to enable ""Public Address"" option!
 ";
+                            }
                         }
                     }
                 }

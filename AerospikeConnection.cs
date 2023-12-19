@@ -151,7 +151,7 @@ namespace Aerospike.Database.LINQPadDriver
 
         public Host[] SeedHosts { get; }
 
-        public Node[] Nodes { get { return this.AerospikeClient?.Nodes; } }
+        public Node[] Nodes { get => this.DBType == DBTypes.Cloud ? null : this.AerospikeClient?.Nodes; }
 
         public string CloudNamespace { get; }
         public DBTypes DBType { get; }
@@ -314,110 +314,132 @@ namespace Aerospike.Database.LINQPadDriver
 
                 try
                 {
-                    if (this.AerospikeClient.Connected)
+                    if (this.DBType == DBTypes.Cloud)
                     {
-                        var connectionNode = this.AerospikeClient.Nodes.FirstOrDefault(n => n.Active);
-
-                        if (connectionNode != null)
+                        var hostName = this.SeedHosts.FirstOrDefault()?.name ?? "<Unknown>";
+                        
+                        if (this.AerospikeClient.Connected)
                         {
-                            if (this.Connection == null)
-                            {
-                                throw new AerospikeException(11, $"Connection to {connectionNode.Name} failed or timed out. Cannot obtain meta-data for cluster.");
-                            }
-                            else
-                            {
-                                this.Database = Info.Request(this.Connection, "cluster-name");
+                            var dbIDIdx = hostName.IndexOf('.');
 
-                                if (string.IsNullOrEmpty(this.Database) || this.Database == "null")
-                                {
-                                    this.Database = this.AerospikeClient.Cluster.GetStats().ToString();
-                                }
+                            this.Database = dbIDIdx <=0 ? hostName : hostName[0..dbIDIdx];
+                            this.Namespaces = LPNamespace.Create(this.CloudNamespace);
 
-                                bool noInfoRequestBins = false;
-
-                                this.CXInfo.DatabaseInfo.DbVersion = Info.Request(this.Connection, "version");
-                                 
-                                if(!string.IsNullOrEmpty(this.CXInfo.DatabaseInfo.DbVersion))
-                                {
-                                    try
-                                    {
-                                        var versionMatch = VersionRegEx().Match(this.CXInfo.DatabaseInfo.DbVersion);
-
-                                        if (versionMatch.Success)
-                                        {
-                                            int major = 0;
-                                            int minor = 0;
-                                            int build = 0;
-                                            int revision = 0;
-
-                                            if (versionMatch.Groups["major"].Success)
-                                                major = int.Parse(versionMatch.Groups["major"].Value);
-                                            if (versionMatch.Groups["minor"].Success)
-                                                minor = int.Parse(versionMatch.Groups["minor"].Value);
-                                            if (versionMatch.Groups["build"].Success)
-                                                build = int.Parse(versionMatch.Groups["build"].Value);
-                                            if (versionMatch.Groups["revision"].Success)
-                                                revision = int.Parse(versionMatch.Groups["revision"].Value);
-
-                                            this.DBVersion = new Version(major, minor, build, revision);
-                                            noInfoRequestBins = this.DBVersion >= AerospikeConnection.NoNSBinsRequest;
-                                        }
-                                    } catch { }
-                                }
-
-                                this.Namespaces = LPNamespace.Create(this.Connection, this.DBVersion);
-
-                                this.UDFModules = LPModule.Create(this.Connection);                               
-
-                                #region Bins in Sets
-                                if (obtainBinsInSet)
-                                {
-                                    var getBins = new GetSetBins(this.AerospikeClient,
-                                                                    this.SocketTimeout,
-                                                                    this.NetworkCompression);
-
-                                    foreach (var ns in this.Namespaces)
-                                    {
-                                        Parallel.ForEach(ns.Sets,
-                                            (set, cancelationToken) =>
-                                            {
-                                                if (set.IsNullSet && ns.Bins.Any())
-                                                    set.UpdateTypeBins(ns.Bins, false);
-                                                else
-                                                    set.GetRecordBins(getBins,
-                                                                        this.DocumentAPI,
-                                                                        noInfoRequestBins && this.DBRecordSampleSet <= 0 ? 10 : this.DBRecordSampleSet,
-                                                                        noInfoRequestBins && this.DBRecordSampleSetMin <= 0 ? 1 : this.DBRecordSampleSetMin,
-                                                                        false);
-                                            });
-
-                                        if (!ns.Bins.Any())
-                                            ns.DetermineUpdateBinsBasedOnSets();                                        
-                                    }
-
-                                }
-                                #endregion
-
-                                #region Secondary Indexes
-                                {
-                                    var sIdxGrp = LPSecondaryIndex.Create(this.Connection, this.Namespaces)
-                                                            .GroupBy(idx => new { ns = idx.Namespace?.Name, set = idx.Set?.Name });
-
-                                    foreach (var setIdxs in sIdxGrp)
-                                    {
-                                        var aIdx = setIdxs.FirstOrDefault();
-
-                                        if (aIdx?.Set != null)
-                                            aIdx.Set.SIndexes = setIdxs.ToArray();
-                                    }
-                                }
-                                #endregion
-                            }
+                            this.UDFModules = Array.Empty<LPModule>();
                         }
                         else
                         {
-                            var nodes = string.Join(',', this.AerospikeClient.Nodes.Select(n => n.Name));
-                            throw new AerospikeException(11, $"No active node found in cluster \"{this.Database}\". Tried: {nodes}");
+                            throw new AerospikeException(11, $"Connection to Cloud Host \"{hostName}\" failed or timed out.");
+                        }
+                    }
+                    else
+                    {
+                        if (this.AerospikeClient.Connected)
+                        {
+                            var connectionNode = this.AerospikeClient.Nodes.FirstOrDefault(n => n.Active);
+
+                            if (connectionNode != null)
+                            {
+                                if (this.Connection == null)
+                                {
+                                    throw new AerospikeException(11, $"Connection to {connectionNode.Name} failed or timed out. Cannot obtain meta-data for cluster.");
+                                }
+                                else
+                                {
+                                    this.Database = Info.Request(this.Connection, "cluster-name");
+
+                                    if (string.IsNullOrEmpty(this.Database) || this.Database == "null")
+                                    {
+                                        this.Database = this.AerospikeClient.Cluster.GetStats().ToString();
+                                    }
+
+                                    bool noInfoRequestBins = false;
+
+                                    this.CXInfo.DatabaseInfo.DbVersion = Info.Request(this.Connection, "version");
+
+                                    if (!string.IsNullOrEmpty(this.CXInfo.DatabaseInfo.DbVersion))
+                                    {
+                                        try
+                                        {
+                                            var versionMatch = VersionRegEx().Match(this.CXInfo.DatabaseInfo.DbVersion);
+
+                                            if (versionMatch.Success)
+                                            {
+                                                int major = 0;
+                                                int minor = 0;
+                                                int build = 0;
+                                                int revision = 0;
+
+                                                if (versionMatch.Groups["major"].Success)
+                                                    major = int.Parse(versionMatch.Groups["major"].Value);
+                                                if (versionMatch.Groups["minor"].Success)
+                                                    minor = int.Parse(versionMatch.Groups["minor"].Value);
+                                                if (versionMatch.Groups["build"].Success)
+                                                    build = int.Parse(versionMatch.Groups["build"].Value);
+                                                if (versionMatch.Groups["revision"].Success)
+                                                    revision = int.Parse(versionMatch.Groups["revision"].Value);
+
+                                                this.DBVersion = new Version(major, minor, build, revision);
+                                                noInfoRequestBins = this.DBVersion >= AerospikeConnection.NoNSBinsRequest;
+                                            }
+                                        }
+                                        catch { }
+                                    }
+
+                                    this.Namespaces = LPNamespace.Create(this.Connection, this.DBVersion);
+
+                                    this.UDFModules = LPModule.Create(this.Connection);
+
+                                    #region Bins in Sets
+                                    if (obtainBinsInSet)
+                                    {
+                                        var getBins = new GetSetBins(this.AerospikeClient,
+                                                                        this.SocketTimeout,
+                                                                        this.NetworkCompression);
+
+                                        foreach (var ns in this.Namespaces)
+                                        {
+                                            Parallel.ForEach(ns.Sets,
+                                                (set, cancelationToken) =>
+                                                {
+                                                    if (set.IsNullSet && ns.Bins.Any())
+                                                        set.UpdateTypeBins(ns.Bins, false);
+                                                    else
+                                                        set.GetRecordBins(getBins,
+                                                                            this.DocumentAPI,
+                                                                            noInfoRequestBins && this.DBRecordSampleSet <= 0 ? 10 : this.DBRecordSampleSet,
+                                                                            noInfoRequestBins && this.DBRecordSampleSetMin <= 0 ? 1 : this.DBRecordSampleSetMin,
+                                                                            false);
+                                                });
+
+                                            if (!ns.Bins.Any())
+                                                ns.DetermineUpdateBinsBasedOnSets();
+                                        }
+
+                                    }
+                                    #endregion
+
+                                    #region Secondary Indexes
+                                    {
+                                        var sIdxGrp = LPSecondaryIndex.Create(this.Connection, this.Namespaces)
+                                                                .GroupBy(idx => new { ns = idx.Namespace?.Name, set = idx.Set?.Name });
+
+                                        foreach (var setIdxs in sIdxGrp)
+                                        {
+                                            var aIdx = setIdxs.FirstOrDefault();
+
+                                            if (aIdx?.Set != null)
+                                                aIdx.Set.SIndexes = setIdxs.ToArray();
+                                        }
+                                    }
+                                    #endregion
+                                }
+                            }
+                            else
+                            {
+                                var nodes = string.Join(',', this.AerospikeClient.Nodes.Select(n => n.Name));
+                                throw new AerospikeException(11, $"No active node found in cluster \"{this.Database}\". Tried: {nodes}");
+                            }
                         }
                     }
                 }
