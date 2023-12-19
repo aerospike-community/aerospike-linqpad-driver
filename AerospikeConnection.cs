@@ -25,7 +25,10 @@ namespace Aerospike.Database.LINQPadDriver
 
         public AerospikeConnection(IConnectionInfo cxInfo)
         {
-            System.Diagnostics.Debugger.Launch();
+#if DEBUG
+            if (this.Debug)
+                System.Diagnostics.Debugger.Launch();
+#endif
             this.CXInfo = cxInfo;
 
             var connectionInfo = new ConnectionProperties(cxInfo);
@@ -440,8 +443,7 @@ namespace Aerospike.Database.LINQPadDriver
         }
 
         public void Open()
-        {
-            System.Diagnostics.Debugger.Launch();
+        {            
 #if DEBUG
             if (this.Debug)
                 System.Diagnostics.Debugger.Launch();
