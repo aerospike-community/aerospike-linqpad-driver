@@ -115,6 +115,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.LPnamespace = aNamespace;
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Set");
+            this.IsNullSet = this.Name == NullSetName;
             SetsBag.Add(this);
         }
 
@@ -124,6 +125,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Set");
             this.binTypes = binTypes?.Where(b => b.DataType != null).ToList() ?? new List<BinType>();
+            this.IsNullSet = this.Name == NullSetName;
             SetsBag.Add(this);
         }
 

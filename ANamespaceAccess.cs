@@ -130,7 +130,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 var accessSet = new SetRecords(lpSet, this, setName, binNames);
 
                 this.LPnamespace?.TryAddSet(setName, bins);
-
+                
                 lock (this)
                 {
                     this._sets.Add(accessSet);

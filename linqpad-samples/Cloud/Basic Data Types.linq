@@ -108,7 +108,7 @@ void Main()
 	//This shows the use of a where clause with and without a filter. 
 	//When using a filter with a where clause we can produce the same results as using expressions.
 	aerospike_cloud[demoSet].Where(x => x["BinB"] < 800).Dump("\"BinB <800\" Records using Where");
-	aerospike_cloud[demoSet].Where(x => x["BinB"].IsInt && x["BinB"] < 800).Dump("\"BinB <800\" Records using Where and an Int Filter (same result as using Expressions)");
+	aerospike_cloud[demoSet].Where(x => x.BinExists("BinB") && x["BinB"].IsInt && x["BinB"] < 800).Dump("\"BinB <800\" Records using Where and an Int Filter (same result as using Expressions)");
 	aerospike_cloud[demoSet].Query(Exp.LT(Exp.IntBin("BinB"), Exp.Val(800))).Dump("\"BinB <800\" Records using Expressions");
 	
 	aerospike_cloud[demoSet].Where(x => x["BinA"] == "10.01" || x["BinB"] == "1001").Dump("\"BinA == \"10.01\" || BinB == \"1001\"\" Records using Where");
