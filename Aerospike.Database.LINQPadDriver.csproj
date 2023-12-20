@@ -57,18 +57,31 @@
 	</ItemGroup>
   
 	<ItemGroup>
-	  <None Remove="linqpad-samples\Basic Data Types.linq" />
-	  <None Remove="linqpad-samples\CDT-Json-Docs.linq" />
-	  <None Remove="linqpad-samples\Create CustInvsDoc set.linq" />
+	  <None Remove="linqpad-samples\Native\Basic Data Types.linq" />
+	  <None Remove="linqpad-samples\Native\CDT-Json-Docs.linq" />
+	  <None Remove="linqpad-samples\Native\Create CustInvsDoc set.linq" />
 	  <None Remove="linqpad-samples\DemoDBJson\aerospike.json" />
-	  <None Remove="linqpad-samples\Linq Join Customer and Invoice.linq" />
-	  <None Remove="linqpad-samples\LinqWhere-AerospikeExpressions.linq" />
-	  <None Remove="linqpad-samples\LinqWhere-AerospikePK.linq" />
-	  <None Remove="linqpad-samples\POCO.linq" />
-    <none Remove="linqpad-samples\Put-Aerospike.linq" />
-	  <None Remove="linqpad-samples\ReadMeFirst.linq" />
-	  <None Remove="linqpad-samples\Record Display View.linq" />
+	  <None Remove="linqpad-samples\Native\Linq Join Customer and Invoice.linq" />
+	  <None Remove="linqpad-samples\Native\LinqWhere-AerospikeExpressions.linq" />
+	  <None Remove="linqpad-samples\Native\LinqWhere-AerospikePK.linq" />
+	  <None Remove="linqpad-samples\Native\POCO.linq" />
+    <none Remove="linqpad-samples\Native\Put-Aerospike.linq" />
+	  <None Remove="linqpad-samples\Native\ReadMeFirst.linq" />
+	  <None Remove="linqpad-samples\Native\Record Display View.linq" />
 	</ItemGroup>
+
+  <ItemGroup>
+    <None Remove="linqpad-samples\Cloud\Basic Data Types.linq" />
+    <None Remove="linqpad-samples\Cloud\CDT-Json-Docs.linq" />
+    <None Remove="linqpad-samples\Cloud\Create CustInvsDoc set.linq" />
+    <None Remove="linqpad-samples\Cloud\Linq Join Customer and Invoice.linq" />
+    <None Remove="linqpad-samples\Cloud\LinqWhere-AerospikeExpressions.linq" />
+    <None Remove="linqpad-samples\Cloud\LinqWhere-AerospikePK.linq" />
+    <None Remove="linqpad-samples\Cloud\POCO.linq" />
+    <none Remove="linqpad-samples\Cloud\Put-Aerospike.linq" />
+    <None Remove="linqpad-samples\Cloud\ReadMeFirst.linq" />
+    <None Remove="linqpad-samples\Cloud\Record Display View.linq" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Update="AValue.tt">
@@ -93,17 +106,29 @@
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <pack>true</pack>      
 	  </Content>
-	  <Content Include="linqpad-samples\Basic Data Types.linq" />
-	  <Content Include="linqpad-samples\CDT-Json-Docs.linq" />
-	  <Content Include="linqpad-samples\Create CustInvsDoc set.linq" />
+	  <Content Include="linqpad-samples\Native\Basic Data Types.linq" />
+	  <Content Include="linqpad-samples\Native\CDT-Json-Docs.linq" />
+	  <Content Include="linqpad-samples\Native\Create CustInvsDoc set.linq" />
 	  <Content Include="linqpad-samples\DemoDBJson\aerospike.json" />
-	  <Content Include="linqpad-samples\Linq Join Customer and Invoice.linq" />
-	  <Content Include="linqpad-samples\LinqWhere-AerospikeExpressions.linq" />
-	  <Content Include="linqpad-samples\LinqWhere-AerospikePK.linq" />
-	  <Content Include="linqpad-samples\POCO.linq" />
-    <Content Include="linqpad-samples\Put-Aerospike.linq" />
-	  <Content Include="linqpad-samples\ReadMeFirst.linq" />
-	  <Content Include="linqpad-samples\Record Display View.linq" />
+	  <Content Include="linqpad-samples\Native\Linq Join Customer and Invoice.linq" />
+	  <Content Include="linqpad-samples\Native\LinqWhere-AerospikeExpressions.linq" />
+	  <Content Include="linqpad-samples\Native\LinqWhere-AerospikePK.linq" />
+	  <Content Include="linqpad-samples\Native\POCO.linq" />
+    <Content Include="linqpad-samples\Native\Put-Aerospike.linq" />
+	  <Content Include="linqpad-samples\Native\ReadMeFirst.linq" />
+	  <Content Include="linqpad-samples\Native\Record Display View.linq" />
+    
+    <Content Include="linqpad-samples\Cloud\Basic Data Types.linq" />
+    <Content Include="linqpad-samples\Cloud\CDT-Json-Docs.linq" />
+    <Content Include="linqpad-samples\Cloud\Create CustInvsDoc set.linq" />
+    <Content Include="linqpad-samples\Cloud\Linq Join Customer and Invoice.linq" />
+    <Content Include="linqpad-samples\Cloud\LinqWhere-AerospikeExpressions.linq" />
+    <Content Include="linqpad-samples\Cloud\LinqWhere-AerospikePK.linq" />
+    <Content Include="linqpad-samples\Cloud\POCO.linq" />
+    <Content Include="linqpad-samples\Cloud\Put-Aerospike.linq" />
+    <Content Include="linqpad-samples\Cloud\ReadMeFirst.linq" />
+    <Content Include="linqpad-samples\Cloud\Record Display View.linq" />
+    
     <Content Include="README.md">
       <Pack>true</Pack>
       <PackagePath />

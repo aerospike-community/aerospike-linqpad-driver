@@ -10,13 +10,7 @@ using System.Data;
 
 namespace Aerospike.Database.LINQPadDriver
 {
-    public enum DBTypes
-    {
-        None = -1,
-        Native = 0,
-        Cloud = 1
-    }
-
+    
     /// <summary>
     /// Wrapper to read/write connection properties. This acts as our ViewModel - we will bind to it in ConnectionDialog.xaml.
     /// </summary>
@@ -44,14 +38,14 @@ namespace Aerospike.Database.LINQPadDriver
 
         // This is how to create custom connection properties.
 
-        public DBTypes DBType
+        public DBPlatforms DBType
         {
             get
             {
                 if (DriverData.IsEmpty)
                 {
                     DriverData.SetElementValue("DBType", "Native");
-                    return DBTypes.Native;
+                    return DBPlatforms.Native;
                 }
 
                 var elementValue = DriverData.Element("DBType")?.Value;
@@ -59,25 +53,25 @@ namespace Aerospike.Database.LINQPadDriver
                 if (string.IsNullOrEmpty(elementValue))
                 {
                     DriverData.SetElementValue("DBType", "Native");
-                    return DBTypes.Native;
+                    return DBPlatforms.Native;
                 }
                 else if (elementValue == "0")
                 {
                     DriverData.SetElementValue("DBType", "Native");
-                    return DBTypes.Native;
+                    return DBPlatforms.Native;
                 }
                 else if (elementValue == "1")
                 {
                     DriverData.SetElementValue("DBType", "Cloud");
-                    return DBTypes.Cloud;
+                    return DBPlatforms.Cloud;
                 }
 
-                if (Enum.TryParse<DBTypes>(elementValue, true, out DBTypes result))
+                if (Enum.TryParse<DBPlatforms>(elementValue, true, out DBPlatforms result))
                 {
                     return result;
                 }
 
-                return DBTypes.Native;
+                return DBPlatforms.Native;
             }
             set
             {
@@ -88,7 +82,7 @@ namespace Aerospike.Database.LINQPadDriver
         public int DBTypeIdx
         {
             get => (int)this.DBType;
-            set => this.DBType = (DBTypes)value;
+            set => this.DBType = (DBPlatforms)value;
         }
 
 

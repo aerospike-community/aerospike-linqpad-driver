@@ -122,7 +122,15 @@
                         </TabItem>
                         <TabItem Header="Cloud" Name="Cloud">
                             <StackPanel>
-                                <Label Padding="0,0,0,2">Host Name:</Label>
+                                <StackPanel Orientation="Horizontal">
+                                    <Label Padding="0,0,0,2">Host Name (</Label>
+                                    <Label Padding="0,0,0,2" HorizontalAlignment="Left">
+                                        <Hyperlink NavigateUri="https://auth.control.aerospike.cloud" RequestNavigate="Hyperlink_RequestNavigate">
+                                            Goto Login Page to obtain information
+                                        </Hyperlink>
+                                    </Label>
+                                    <Label Padding="0,0,0,2">):</Label>
+                                </StackPanel>
                                 <TextBox Name="txtCldhostName" Padding="2" ToolTip="Database host name provided in the dashboard" TextWrapping="WrapWithOverflow" Text="{Binding ConnectionInfo.DatabaseInfo.Server}" Margin="1,0,0,5" TextChanged="txtCloudField_TextChanged" />
                                 <StackPanel Orientation="Horizontal">
                                     <Label Padding="0,0,0,2" Margin="0,5,0,5" HorizontalAlignment="Center">Port:</Label>
@@ -145,6 +153,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <Label Padding="0,0,0,2" VerticalAlignment="Center">API Key:</Label>
                                     <TextBox Name="txtAPIKey" Padding="2" ToolTip="API Key" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.UserName}" Width="250" HorizontalAlignment="Left" Margin="5,0,0,5" TextChanged="txtCloudField_TextChanged"/>
+                                    <Button Name="btnKeyFile" Click="btnKeyFile_Click" Margin="5,0,5,5" FontSize="8" ToolTip="Use the API Key CSV File to populate Key and Secret">Use API Key File</Button>
                                 </StackPanel>
                                 <CheckBox IsChecked="{Binding UsePasswordManager}" Name="cbCldUsePassMgr" Click="cbCldUsePassMgr_Click" ToolTip="Use the LINQPad Password Manager is available via the File menu" HorizontalAlignment="Left" Margin="12,0,0,5">
                                     LINQPad Password Manager
@@ -172,11 +181,13 @@
                                     <TextBox Name="txtCldSetNames" Padding="2" ToolTip="Static list of Set Names that can be in this Namespace." MaxLines="10" MinLines="1" Text="{Binding SetNamesCloud}" HorizontalAlignment="Left" Margin="5,0,0,5" Width="473"/>
                                 </StackPanel>
                                 <Label Padding="0,0,0,2" Margin="0,5,0,5" HorizontalAlignment="Left">
-                                    Note: Not all client operations are currently available.
+                                    <Hyperlink NavigateUri="https://docs.aerospike.com/cloud/connect/available" RequestNavigate="Hyperlink_RequestNavigate">
+                                        Note: Available Client Features can be found here.
+                                    </Hyperlink>
                                 </Label>
                                 <Label Padding="0,0,0,2" Margin="0,5,0,5" HorizontalAlignment="Left">
-                                    <Hyperlink NavigateUri="https://docs.aerospike.com/cloud/connect/available" RequestNavigate="Hyperlink_RequestNavigate">
-                                        Click here to see all available operations.
+                                    <Hyperlink NavigateUri="https://aerospike.com/products/aerospike-cloud" RequestNavigate="Hyperlink_RequestNavigate">
+                                        Learn more about Aerospike Cloud
                                     </Hyperlink>
                                 </Label>
                             </StackPanel>

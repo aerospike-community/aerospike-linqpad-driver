@@ -231,7 +231,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
 			items.AddRange(CreateNamespaceExploreItems(connection));
 
-            if (connection.DBType != DBTypes.Cloud)
+            if (connection.DBPlatform != DBPlatforms.Cloud)
             {
                 items.Add(new ExplorerItem("UDFs", ExplorerItemKind.Category, ExplorerIcon.Box)
                 {
@@ -498,7 +498,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 		{
 			List<ExplorerItem> children;
 
-            if (connection.DBType == DBTypes.Cloud)
+            if (connection.DBPlatform == DBPlatforms.Cloud)
             {
                 children = new List<ExplorerItem>()
                                 {

@@ -18,6 +18,22 @@ using LPU = LINQPad.Util;
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
     /// <summary>
+    /// The different Aerospike DB Platforms
+    /// </summary>
+    public enum DBPlatforms
+    {
+        None = -1,
+        /// <summary>
+        /// The non-managed platform
+        /// </summary>
+        Native = 0,
+        /// <summary>
+        /// The DBaaS platform
+        /// </summary>
+        Cloud = 1
+    }
+
+    /// <summary>
     /// A class used to define Aerospike Namespaces.
     /// </summary>
     public class ANamespaceAccess
@@ -810,6 +826,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
 
+            if (maxDegreeOfParallelism == -1
+                    && this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
+                maxDegreeOfParallelism = Environment.ProcessorCount;
+
             var parallelOptions = new ParallelOptions()
             {
                 CancellationToken = cancellationToken,
@@ -881,6 +901,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 DateParseHandling = DateParseHandling.DateTimeOffset
             };
             var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
+
+            if (maxDegreeOfParallelism == -1
+                    && this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
+                maxDegreeOfParallelism = Environment.ProcessorCount;
 
             var parallelOptions = new ParallelOptions()
             {
@@ -1305,6 +1329,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             return false;
         }
+
+        /// <summary>
+        /// The Aerospike Platform this namespace is associated. <see cref="DBPlatforms"/>
+        /// </summary>
+        public DBPlatforms DBPlatform { get => this.AerospikeConnection.DBPlatform; }
 
         protected object ToDump()
         {

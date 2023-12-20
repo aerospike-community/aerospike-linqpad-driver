@@ -92,6 +92,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             };
             var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
 
+            if (maxDegreeOfParallelism == -1
+                    && this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
+                maxDegreeOfParallelism = Environment.ProcessorCount;
+
             var parallelOptions = new ParallelOptions()
             {
                 CancellationToken = cancellationToken,
@@ -141,6 +145,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 TypeNameHandling = TypeNameHandling.All
             };
             var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
+
+            if (maxDegreeOfParallelism == -1
+                    && this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
+                maxDegreeOfParallelism = Environment.ProcessorCount;
 
             var parallelOptions = new ParallelOptions()
             {

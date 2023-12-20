@@ -12,7 +12,7 @@
       <DocumentAPI>true</DocumentAPI>
     </DriverData>
   </Connection>
-  <Reference Relative="DemoDBJson\aerospike.json">&lt;MyDocuments&gt;\LINQPad Queries\Aerospike linqpad-samples\DemoDBJson\aerospike.json</Reference>
+  <Reference Relative="..\DemoDBJson\aerospike.json">&lt;MyDocuments&gt;\LINQPad Queries\Aerospike linqpad-samples\DemoDBJson\aerospike.json</Reference>
 </Query>
 
 /* 
@@ -44,8 +44,11 @@ Below is a list of sample scripts:
 */
 void Main()
 {
-	//Clean up Namespace...
-	Demo.Truncate();
+	if (Demo.DBPlatform == DBPlatforms.Native)
+	{
+		//Clean up Namespace...
+		Demo.Truncate();
+	}
 	//Import Aerospike Set Records...	
 	Demo.Import(LINQPad.Util.GetFullPath("aerospike.json"))
 		.Dump("Number of Records Imported");

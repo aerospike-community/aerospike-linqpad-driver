@@ -14,6 +14,7 @@ using System.Globalization;
 using System.Windows.Input;
 using LINQPad.Extensibility.DataContext.UI;
 using System.Windows.Media;
+using Aerospike.Database.LINQPadDriver.Extensions;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -249,7 +250,7 @@ namespace Aerospike.Database.LINQPadDriver
                     });
                     testTask.Wait();
 
-                    if (connection.DBType == DBTypes.Cloud)
+                    if (connection.DBPlatform == DBPlatforms.Cloud)
                     {
                         messageBoxText = $@"
 Cloud Database Id ""{_cxInfo.DatabaseInfo.Database}"" Successfully Connected!";
@@ -285,7 +286,7 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
                     }
                     if (connection != null)
                     {
-                        if (connection.DBType != DBTypes.Cloud)
+                        if (connection.DBPlatform != DBPlatforms.Cloud)
                         {
                             if (Helpers.IsPrivateAddress(connection.SeedHosts.FirstOrDefault().name))
                             {
@@ -434,9 +435,9 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 this.spCldPasswordNames.Visibility = Visibility.Hidden;
             }
 
-            var currentTab = (DBTypes)this.tcDBType.SelectedIndex;
+            var currentTab = (DBPlatforms)this.tcDBType.SelectedIndex;
 
-            if (currentTab == DBTypes.Cloud)
+            if (currentTab == DBPlatforms.Cloud)
             {
                 if (CloudDisableBtns())
                 {
@@ -489,9 +490,9 @@ Note: If the DB has Public/NATted/Alternate Addresses,
 
         void CloudCheckRequiredFlds()
         {
-            var currentTab = (DBTypes)this.tcDBType.SelectedIndex;
+            var currentTab = (DBPlatforms)this.tcDBType.SelectedIndex;
 
-            if (currentTab == DBTypes.Cloud)
+            if (currentTab == DBPlatforms.Cloud)
             {
                 if (CloudDisableBtns())
                 {
@@ -572,14 +573,14 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             }
         }
 
-        DBTypes priorTab = DBTypes.None;
+        DBPlatforms priorTab = DBPlatforms.None;
         
         private void tcDBType_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (priorTab == DBTypes.None) return;
+            if (priorTab == DBPlatforms.None) return;
 
             var tab = (TabControl)sender;            
-            var newType = (DBTypes)tab.SelectedIndex;
+            var newType = (DBPlatforms)tab.SelectedIndex;
 
             if (priorTab != newType)
             {                
@@ -587,7 +588,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 DBTypeCache.Update(newType, this, this._connectionProps);
                 priorTab = newType;
 
-                if (newType == DBTypes.Native)
+                if (newType == DBPlatforms.Native)
                 {
                     this.cbNetworkCompression.Visibility = Visibility.Visible;
                     this.txtSleepRetries.IsEnabled = true;
@@ -618,6 +619,44 @@ Note: If the DB has Public/NATted/Alternate Addresses,
         private void comboCldPasswordNames_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             CloudCheckRequiredFlds();
+        }
+
+        private void btnKeyFile_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog()
+            {
+                Filter = "API Key files (*.csv)|*.csv|All files (*.*)|*.*",
+                Title = "Select API Key Exported CSV File",
+                CheckPathExists = true,
+                CheckFileExists = true,
+                AddExtension = true
+            };
+
+            openFileDialog.DefaultExt = ".csv";
+            
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var fileLine = System.IO.File.ReadAllText(openFileDialog.FileName);
+                    var splitLine = fileLine.Split(new char[] { ',', ';' },
+                                                    StringSplitOptions.TrimEntries
+                                                    | StringSplitOptions.RemoveEmptyEntries);
+                    if(splitLine.Length >= 2)
+                    { 
+                        this._cxInfo.DatabaseInfo.UserName = splitLine[splitLine.Length - 2].Trim(' ', '"');
+                        this._cxInfo.DatabaseInfo.Password = splitLine.Last().Trim(' ', '"');
+                    }
+                    else
+                    {
+                        txtAPIKey.Text = "<API Key File Selected is not valid>";
+                    }
+                }
+                catch 
+                {
+                    txtAPIKey.Text = "<API Key File Selection Exception>";
+                }
+            }
         }
     }
 
@@ -797,7 +836,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
     {
         static readonly List<DBTypeCache> cache = new();
 
-        public DBTypes DBType { get; }
+        public DBPlatforms DBType { get; }
         public string Host { get; private set; }
         public string Port { get; private set; }
         public string UserName { get; private set; }
@@ -807,13 +846,13 @@ Note: If the DB has Public/NATted/Alternate Addresses,
         public string PasswordManagerName { get; private set; }
         public string TLSCertName { get; private set; }
         
-        private DBTypeCache(DBTypes dbType)
+        private DBTypeCache(DBPlatforms dbType)
         {
             this.DBType = dbType;
         }
 
         static DBTypeCache DBTypeCacheNative()
-            => new DBTypeCache(DBTypes.Native)
+            => new DBTypeCache(DBPlatforms.Native)
             {
                 Host = "localhost",
                 Port = "3000",
@@ -825,7 +864,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 TLSCertName = null
             };
         static DBTypeCache DBTypeCacheCloud()
-            => new DBTypeCache(DBTypes.Cloud)
+            => new DBTypeCache(DBPlatforms.Cloud)
             {
                 Host = null,
                 Port = "4000",
@@ -837,7 +876,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 TLSCertName = null
             };
 
-        internal static bool Update(DBTypes dbType, ConnectionDialog dialog, ConnectionProperties props)
+        internal static bool Update(DBPlatforms dbType, ConnectionDialog dialog, ConnectionProperties props)
         {
             bool result = false;
 
@@ -847,10 +886,10 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             {
                 switch (dbType)
                 {
-                    case DBTypes.Native:
+                    case DBPlatforms.Native:
                         fndDBType = DBTypeCacheNative();
                         break;
-                    case DBTypes.Cloud:
+                    case DBPlatforms.Cloud:
                         fndDBType = DBTypeCacheCloud();
                         break;
                 }
@@ -860,7 +899,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
 
             switch(fndDBType.DBType)
             { 
-                case DBTypes.Native:
+                case DBPlatforms.Native:
                     dialog.txtSeedNodes.Text = fndDBType.Host;
                     dialog.txtPort.Text = fndDBType.Port;
                     dialog.comboPasswordNames.SelectedItem = fndDBType.PasswordManagerName;
@@ -870,7 +909,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     dialog.cbShowPasswordChars.IsChecked = fndDBType.ShowPassword;
                     dialog.txtTLSCertName.Text = fndDBType.TLSCertName;
                     break;
-                case DBTypes.Cloud:
+                case DBPlatforms.Cloud:
                     dialog.txtCldhostName.Text = fndDBType.Host;
                     dialog.txtCldPort.Text = fndDBType.Port;
                     dialog.comboCldPasswordNames.SelectedItem = fndDBType.PasswordManagerName;
@@ -893,7 +932,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             return result;
         }
 
-        public static bool Save(DBTypes dbType, ConnectionDialog dialog)
+        public static bool Save(DBPlatforms dbType, ConnectionDialog dialog)
         {
             bool result = false;
 
@@ -908,7 +947,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
 
             switch (fndDBType.DBType)
             {
-                case DBTypes.Native:
+                case DBPlatforms.Native:
                     fndDBType.Host = dialog.txtSeedNodes.Text;
                     fndDBType.Port = dialog.txtPort.Text;
                     fndDBType.PasswordManagerName = (string) dialog.comboPasswordNames.SelectedItem;
@@ -917,7 +956,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                     fndDBType.Password = dialog.txtPassword.Text;
                     fndDBType.ShowPassword = dialog.cbShowPasswordChars.IsChecked ?? false;
                     break;
-                case DBTypes.Cloud:
+                case DBPlatforms.Cloud:
                     fndDBType.Host = dialog.txtCldhostName.Text;
                     fndDBType.Port = dialog.txtCldPort.Text;
                     fndDBType.PasswordManagerName = (string) dialog.comboCldPasswordNames.SelectedItem;

@@ -36,7 +36,7 @@ namespace Aerospike.Database.LINQPadDriver
             var dbPort = connectionInfo.Port;
             var encryptTraffic = cxInfo.DatabaseInfo.EncryptTraffic;
 
-            this.DBType = connectionInfo.DBType;
+            this.DBPlatform = connectionInfo.DBType;
             this.CloudNamespace = connectionInfo.NamespaceCloud;
 
             this.UsePasswordManager = connectionInfo.UsePasswordManager;
@@ -59,7 +59,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.DocumentAPI = connectionInfo.DocumentAPI;
             this.AlwaysUseAValues = connectionInfo.AlwaysUseAValues;
 
-            if (this.DBType == DBTypes.Cloud)
+            if (this.DBPlatform == DBPlatforms.Cloud)
             {
                 this.UseExternalIP = false;                
                 this.NetworkCompression = false;
@@ -154,13 +154,13 @@ namespace Aerospike.Database.LINQPadDriver
 
         public Host[] SeedHosts { get; }
 
-        public Node[] Nodes { get => this.DBType == DBTypes.Cloud ? null : this.AerospikeClient?.Nodes; }
+        public Node[] Nodes { get => this.DBPlatform == DBPlatforms.Cloud ? null : this.AerospikeClient?.Nodes; }
 
         public string CloudNamespace { get; }
 
         public IEnumerable<string> CloudSetNames { get; } = Array.Empty<string>();
 
-        public DBTypes DBType { get; }
+        public DBPlatforms DBPlatform { get; }
 
         public bool UseExternalIP { get; }
 
@@ -243,6 +243,8 @@ namespace Aerospike.Database.LINQPadDriver
         public TlsPolicy TLS { get; }
 
         public string TLSCertName {  get; }
+
+        public ClientPolicy ClientPolicy { get; private set; }
 
         /// <summary>
         /// Cluster Name
@@ -349,7 +351,7 @@ namespace Aerospike.Database.LINQPadDriver
 
                 try
                 {
-                    if (this.DBType == DBTypes.Cloud)
+                    if (this.DBPlatform == DBPlatforms.Cloud)
                     {
                         var hostName = this.SeedHosts.FirstOrDefault()?.name ?? "<Unknown>";
                         
@@ -573,8 +575,9 @@ namespace Aerospike.Database.LINQPadDriver
                         sleepBetweenRetries = this.SleepBetweenRetries
                     }
                 };
+                this.ClientPolicy = policy;
 
-                if (this.DBType == DBTypes.Cloud)
+                if (this.DBPlatform == DBPlatforms.Cloud)
                 {
                     this.AerospikeClient = new AerospikeClientProxy(policy, this.SeedHosts);
                 }
