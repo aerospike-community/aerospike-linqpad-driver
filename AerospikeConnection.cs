@@ -54,14 +54,14 @@ namespace Aerospike.Database.LINQPadDriver
             if (this.TLSCertName == string.Empty)
                 this.TLSCertName = null;
 
+            this.DBRecordSampleSet = connectionInfo.DBRecordSampleSet;
+            this.DBRecordSampleSetMin = (int)Math.Ceiling(this.DBRecordSampleSet * connectionInfo.DBRecordSampleSetPercent);
+            this.DocumentAPI = connectionInfo.DocumentAPI;
+            this.AlwaysUseAValues = connectionInfo.AlwaysUseAValues;
+
             if (this.DBType == DBTypes.Cloud)
             {
-                this.UseExternalIP = false;
-                if (this.RecordView == ARecord.DumpTypes.Record)
-                    this.RecordView = ARecord.DumpTypes.Dynamic;
-                this.DBRecordSampleSet = 0;
-                this.DocumentAPI = false;
-                this.AlwaysUseAValues = true;
+                this.UseExternalIP = false;                
                 this.NetworkCompression = false;
                 encryptTraffic = false;
 
@@ -78,10 +78,6 @@ namespace Aerospike.Database.LINQPadDriver
             else
             {
                 this.UseExternalIP = connectionInfo.UseExternalIP;                
-                this.DBRecordSampleSet = connectionInfo.DBRecordSampleSet;
-                this.DBRecordSampleSetMin = (int)Math.Ceiling(this.DBRecordSampleSet * connectionInfo.DBRecordSampleSetPercent);
-                this.DocumentAPI = connectionInfo.DocumentAPI;
-                this.AlwaysUseAValues = connectionInfo.AlwaysUseAValues;                
                 this.NetworkCompression = connectionInfo.NetworkCompression;
             }            
 
@@ -358,13 +354,33 @@ namespace Aerospike.Database.LINQPadDriver
                         var hostName = this.SeedHosts.FirstOrDefault()?.name ?? "<Unknown>";
                         
                         if (this.AerospikeClient.Connected)
-                        {
+                        {                            
                             var dbIDIdx = hostName.IndexOf('.');
 
                             this.Database = dbIDIdx <=0 ? hostName : hostName[0..dbIDIdx];
                             this.Namespaces = LPNamespace.Create(this.CloudNamespace, this.CloudSetNames);
 
-                            DetermineBins(true);
+                            #region Check Connection
+                            try
+                            {
+                                var smt = new Statement()
+                                {
+                                    MaxRecords = 1,
+                                    Namespace = this.CloudNamespace
+                                };
+
+                                this.AerospikeClient.Query(null, smt);
+                            }
+                            catch(Exception ex)
+                            {
+                                throw new AerospikeException(11, $"Connection to Cloud Host \"{hostName}\" failed.", ex);
+                            }
+                            #endregion
+
+                            if (obtainBinsInSet)
+                            {
+                                DetermineBins(true);
+                            }
 
                             this.UDFModules = Array.Empty<LPModule>();
                         }

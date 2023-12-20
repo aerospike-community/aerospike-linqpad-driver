@@ -130,7 +130,7 @@ namespace Aerospike.Database.LINQPadDriver
                 var lpSet = new LPSet(ns, setName);
                 ns.aSets.Add(lpSet);
             }
-            ns.aSets.Add(new LPSet(ns, LPSet.NullSetName));
+            ns.aSets.Add(new LPSet(ns));
 
             return new List<LPNamespace> { ns };
         }
