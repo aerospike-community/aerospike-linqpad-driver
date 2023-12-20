@@ -10,6 +10,8 @@
       <Port>4000</Port>
       <TLSOnlyLogin>true</TLSOnlyLogin>
       <SetNamesCloud>PlaylistTrack Track InvoiceLine Album Invoice Artist Playlist CustInvsDoc Customer Genre MediaType Employee DataTypes</SetNamesCloud>
+	  <ConnectionTimeout>5000</ConnectionTimeout>
+      <TotalTimeout>5000</TotalTimeout>
     </DriverData>
   </Connection>
 </Query>

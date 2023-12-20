@@ -579,6 +579,13 @@ namespace Aerospike.Database.LINQPadDriver
 
                 if (this.DBPlatform == DBPlatforms.Cloud)
                 {
+                    if(string.IsNullOrEmpty(policy.user)
+                        || string.IsNullOrEmpty(policy.password)
+                        || string.IsNullOrEmpty(this.CloudNamespace)) 
+                    {
+                        throw new ArgumentException("A required parameter is missing (Key, Secret, or Namespace). Update connection properties!");
+                    }
+
                     this.AerospikeClient = new AerospikeClientProxy(policy, this.SeedHosts);
                 }
                 else

@@ -10,6 +10,8 @@
       <Port>4000</Port>
       <TLSOnlyLogin>true</TLSOnlyLogin>
       <SetNamesCloud>PlaylistTrack Track InvoiceLine Album Invoice Artist Playlist CustInvsDoc Customer Genre MediaType Employee DataTypes</SetNamesCloud>
+      <ConnectionTimeout>5000</ConnectionTimeout>
+      <TotalTimeout>5000</TotalTimeout>
     </DriverData>
   </Connection>
   <Reference Relative="DemoDBJson\aerospike.json">&lt;MyDocuments&gt;\LINQPad Queries\Aerospike linqpad-samples\DemoDBJson\aerospike.json</Reference>
@@ -18,6 +20,8 @@
 /* 
 This LINQPad script will create the Aerospike sets needed to run the different sample script. 
 
+Before you begin, you willbe required to update the connection properties!
+You may also need to increase the timeout settings depending on your connection to Aerospike Cloud.
 
 Below is a list of sample scripts: 
 •	ReadMeFirst.linq – This script should be reviewed first. It will load the data into the “Demo” namespace which needs to exist. To create this namespace, please follow these instructions.
