@@ -34,6 +34,7 @@ Below is a list of sample scripts:
 •	POCO.linq – Show the use of the ORM between complete class structures and the Aerospike DB
 •	Put-Aerospike.linq – Show the use of how to insert or update a record within a set using a primary key
 •	CDT-Json-Docs.linq – Show the use of CDTs (Collection Data Types), Json, and documents by means of Linq and Aerospike Expressions
+•	Using NullSet.linq – Show the use the Null Set to obtain a record set for a Set dynamically
 
 */
 void Main()

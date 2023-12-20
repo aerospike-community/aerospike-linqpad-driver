@@ -72,7 +72,8 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     this.CloudSetNames = connectionInfo.SetNamesCloud.Split(new char[] { ',', ' ' },
                                                                                 StringSplitOptions.TrimEntries
-                                                                                | StringSplitOptions.RemoveEmptyEntries);
+                                                                                | StringSplitOptions.RemoveEmptyEntries)
+                                                        .Distinct();
                 }
             }
             else
