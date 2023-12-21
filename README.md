@@ -42,9 +42,9 @@ Here is a subset of what you can perform using the driver:
 -   Use the driver’s extension methods to perform operations like Aerospike Expression, CRUD operations, etc. without understanding the underlying Aerospike API.
 -   Serialize and deserialize any C\# object via the Object-Mapper (POCO). The driver supports all C\# data types, nested classes, and collections.
 -   Full JSON support using [Json.NET](https://www.newtonsoft.com/json).
--   Be able to execute [UDF](https://docs.aerospike.com/server/guide/udf)s directly and display their underlying code. UDFs are treated like C\# methods with intellisense and code completion.
+-   Be able to execute [UDF](https://docs.aerospike.com/server/guide/udf)s directly and display their underlying code. UDFs are treated like C\# methods with intellisense and code completion. This feature is not available for the cloud.
 -   Export or Import Sets directly or by means of an [Aerospike Filter](https://docs.aerospike.com/server/operations/configure/cross-datacenter/filters).
--   Provides metadata about the cluster which includes active/inactive nodes, Aerospike server version, etc.
+-   Provides metadata about the cluster which includes active/inactive nodes, Aerospike server version, etc. This feature is not available for the cloud.
 -   Use the Aerospike API directly to perform advance operations or instantly test snippets used in your application code.
 
 The driver can, also, dynamically detect the structure of records within an Aerospike Set resulting in an easy-to-understand view much like a relational table with enhanced capabilities. Some of these capabilities are:
@@ -366,8 +366,135 @@ Below is an example of importing a JSON file:
 test.players.Import(@"c:\users\randersen_aerospike\Desktop\player.json"); 
 test.Import(@"c:\users\randersen_aerospike\Desktop\player.json", "players");
 ```
+
 # Encryption and Authentication
-Support for TLS encryption and authentication is fully supported by enabling these options in the connection dialog. This includes the LIINQPad Password Manager intergation. If the password manager is not used, all password are encryped using the Windows Data Protection API. 
+
+Support for TLS encryption and authentication is fully supported by enabling these options in the connection dialog. This includes the LIINQPad Password Manager integration. If the password manager is not used, all passwords are encrypted using the Windows Data Protection API.
+
+# Connection Dialog
+
+The connection dialog is used to establish a connection to an Aerospike cluster. This can be a self-managed/native cluster or an Aerospike Cloud (DBaaS) cluster.
+
+This dialog also defines the connection [policies](https://aerospike.com/docs/server/guide/policies) and Aerospike LINQPad features. Each field/property will typically have a “tooltip” providing additional information. Blue underlined text is a hyperlink that will take you to additional information about the topic.
+
+The dialog is divided into multiple sections.
+
+![MethodsExample](<https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSections.png>)
+
+The sections are:
+
+1.  Self-Managed/Cloud tabs. Each tab provides the parameters needed to connect to an Aerospike cluster based on the targeted platform.
+2.  This section provides the general policies and features used by the [Aerospike C\# driver](https://github.com/aerospike/aerospike-client-csharp) or LINQPad feature.
+3.  Display/Conversion Options expansion panel, provides the options needed for auto-set bin discovery, serialization/deserialization options, use of auto-values, record display views, etc.
+4.  Buttons used to determine if the options are saved, canceled, or to test the connection.
+
+## Self-Managed Tab
+
+![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSelfMgmt.png](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSections.png))
+
+This tab is used to [connect to a self-managed/native Aerospike cluster](https://aerospike.com/docs/connect/kafka/to-asdb/configuring/aerospike).
+
+The properties are:
+
+1.  [An Aerospike node or a list of nodes separated by a comma](https://aerospike.com/docs/server/guide/client-connection#:~:text=An%20Aerospike%20cluster%20consists%20of,other%20nodes%20in%20the%20cluster.).
+2.  A checkbox when enabled will indicate that this cluster will be connected typically to a public IP address. For more information [click-here](https://aerospike.com/docs/apidocs/csharp/html/f_aerospike_client_clientpolicy_useservicesalternate).
+3.  The node’s client port for connection.
+4.  The username if [authentication](https://aerospike.com/docs/server/operations/configure/security/access-control) is enabled.
+5.  If enabled, the built-in LINQPad password manager is used. When enabled, a dropdown will be displayed to select your Password Name you defined in the manager. The Password Manager can be found on the File menu of LINQPad.
+6.  The associated password of the user.
+7.  If checked, it will show the password in plain text.
+8.  This expansion panel will display the TLS options (see below).
+9.  This panel are the options regarding timeout values. Each field will have a tooltip explaining the field.
+10. If enabled, “send key” sends the user-defined key in addition to hash digest on both reads and writes. If the key is sent on a write, the key will be stored with the record on the server and returned to the client on primary and secondary index queries.
+11. If enabled, queries are expected to return less than 100 records per node and the servers will optimize the queries for a small record set.
+12. If enabled, compression is used (only applies to Self-Managed clusters). This field is disabled for Cloud connections.
+13. Controls how “operate” API function behaves. For more information [click-here](https://aerospike.com/docs/apidocs/csharp/html/f_aerospike_client_writepolicy_respondallops).
+14. Enables the Document/JSON feature. See Document API section above. If disabled, collections are treated as .net collections.
+15. If enabled, the internal Aerospike API debugging/trace is enabled.
+16. The hyperlink will take you to the documentation regarding the driver’s policies.
+17. The name of the connection. It will default to “Aerospike Cluster” is not provided.
+18. The Display/Conversion Options expansion panel (see below).
+19. If enabled, the connection properties and features are persisted so that the connection can be used between LINQPad sessions.
+20. If enabled, this connection is considered “production only” and certain operations like “truncate” are not allowed.
+21. If pressed, the connection properties are used to establish a test connection to the cluster.
+22. Closes the dialog and makes the connection available to LINQPad.
+23. Closes the dialog and none of the changes are saved/persisted.
+
+### TLS Panel (only Self-Managed Clusters)
+
+The options needed to establish a [TLS connection to an Aerospike cluster](https://aerospike.com/docs/server/operations/configure/network/tls).
+
+![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectTLSProps.png](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSections.png))
+
+Fields are:
+
+1.  The [TLS protocols](https://aerospike.com/docs/server/guide/security/tls) that can be used. Multiple protocols can be selected.
+2.  The common name that was used in the certificate. For more information [click here](https://aerospike.com/docs/apidocs/csharp/html/f_aerospike_client_host_tlsname).
+3.  The client certificate file as a path. You can select the file by pressing the “Select a File” button on the far right.
+4.  Selects the client certificate file.
+5.  Reject server certificates whose serial numbers match.
+6.  If enabled, TLS is only used for authentication (login).
+
+## Cloud Tab
+
+![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionCloudProps.png](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSections.png))
+
+This tab is used to connect to an [Aerospike Cloud (DBaaS) cluster](https://aerospike.com/products/aerospike-cloud/).
+
+The fields are:
+
+1.  The hostname provided in the Cloud dashboard. The hyperlink will take you to the Aerospike Login screen or if you are already logged in to the dashboard.
+2.  The Cloud client connection port.
+3.  If a [VPC (AWS private link)](https://aerospike.com/docs/cloud/connect/private-link) is defined, this would be the hostname displayed on the dashboard. The hostname filed would be the VPC endpoint.
+4.  The API key created in the dashboard.
+5.  If the API key and secret was exported from the dashboard to your local machine, this button will allow you to import that API Key CSV file.
+6.  If enabled, the built-in LINQPad password manager is used. When enabled, a dropdown will be displayed to select your Password Name you defined in the manager. The Password Manager can be found on the File menu of LINQPad.
+7.  The associated API Key’s secret.
+8.  If checked, it will show the API secret in plain text.
+9.  The associated cloud namespace.
+10. If provided, a list of [set](https://aerospike.com/docs/server/architecture/data-model) names separated by comma or space. The set names will be used to populate the sets under the namespace in the LINQPad connection tree (see below image). Also, “set bin detection” will be preformed to obtain the bins and data types. Regardless if this field is provided or not, you can always obtain this information from the “NullSet”. See “Using NullSet.linq” example in the “Cloud” sample folder for examples.
+11. Hyperlinks to additional topics
+12. The timeout values that will be used to obtain the connection. Note that the “Sleep” field is ignored for cloud connections.
+
+    ![MethodsExample](<https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/CloudStaticSetNamesProp.png>)
+
+## Display/Conversion Options Panel
+
+![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/CloudStaticSetNamesProp.png)ConnectionDisplayConvFmtProps.png )
+
+This panel provides information on how to handle things like serialization, Set-Bin Datatype discovery, conversion, etc.
+
+The fields are:
+
+1.  The number of records that need to be read from a set to determine the bins and data types for an Aerospike Set. If zero, the Set-Bin Datatype discovery is disabled, and the Record Display View will default too “Dynamic”.
+2.  The number of records that are read as a percent of the total sample read value for the LINQPad driver to determine what bins and datatypes are part of that set. For example, If the sampling is 10, and the minimal percentage is 50%. If a set only had four records (needed at least five), the LINQPad driver will not use those four records to determine the bins/data types for that set.
+3.  The Record Display View field determines how records are displayed (dumped) in LINQPad.
+    1.  Record – Only applies if Set-Bin Datatype discovery is enabled (record sampling is not zero) and the LINQPad driver was able to discover the set’s bins and datatypes. Records in this set are displayed in a column/grid format where each column head is the bin name. See below for an example.
+    2.  Dynamic – This is the default view if a set’s bins could not have been discovered, when there are extra undetected bins in a set’s record, or a record error/exception occurred. See below for an example.
+    3.  Detail – All properties of the record (including hidden properties) are displayed.
+4.  Only when converting to/from .Net Date/Time object.
+    1.  If enabled:
+        1.  To a Date/Time object the associated Aerospike bin must be an INT type where that number will represent the number of nanoseconds from UNIX epoxy time and converted to the .Net Date/Time.
+        2.  From a .Net Date/Time object, it is converted to nanoseconds from UNIX epoxy time and saved into the associated bin as a INT type.
+    2.  If disabled:
+        1.  To a Date/Time object the associated Aerospike bin value will determine how the conversion will be determined. If a string, the sting will be parsed based on the defined formats to create the .Net Date/Time.
+        2.  From a Date/Time object, the string format of the object is used based on the defined date/time format.
+5.  In conjunction with the field above (use nanoseconds). If enabled the numeric value is the number of nanoseconds from UNIX epoxy time. If disabled, this would be the number of .Net ticks since midnight on January 1st in the year 1AD.
+6.  The format used to convert a Date/Time to/from a string.
+7.  The format used to convert a Date/Time with offset to/from a string.
+8.  The format used to convert a Time to/from a string.
+9.  If enabled, auto-values are always used. This eliminates the use of casting for bin values plus reduces the strong typing of C\#. If disable, bin values will be strongly typed.
+10. The default property name of primary keys.
+11. If enabled, internal LINQPad driver debugging is enabled which includes persisting of the dynamic C\# classes to the LINQPad script folder.
+
+![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/CloudStaticSetNamesProp.png)RecordDisplayViewRecord.png)
+
+Example of Record Display View.
+
+![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/CloudStaticSetNamesProp.png)RecordDisplayViewDynamic.png)
+
+Example of Dynamic Display View.
+
 # Examples
 
 Sample scripts can be found in the [LINQPad Sample tree view tab](https://www.linqpad.net/nugetsamples.aspx) under “nuget” or in the “linqpad-samples” folder in GitHub.
@@ -385,7 +512,8 @@ The sample scripts are:
 -   CDT-Json-Docs.linq – Show the use of CDTs (Collection Data Types), Json, and documents by means of Linq and Aerospike [Expressions](https://docs.aerospike.com/server/guide/expressions)
 
 # Prerequisites
--	[LINQPad 8](https://www.linqpad.net/LINQPad8.aspx): [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0)/[.NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)/[.NET 6](https://dotnet.microsoft.com/download/dotnet/6.0)
+
+-   [LINQPad 8](https://www.linqpad.net/LINQPad8.aspx): [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0)/[.NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)/[.NET 6](https://dotnet.microsoft.com/download/dotnet/6.0)
 -   [LINQPad 7](https://www.linqpad.net/LINQPad7.aspx): [.NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)/[.NET 6](https://dotnet.microsoft.com/download/dotnet/6.0)/[.NET 5](https://dotnet.microsoft.com/download/dotnet/5.0)/[.NET Core 3.1](https://dotnet.microsoft.com/download/dotnet-core/3.1)
 -   [LINQPad 6](https://www.linqpad.net/LINQPad6.aspx): [.NET 5](https://dotnet.microsoft.com/download/dotnet/5.0)/[.NET Core 3.1](https://dotnet.microsoft.com/download/dotnet-core/3.1)
 
@@ -412,6 +540,7 @@ Obtain the latest driver from the `Driver` folder and [download](https://github.
 
 There are multiple ways to install Aerospike DB.
 
+-   [Aerospike Cloud (DBaaS)](https://aerospike.com/products/aerospike-cloud/)
 -   [Docker, Cloud, and Linux](https://docs.aerospike.com/server/operations/install)
 -   [AeroLab](https://github.com/aerospike/aerolab)
 

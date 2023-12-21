@@ -13,6 +13,7 @@ using Newtonsoft.Json.Linq;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using LPEDC = LINQPad.Extensibility.DataContext;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace Aerospike.Client
 {
@@ -133,7 +134,7 @@ namespace Aerospike.Client
 
 namespace Aerospike.Database.LINQPadDriver
 {
-    public static class Helpers
+    public static partial class Helpers
     {
 
         public static bool IsPrivateAddress(string ipAddress)
@@ -235,26 +236,94 @@ namespace Aerospike.Database.LINQPadDriver
                              .ToArray();
         }
 
-        public static string GetRealTypeName(Type t, bool makeIntoNullable = false)
+#if NET7_0_OR_GREATER
+        [GeneratedRegex("(?<namespace>[^.]+)+",
+                        RegexOptions.Compiled)]
+        static private partial Regex NamespaceRegEx();
+#else
+        static readonly Regex namespaceRegEx = new Regex("(?<namespace>[^.]+)+",
+                                                            RegexOptions.Compiled);
+        static private Regex NamespaceRegEx() => namespaceRegEx;
+#endif
+
+        public static string GetRealTypeName(Type t, bool makeIntoNullable = false, bool includeNameSpace = false)
         {
             if (t == null) return null;
+            string ns = null;
+           
+            if (includeNameSpace)
+            {
+                var parts = NamespaceRegEx().Matches(t.FullName);
+                
+                ns = string.Join(',', parts.SkipLast(1).Select(a => a.Value));
+            }
+
+            static string GetDeclaringClass(Type currentType)
+            {
+                if (currentType.IsGenericParameter)
+                    return "{PARAM}";
+
+                var declaringTpe = currentType.DeclaringType;
+
+                return declaringTpe is null
+                        ? currentType.Name
+                        : GetRealTypeName(declaringTpe, false, false) + '.' + currentType.Name;
+            }
 
             if (!t.IsGenericType)
+            {
+                string className = GetDeclaringClass(t);
+
+                if(!string.IsNullOrWhiteSpace(ns))
+                    className = ns + "." + className;
+
                 return makeIntoNullable && t.IsValueType
-                            ? $"Nullable<{t.Name}>"
-                            : t.Name;
+                            ? $"Nullable<{className}>"
+                            : className;
+            }
 
             StringBuilder sb = new StringBuilder();
-            sb.Append(t.Name.Substring(0, t.Name.IndexOf('`')));
-            sb.Append('<');
+            var genericName = GetDeclaringClass(t);
+            var paramCnt = genericName.Count(c => c == '{');
+            var paramIdx = genericName.IndexOf('}');
+            var genericFnd = genericName.Contains('`');
             bool appendComma = false;
-            foreach (Type arg in t.GetGenericArguments())
+            
+            if(!string.IsNullOrEmpty(ns))
+                sb.Append(ns);
+
+            if (genericFnd)
             {
-                if (appendComma) sb.Append(',');
-                sb.Append(GetRealTypeName(arg));
+                sb.Append(genericName. AsSpan(0, genericName.IndexOf('`')));
+                sb.Append('<');
+                appendComma = false;
+            }
+            else
+            {
+                sb.Append(genericName);
                 appendComma = true;
             }
-            sb.Append('>');
+
+            foreach (Type arg in t.GetGenericArguments())
+            {
+                var genericArg = GetRealTypeName(arg, makeIntoNullable, includeNameSpace);
+
+                if (paramCnt-- > 0)
+                {
+                    sb.Replace("{PARAM}", genericArg, 0, paramIdx+1);
+                    paramIdx = genericName.IndexOf('}', paramIdx+1);
+                }
+                else
+                {
+                    if (appendComma) sb.Append(',');
+                    sb.Append(genericArg);
+                    appendComma = true;
+                }
+            }
+
+            if (genericFnd)
+                sb.Append('>');
+
             return makeIntoNullable && t.IsValueType
                             ? $"Nullable<{sb}>"
                             : sb.ToString();
@@ -376,16 +445,10 @@ namespace Aerospike.Database.LINQPadDriver
 
         private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        public static long NanosFromEpoch(DateTime dt)
-        {
-            return (long)dt.ToUniversalTime().Subtract(UnixEpoch).TotalMilliseconds * 1000000;
-        }
-
-        public static DateTime NanoEpochToDateTime(long nanoseconds)
-        {
-            return UnixEpoch.AddTicks(nanoseconds / 100);
-        }
-
+        public static long NanosFromEpoch(DateTime dt) => (long)dt.ToUniversalTime().Subtract(UnixEpoch).TotalMilliseconds * 1000000;
+        
+        public static DateTime NanoEpochToDateTime(long nanoseconds) => UnixEpoch.AddTicks(nanoseconds / 100);
+        
         internal const string defaultDateTimeFormat = "yyyy-MM-ddTHH:mm:ss.ffff";
         internal const string defaultDateTimeOffsetFormat = "yyyy-MM-ddTHH:mm:ss.ffffzzz";
         internal const string defaultTimeSpanFormat = "c";
@@ -477,6 +540,10 @@ namespace Aerospike.Database.LINQPadDriver
                 else if (putObject is Guid guidValue)
                 {
                     putObject = guidValue.ToString();
+                }                
+                else if(GeoJSONHelpers.IsGeoValue(putObject.GetType()))
+                {
+                    return GeoJSONHelpers.ConvertFromGeoJson(putObject);
                 }
                 else if(putObject is JObject jObject)
                 {
@@ -859,23 +926,26 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     if (fldType == typeof(JToken))
                     {
-                        return JToken.FromObject(binValue);
+                        return binValue is null ? (JToken)null : JToken.FromObject(binValue);
                     }
                     else if (fldType == typeof(JValue))
                     {
-                        return JValue.FromObject(binValue);
+                        return binValue is null ? (JValue)null :  JValue.FromObject(binValue);
                     }
                     else if (fldType == typeof(JArray))
                     {
-                        return JArray.FromObject(binValue);
+                        return binValue is null ? (JArray)null : JArray.FromObject(binValue);
                     }
                     else if (fldType == typeof(JObject))
                     {
-                        return JObject.FromObject(binValue);
+                        if (binValue is Value.GeoJSONValue geoJson)
+                            return JObject.FromObject(geoJson.value);
+
+                        return binValue is null ? (JObject)null : JObject.FromObject(binValue);
                     }
                     else if (fldType == typeof(JsonDocument))
                     {
-                        return new JsonDocument(JObject.FromObject(binValue));
+                        return binValue is null ? (JsonDocument) null : new JsonDocument(JObject.FromObject(binValue));
                     }
                     
                     switch (binValue)
@@ -1083,6 +1153,9 @@ namespace Aerospike.Database.LINQPadDriver
 
                                 if (string.IsNullOrEmpty(strValue))
                                 {
+                                    if (GeoJSONHelpers.IsGeoValue(fldType))
+                                        return null;
+
                                     return strValue;
                                 }
                                 else if (fldType == typeof(DateTime))
@@ -1166,10 +1239,22 @@ namespace Aerospike.Database.LINQPadDriver
                                 {
                                     return Enum.Parse(fldType, strValue, true);
                                 }
+                                else if(fldType == typeof(Value.GeoJSONValue))
+                                {
+                                    return new Value.GeoJSONValue(strValue);
+                                }
+                                else if (GeoJSONHelpers.IsGeoValue(fldType))
+                                {
+                                    return GeoJSONHelpers.ConvertToGeoJson(strValue);
+                                }
                                 else
                                 {
                                     throw CreateException(strValue);
                                 }
+                            }
+                        case Value.GeoJSONValue geoObj:
+                            {
+                                return GeoJSONHelpers.ConvertToGeoJson(geoObj);
                             }
                         case DateTime dtValue:
                             {
@@ -1994,6 +2079,8 @@ namespace Aerospike.Database.LINQPadDriver
 
         public static bool IsJsonDoc(Type checkType) => checkType == typeof(JObject)
                                                         || checkType == typeof(JsonDocument);
+
+        public static bool IsGeoJson(Type checkType) => GeoJSONHelpers.IsGeoValue(checkType);
 
         public static string ToLiteral(string input)
         {

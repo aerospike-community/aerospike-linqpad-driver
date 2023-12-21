@@ -294,6 +294,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             get => Helpers.IsJson(this.UnderlyingType);
         }
 
+        public bool IsGeoJson
+        {
+            get => this.Value is Client.Value.GeoJSONValue || GeoJSONHelpers.IsGeoValue(this.UnderlyingType);
+        }
+
         public bool IsDateTime
         {
             get => this.UnderlyingType == typeof(DateTime);
@@ -461,13 +466,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Converts <see cref="Value"/> into a .net native type
+        /// Converts <see cref="Value"/> into a .net native type, a <see cref="Newtonsoft.Json"/>, or <see cref="GeoJSON.Net.GeoJSONObject"/> instance.
         /// </summary>
-        /// <typeparam name="T">.Net Type to convert to</typeparam>
+        /// <typeparam name="T">Try to convert <see cref="Value"/> to this type</typeparam>
         /// <returns>
         /// The converted value
         /// </returns>
-        public T Convert<T>() => this.Value is T ? (T) this.Value : (T) Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
+        /// <exception cref="ArgumentException">Thrown if value cannot be converted</exception>
+        public T Convert<T>() => this.Value is T tValue? tValue : (T) Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
 
         /// <summary>
         /// Returns an enumerable object, if possible.
@@ -968,8 +974,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 	    public static bool operator!=(AValue value1, AValue value2) => !(value1 == value2);
 
-        public static bool operator<(AValue value1, AValue value2) => value1 is null ? !(value2 is null) : value1.CompareTo(value2) < 0;
-	    public static bool operator>(AValue value1, AValue value2) => !(value1 is null) && value1.CompareTo(value2) > 0;
+        public static bool operator<(AValue value1, AValue value2) => value1 is null ? value2 is not null : value1.CompareTo(value2) < 0;
+	    public static bool operator>(AValue value1, AValue value2) => value1 is not null && value1.CompareTo(value2) > 0;
         public static bool operator<=(AValue value1, AValue value2) => value1 is null || value1.CompareTo(value2) <= 0;
         public static bool operator>=(AValue value1, AValue value2) => value1 is null ? value2 is null : value1.CompareTo(value2) >= 0;
        
@@ -978,13 +984,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public static bool operator==(Aerospike.Client.Value oValue, AValue aValue) => aValue?.Equals(oValue) ?? oValue is null;
 	    public static bool operator!=(Aerospike.Client.Value oValue, AValue aValue) => !(aValue?.Equals(oValue) ?? oValue is null);
        
-        public static bool operator<(Aerospike.Client.Value oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
-	    public static bool operator>(Aerospike.Client.Value oValue, AValue aValue) => aValue is null ? !(oValue is null) : aValue.CompareTo(oValue) < 0;
+        public static bool operator<(Aerospike.Client.Value oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
+	    public static bool operator>(Aerospike.Client.Value oValue, AValue aValue) => aValue is null ? oValue is not null : aValue.CompareTo(oValue) < 0;
         public static bool operator<=(Aerospike.Client.Value oValue, AValue aValue) => aValue is null ? oValue is null : aValue.CompareTo(oValue) >= 0;
         public static bool operator>=(Aerospike.Client.Value oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
-        public static bool operator<(AValue aValue, Aerospike.Client.Value oValue) => aValue is null ? !(oValue is null) : aValue.CompareTo(oValue) < 0;
-	    public static bool operator>(AValue aValue, Aerospike.Client.Value oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+        public static bool operator<(AValue aValue, Aerospike.Client.Value oValue) => aValue is null ? oValue is not null : aValue.CompareTo(oValue) < 0;
+	    public static bool operator>(AValue aValue, Aerospike.Client.Value oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
         public static bool operator<=(AValue aValue, Aerospike.Client.Value oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
         public static bool operator>=(AValue aValue, Aerospike.Client.Value oValue) => aValue is null ? oValue is null : aValue.CompareTo(oValue) >= 0;
 
@@ -993,13 +999,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public static bool operator==(Aerospike.Client.Key oValue, AValue aValue) => aValue?.Equals(oValue) ?? oValue is null;
 	    public static bool operator!=(Aerospike.Client.Key oValue, AValue aValue) => !(aValue?.Equals(oValue) ?? oValue is null);
 
-        public static bool operator<(Aerospike.Client.Key oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
-	    public static bool operator>(Aerospike.Client.Key oValue, AValue aValue) => aValue is null ? !(oValue is null) : aValue.CompareTo(oValue) < 0;
+        public static bool operator<(Aerospike.Client.Key oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
+	    public static bool operator>(Aerospike.Client.Key oValue, AValue aValue) => aValue is null ? oValue is not null : aValue.CompareTo(oValue) < 0;
         public static bool operator<=(Aerospike.Client.Key oValue, AValue aValue) => aValue is null ? oValue is null : aValue.CompareTo(oValue) >= 0;
         public static bool operator>=(Aerospike.Client.Key oValue, AValue aValue) => aValue is null || aValue?.CompareTo(oValue) <= 0;
 
-        public static bool operator<(AValue aValue, Aerospike.Client.Key oValue) => aValue is null ? !(oValue is null) : aValue?.CompareTo(oValue) < 0;
-	    public static bool operator>(AValue aValue, Aerospike.Client.Key oValue) => !(aValue is null) && aValue?.CompareTo(oValue) > 0;
+        public static bool operator<(AValue aValue, Aerospike.Client.Key oValue) => aValue is null ? oValue is not null : aValue?.CompareTo(oValue) < 0;
+	    public static bool operator>(AValue aValue, Aerospike.Client.Key oValue) => aValue is not null && aValue?.CompareTo(oValue) > 0;
         public static bool operator<=(AValue aValue, Aerospike.Client.Key oValue) => aValue is null || aValue?.CompareTo(oValue) <= 0;
         public static bool operator>=(AValue aValue, Aerospike.Client.Key oValue) => aValue is null ? oValue is null : aValue?.CompareTo(oValue) >= 0;
 
@@ -1018,15 +1024,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< string > v, AValue av) => av == v;
 	        public static bool operator!=(List< string > v, AValue av) => av != v;
 
-            public static bool operator<(string oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(string oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(string oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(string oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(string oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(string oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, string oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, string oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, string oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, string oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, string oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, string oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
              
             public bool Equals(string value)
@@ -1063,15 +1069,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< bool > v, AValue av) => av == v;
 	        public static bool operator!=(List< bool > v, AValue av) => av != v;
 
-            public static bool operator<(bool oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(bool oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(bool oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(bool oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(bool oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(bool oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, bool oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, bool oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, bool oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, bool oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, bool oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, bool oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public bool Tobool() => (bool) this;
               
@@ -1123,15 +1129,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< Enum > v, AValue av) => av == v;
 	        public static bool operator!=(List< Enum > v, AValue av) => av != v;
 
-            public static bool operator<(Enum oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(Enum oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(Enum oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(Enum oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(Enum oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(Enum oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, Enum oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, Enum oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, Enum oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, Enum oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, Enum oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, Enum oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public Enum ToEnum() => (Enum) this;
               
@@ -1183,15 +1189,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< Guid > v, AValue av) => av == v;
 	        public static bool operator!=(List< Guid > v, AValue av) => av != v;
 
-            public static bool operator<(Guid oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(Guid oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(Guid oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(Guid oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(Guid oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(Guid oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, Guid oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, Guid oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, Guid oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, Guid oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, Guid oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, Guid oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public Guid ToGuid() => (Guid) this;
               
@@ -1228,15 +1234,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< short > v, AValue av) => av == v;
 	        public static bool operator!=(List< short > v, AValue av) => av != v;
 
-            public static bool operator<(short oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(short oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(short oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(short oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(short oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(short oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, short oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, short oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, short oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, short oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, short oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, short oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public short Toshort() => (short) this;
               
@@ -1288,15 +1294,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< int > v, AValue av) => av == v;
 	        public static bool operator!=(List< int > v, AValue av) => av != v;
 
-            public static bool operator<(int oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(int oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(int oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(int oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(int oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(int oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, int oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, int oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, int oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, int oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, int oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, int oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public int Toint() => (int) this;
               
@@ -1348,15 +1354,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< long > v, AValue av) => av == v;
 	        public static bool operator!=(List< long > v, AValue av) => av != v;
 
-            public static bool operator<(long oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(long oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(long oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(long oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(long oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(long oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, long oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, long oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, long oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, long oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, long oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, long oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public long Tolong() => (long) this;
               
@@ -1408,15 +1414,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< ushort > v, AValue av) => av == v;
 	        public static bool operator!=(List< ushort > v, AValue av) => av != v;
 
-            public static bool operator<(ushort oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(ushort oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(ushort oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(ushort oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(ushort oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(ushort oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, ushort oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, ushort oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, ushort oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, ushort oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, ushort oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, ushort oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public ushort Toushort() => (ushort) this;
               
@@ -1468,15 +1474,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< uint > v, AValue av) => av == v;
 	        public static bool operator!=(List< uint > v, AValue av) => av != v;
 
-            public static bool operator<(uint oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(uint oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(uint oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(uint oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(uint oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(uint oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, uint oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, uint oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, uint oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, uint oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, uint oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, uint oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public uint Touint() => (uint) this;
               
@@ -1528,15 +1534,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< ulong > v, AValue av) => av == v;
 	        public static bool operator!=(List< ulong > v, AValue av) => av != v;
 
-            public static bool operator<(ulong oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(ulong oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(ulong oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(ulong oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(ulong oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(ulong oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, ulong oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, ulong oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, ulong oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, ulong oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, ulong oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, ulong oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public ulong Toulong() => (ulong) this;
               
@@ -1588,15 +1594,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< decimal > v, AValue av) => av == v;
 	        public static bool operator!=(List< decimal > v, AValue av) => av != v;
 
-            public static bool operator<(decimal oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(decimal oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(decimal oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(decimal oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(decimal oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(decimal oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, decimal oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, decimal oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, decimal oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, decimal oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, decimal oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, decimal oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public decimal Todecimal() => (decimal) this;
               
@@ -1648,15 +1654,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< float > v, AValue av) => av == v;
 	        public static bool operator!=(List< float > v, AValue av) => av != v;
 
-            public static bool operator<(float oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(float oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(float oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(float oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(float oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(float oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, float oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, float oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, float oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, float oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, float oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, float oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public float Tofloat() => (float) this;
               
@@ -1708,15 +1714,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< double > v, AValue av) => av == v;
 	        public static bool operator!=(List< double > v, AValue av) => av != v;
 
-            public static bool operator<(double oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(double oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(double oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(double oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(double oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(double oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, double oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, double oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, double oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, double oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, double oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, double oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public double Todouble() => (double) this;
               
@@ -1768,15 +1774,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< byte > v, AValue av) => av == v;
 	        public static bool operator!=(List< byte > v, AValue av) => av != v;
 
-            public static bool operator<(byte oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(byte oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(byte oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(byte oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(byte oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(byte oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, byte oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, byte oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, byte oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, byte oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, byte oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, byte oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public byte Tobyte() => (byte) this;
               
@@ -1828,15 +1834,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< sbyte > v, AValue av) => av == v;
 	        public static bool operator!=(List< sbyte > v, AValue av) => av != v;
 
-            public static bool operator<(sbyte oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(sbyte oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(sbyte oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(sbyte oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(sbyte oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(sbyte oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, sbyte oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, sbyte oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, sbyte oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, sbyte oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, sbyte oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, sbyte oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public sbyte Tosbyte() => (sbyte) this;
               
@@ -1888,15 +1894,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< DateTime > v, AValue av) => av == v;
 	        public static bool operator!=(List< DateTime > v, AValue av) => av != v;
 
-            public static bool operator<(DateTime oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(DateTime oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(DateTime oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(DateTime oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(DateTime oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(DateTime oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, DateTime oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, DateTime oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, DateTime oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, DateTime oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, DateTime oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, DateTime oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public DateTime ToDateTime() => (DateTime) this;
               
@@ -1946,15 +1952,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< DateTimeOffset > v, AValue av) => av == v;
 	        public static bool operator!=(List< DateTimeOffset > v, AValue av) => av != v;
 
-            public static bool operator<(DateTimeOffset oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(DateTimeOffset oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(DateTimeOffset oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(DateTimeOffset oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(DateTimeOffset oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(DateTimeOffset oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, DateTimeOffset oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, DateTimeOffset oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, DateTimeOffset oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, DateTimeOffset oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, DateTimeOffset oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, DateTimeOffset oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public DateTimeOffset ToDateTimeOffset() => (DateTimeOffset) this;
               
@@ -2004,15 +2010,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< TimeSpan > v, AValue av) => av == v;
 	        public static bool operator!=(List< TimeSpan > v, AValue av) => av != v;
 
-            public static bool operator<(TimeSpan oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+            public static bool operator<(TimeSpan oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
 	        public static bool operator>(TimeSpan oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(TimeSpan oValue, AValue aValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<=(TimeSpan oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
             public static bool operator>=(TimeSpan oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
 
             public static bool operator<(AValue aValue, TimeSpan oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, TimeSpan oValue) => !(aValue is null) && aValue.CompareTo(oValue) > 0;
+	        public static bool operator>(AValue aValue, TimeSpan oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
             public static bool operator<=(AValue aValue, TimeSpan oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, TimeSpan oValue) => !(aValue is null) && aValue.CompareTo(oValue) >= 0;
+            public static bool operator>=(AValue aValue, TimeSpan oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
 
                         public TimeSpan ToTimeSpan() => (TimeSpan) this;
               
@@ -2185,7 +2191,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             return this.Value switch
             {
-                string sValue => !(value is null)
+                string sValue => value is not null
                                     && (value is string svalue
                                             && sValue.Contains(svalue))
                                         || this.Equals(value),

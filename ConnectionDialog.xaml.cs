@@ -12,7 +12,9 @@ using System.Collections;
 using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
 using System.Globalization;
 using System.Windows.Input;
-using System.Xml.Linq;
+using LINQPad.Extensibility.DataContext.UI;
+using System.Windows.Media;
+using Aerospike.Database.LINQPadDriver.Extensions;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -47,21 +49,32 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     if (!this.comboPasswordNames.Items.Contains(name))
                         this.comboPasswordNames.Items.Add(name);
-                    if(name == _connectionProps.PasswordManagerName)
+                    if (!this.comboCldPasswordNames.Items.Contains(name))
+                        this.comboCldPasswordNames.Items.Add(name);
+                    if (name == _connectionProps.PasswordManagerName)
                         nameFnd = true;
                 }
 
                 if(!string.IsNullOrEmpty(_connectionProps.PasswordManagerName))
                 {
-                        if(!nameFnd)
-                            this.comboPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
-                        this.comboPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
+                    if(!nameFnd)
+                        this.comboPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
+                    this.comboPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
+                    if (!nameFnd)
+                        this.comboCldPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
+                    this.comboCldPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
                 }
 
                 cbUsePassMgr_Click(this.cbUsePassMgr, new RoutedEventArgs());
+                cbCldUsePassMgr_Click(this.cbCldUsePassMgr, new RoutedEventArgs());
             }
+
+            defaultBolderBrush = this.txtCldhostName.BorderBrush;
+            DBTypeCache.Save(this._connectionProps);
+            DBTypeCache.Update(this._connectionProps.DBType, this, this._connectionProps);
+            priorTab = _connectionProps.DBType;
         }
-        
+
         void btnOK_Click (object sender, RoutedEventArgs e)
 		{
             //Debugger.Launch ();
@@ -230,10 +243,21 @@ namespace Aerospike.Database.LINQPadDriver
             {                
                 try
                 {
-                    connection = new AerospikeConnection(_cxInfo);
-                    connection.ObtainMetaDate(false);
+                    var testTask = System.Threading.Tasks.Task.Run(() =>
+                    {
+                        connection = new AerospikeConnection(_cxInfo);
+                        connection.ObtainMetaDate(false);
+                    });
+                    testTask.Wait();
 
-                    messageBoxText = $@"
+                    if (connection.DBPlatform == DBPlatforms.Cloud)
+                    {
+                        messageBoxText = $@"
+Cloud Database Id ""{_cxInfo.DatabaseInfo.Database}"" Successfully Connected!";
+                    }
+                    else
+                    {
+                        messageBoxText = $@"
 Cluster Name: ""{_cxInfo.DatabaseInfo.Database}""
 DB Version: {_cxInfo.DatabaseInfo.DbVersion}
 Nodes: {connection.Nodes.Length}
@@ -242,7 +266,7 @@ Sets: {connection.Namespaces.Sum(n => n.Sets.Count())}
 Bins: {connection.Namespaces.Sum(n => n.Bins.Count())}
 Secondary Indexes: {connection.Namespaces.Sum(n => n.SIndexes.Count())}
 UDFs: {connection.UDFModules.Count()}";
-
+                    }
                 }
                 catch(Exception ex)
                 {
@@ -262,24 +286,27 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
                     }
                     if (connection != null)
                     {
-                        if (Helpers.IsPrivateAddress(connection.SeedHosts.FirstOrDefault().name))
+                        if (connection.DBPlatform != DBPlatforms.Cloud)
                         {
-                            if (connection.UseExternalIP)
+                            if (Helpers.IsPrivateAddress(connection.SeedHosts.FirstOrDefault().name))
                             {
-                                messageBoxText += $@"
+                                if (connection.UseExternalIP)
+                                {
+                                    messageBoxText += $@"
 
 Note: The DB seems to be on a private network
       and ""Public Address"" option is enabled! Should this be disabled?
 ";
+                                }
                             }
-                        }
-                        else if (!connection.UseExternalIP)
-                        {
-                            messageBoxText += $@"
+                            else if (!connection.UseExternalIP)
+                            {
+                                messageBoxText += $@"
 
 Note: If the DB has Public/NATted/Alternate Addresses,
       you may need to enable ""Public Address"" option!
 ";
+                            }
                         }
                     }
                 }
@@ -330,7 +357,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             }
         }
 
-        private string[] PasswordManagerNames
+        static private string[] PasswordManagerNames
         {
             get
             {
@@ -352,6 +379,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             //Debugger.Launch ();
 
             var cb = (CheckBox)sender;
+           
 
             if (cb.IsChecked == true)
             {                
@@ -383,7 +411,253 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             passwordBox.Visibility = Visibility.Visible;
 
             passwordBox.Focus();
-        }        
+        }
+
+        private void cbCldUsePassMgr_Click(object sender, RoutedEventArgs e)
+        {
+            //Debugger.Launch ();
+
+            var cb = (CheckBox)sender;
+
+
+            if (cb.IsChecked == true)
+            {
+                this.spCldPassword.IsEnabled = false;
+                this.spCldPassword.Visibility = Visibility.Hidden;
+                this.spCldPasswordNames.IsEnabled = true;
+                this.spCldPasswordNames.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                this.spCldPassword.IsEnabled = true;
+                this.spCldPassword.Visibility = Visibility.Visible;
+                this.spCldPasswordNames.IsEnabled = false;
+                this.spCldPasswordNames.Visibility = Visibility.Hidden;
+            }
+
+            var currentTab = (DBPlatforms)this.tcDBType.SelectedIndex;
+
+            if (currentTab == DBPlatforms.Cloud)
+            {
+                if (CloudDisableBtns())
+                {
+                    this.btnOK.IsEnabled = false;
+                    this.btnTest.IsEnabled = false;
+                }
+                else
+                {
+                    this.btnOK.IsEnabled = true;
+                    this.btnTest.IsEnabled = true;
+                }
+            }
+        }
+
+        private void cbCldShowPasswordChars_Checked(object sender, RoutedEventArgs e)
+        {
+            CldpasswordBox.Visibility = Visibility.Collapsed;
+            txtCldPassword.Visibility = Visibility.Visible;
+
+            txtCldPassword.Focus();
+        }
+
+        private void cbCldShowPasswordChars_Unchecked(object sender, RoutedEventArgs e)
+        {
+            txtCldPassword.Visibility = Visibility.Collapsed;
+            CldpasswordBox.Visibility = Visibility.Visible;
+
+            CldpasswordBox.Focus();
+        }
+
+        bool CloudDisableBtns()
+        {
+            if(string.IsNullOrEmpty(this.txtCldhostName.Text)
+                        || string.IsNullOrEmpty(this.txtAPIKey.Text)
+                        || string.IsNullOrEmpty(this.txtCldNamespace.Text))
+                return true;
+
+            if(this.cbUsePassMgr.IsChecked ?? false)
+            {
+                if (this.comboCldPasswordNames.SelectedIndex <= 0)
+                    return true;
+                return false;
+            }
+
+            return string.IsNullOrEmpty(this.txtCldPassword.Text)
+                            && string.IsNullOrEmpty(this.CldpasswordBox.Password);
+        }
+
+        readonly Brush defaultBolderBrush = null;
+
+        void CloudCheckRequiredFlds()
+        {
+            var currentTab = (DBPlatforms)this.tcDBType.SelectedIndex;
+
+            if (currentTab == DBPlatforms.Cloud)
+            {
+                if (CloudDisableBtns())
+                {
+                    if (string.IsNullOrEmpty(this.txtCldhostName.Text))
+                    {
+                        this.txtCldhostName.BorderBrush = System.Windows.Media.Brushes.Red;
+                    }
+                    else
+                    {
+                        this.txtCldhostName.BorderBrush = defaultBolderBrush;
+                    }
+
+                    if (string.IsNullOrEmpty(this.txtAPIKey.Text))
+                    {
+                        this.txtAPIKey.BorderBrush = System.Windows.Media.Brushes.Red;
+                    }
+                    else
+                    {
+                        this.txtAPIKey.BorderBrush = defaultBolderBrush;
+                    }
+
+                    if (string.IsNullOrEmpty(this.txtCldNamespace.Text))
+                    {
+                        this.txtCldNamespace.BorderBrush = System.Windows.Media.Brushes.Red;
+                    }
+                    else
+                    {
+                        this.txtCldNamespace.BorderBrush = defaultBolderBrush;
+                    }
+
+                    if (this.cbUsePassMgr.IsChecked ?? false)
+                    {
+                        if (this.comboCldPasswordNames.SelectedIndex <= 0)
+                        {
+                            this.comboCldPasswordNames.BorderBrush = System.Windows.Media.Brushes.Red;
+                        }
+                        else
+                        {
+                            this.comboCldPasswordNames.BorderBrush = defaultBolderBrush;
+                        }
+                    }
+                    else
+                    {
+                        if (string.IsNullOrEmpty(this.txtCldPassword.Text))
+                        {
+                            this.txtCldPassword.BorderBrush = System.Windows.Media.Brushes.Red;
+                        }
+                        else
+                        {
+                            this.txtCldPassword.BorderBrush = defaultBolderBrush;
+                        }
+
+                        if (string.IsNullOrEmpty(this.CldpasswordBox.Password))
+                        {
+                            this.CldpasswordBox.BorderBrush = System.Windows.Media.Brushes.Red;
+                        }
+                        else
+                        {
+                            this.CldpasswordBox.BorderBrush = defaultBolderBrush;
+                        }
+                    }
+
+                    this.btnOK.IsEnabled = false;
+                    this.btnTest.IsEnabled = false;
+                }
+                else
+                {
+                    this.txtCldhostName.BorderBrush = defaultBolderBrush;
+                    this.txtAPIKey.BorderBrush = defaultBolderBrush;
+                    this.comboCldPasswordNames.BorderBrush = defaultBolderBrush;
+                    this.txtCldPassword.BorderBrush = defaultBolderBrush;
+                    this.CldpasswordBox.BorderBrush = defaultBolderBrush;
+                    this.txtCldNamespace.BorderBrush = defaultBolderBrush;
+
+                    this.btnOK.IsEnabled = true;
+                    this.btnTest.IsEnabled = true;
+                }
+            }
+        }
+
+        DBPlatforms priorTab = DBPlatforms.None;
+        
+        private void tcDBType_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (priorTab == DBPlatforms.None) return;
+
+            var tab = (TabControl)sender;            
+            var newType = (DBPlatforms)tab.SelectedIndex;
+
+            if (priorTab != newType)
+            {                
+                DBTypeCache.Save(priorTab, this);                
+                DBTypeCache.Update(newType, this, this._connectionProps);
+                priorTab = newType;
+
+                if (newType == DBPlatforms.Native)
+                {
+                    this.cbNetworkCompression.Visibility = Visibility.Visible;
+                    this.txtSleepRetries.IsEnabled = true;
+                    
+                    this.btnOK.IsEnabled = true;
+                    this.btnTest.IsEnabled = true;
+                }
+                else
+                {                    
+                    this.cbNetworkCompression.Visibility = Visibility.Collapsed;
+                    this.txtSleepRetries.IsEnabled = false;
+                    
+                    CloudCheckRequiredFlds();
+                }
+            }
+        }
+
+        private void txtCloudField_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            CloudCheckRequiredFlds();
+        }
+
+        private void CldpasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            CloudCheckRequiredFlds();
+        }
+
+        private void comboCldPasswordNames_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            CloudCheckRequiredFlds();
+        }
+
+        private void btnKeyFile_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog()
+            {
+                Filter = "API Key files (*.csv)|*.csv|All files (*.*)|*.*",
+                Title = "Select API Key Exported CSV File",
+                CheckPathExists = true,
+                CheckFileExists = true,
+                AddExtension = true
+            };
+
+            openFileDialog.DefaultExt = ".csv";
+            
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var fileLine = System.IO.File.ReadAllText(openFileDialog.FileName);
+                    var splitLine = fileLine.Split(new char[] { ',', ';' },
+                                                    StringSplitOptions.TrimEntries
+                                                    | StringSplitOptions.RemoveEmptyEntries);
+                    if(splitLine.Length >= 2)
+                    { 
+                        this._cxInfo.DatabaseInfo.UserName = splitLine[splitLine.Length - 2].Trim(' ', '"');
+                        this._cxInfo.DatabaseInfo.Password = splitLine.Last().Trim(' ', '"');
+                    }
+                    else
+                    {
+                        txtAPIKey.Text = "<API Key File Selected is not valid>";
+                    }
+                }
+                catch 
+                {
+                    txtAPIKey.Text = "<API Key File Selection Exception>";
+                }
+            }
+        }
     }
 
     public class NumericValidationRule : ValidationRule
@@ -557,4 +831,160 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             SetIsUpdating(passwordBox, false);            
         }
     }
+
+    public class DBTypeCache
+    {
+        static readonly List<DBTypeCache> cache = new();
+
+        public DBPlatforms DBType { get; }
+        public string Host { get; private set; }
+        public string Port { get; private set; }
+        public string UserName { get; private set; }
+        public string Password { get; private set; }
+        public bool ShowPassword { get; private set; }
+        public bool? UsePasswordManager { get; private set; }
+        public string PasswordManagerName { get; private set; }
+        public string TLSCertName { get; private set; }
+        
+        private DBTypeCache(DBPlatforms dbType)
+        {
+            this.DBType = dbType;
+        }
+
+        static DBTypeCache DBTypeCacheNative()
+            => new DBTypeCache(DBPlatforms.Native)
+            {
+                Host = "localhost",
+                Port = "3000",
+                UserName = null,
+                Password = null,
+                UsePasswordManager = false,
+                PasswordManagerName = null,
+                ShowPassword = false,
+                TLSCertName = null
+            };
+        static DBTypeCache DBTypeCacheCloud()
+            => new DBTypeCache(DBPlatforms.Cloud)
+            {
+                Host = null,
+                Port = "4000",
+                UserName = null,
+                Password = null,
+                UsePasswordManager = false,
+                PasswordManagerName = null,               
+                ShowPassword = false,
+                TLSCertName = null
+            };
+
+        internal static bool Update(DBPlatforms dbType, ConnectionDialog dialog, ConnectionProperties props)
+        {
+            bool result = false;
+
+            var fndDBType = cache.FirstOrDefault(c => c.DBType == dbType);
+
+            if (fndDBType is null)
+            {
+                switch (dbType)
+                {
+                    case DBPlatforms.Native:
+                        fndDBType = DBTypeCacheNative();
+                        break;
+                    case DBPlatforms.Cloud:
+                        fndDBType = DBTypeCacheCloud();
+                        break;
+                }
+                result = true;
+                cache.Add(fndDBType);
+            }
+
+            switch(fndDBType.DBType)
+            { 
+                case DBPlatforms.Native:
+                    dialog.txtSeedNodes.Text = fndDBType.Host;
+                    dialog.txtPort.Text = fndDBType.Port;
+                    dialog.comboPasswordNames.SelectedItem = fndDBType.PasswordManagerName;
+                    dialog.cbUsePassMgr.IsChecked = fndDBType.UsePasswordManager;
+                    dialog.txtUserName.Text = fndDBType.UserName;
+                    dialog.txtPassword.Text = fndDBType.Password;
+                    dialog.cbShowPasswordChars.IsChecked = fndDBType.ShowPassword;
+                    dialog.txtTLSCertName.Text = fndDBType.TLSCertName;
+                    break;
+                case DBPlatforms.Cloud:
+                    dialog.txtCldhostName.Text = fndDBType.Host;
+                    dialog.txtCldPort.Text = fndDBType.Port;
+                    dialog.comboCldPasswordNames.SelectedItem = fndDBType.PasswordManagerName;
+                    dialog.cbCldUsePassMgr.IsChecked = fndDBType.UsePasswordManager;
+                    dialog.txtAPIKey.Text = fndDBType.UserName;
+                    dialog.txtCldPassword.Text = fndDBType.Password;
+                    dialog.cbCldShowPasswordChars.IsChecked = fndDBType.ShowPassword;
+                    break;
+            }
+
+            props.ConnectionInfo.DatabaseInfo.Server = fndDBType.Host;
+            if(!string.IsNullOrEmpty(fndDBType.Port))
+                props.Port = int.Parse(fndDBType.Port);
+            props.ConnectionInfo.DatabaseInfo.UserName = fndDBType.UserName;
+            props.ConnectionInfo.DatabaseInfo.Password = fndDBType.Password;
+            props.UsePasswordManager = fndDBType.UsePasswordManager ?? false;
+            props.PasswordManagerName = fndDBType.PasswordManagerName;
+            props.TLSCertName = fndDBType.TLSCertName;
+            
+            return result;
+        }
+
+        public static bool Save(DBPlatforms dbType, ConnectionDialog dialog)
+        {
+            bool result = false;
+
+            var fndDBType = cache.FirstOrDefault(c => c.DBType == dbType);
+
+            if (fndDBType is null)
+            {
+                fndDBType = new DBTypeCache(dbType);
+                result = true;
+                cache.Add(fndDBType);
+            }
+
+            switch (fndDBType.DBType)
+            {
+                case DBPlatforms.Native:
+                    fndDBType.Host = dialog.txtSeedNodes.Text;
+                    fndDBType.Port = dialog.txtPort.Text;
+                    fndDBType.PasswordManagerName = (string) dialog.comboPasswordNames.SelectedItem;
+                    fndDBType.UsePasswordManager = dialog.cbUsePassMgr.IsChecked;
+                    fndDBType.UserName = dialog.txtUserName.Text;
+                    fndDBType.Password = dialog.txtPassword.Text;
+                    fndDBType.ShowPassword = dialog.cbShowPasswordChars.IsChecked ?? false;
+                    break;
+                case DBPlatforms.Cloud:
+                    fndDBType.Host = dialog.txtCldhostName.Text;
+                    fndDBType.Port = dialog.txtCldPort.Text;
+                    fndDBType.PasswordManagerName = (string) dialog.comboCldPasswordNames.SelectedItem;
+                    fndDBType.UsePasswordManager = dialog.cbCldUsePassMgr.IsChecked;
+                    fndDBType.UserName = dialog.txtAPIKey.Text;
+                    fndDBType.Password = dialog.txtCldPassword.Text;
+                    fndDBType.ShowPassword = dialog.cbCldShowPasswordChars.IsChecked ?? false;                     
+                    break;
+            }
+
+            return result;
+        }
+
+        internal static void Save(ConnectionProperties props)
+        {
+            var cacheType = new DBTypeCache(props.DBType)
+            {
+                Host = props.ConnectionInfo.DatabaseInfo.Server,
+                Port = props.Port.ToString(),
+                UserName = props.ConnectionInfo.DatabaseInfo.UserName,
+                Password = props.ConnectionInfo.DatabaseInfo.Password,
+                UsePasswordManager = props.UsePasswordManager,
+                PasswordManagerName = props.PasswordManagerName,
+                TLSCertName = props.TLSCertName                
+            };
+
+            cache.Add(cacheType);
+        }
+    }
+
 }

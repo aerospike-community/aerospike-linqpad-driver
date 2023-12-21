@@ -6,21 +6,25 @@ using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
 using Aerospike.Database.LINQPadDriver.Extensions;
+using System.Data;
 
 namespace Aerospike.Database.LINQPadDriver
 {
-	/// <summary>
-	/// Wrapper to read/write connection properties. This acts as our ViewModel - we will bind to it in ConnectionDialog.xaml.
-	/// </summary>
-	class ConnectionProperties
+    
+    /// <summary>
+    /// Wrapper to read/write connection properties. This acts as our ViewModel - we will bind to it in ConnectionDialog.xaml.
+    /// </summary>
+    internal class ConnectionProperties
 	{
 		public IConnectionInfo ConnectionInfo { get; private set; }
 
 		XElement DriverData => ConnectionInfo.DriverData;
-
+        
 		public ConnectionProperties (IConnectionInfo cxInfo)
 		{
-			ConnectionInfo = cxInfo;
+            //Debugger.Launch();
+
+            ConnectionInfo = cxInfo;
 
             if (string.IsNullOrEmpty(cxInfo.DatabaseInfo.Server))
                 cxInfo.DatabaseInfo.Server = "localhost";
@@ -29,11 +33,60 @@ namespace Aerospike.Database.LINQPadDriver
             InitializeRecordViews();
 
             ARecord.DefaultASPIKeyName = this.PKName;
+
         }
 
-		// This is how to create custom connection properties.
+        // This is how to create custom connection properties.
 
-		public IEnumerable<string> SeedHosts
+        public DBPlatforms DBType
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    DriverData.SetElementValue("DBType", "Native");
+                    return DBPlatforms.Native;
+                }
+
+                var elementValue = DriverData.Element("DBType")?.Value;
+
+                if (string.IsNullOrEmpty(elementValue))
+                {
+                    DriverData.SetElementValue("DBType", "Native");
+                    return DBPlatforms.Native;
+                }
+                else if (elementValue == "0")
+                {
+                    DriverData.SetElementValue("DBType", "Native");
+                    return DBPlatforms.Native;
+                }
+                else if (elementValue == "1")
+                {
+                    DriverData.SetElementValue("DBType", "Cloud");
+                    return DBPlatforms.Cloud;
+                }
+
+                if (Enum.TryParse<DBPlatforms>(elementValue, true, out DBPlatforms result))
+                {
+                    return result;
+                }
+
+                return DBPlatforms.Native;
+            }
+            set
+            {
+                DriverData.SetElementValue("DBType", value.ToString());                
+            }
+        }
+
+        public int DBTypeIdx
+        {
+            get => (int)this.DBType;
+            set => this.DBType = (DBPlatforms)value;
+        }
+
+
+        public IEnumerable<string> SeedHosts
 		{
 			get
 			{
@@ -145,7 +198,46 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 DriverData.SetElementValue("Debug", value);
             }
-        }        
+        }
+
+        public string NamespaceCloud
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    DriverData.SetElementValue("NamespaceCloud", "aerospike_cloud");
+                    return "aerospike_cloud";
+                }
+
+                return (string)DriverData.Element("NamespaceCloud") ?? "aerospike_cloud";
+            }
+            set
+            {
+                if (value == string.Empty) value = null;
+                DriverData.SetElementValue("NamespaceCloud", value);
+            }
+        }
+
+        public string SetNamesCloud
+        {
+            get
+            {
+                if (DriverData.IsEmpty)
+                {
+                    return null;
+                }
+
+                var value = (string)DriverData.Element("SetNamesCloud");
+
+                return value == string.Empty ? null : value;
+            }
+            set
+            {
+                if (value == string.Empty) value = null;
+                DriverData.SetElementValue("SetNamesCloud", value);
+            }
+        }
 
         public int DBRecordSampleSet
         {

@@ -80,8 +80,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsNotNull(aRecord.Aerospike.Digest);
             Assert.AreEqual(20, aRecord.Aerospike.Digest.Length);
 
-            Assert.AreEqual(794875l, aRecord["account_id"].Value);
-            Assert.AreEqual(6l, aRecord["transaction_count"].Value);
+            Assert.AreEqual(794875L, aRecord["account_id"].Value);
+            Assert.AreEqual(6L, aRecord["transaction_count"].Value);
             Assert.AreEqual(DateTime.Parse(@"December 27, 2018 5:00:00 AM"), aRecord["bucket_start_date"].Value);
             Assert.AreEqual(DateTime.Parse(@"September 6, 2016 12:00:00 AM"), aRecord["bucket_end_date"].Value);
 
@@ -97,7 +97,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 
             Assert.AreEqual(6, dictItems.Count);
             Assert.AreEqual(DateTime.Parse(@"December 28, 2011 12:00:00 AM"), dictItems["date"]);
-            Assert.AreEqual(1197l, dictItems["amount"]);
+            Assert.AreEqual(1197L, dictItems["amount"]);
             Assert.AreEqual("buy", dictItems["transaction_code"]);
             Assert.AreEqual("nvda", dictItems["symbol"]);
             Assert.AreEqual(12.7330024299341033611199236474931240081787109375M, dictItems["price"]);
@@ -110,7 +110,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 
             Assert.AreEqual(6, dictItems.Count);
             Assert.AreEqual(DateTime.Parse(@"June 13, 2016 12:00:00 AM"), dictItems["date"]);
-            Assert.AreEqual(8797l, dictItems["amount"]);
+            Assert.AreEqual(8797L, dictItems["amount"]);
             Assert.AreEqual("buy", dictItems["transaction_code"]);
             Assert.AreEqual("nvda", dictItems["symbol"]);
             Assert.AreEqual(46.53873172406391489630550495348870754241943359375M, dictItems["price"]);
@@ -133,7 +133,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsInstanceOfType<string>(aRecord.Aerospike.PrimaryKey.Value);
             Assert.AreEqual(36, ((string) aRecord.Aerospike.PrimaryKey).Length);
 
-            Assert.AreEqual(1l, aRecord["oid"].Value);
+            Assert.AreEqual(1L, aRecord["oid"].Value);
             Assert.AreEqual(DateTimeOffset.Parse(@"2016-06-13T12:00:00+01:00"), aRecord["datetimeoff"].Value);
 
             json = @"
@@ -152,7 +152,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsInstanceOfType<string>(aRecord.Aerospike.PrimaryKey.Value);
             Assert.AreEqual(36, ((string)aRecord.Aerospike.PrimaryKey).Length);
 
-            Assert.AreEqual(1l, aRecord["oid"].Value);
+            Assert.AreEqual(1L, aRecord["oid"].Value);
             Assert.AreEqual(DateTimeOffset.Parse(@"2016-06-13T12:00:00+01:00"), aRecord["datetimeoff"].Value);
 
 
@@ -190,7 +190,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             var valuesDict = (Dictionary<string, object>)aRecord["Values"].Value;
 
             Assert.AreEqual(8, valuesDict.Count);
-            Assert.AreEqual(236l, valuesDict["AlbumId"]);
+            Assert.AreEqual(236L, valuesDict["AlbumId"]);
 
         }
     }

@@ -58,10 +58,7 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 connection = _Connection;
 
-				if (connection is null)
-                {
-					connection = _Connection = new AerospikeConnection(cxInfo);                    
-                }                
+				connection ??= _Connection = new AerospikeConnection(cxInfo);
 
                 if (openIfClosed && connection.State != ConnectionState.Open)
                 {
@@ -180,7 +177,7 @@ namespace Aerospike.Database.LINQPadDriver
 			var moduleClasses = buildModules.Item1;
 			var moduleProps = buildModules.Item2;
 			var moduleConstruct = buildModules.Item3;
-
+			
 			string source = $@"
 using System;
 using System.Collections.Generic;
@@ -201,7 +198,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 			{moduleConstruct}
 		}}
 
-	public AerospikeClient ASClient => AerospikeConnection.AerospikeClient;
+	public IAerospikeClient ASClient => AerospikeConnection.AerospikeClient;
 		
 	{namespaceProps}
 	{moduleProps}
@@ -234,22 +231,27 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
 			items.AddRange(CreateNamespaceExploreItems(connection));
 
-			items.Add(new ExplorerItem("UDFs", ExplorerItemKind.Category, ExplorerIcon.Box)
-			{
-				IsEnumerable = false,
-				DragText = null,
-				ToolTipText = "User Defined Functions",
-				Children = CreateModuleExploreItems(connection).ToList()
-			});
+            if (connection.DBPlatform != DBPlatforms.Cloud)
+            {
+                items.Add(new ExplorerItem("UDFs", ExplorerItemKind.Category, ExplorerIcon.Box)
+                {
+                    IsEnumerable = false,
+                    DragText = null,
+                    ToolTipText = "User Defined Functions",
+                    Children = CreateModuleExploreItems(connection).ToList()
+                });
+            }
 
-			items.Add(CreateInformationalExploreItem(cxInfo, connection, source));
+			items.Add(CreateInformationalExploreItem(cxInfo, connection));
 
 			return items;			
 		}
 		
 		public override IEnumerable<string> GetAssembliesToAdd(IConnectionInfo cxInfo)
 		{
-			return new[] { typeof(Aerospike.Client.Connection).Assembly.Location, typeof(Newtonsoft.Json.Linq.JObject).Assembly.Location };
+			return new[] { typeof(Aerospike.Client.Connection).Assembly.Location,
+                            typeof(Newtonsoft.Json.Linq.JObject).Assembly.Location,
+                            typeof(GeoJSON.Net.IGeoJSONObject).Assembly.Location};
 		}
 
         public override IEnumerable<string> GetNamespacesToAdd(IConnectionInfo cxInfo)
@@ -259,7 +261,8 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 			if(connection.DocumentAPI)
 				return new[] { "Aerospike.Database.LINQPadDriver.Extensions",
 										"Aerospike.Client",
-										"Newtonsoft.Json.Linq"};
+										"Newtonsoft.Json.Linq",
+                                        "GeoJSON.Net"};
 
             return new[] { "Aerospike.Database.LINQPadDriver.Extensions",
                                         "Aerospike.Client"};
@@ -274,7 +277,9 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 			GetCoreFxReferenceAssemblies(cxInfo)
 				.Append(typeof(Aerospike.Client.Connection).Assembly.Location)
 				.Append(typeof(AClusterAccess).Assembly.Location)
-				.ToArray();
+                .Append(typeof(GeoJSON.Net.IGeoJSONObject).Assembly.Location)
+                .Append(typeof(Newtonsoft.Json.Linq.JObject).Assembly.Location)
+                .ToArray();
 
             // CompileSource is a static helper method to compile C# source code using LINQPad's built-in Roslyn libraries.
             // If you prefer, you can add a NuGet reference to the Roslyn libraries and use them directly.
@@ -489,57 +494,70 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
         #endregion
 
-        public static ExplorerItem CreateInformationalExploreItem(IConnectionInfo cxInfo, AerospikeConnection connection, string souceCode)
-		{            
-            var infoItem = new ExplorerItem("Information", ExplorerItemKind.Category, ExplorerIcon.Box)
+        public static ExplorerItem CreateInformationalExploreItem(IConnectionInfo cxInfo, AerospikeConnection connection)
+		{
+			List<ExplorerItem> children;
+
+            if (connection.DBPlatform == DBPlatforms.Cloud)
+            {
+                children = new List<ExplorerItem>()
+                                {
+                                    new ExplorerItem($"Database Id \"{cxInfo.DatabaseInfo.Database}\"",
+                                                        ExplorerItemKind.Parameter,
+                                                        ExplorerIcon.ScalarFunction)
+                                                    {
+                                                        IsEnumerable = false,
+                                                        DragText = null,
+                                                        ToolTipText= cxInfo.DatabaseInfo.Database
+                                                    }
+                                };
+            }
+			else 
 			{
-				IsEnumerable = false,
-				DragText = null,
-				ToolTipText = "Cluster/Source Code Information",
-				Children = new List<ExplorerItem>()
-								{									
+                children = new List<ExplorerItem>()
+                                {
                                     new ExplorerItem($"Cluster Name \"{cxInfo.DatabaseInfo.Database}\"",
-														ExplorerItemKind.Parameter,
-														ExplorerIcon.ScalarFunction)
-													{
-														IsEnumerable = false,
-														DragText = null,
-														ToolTipText= cxInfo.DatabaseInfo.Database
-													},
-									new ExplorerItem($"DB Version {cxInfo.DatabaseInfo.DbVersion}",
-														ExplorerItemKind.Parameter,
-														ExplorerIcon.ScalarFunction)
-													{
-														IsEnumerable = false,
-														DragText = null,
-														ToolTipText= cxInfo.DatabaseInfo.DbVersion
-													},
+                                                        ExplorerItemKind.Parameter,
+                                                        ExplorerIcon.ScalarFunction)
+                                                    {
+                                                        IsEnumerable = false,
+                                                        DragText = null,
+                                                        ToolTipText= cxInfo.DatabaseInfo.Database
+                                                    },
+                                    new ExplorerItem($"DB Version {cxInfo.DatabaseInfo.DbVersion}",
+                                                        ExplorerItemKind.Parameter,
+                                                        ExplorerIcon.ScalarFunction)
+                                                    {
+                                                        IsEnumerable = false,
+                                                        DragText = null,
+                                                        ToolTipText= cxInfo.DatabaseInfo.DbVersion
+                                                    },
                                     new ExplorerItem($"Nodes ({connection.Nodes.Length})",
                                                         ExplorerItemKind.Category,
                                                         ExplorerIcon.OneToMany)
                                                     {
                                                         IsEnumerable = false,
                                                         DragText = null,
-														Children = CreateClusterNodesExploreItems(connection).ToList(),
+                                                        Children = CreateClusterNodesExploreItems(connection).ToList(),
                                                         ToolTipText= "Nodes within the Cluster"
                                                     },
                                     new ExplorerItem("Stats",
-														ExplorerItemKind.Category,
-														ExplorerIcon.Box)
-													{
-														IsEnumerable = false,
-														DragText = null,
-														Children = new List<ExplorerItem>()
-														{
-															new ExplorerItem($"Total Namespaces: {connection.Namespaces.Count()}",
-																				ExplorerItemKind.Parameter,
-																				ExplorerIcon.ScalarFunction),
-															new ExplorerItem($"Total Sets: {connection.Namespaces.Sum(n => n.Sets.Count())}",
-																				ExplorerItemKind.Parameter,
-																				ExplorerIcon.ScalarFunction),
-															new ExplorerItem($"Total Bins: {connection.Namespaces.Sum(n => n.Bins.Count())}",
-																				ExplorerItemKind.Parameter,
-																				ExplorerIcon.ScalarFunction),
+                                                        ExplorerItemKind.Category,
+                                                        ExplorerIcon.Box)
+                                                    {
+                                                        IsEnumerable = false,
+                                                        DragText = null,
+                                                        Children = new List<ExplorerItem>()
+                                                        {
+                                                            new ExplorerItem($"Total Namespaces: {connection.Namespaces.Count()}",
+                                                                                ExplorerItemKind.Parameter,
+                                                                                ExplorerIcon.ScalarFunction),
+                                                            new ExplorerItem($"Total Sets: {connection.Namespaces.Sum(n => n.Sets.Count())}",
+                                                                                ExplorerItemKind.Parameter,
+                                                                                ExplorerIcon.ScalarFunction),
+                                                            new ExplorerItem($"Total Bins: {connection.Namespaces.Sum(n => n.Bins.Count())}",
+                                                                                ExplorerItemKind.Parameter,
+                                                                                ExplorerIcon.ScalarFunction),
                                                             new ExplorerItem($"Total SIdx: {connection.Namespaces.Sum(n => n.SIndexes.Count())}",
                                                                                 ExplorerItemKind.Parameter,
                                                                                 ExplorerIcon.ScalarFunction),
@@ -547,8 +565,17 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
                                                                                 ExplorerItemKind.Parameter,
                                                                                 ExplorerIcon.ScalarFunction)
                                                         }
-													}
-								}
+                                                    }
+                                };
+
+            }
+
+            var infoItem = new ExplorerItem("Information", ExplorerItemKind.Category, ExplorerIcon.Box)
+            {
+                IsEnumerable = false,
+                DragText = null,
+                ToolTipText = "Cluster/Source Code Information",
+                Children = children
 			};
 
 			return infoItem;
@@ -581,7 +608,6 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
             return items;
         }
-
 
         #region Data Grid
 

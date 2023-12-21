@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 	
 	<PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;net6.0-windows;net7.0-windows</TargetFrameworks>
+    <TargetFrameworks>net6.0-windows;net7.0-windows</TargetFrameworks>
     <NoWarn>1591</NoWarn>
 		<UseWpf>true</UseWpf>
 		<AssemblyName>Aerospike.Database.LINQPadDriver</AssemblyName>
@@ -15,11 +15,11 @@
     <RepositoryUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageIcon>lib\net7.0-windows7.0\Connection.png</PackageIcon>
+    <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2023</Copyright>
-    <Version>2.3.3.1</Version>
-    <FileVersion>2.3.3.1</FileVersion>    
+    <Version>3.0.0.0</Version>
+    <FileVersion>3.0.0.0</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -43,7 +43,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+    <PackageReference Include="GeoJSON.Net" Version="1.2.19" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
   
 	<ItemGroup>
@@ -54,18 +57,31 @@
 	</ItemGroup>
   
 	<ItemGroup>
-	  <None Remove="linqpad-samples\Basic Data Types.linq" />
-	  <None Remove="linqpad-samples\CDT-Json-Docs.linq" />
-	  <None Remove="linqpad-samples\Create CustInvsDoc set.linq" />
+	  <None Remove="linqpad-samples\Native\Basic Data Types.linq" />
+	  <None Remove="linqpad-samples\Native\CDT-Json-Docs.linq" />
+	  <None Remove="linqpad-samples\Native\Create CustInvsDoc set.linq" />
 	  <None Remove="linqpad-samples\DemoDBJson\aerospike.json" />
-	  <None Remove="linqpad-samples\Linq Join Customer and Invoice.linq" />
-	  <None Remove="linqpad-samples\LinqWhere-AerospikeExpressions.linq" />
-	  <None Remove="linqpad-samples\LinqWhere-AerospikePK.linq" />
-	  <None Remove="linqpad-samples\POCO.linq" />
-    <none Remove="linqpad-samples\Put-Aerospike.linq" />
-	  <None Remove="linqpad-samples\ReadMeFirst.linq" />
-	  <None Remove="linqpad-samples\Record Display View.linq" />
+	  <None Remove="linqpad-samples\Native\Linq Join Customer and Invoice.linq" />
+	  <None Remove="linqpad-samples\Native\LinqWhere-AerospikeExpressions.linq" />
+	  <None Remove="linqpad-samples\Native\LinqWhere-AerospikePK.linq" />
+	  <None Remove="linqpad-samples\Native\POCO.linq" />
+    <none Remove="linqpad-samples\Native\Put-Aerospike.linq" />
+	  <None Remove="linqpad-samples\Native\ReadMeFirst.linq" />
+	  <None Remove="linqpad-samples\Native\Record Display View.linq" />
 	</ItemGroup>
+
+  <ItemGroup>
+    <None Remove="linqpad-samples\Cloud\Basic Data Types.linq" />
+    <None Remove="linqpad-samples\Cloud\CDT-Json-Docs.linq" />
+    <None Remove="linqpad-samples\Cloud\Create CustInvsDoc set.linq" />
+    <None Remove="linqpad-samples\Cloud\Linq Join Customer and Invoice.linq" />
+    <None Remove="linqpad-samples\Cloud\LinqWhere-AerospikeExpressions.linq" />
+    <None Remove="linqpad-samples\Cloud\LinqWhere-AerospikePK.linq" />
+    <None Remove="linqpad-samples\Cloud\POCO.linq" />
+    <none Remove="linqpad-samples\Cloud\Put-Aerospike.linq" />
+    <None Remove="linqpad-samples\Cloud\ReadMeFirst.linq" />
+    <None Remove="linqpad-samples\Cloud\Record Display View.linq" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Update="AValue.tt">
@@ -83,26 +99,36 @@
 	  <Content Include="Connection.png">
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	    <Pack>true</Pack>
-      <PackagePath>lib\netcoreapp3.1;lib\net6.0-windows7.0;lib\net7.0-windows7.0</PackagePath>
+	    <Pack>true</Pack>      
 	  </Content>
 	  <Content Include="FailedConnection.png">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
-      <pack>true</pack>
-      <PackagePath>lib\netcoreapp3.1;lib\net6.0-windows7.0;lib\net7.0-windows7.0</PackagePath>
+      <pack>true</pack>      
 	  </Content>
-	  <Content Include="linqpad-samples\Basic Data Types.linq" />
-	  <Content Include="linqpad-samples\CDT-Json-Docs.linq" />
-	  <Content Include="linqpad-samples\Create CustInvsDoc set.linq" />
+	  <Content Include="linqpad-samples\Native\Basic Data Types.linq" />
+	  <Content Include="linqpad-samples\Native\CDT-Json-Docs.linq" />
+	  <Content Include="linqpad-samples\Native\Create CustInvsDoc set.linq" />
 	  <Content Include="linqpad-samples\DemoDBJson\aerospike.json" />
-	  <Content Include="linqpad-samples\Linq Join Customer and Invoice.linq" />
-	  <Content Include="linqpad-samples\LinqWhere-AerospikeExpressions.linq" />
-	  <Content Include="linqpad-samples\LinqWhere-AerospikePK.linq" />
-	  <Content Include="linqpad-samples\POCO.linq" />
-    <Content Include="linqpad-samples\Put-Aerospike.linq" />
-	  <Content Include="linqpad-samples\ReadMeFirst.linq" />
-	  <Content Include="linqpad-samples\Record Display View.linq" />
+	  <Content Include="linqpad-samples\Native\Linq Join Customer and Invoice.linq" />
+	  <Content Include="linqpad-samples\Native\LinqWhere-AerospikeExpressions.linq" />
+	  <Content Include="linqpad-samples\Native\LinqWhere-AerospikePK.linq" />
+	  <Content Include="linqpad-samples\Native\POCO.linq" />
+    <Content Include="linqpad-samples\Native\Put-Aerospike.linq" />
+	  <Content Include="linqpad-samples\Native\ReadMeFirst.linq" />
+	  <Content Include="linqpad-samples\Native\Record Display View.linq" />
+    
+    <Content Include="linqpad-samples\Cloud\Basic Data Types.linq" />
+    <Content Include="linqpad-samples\Cloud\CDT-Json-Docs.linq" />
+    <Content Include="linqpad-samples\Cloud\Create CustInvsDoc set.linq" />
+    <Content Include="linqpad-samples\Cloud\Linq Join Customer and Invoice.linq" />
+    <Content Include="linqpad-samples\Cloud\LinqWhere-AerospikeExpressions.linq" />
+    <Content Include="linqpad-samples\Cloud\LinqWhere-AerospikePK.linq" />
+    <Content Include="linqpad-samples\Cloud\POCO.linq" />
+    <Content Include="linqpad-samples\Cloud\Put-Aerospike.linq" />
+    <Content Include="linqpad-samples\Cloud\ReadMeFirst.linq" />
+    <Content Include="linqpad-samples\Cloud\Record Display View.linq" />
+    
     <Content Include="README.md">
       <Pack>true</Pack>
       <PackagePath />
@@ -111,8 +137,8 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Aerospike.Client" Version="5.3.1" />
-		<PackageReference Include="LINQPad.Reference" Version="1.*" />
+		<PackageReference Include="Aerospike.Client" Version="7.0.1" />
+    <PackageReference Include="LINQPad.Reference" Version="1.*" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
 
@@ -139,7 +165,7 @@
 	</ItemGroup>
   
 	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net7.0-windows'">
-		<Exec Command="xcopy /i/y/s &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)&quot;" />
+		<Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)&quot;" />
 	</Target>
 
   <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net7.0-windows' AND '$(ConfigurationName)' == 'Release'">

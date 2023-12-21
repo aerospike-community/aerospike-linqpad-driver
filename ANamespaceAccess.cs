@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
@@ -16,6 +17,22 @@ using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
+    /// <summary>
+    /// The different Aerospike DB Platforms
+    /// </summary>
+    public enum DBPlatforms
+    {
+        None = -1,
+        /// <summary>
+        /// The non-managed platform
+        /// </summary>
+        Native = 0,
+        /// <summary>
+        /// The DBaaS platform
+        /// </summary>
+        Cloud = 1
+    }
+
     /// <summary>
     /// A class used to define Aerospike Namespaces.
     /// </summary>
@@ -113,7 +130,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 var accessSet = new SetRecords(lpSet, this, setName, binNames);
 
                 this.LPnamespace?.TryAddSet(setName, bins);
-
+                
                 lock (this)
                 {
                     this._sets.Add(accessSet);
@@ -773,18 +790,28 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If true, the TTL of the record at export is used.
         /// Otherwise, <paramref name="ttl"/> is used, if provided.
         /// </param>
+        /// <param name="maxDegreeOfParallelism">
+        /// The maximum degree of parallelism.
+        /// <see cref="ParallelOptions.MaxDegreeOfParallelism"/>
+        /// </param>
+        /// The <see cref="System.Threading.CancellationToken">CancellationToken</see>
+        /// associated with this <see cref="ParallelOptions"/> instance.
+        /// <param name="cancellationToken">
+        /// </param>
         /// <returns>The number of records imported</returns>
         /// <seealso cref="Export(string, Exp, bool)"/>
-        /// <seealso cref="Import(string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>
-        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy)"/>
+        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy, int, CancellationToken)"/>
         /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>        
         public int Import([NotNull] string importJSONFile,
                             string setName,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null,
-                            bool useImportRecTTL = false)
+                            bool useImportRecTTL = false,
+                            int maxDegreeOfParallelism = -1,
+                            CancellationToken cancellationToken = default)
         {
             if (this.AerospikeConnection.CXInfo.IsProduction)
                 throw new InvalidOperationException("Cannot Import into a Cluster marked \"In Production\"");
@@ -799,16 +826,27 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
 
-            foreach (var item in jsonStructs)
+            if (maxDegreeOfParallelism == -1
+                    && this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
+                maxDegreeOfParallelism = Environment.ProcessorCount;
+
+            var parallelOptions = new ParallelOptions()
+            {
+                CancellationToken = cancellationToken,
+                MaxDegreeOfParallelism = maxDegreeOfParallelism
+            };
+
+            Parallel.ForEach(jsonStructs, parallelOptions,
+                item =>
             {
                 this.Put(setName,
                             item.KeyValue ?? item.Digest,
-                            item.Values,                            
+                            item.Values,
                             writePolicy,
                             useImportRecTTL
                                 ? ARecord.AerospikeAPI.CalcTTLTimeSpan(item.TimeToLive)
                                 : ttl);
-            }
+            });
 
             return jsonStructs.Length;
         }
@@ -831,15 +869,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If true, the TTL of the record at export is used.
         /// Otherwise, <paramref name="ttl"/> is used, if provided.
         /// </param>
+        /// <param name="maxDegreeOfParallelism">
+        /// The maximum degree of parallelism.
+        /// <see cref="ParallelOptions.MaxDegreeOfParallelism"/>
+        /// </param>
+        /// The <see cref="System.Threading.CancellationToken">CancellationToken</see>
+        /// associated with this <see cref="ParallelOptions"/> instance.
+        /// <param name="cancellationToken">
+        /// </param>
         /// <returns>The number of records imported</returns>
         /// <seealso cref="Export(string, Exp, bool)"/>
-        /// <seealso cref="Import(string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>
-        /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy)"/>
+        /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy, int, CancellationToken)"/>
         public int Import([NotNull] string importJSONFile,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null,
-                            bool useImportRecTTL = false)
+                            bool useImportRecTTL = false,
+                            int maxDegreeOfParallelism = -1,
+                            CancellationToken cancellationToken = default)
         {
             //Debugger.Launch();
             if (this.AerospikeConnection.CXInfo.IsProduction)
@@ -854,16 +902,27 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             };
             var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
 
-            foreach (var item in jsonStructs)
-            {               
-                this.Put(item.SetName, 
+            if (maxDegreeOfParallelism == -1
+                    && this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
+                maxDegreeOfParallelism = Environment.ProcessorCount;
+
+            var parallelOptions = new ParallelOptions()
+            {
+                CancellationToken = cancellationToken,
+                MaxDegreeOfParallelism = maxDegreeOfParallelism
+            };
+
+            Parallel.ForEach(jsonStructs, parallelOptions,
+                item =>
+            {
+                this.Put(item.SetName,
                             item.KeyValue ?? item.Digest,
-                            item.Values,                            
+                            item.Values,
                             writePolicy,
                             useImportRecTTL
                                 ? ARecord.AerospikeAPI.CalcTTLTimeSpan(item.TimeToLive)
                                 : ttl);
-            }
+            });
 
             return jsonStructs.Length;
         }
@@ -881,9 +940,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="filterExpression">A filter expression that will be applied that will determine the result set.</param>
         /// <param name="indented">If true the JSON string is formatted for readability</param>
         /// <returns>Number of records written</returns>
-        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
         /// <seealso cref="ARecord.Export(bool, JsonSerializerSettings)"/>
         public int Export([NotNull] string exportJSONFile, Client.Exp filterExpression = null, bool indented = true)
         {
@@ -1270,6 +1329,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             return false;
         }
+
+        /// <summary>
+        /// The Aerospike Platform this namespace is associated. <see cref="DBPlatforms"/>
+        /// </summary>
+        public DBPlatforms DBPlatform { get => this.AerospikeConnection.DBPlatform; }
 
         protected object ToDump()
         {

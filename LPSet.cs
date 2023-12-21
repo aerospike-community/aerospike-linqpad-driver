@@ -1,4 +1,5 @@
 ﻿using Aerospike.Database.LINQPadDriver.Extensions;
+using GeoJSON.Net;
 using LINQPad.Extensibility.DataContext;
 using Newtonsoft.Json.Linq;
 using System;
@@ -114,6 +115,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.LPnamespace = aNamespace;
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Set");
+            this.IsNullSet = this.Name == NullSetName;
             SetsBag.Add(this);
         }
 
@@ -123,6 +125,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Set");
             this.binTypes = binTypes?.Where(b => b.DataType != null).ToList() ?? new List<BinType>();
+            this.IsNullSet = this.Name == NullSetName;
             SetsBag.Add(this);
         }
 
@@ -322,48 +325,49 @@ namespace Aerospike.Database.LINQPadDriver
             
             var generateBinsTask = Task.Run(() =>
             {
-            foreach (var setBinType in bins)
-            {
-                if (fldSeen.Contains(setBinType.BinName))
+                foreach (var setBinType in bins)
                 {
-                    continue;
-                }
+                    if (fldSeen.Contains(setBinType.BinName))
+                    {
+                        continue;
+                    }
 
-                var fldName = Helpers.CheckName(setBinType.BinName, "Bin");
-                var fldType = setBinType.Duplicate || alwaysUseAValues
-                                    ? "AValue"
-                                    : Helpers.GetRealTypeName(setBinType.DataType, !setBinType.FndAllRecs);
-                var paramType = setBinType.Duplicate
-                                    ? "object"
-                                    : Helpers.GetRealTypeName(setBinType.DataType);
-                var jsonType = setBinType.DataType == typeof(JsonDocument)
-                                    || setBinType.DataType == typeof(List<JsonDocument>)
-                                    || setBinType.DataType == typeof(JArray)
-                                    || setBinType.DataType == typeof(List<JArray>)
-                                    || setBinType.DataType == typeof(JToken)
-                                    || setBinType.DataType == typeof(List<JToken>)
-                                    || setBinType.DataType == typeof(JValue)
-                                    || setBinType.DataType == typeof(List<JValue>)
-                                    ? Helpers.GetRealTypeName(setBinType.DataType, !setBinType.FndAllRecs)
-                                    : null;
+                    var fldName = Helpers.CheckName(setBinType.BinName, "Bin");
+                    var fldType = setBinType.Duplicate || alwaysUseAValues
+                                        ? "AValue"
+                                        : Helpers.GetRealTypeName(setBinType.DataType, !setBinType.FndAllRecs);
+                    var paramType = setBinType.Duplicate
+                                        ? "object"
+                                        : Helpers.GetRealTypeName(setBinType.DataType);
+                    var jsonType = setBinType.DataType == typeof(JsonDocument)
+                                        || setBinType.DataType == typeof(List<JsonDocument>)
+                                        || setBinType.DataType == typeof(JArray)
+                                        || setBinType.DataType == typeof(List<JArray>)
+                                        || setBinType.DataType == typeof(JToken)
+                                        || setBinType.DataType == typeof(List<JToken>)
+                                        || setBinType.DataType == typeof(JValue)
+                                        || setBinType.DataType == typeof(List<JValue>)
+                                        || Helpers.IsSubclassOfInterface(typeof(IGeoJSONObject), setBinType.DataType)
+                                        ? Helpers.GetRealTypeName(setBinType.DataType, !setBinType.FndAllRecs)
+                                        : null;
 
-                flds.Add(fldName);
+                    flds.Add(fldName);
 
-                setClassFlds.Append("\t\t\tpublic ");
-                setClassFlds.Append(fldType);
-                setClassFlds.Append(' ');
-                setClassFlds.Append(fldName);
-                setClassFlds.Append("{ get; }");
-                setClassFlds.AppendLine();
+                    setClassFlds.Append("\t\t\tpublic ");
+                    setClassFlds.Append(fldType);
+                    setClassFlds.Append(' ');
+                    setClassFlds.Append(fldName);
+                    setClassFlds.Append("{ get; }");
+                    setClassFlds.AppendLine();
 
-                setClassFldsConst.Append("\t\t\t\t\t");
-                setClassFldsConst.Append(fldName);
-                setClassFldsConst.Append(" = (");
-                setClassFldsConst.Append(fldType);
-                setClassFldsConst.Append(") ");
+                    setClassFldsConst.Append("\t\t\t\t\t");
+                    setClassFldsConst.Append(fldName);
+                    setClassFldsConst.Append(" = (");
+                    setClassFldsConst.Append(fldType);
+                    setClassFldsConst.Append(") ");
 
-                if (setBinType.Duplicate || alwaysUseAValues)
-                {                        
+                    if (setBinType.Duplicate || alwaysUseAValues)
+                    {                        
                         if (!string.IsNullOrEmpty(jsonType))
                         {
                             setClassFldsConst.Append($" new AValue(");

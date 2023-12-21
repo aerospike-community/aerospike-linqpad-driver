@@ -6,6 +6,8 @@ using Aerospike.Client;
 using Newtonsoft.Json;
 using LPU = LINQPad.Util;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -45,7 +47,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// The actual Aerospike client connection 
         /// </summary>
-        public AerospikeClient AerospikeClient { get => this.AerospikeConnection.AerospikeClient; }
+        public IAerospikeClient AerospikeClient { get => this.AerospikeConnection.AerospikeClient; }
 
         /// <summary>
         /// The name of the cluster.
@@ -64,14 +66,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="setName">The set name</param>
         /// <param name="importJSONFile">The JSON file where the JSON will be written</param>
         /// <param name="writePolicy">The write policy</param>
+        /// <param name="maxDegreeOfParallelism">
+        /// The maximum degree of parallelism.
+        /// <see cref="ParallelOptions.MaxDegreeOfParallelism"/>
+        /// </param>
+        /// The <see cref="System.Threading.CancellationToken">CancellationToken</see>
+        /// associated with this <see cref="ParallelOptions"/> instance.
+        /// <param name="cancellationToken">
+        /// </param>
         /// <returns>The number of records imported</returns>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>        
         public int Import([NotNull] string nameSpace,
                             [NotNull] string setName,
                             [NotNull] string importJSONFile,
-                            WritePolicy writePolicy = null)
+                            WritePolicy writePolicy = null,
+                            int maxDegreeOfParallelism = -1,
+                            CancellationToken cancellationToken = default)
         {
             var jsonStr = System.IO.File.ReadAllText(importJSONFile);
             var jsonSettings = new JsonSerializerSettings
@@ -80,16 +92,27 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             };
             var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
 
-            foreach (var item in jsonStructs)
+            if (maxDegreeOfParallelism == -1
+                    && this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
+                maxDegreeOfParallelism = Environment.ProcessorCount;
+
+            var parallelOptions = new ParallelOptions()
+            {
+                CancellationToken = cancellationToken,
+                MaxDegreeOfParallelism = maxDegreeOfParallelism
+            };
+
+            Parallel.ForEach(jsonStructs, parallelOptions,
+                item =>
             {
                 var key = item.KeyValue == null
-                            ? new Client.Key(nameSpace, item.Digest, setName, Value.NULL)
+                            ? new Client.Key(nameSpace, item.Digest, setName, Value.AsNull)
                             : new Client.Key(nameSpace, setName, Value.Get(item.KeyValue));
 
                 this.AerospikeClient.Put(writePolicy,
                                             key,
                                             item.Values.Select(v => new Client.Bin(v.Key, v.Value)).ToArray());
-            }
+            });
 
             return jsonStructs.Length;
         }
@@ -99,12 +122,22 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </summary>
         /// <param name="importJSONFile">The JSON file where the JSON will be written</param>
         /// <param name="writePolicy">The write policy</param>
+        /// <param name="maxDegreeOfParallelism">
+        /// The maximum degree of parallelism.
+        /// <see cref="ParallelOptions.MaxDegreeOfParallelism"/>
+        /// </param>
+        /// The <see cref="System.Threading.CancellationToken">CancellationToken</see>
+        /// associated with this <see cref="ParallelOptions"/> instance.
+        /// <param name="cancellationToken">
+        /// </param>
         /// <returns>The number of records imported</returns>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>        
         public int Import([NotNull] string importJSONFile,
-                            WritePolicy writePolicy = null)
+                            WritePolicy writePolicy = null,
+                            int maxDegreeOfParallelism = -1,
+                            CancellationToken cancellationToken = default)
         {
             var jsonStr = System.IO.File.ReadAllText(importJSONFile);
             var jsonSettings = new JsonSerializerSettings
@@ -113,16 +146,27 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             };
             var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
 
-            foreach (var item in jsonStructs)
+            if (maxDegreeOfParallelism == -1
+                    && this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
+                maxDegreeOfParallelism = Environment.ProcessorCount;
+
+            var parallelOptions = new ParallelOptions()
+            {
+                CancellationToken = cancellationToken,
+                MaxDegreeOfParallelism = maxDegreeOfParallelism
+            };
+
+            Parallel.ForEach(jsonStructs, parallelOptions,
+                item =>
             {
                 var key = item.KeyValue == null
-                            ? new Client.Key(item.NameSpace, item.Digest, item.SetName, Value.NULL)
+                            ? new Client.Key(item.NameSpace, item.Digest, item.SetName, Value.AsNull)
                             : new Client.Key(item.NameSpace, item.SetName, Value.Get(item.KeyValue));
 
                 this.AerospikeClient.Put(writePolicy,
                                             key,
                                             item.Values.Select(v => new Client.Bin(v.Key, v.Value)).ToArray());
-            }
+            });
 
             return jsonStructs.Length;
         }
