@@ -379,7 +379,7 @@ This dialog also defines the connection [policies](https://aerospike.com/docs/se
 
 The dialog is divided into multiple sections.
 
-![MethodsExample](<https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSections.png>)
+![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSections.png?raw=true)
 
 The sections are:
 
@@ -390,7 +390,7 @@ The sections are:
 
 ## Self-Managed Tab
 
-![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSelfMgmt.png](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSections.png))
+![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSelfMgmt.png?raw=true)
 
 This tab is used to [connect to a self-managed/native Aerospike cluster](https://aerospike.com/docs/connect/kafka/to-asdb/configuring/aerospike).
 
@@ -424,7 +424,7 @@ The properties are:
 
 The options needed to establish a [TLS connection to an Aerospike cluster](https://aerospike.com/docs/server/operations/configure/network/tls).
 
-![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectTLSProps.png](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSections.png))
+![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectTLSProps.png?raw=true)
 
 Fields are:
 
@@ -437,7 +437,7 @@ Fields are:
 
 ## Cloud Tab
 
-![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionCloudProps.png](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSections.png))
+![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionCloudProps.png?raw=true)
 
 This tab is used to connect to an [Aerospike Cloud (DBaaS) cluster](https://aerospike.com/products/aerospike-cloud/).
 
@@ -456,11 +456,11 @@ The fields are:
 11. Hyperlinks to additional topics
 12. The timeout values that will be used to obtain the connection. Note that the “Sleep” field is ignored for cloud connections.
 
-    ![MethodsExample](<https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/CloudStaticSetNamesProp.png>)
+    ![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/CloudStaticSetNamesProp.png?raw=true)
 
 ## Display/Conversion Options Panel
 
-![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/CloudStaticSetNamesProp.png)ConnectionDisplayConvFmtProps.png )
+![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionDisplayConvFmtProps.png?raw=true)
 
 This panel provides information on how to handle things like serialization, Set-Bin Datatype discovery, conversion, etc.
 
@@ -487,11 +487,11 @@ The fields are:
 10. The default property name of primary keys.
 11. If enabled, internal LINQPad driver debugging is enabled which includes persisting of the dynamic C\# classes to the LINQPad script folder.
 
-![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/CloudStaticSetNamesProp.png)RecordDisplayViewRecord.png)
+![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/RecordDisplayViewRecord.png?raw=true)
 
 Example of Record Display View.
 
-![MethodsExample]([https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/CloudStaticSetNamesProp.png)RecordDisplayViewDynamic.png)
+![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/RecordDisplayViewDynamic.png?raw=true)
 
 Example of Dynamic Display View.
 
