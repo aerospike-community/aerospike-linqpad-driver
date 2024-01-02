@@ -121,42 +121,42 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if (string.IsNullOrEmpty(setName))
                 return false;
 
-            var recordSet = this.Sets.FirstOrDefault(s => s.SetName == setName);
-
-            if (recordSet == null)
+            lock (this)
             {
-                var binNames = bins?.Select(b => b.BinName).ToArray();
-                var lpSet = new LPSet(this.LPnamespace, setName, bins);
-                var accessSet = new SetRecords(lpSet, this, setName, binNames);
+                var recordSet = this.Sets.FirstOrDefault(s => s.SetName == setName);
 
-                this.LPnamespace?.TryAddSet(setName, bins);
-                
-                lock (this)
+                if (recordSet == null)
                 {
+                    var binNames = bins?.Select(b => b.BinName).ToArray();
+                    var lpSet = new LPSet(this.LPnamespace, setName, bins);
+                    var accessSet = new SetRecords(lpSet, this, setName, binNames);
+
+                    this.LPnamespace?.TryAddSet(setName, bins);
+
                     this._sets.Add(accessSet);
-                }
+                    
+                    this.BinNames = this.BinNames.Concat(binNames)
+                                            .Distinct().ToArray();
 
-                this.BinNames = this.BinNames.Concat(binNames)
-                                        .Distinct().ToArray();
-                
-                if (this.NullSet == null)
-                {
-                    this.AddDynamicSet(LPSet.NullSetName, bins);
-                }
-                else
-                {
-                    foreach (var b in bins)
+                    if (this.NullSet == null)
                     {
-                        this.NullSet.TryAddBin(b.BinName, b.DataType, false);
+                        this.AddDynamicSet(LPSet.NullSetName, bins);
                     }
+                    else
+                    {
+                        foreach (var b in bins)
+                        {
+                            this.NullSet.TryAddBin(b.BinName, b.DataType, false);
+                        }
+                    }
+
+                    this.TryAddBins(accessSet, bins, true);
+
+                    return true;
                 }
 
-                this.TryAddBins(accessSet, bins, true);
-
-                return true;
+                return this.TryAddBins(recordSet, bins);
             }
-
-            return this.TryAddBins(recordSet, bins);
         }
 
         private bool RemoveBinsFromSet(string setName, IEnumerable<LPSet.BinType> removeBins)
@@ -164,24 +164,27 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if (string.IsNullOrEmpty(setName))
                 return false;
 
-            var recordSet = this.Sets.FirstOrDefault(s => s.SetName == setName);
-
-            if (recordSet != null)
+            lock (this)
             {
-                var binNames = removeBins?.Select(b => b.BinName).ToArray();
-                
-                this.LPnamespace?.TryRemoveSet(setName, removeBins);
+                var recordSet = this.Sets.FirstOrDefault(s => s.SetName == setName);
 
-                this.BinNames = this.BinNames
-                                .Where(n => !removeBins.Any(b => b.BinName == n))
-                                .ToArray();
-               
-                this.TryRemoveBins(recordSet, removeBins, true);
+                if (recordSet != null)
+                {
+                    var binNames = removeBins?.Select(b => b.BinName).ToArray();
 
-                return true;
+                    this.LPnamespace?.TryRemoveSet(setName, removeBins);
+
+                    this.BinNames = this.BinNames
+                                    .Where(n => !removeBins.Any(b => b.BinName == n))
+                                    .ToArray();
+
+                    this.TryRemoveBins(recordSet, removeBins, true);
+
+                    return true;
+                }
+
+                return false;
             }
-
-            return false;
         }
 
         private bool TryAddBins(SetRecords set, IEnumerable<LPSet.BinType> bins, bool forceExplorerUpdate = false)
@@ -253,7 +256,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             get
             {
-                if (this._sets.Any()) return this._sets;
+                lock (this)
+                {
+                    if (this._sets.Any()) return this._sets;
+                }
 
                 var setProps = this.GetType().GetProperties()
                                 .Where(p => p.PropertyType.IsSubclassOf(typeof(SetRecords)))

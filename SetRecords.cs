@@ -614,39 +614,45 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         internal bool TryAddBin(string binName, Type dataType, bool updateNamespace)
         {
-            var added = this.LPset?.AddBin(binName, dataType ?? typeof(AValue)) ?? false;
-
-            if (updateNamespace)
-                added = this.SetAccess.TryAddBin(binName) || added;
-            
-            if (this._bins.Length == 0)
+            lock (this)
             {
-                if (this.BinNames.Contains(binName)) return added;
-                this._bins = this.SetAccess.BinNames;
+                var added = this.LPset?.AddBin(binName, dataType ?? typeof(AValue)) ?? false;
+
+                if (updateNamespace)
+                    added = this.SetAccess.TryAddBin(binName) || added;
+
+                if (this._bins.Length == 0)
+                {
+                    if (this.BinNames.Contains(binName)) return added;
+                    this._bins = this.SetAccess.BinNames;
+                }
+
+                this._bins = this._bins.Append(binName).ToArray();
+                this._binsHashCode = 0;
+
+                return true;
             }
-
-            this._bins = this._bins.Append(binName).ToArray();
-            this._binsHashCode = 0;
-
-            return true;
         }
 
         internal bool TryRemoveBin(string removeBinName, bool updateNamespace)
         {
-            var removed = this.LPset?.RemoveBin(removeBinName) ?? false;
+            lock (this)
+            {
+                var removed = this.LPset?.RemoveBin(removeBinName) ?? false;
 
-            if (updateNamespace)
-                removed = this.SetAccess.TryRemoveBin(removeBinName) || removed;
+                if (updateNamespace)
+                    removed = this.SetAccess.TryRemoveBin(removeBinName) || removed;
 
-            if (this._bins.Length == 0 || !this._bins.Any(n => n == removeBinName))
-                return false;
+                if (this._bins.Length == 0 || !this._bins.Any(n => n == removeBinName))
+                    return false;
 
-            this._bins = this._bins
-                            .Where(n => n != removeBinName)
-                            .ToArray();
-            this._binsHashCode = 0;
+                this._bins = this._bins
+                                .Where(n => n != removeBinName)
+                                .ToArray();
+                this._binsHashCode = 0;
 
-            return true;
+                return true;
+            }
         }
 
         /// <summary>

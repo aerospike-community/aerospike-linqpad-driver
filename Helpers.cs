@@ -2119,5 +2119,20 @@ namespace Aerospike.Database.LINQPadDriver
             literal.Append('"');
             return literal.ToString();
         }
+
+        public static byte[] Encrypt(string value)
+        {
+            byte[] array = new byte[32];
+            System.Security.Cryptography.RandomNumberGenerator.Create().GetBytes(array);
+            byte[] second = System.Security.Cryptography.ProtectedData.Protect(Encoding.UTF8.GetBytes(value), array, System.Security.Cryptography.DataProtectionScope.CurrentUser);
+            return array.Concat(second).ToArray();
+        }
+
+        public static string Decrypt(byte[] encrypted)
+        {
+            byte[] optionalEntropy = encrypted.Take(32).ToArray();
+            byte[] encryptedData = encrypted.Skip(32).ToArray();
+            return Encoding.UTF8.GetString(System.Security.Cryptography.ProtectedData.Unprotect(encryptedData, optionalEntropy, System.Security.Cryptography.DataProtectionScope.CurrentUser));
+        }
     }
 }

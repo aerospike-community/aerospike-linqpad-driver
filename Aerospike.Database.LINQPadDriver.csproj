@@ -17,9 +17,9 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Copyright>2023</Copyright>
-    <Version>3.0.0.0</Version>
-    <FileVersion>3.0.0.0</FileVersion>    
+    <Copyright>2024</Copyright>
+    <Version>3.0.1.0</Version>
+    <FileVersion>3.0.1.0</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>

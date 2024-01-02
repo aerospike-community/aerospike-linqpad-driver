@@ -86,28 +86,46 @@ namespace Aerospike.Database.LINQPadDriver
 
             cxInfo.DatabaseInfo.EncryptTraffic = !string.IsNullOrEmpty(connectionInfo.TLSProtocols);
 
-            this.ConnectionString = string.Format("hosts='{0}',user={1}{2},externalIP={3},TLS='{4}',timeout={5},totaltimeout={6},sockettimeout={7},compression={8},{9}IsProduction={10}",
-                                                    string.Join(",", connectionInfo.SeedHosts
-                                                                        .Select(s => String.Format("{0}:{1}", s, dbPort))),
-                                                    cxInfo.DatabaseInfo.UserName,
-                                                    this.UsePasswordManager
-                                                        ? $",passwordmgrname={this.PasswordManagerName}"
-                                                        : (cxInfo.DatabaseInfo.Password is null
-                                                                ? string.Empty
-                                                                : ",password=" + new string('*', cxInfo.DatabaseInfo.Password.Length)),
-                                                    this.UseExternalIP,
-                                                    cxInfo.DatabaseInfo.EncryptTraffic
-                                                        ? connectionInfo.TLSProtocols
-                                                        : string.Empty,
-                                                    this.ConnectionTimeout,
-                                                    this.TotalTimeout,
-                                                    this.SocketTimeout,
-                                                    this.NetworkCompression,
-                                                    string.IsNullOrEmpty(this.TLSCertName) 
-                                                        ? string.Empty 
-                                                        : $"TLSCertName={this.TLSCertName},",
-                                                    this.CXInfo.IsProduction);
+            {
+                var passwordStr = string.Empty;
 
+                if(cxInfo.DatabaseInfo.Password is not null)
+                {
+                    if(cxInfo.DatabaseInfo.Password == string.Empty)
+                    {
+                        passwordStr = "password=;";
+                    }
+                    else
+                    {
+                        var encrypted = Helpers.Encrypt(cxInfo.DatabaseInfo.Password).ToString();
+
+                        passwordStr = $"password=<encrypted>{encrypted}</encrypted>;";
+                    }
+                }
+
+                this.ConnectionString = string.Format("hosts={0};user={1};{2}externalIP={3};{4}timeout={5};totaltimeout={6};sockettimeout={7};compression={8};{9}IsProduction={10}{11}",
+                                                        string.Join(",", connectionInfo.SeedHosts
+                                                                            .Select(s => String.Format("{0}:{1}", s, dbPort))),
+                                                        cxInfo.DatabaseInfo.UserName,
+                                                        this.UsePasswordManager
+                                                            ? $"passwordmgrname={this.PasswordManagerName};"
+                                                            : passwordStr,
+                                                        this.UseExternalIP,
+                                                        cxInfo.DatabaseInfo.EncryptTraffic
+                                                            ? $"TLS={connectionInfo.TLSProtocols};"
+                                                            : string.Empty,
+                                                        this.ConnectionTimeout,
+                                                        this.TotalTimeout,
+                                                        this.SocketTimeout,
+                                                        this.NetworkCompression,
+                                                        string.IsNullOrEmpty(this.TLSCertName)
+                                                            ? string.Empty
+                                                            : $"TLSCertName={this.TLSCertName};",
+                                                        this.CXInfo.IsProduction,
+                                                        this.DBPlatform == DBPlatforms.Native || this.DBPlatform == DBPlatforms.None
+                                                            ? string.Empty
+                                                            : $"DBPlatform={this.DBPlatform};");
+            }
             cxInfo.DatabaseInfo.CustomCxString = this.ConnectionString;
             cxInfo.DatabaseInfo.Provider = "Aerospike";
 
