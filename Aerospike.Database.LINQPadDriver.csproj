@@ -18,8 +18,8 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2024</Copyright>
-    <Version>3.0.1.0</Version>
-    <FileVersion>3.0.1.0</FileVersion>    
+    <Version>3.0.2.0</Version>
+    <FileVersion>3.0.2.0</FileVersion>    
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -107,6 +107,7 @@
       <pack>true</pack>      
 	  </Content>
 	  <Content Include="linqpad-samples\Native\Basic Data Types.linq" />
+    <Content Include="linqpad-samples\Native\Basic Data Types 2.linq" />
 	  <Content Include="linqpad-samples\Native\CDT-Json-Docs.linq" />
 	  <Content Include="linqpad-samples\Native\Create CustInvsDoc set.linq" />
 	  <Content Include="linqpad-samples\DemoDBJson\aerospike.json" />
@@ -119,6 +120,7 @@
 	  <Content Include="linqpad-samples\Native\Record Display View.linq" />
     
     <Content Include="linqpad-samples\Cloud\Basic Data Types.linq" />
+    <Content Include="linqpad-samples\Cloud\Basic Data Types 2.linq" />
     <Content Include="linqpad-samples\Cloud\CDT-Json-Docs.linq" />
     <Content Include="linqpad-samples\Cloud\Create CustInvsDoc set.linq" />
     <Content Include="linqpad-samples\Cloud\Linq Join Customer and Invoice.linq" />
@@ -128,6 +130,7 @@
     <Content Include="linqpad-samples\Cloud\Put-Aerospike.linq" />
     <Content Include="linqpad-samples\Cloud\ReadMeFirst.linq" />
     <Content Include="linqpad-samples\Cloud\Record Display View.linq" />
+    <Content Include="linqpad-samples\Cloud\Using NullSet.linq" />
     
     <Content Include="README.md">
       <Pack>true</Pack>
