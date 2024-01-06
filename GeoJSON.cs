@@ -9,6 +9,7 @@ using Aerospike.Client;
 using System.CodeDom;
 using Newtonsoft.Json;
 using GeoJSON.Net.Feature;
+using System.Collections;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -16,7 +17,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     {
     }
 
-    public interface IGeoJSONCollection : IGeoJSON
+    public interface IGeoJSONCollection : IGeoJSON, IEnumerable<IGeometryObject>
     {
     }
 
@@ -79,6 +80,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             return base.GetHashCode();
         }
+        
+        public IEnumerator<IGeometryObject> GetEnumerator()
+            => this.Geometries.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator()
+            => this.Geometries.GetEnumerator();
     }
 
     /// <summary>
@@ -547,9 +554,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     return new GeoJSONLineString((LineString)geoObj);
                 case GeoJSONObjectType.GeometryCollection:
                     return new GeoJSONCollection((GeometryCollection)geoObj);
-                default:
-                    if (geoObj is IPosition pos)
-                        return new GeoJSONPosition(pos);
+                default:                    
                     break;
             }
 
@@ -571,6 +576,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         public static bool IsGeoValue(Type checkType)
-            => Helpers.IsSubclassOfInterface(typeof(IGeoJSONObject), checkType); 
+            => Helpers.IsSubclassOfInterface(typeof(IGeoJSONObject), checkType);
+
+        public static bool IsGeoJSONValue(Type checkType)
+            => Helpers.IsSubclassOfInterface(typeof(IGeoJSON), checkType);
     }
 }

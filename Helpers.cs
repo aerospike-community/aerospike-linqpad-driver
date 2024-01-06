@@ -129,6 +129,27 @@ namespace Aerospike.Client
         /// </returns>
         public static Client.Value ToAerospikeValue(this object value) => Client.Value.Get(Helpers.ConvertToAerospikeType(value));
 
+        public static Client.Exp ToAerospikeExpression(this object value)
+                    => Helpers.ConvertToAerospikeType(value) switch
+                    {
+                        byte[] castedObj => Exp.Val(castedObj),
+                        IList castedObj => Exp.Val(castedObj),
+                        IDictionary castedObj => Exp.Val(castedObj, MapOrder.UNORDERED),
+                        string castedObj =>  Exp.Val(castedObj),
+		                int castedObj => Exp.Val(castedObj),
+		                long castedObj => Exp.Val(castedObj),
+		                bool castedObj => Exp.Val(castedObj),
+		                Enum castedObj => Exp.Val(Convert.ToInt32(castedObj)),
+		                byte castedObj => Exp.Val(castedObj),
+		                sbyte castedObj => Exp.Val(castedObj),
+		                short castedObj => Exp.Val(castedObj),
+		                uint castedObj => Exp.Val(castedObj),
+		                ulong castedObj => Exp.Val(castedObj),
+		                ushort castedObj => Exp.Val(castedObj),
+		                _ => throw new ArgumentException($"Object type is not supported in Aerospike: {value.GetType()}"),
+                    };
+                        
+
     }
 }
 
@@ -827,6 +848,7 @@ namespace Aerospike.Database.LINQPadDriver
         {
             if (a is null) return b is null;
             if (b is null) return false;
+            if(ReferenceEquals(a, b)) return true;
 
             if (a is string sa)
             {
@@ -1421,6 +1443,13 @@ namespace Aerospike.Database.LINQPadDriver
                                 }
 
                                 throw CreateException(lstValue);
+                            }
+                        case IDictionary<string, object> dictNameValue:
+                            {
+                                return CastToNativeType(fldName,
+                                                        fldType,
+                                                        binName,
+                                                        dictNameValue.ToDictionary(k => (object)k.Key, v => v.Value));
                             }
                         case IDictionary<object, object> dictValue:
                             {

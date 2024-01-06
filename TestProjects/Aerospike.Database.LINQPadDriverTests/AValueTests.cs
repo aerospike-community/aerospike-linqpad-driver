@@ -127,6 +127,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
         {
             AValue aValue;
 
+            var testEqual = new { a = "a" };
             var listTst = new List<string>() { "a", "b", "c" };
             aValue = listTst.ToAValue();
 
@@ -139,6 +140,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsTrue(Helpers.SequenceEquals(listTst, aValue.ToList()));
             Assert.IsTrue(Helpers.SequenceEquals(listTst, aValue.ToListItem()));
             Assert.IsTrue(aValue.ToDictionary().Count == 0);
+            Assert.IsFalse(aValue.Equals(testEqual));
+            Assert.IsFalse(aValue.Equals(1));
+            Assert.IsFalse(aValue.Equals("a"));
 
             var jToken = aValue.ToJToken();
 
@@ -158,6 +162,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsTrue(Helpers.SequenceEquals(listTst, aValue.ToListItem()));
             Assert.IsTrue(aValue.ToDictionary().Count == 0);
             Assert.AreEqual(jToken, aValue.ToJToken());
+            Assert.IsFalse(aValue.Equals(testEqual));
+            Assert.IsFalse(aValue.Equals(1));
+            Assert.IsFalse(aValue.Equals("a"));
 
             var dirTst = new Dictionary<string, string>() { { "pa", "a" }, { "pb", "b" }, { "pc", "c" } };
 
@@ -171,6 +178,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.AreEqual(dirTst.Count, aValue.Count());
             Assert.IsTrue(Helpers.SequenceEquals(dirTst.ToList(), aValue.ToList()));
             Assert.IsTrue(Helpers.SequenceEquals(dirTst.ToList(), aValue.ToListItem()));
+            Assert.IsFalse(aValue.Equals(testEqual));
+            Assert.IsFalse(aValue.Equals(1));
+            Assert.IsFalse(aValue.Equals("a"));
 
             Assert.IsTrue(aValue.ContainsKey("pa"));
             Assert.IsTrue(aValue.ContainsKey("pb"));
@@ -235,6 +245,28 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsTrue(aValue.Contains("def"));
             Assert.IsTrue(aValue.Contains("fg"));
             Assert.IsFalse(aValue.Contains("dzf"));
+            Assert.IsFalse(aValue.Equals(testEqual));
+            Assert.IsFalse(aValue.Equals(1));
+            Assert.IsFalse(aValue.Equals("a"));
+            Assert.IsTrue(aValue.Equals(strTest));
+
+            var geoTest = new GeoJSON.Net.Geometry.Point(new GeoJSON.Net.Geometry.Position(51.899523, -2.124156));
+            aValue = geoTest.ToAValue();
+
+            Assert.IsInstanceOfType<GeoJSON.Net.Geometry.Point>(aValue.Value);
+            Assert.IsFalse(aValue.IsList);
+            Assert.IsFalse(aValue.IsCDT);
+            Assert.IsFalse(aValue.IsMap);
+            Assert.IsFalse(aValue.IsJson);
+            Assert.IsFalse(aValue.IsString);
+            Assert.IsTrue(aValue.IsGeoJson);
+            Assert.AreEqual(geoTest, aValue.Value);
+            Assert.IsTrue(aValue.Equals(geoTest));
+            Assert.IsFalse(aValue.Equals(123));
+            Assert.IsFalse(aValue.Contains("dzf"));
+            Assert.IsFalse(aValue.Equals(testEqual));
+            Assert.IsFalse(aValue.Equals(1));
+            Assert.IsFalse(aValue.Equals("a"));
         }
 
 

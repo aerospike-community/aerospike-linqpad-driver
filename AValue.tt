@@ -366,6 +366,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 return iEnum.Cast<object>().ToList();
             }
+            else if(this.Value is IGeoJSONCollection geoCollection)
+            {
+                return geoCollection
+                        .Cast<object>()
+                        .ToList();
+            }
 
             return new List<object>(0);
         }
@@ -677,15 +683,19 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public override bool Equals(object obj)
         {
             if(ReferenceEquals(this,obj)) return true;
+            if(ReferenceEquals(this.Value, obj)) return true;
+            if(obj is null) return false;
             if(obj is Aerospike.Client.Key key) return this.Equals(key);
             if(obj is Aerospike.Client.Value value) return this.Equals(value);
             if(obj is AValue pValue) return this.Equals(pValue);
-            
+            if (this.UnderlyingType == obj.GetType()) return this.Value.Equals(obj);
+
             var invokeEquals = this.GetType().GetMethod("Equals", new Type[] { obj.GetType() });
 
-            if(invokeEquals is null) return Helpers.Equals(this.Value, obj);
-
-            return (bool) invokeEquals.Invoke(this, new object[] { obj });            
+            if(invokeEquals is null || invokeEquals.GetParameters().First().ParameterType == typeof(object)) 
+                return Helpers.Equals(this.Value, obj);
+            
+            return (bool) invokeEquals.Invoke(this, new object[] { obj });               
         }
 
         public int CompareTo(object other)
