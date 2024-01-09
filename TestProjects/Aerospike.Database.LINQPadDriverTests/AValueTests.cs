@@ -193,6 +193,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsFalse(aValue.Contains("pa", "x"));
             Assert.IsFalse(aValue.Contains("px", "a"));
 
+            Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+
             var newDict = aValue.ToDictionary();
             Assert.IsTrue(Helpers.SequenceEquals(dirTst.Keys, newDict.Keys));
             Assert.IsTrue(Helpers.SequenceEquals(dirTst.Values, newDict.Values));
@@ -267,6 +269,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsFalse(aValue.Equals(testEqual));
             Assert.IsFalse(aValue.Equals(1));
             Assert.IsFalse(aValue.Equals("a"));
+
+            {
+                var dirObj = new Dictionary<string, object>() { { "pa", "a" }, { "pb", "b" }, { "pc", "c" } };
+                aValue = dirObj.ToAValue();
+
+                var aValueEnum = aValue.AsEnumerable();
+
+                Assert.AreEqual(dirObj.Count, aValueEnum.Count());
+
+                int idx = 0;
+                foreach (var kvpValue in aValueEnum)
+                {
+                    Assert.IsTrue(kvpValue.IsKeyValuePair);
+                    var kvp = dirObj.ElementAt(idx++);
+                    Assert.AreEqual(kvp.Key, ((KeyValuePair<AValue,AValue>) kvpValue.Value).Key.Value);
+                    Assert.AreEqual(kvp.Value, ((KeyValuePair<AValue, AValue>)kvpValue.Value).Value.Value);
+                }
+            }
         }
 
 

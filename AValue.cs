@@ -482,20 +482,104 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public T Convert<T>() => this.Value is T tValue? tValue : (T) Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
 
         /// <summary>
-        /// Returns an enumerable object, if possible.
+        /// Returns an enumerable object converting each element to <typeparamref name="T"/>. 
+        /// If not possible an <see cref="ArgumentException"/> is thrown.
+        /// <seealso cref="AsEnumerable()"/>
         /// </summary>
         /// <typeparam name="T">The element type</typeparam>
         /// <returns>
         /// Returns an enumerable object
         /// </returns>
+        /// <exception cref="ArgumentException">Thrown if value cannot be converted</exception>
+        /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
+        /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
         public IEnumerable<T> AsEnumerable<T>() => (T[]) this.Convert<T[]>();
+
         /// <summary>
-        /// Returns an enumerable object, if possible.
+        /// Returns true if the underlying value is a <see cref="KeyValuePair"/>.
+        /// </summary>
+        public bool IsKeyValuePair
+        {
+            get => Helpers.IsSubclassOfInterface(typeof(KeyValuePair<,>), this.UnderlyingType);
+        }
+
+        /// <summary>
+        /// Returns an enumerable object such that each item is an <see cref="AValue"/>.
+        /// <seealso cref="AsEnumerable{T}()"/>
         /// </summary>
         /// <returns>
-        /// Returns an enumerable object
+        /// Returns an enumerable object where each element is an <see cref="AValue"/> or an empty Enumerable if the <see cref="Value"/> is not a CDT.
         /// </returns>
-        public System.Collections.IEnumerable AsEnumerable() => (object[]) this.Convert<object[]>();
+        /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
+        /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
+        public IEnumerable<AValue> AsEnumerable()
+        {
+            AValue NewAValue(object value, int currIdx)
+            {
+                var binName = currIdx < 0 ? this.BinName : $"{this.BinName}[{currIdx}]";
+                var fldName = currIdx < 0 ? this.FldName : $"{this.FldName}[{currIdx}]";
+
+                if (value is AValue avalue)
+                    return NewAValue(avalue.Value, currIdx);
+
+                if(value is KeyValuePair<object,object> kvpo)
+                {
+                    return new AValue(new KeyValuePair<AValue, AValue>(NewAValue(kvpo.Key, currIdx),
+                                                                        NewAValue(kvpo.Value, currIdx)),
+                                        binName, fldName);
+                }
+                if (value is KeyValuePair<string, object> kvps)
+                {
+                    return new AValue(new KeyValuePair<AValue, AValue>(NewAValue(kvps.Key, currIdx),
+                                                                        NewAValue(kvps.Value, currIdx)),
+                                        binName, fldName);
+                }
+                if(value is IDictionary<object,object> dicto)
+                {
+                    int idx = 0;
+                    return new AValue(dicto.ToDictionary(k => NewAValue(k.Key, idx),
+                                                            v => NewAValue(v.Value, idx++)),
+                                        binName,
+                                        fldName);
+                }
+                if (value is IDictionary<string, object> dicts)
+                {
+                    int idx = 0;
+                    return new AValue(dicts.ToDictionary(k => NewAValue(k.Key, idx),
+                                                            v => NewAValue(v.Value, idx++)),
+                                        binName,
+                                        fldName);
+                }
+                if (value is IList<object> lsto)
+                {
+                    int idx = 0;
+                    return new AValue(lsto.Select(v => NewAValue(v, idx++)),
+                                        binName,
+                                        fldName);
+                }
+                
+                return new AValue(value, binName, fldName);
+            }
+
+            if(this.Value is IDictionary<object, object> dicto)
+            {
+                int idx = 0;
+                return dicto.Select(v => NewAValue(v, idx++));
+            }
+            if (this.Value is IDictionary<string, object> dicts)
+            {
+                int idx = 0;
+                return dicts.Select(v => NewAValue(v, idx++));
+            }
+            if (this.Value is IList<object> lsto)
+            {
+                int idx = 0;
+                return lsto.Select(v => NewAValue(v, idx++));
+            }
+
+
+            return Enumerable.Empty<AValue>();
+        }
 
         virtual public object ToDump()
         {
