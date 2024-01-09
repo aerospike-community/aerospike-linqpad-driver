@@ -361,6 +361,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 return oDict;
             else if (this.Value is IDictionary<string, object> sDict)
                 return sDict.ToDictionary(kvp => (object)kvp.Key, kvp => kvp.Value);
+            else if (this.Value is IDictionary<AValue, AValue> aDict)
+                return aDict.ToDictionary(kvp => (object)kvp.Key, kvp => (object) kvp.Value);
             else if (this.Value is System.Collections.IDictionary iDict)
             {                
                 var kvps = iDict.Keys.Cast<object>().Zip(iDict.Values.Cast<object>(),
