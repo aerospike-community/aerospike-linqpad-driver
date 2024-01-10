@@ -52,7 +52,7 @@ void Main()
 										.Invoices.AsEnumerable()//Get the list of invoices as an AValues
 									  	.Any(il => il.TryGetValue("Lines", returnEmptyAValue: true) //Get invoice lines as an AValue. If the property "Lines" doens't exist, a Null AValue is returned
 														.AsEnumerable() //Get List of invoice lines where each element ia an AValue. If there are no "Lines" this returns an empty collection.
-														.Any(i => i.TryGetValue<int>("TrackId") == 2527)) //Find invoice line
+														.Any(i => i.TryGetValue("TrackId") == 2527)) //Find invoice line. No need to cast to an int value...
 							   select custInvoices;
 
 	fndTrackIdsAValueCDT.Dump("Found Using Linq CDT using AValues");

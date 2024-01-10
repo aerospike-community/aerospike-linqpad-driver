@@ -45,6 +45,9 @@ void Main()
 	Demo.DataTypes.Where(dt => dt.BinExists("BinB") && dt.BinA.Contains("BinA123"))
 			.Dump("Records with value \"BinA123\" and BinB exists in the record");
 
+	Demo.DataTypes.Where(dt => dt.BinA.Contains("BinA123"))
+			.Dump("Records with value \"BinA123\" in All record");
+			
 	Demo.DataTypes.Where(dt => dt.BinA == "BinA123") //With Auto-Values we are not required to cast to match the data type from the DB
 			.Dump("Records with value \"BinA123\" using ==");
 
