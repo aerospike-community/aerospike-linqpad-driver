@@ -442,8 +442,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             checkValue = new Dictionary<string, int>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 } };
             aValue = checkValue.ToAValue();
             matchValue = "c";
-            matchAValue = 3.ToAValue();
-
+            
             Assert.IsTrue(aValue.Equals(checkValue));
             Assert.IsTrue(aValue.Contains(3));
             Assert.IsTrue(aValue.Contains(matchValue, 3));
