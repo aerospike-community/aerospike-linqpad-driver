@@ -10,6 +10,9 @@
       <Debug>false</Debug>
       <RecordView>Record</RecordView>
       <DocumentAPI>true</DocumentAPI>
+      <DBType>Native</DBType>
+      <UsePasswordManager>false</UsePasswordManager>
+      <Port>3000</Port>
     </DriverData>
   </Connection>
 </Query>
@@ -26,10 +29,15 @@ void Main()
 {	
 	Demo.DataTypes.Dump("DataTypes Set");
 	
-	//We are going to add a row where "BinA" will now contain a list (currently has double and string values)
+	//We are going to add new rows where "BinA" will now contain a list
 	Demo.DataTypes.Put("List1", "BinA", new List<object>() { "BinA123", 456, "List1Bin"});
 	Demo.DataTypes.Put("List2", "BinA", new List<object>() { "BinA123", 7.89, "List2Bin"});
-	
+
+	//Adding Dictionary (Map) and a List as new rows to "BinB"
+	Demo.DataTypes.Put("Map1", "BinB", new Dictionary<string, object>() { { "Key2", "BinB123" }, { "Key3", 456 }, { "Key4", "Map1Bin" } });
+	Demo.DataTypes.Put("Map2", "BinB", new Dictionary<string, object>() { { "key1", "BinA123" }, { "Key3", 7 }, { "Map4", "Map2Bin" } });
+	Demo.DataTypes.Put("List3", "BinB", new List<object>() { "BinB123", 89, "List3Bin", "Key3"});
+
 	Demo.DataTypes.Dump("DataTypes Set with New Records");
 	
 	//Find all records where value "BinA123" is found within bin BinA

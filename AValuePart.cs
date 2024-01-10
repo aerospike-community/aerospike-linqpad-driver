@@ -1246,8 +1246,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     => TryGetValue(matchValue, out R matchedValue) ? matchedValue : defaultValue;
 
         /// <summary>
-        /// Returns the converted value based on <typeparamref name="R"/>, if possible, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
-        /// If the matched value cannot be converted to <typeparamref name="R"/>, this will return false.
+        /// Returns <see cref="AValue"/>, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
+        /// 
         /// A match occurs when any of the following happens:
         ///     <see cref="Value"/> is a <see cref="IEnumerable{T}"/> or <see cref="JArray"/> and one of the elements matches <paramref name="matchValue"/>
         ///     <see cref="Value"/> is a <see cref="IDictionary{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
@@ -1279,8 +1279,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         => TryGetValue<AValue>(matchValue, out resultValue);
 
         /// <summary>
-        /// Returns the converted value based on <typeparamref name="R"/>, if possible, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
-        /// If the matched value cannot be converted to <typeparamref name="R"/>, this will return false.
+        /// Returns <see cref="AValue"/>, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
+        /// 
         /// A match occurs when any of the following happens:
         ///     <see cref="Value"/> is a <see cref="IEnumerable{T}"/> or <see cref="JArray"/> and one of the elements matches <paramref name="matchValue"/>
         ///     <see cref="Value"/> is a <see cref="IDictionary{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>

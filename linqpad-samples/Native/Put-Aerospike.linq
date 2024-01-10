@@ -10,6 +10,9 @@
       <Debug>false</Debug>
       <RecordView>Record</RecordView>
       <DocumentAPI>true</DocumentAPI>
+      <DBType>Native</DBType>
+      <UsePasswordManager>false</UsePasswordManager>
+      <Port>3000</Port>
     </DriverData>
   </Connection>
 </Query>
@@ -21,8 +24,6 @@ Note: this is not meant to be used in a production environment and there can be 
 */
 Demo.Customer.Get(20).Dump("Orginal Values");
 Demo.Customer.PutRec(20, Phone: "+1 (650) 123-4567", additionalValues: new Dictionary<string, object>() { { "MyBin", "Hello" }});
-Demo.Customer.Get(20).Dump("Check Phone Number is +1 (650) 123-4567 and the new Bin is listed in the newly display \"Values\" properties");
-Demo.Customer.Put(20, "Phone", "+1 (650) 644-3358");
-Demo.Customer.Get(20).Dump("Phone Number restored to orginal value");
-Demo.Customer.Put(20, "MyBin", null); //Remove the bin I created above...
-Demo.Customer.Get(20).Dump("\"MyBin\" should have been removed and the \"Values\" property is not visiable");
+Demo.Customer.Get(20).Dump("Edited Phone Number is now +1 (650) 123-4567 and the new Bin (MyBin) is listed in the newly display \"Values\" properties");
+Demo.Customer.Put(20, new Dictionary<string, object>() { { "Phone", "+1 (650) 644-3358"}, { "MyBin", null }});
+Demo.Customer.Get(20).Dump("Phone Number restored to orginal value and \"MyBin\" should have been removed and the \"Values\" property is not visiable");

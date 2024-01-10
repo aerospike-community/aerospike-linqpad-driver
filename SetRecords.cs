@@ -890,7 +890,33 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] IList<T> listValue,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-            => this.SetAccess.Put(this.SetName, primaryKey, bin, listValue, writePolicy: writePolicy, ttl: ttl);        
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, listValue, writePolicy: writePolicy, ttl: ttl);
+
+        /// <summary>
+        /// Puts (writes) a bin to the DB record.
+        /// Note that if the namespace and/or set is different, this instances&apos;s values are used.
+        /// </summary>
+        /// <param name="primaryKey">
+        /// Primary AerospikeKey.
+        /// This can be a <see cref="Client.Key"/>, <see cref="Value"/>, or <see cref="Bin"/> object besides a native, collection, etc. value/object.
+        /// </param>
+        /// <param name="bin">BinName Name</param>
+        /// <param name="collectionValue">
+        /// BinName&apos;s Value.
+        /// If null, the bin is removed from the record.
+        /// </param>
+        /// <param name="writePolicy">
+        /// The write policy. If not provided , the default policy is used.
+        /// <seealso cref="WritePolicy"/>
+        /// </param>
+        /// <param name="ttl">Time-to-live of the record</param>        
+        public void Put<K,V>([NotNull] dynamic primaryKey,
+                                [NotNull] string bin,
+                                [NotNull] IDictionary<K,V> collectionValue,
+                                WritePolicy writePolicy = null,
+                                TimeSpan? ttl = null)
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, collectionValue, writePolicy: writePolicy, ttl: ttl);
+
 
         /// <summary>
         /// Puts (writes) a bin to the DB record.

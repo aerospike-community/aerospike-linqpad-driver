@@ -103,7 +103,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 return false;
 
             var existingBins = bins.Where(b => b.value.Object != null);
-            var removedBins = bins.Where(b => b.value.Object is null);
+            var removedBins = bins.Where(b => b.value.Object is null || b.value.IsNull);
             var result = false;
 
             if(existingBins.Any())
@@ -601,6 +601,47 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.AddDynamicSet(setName, new Bin[] { cbin });
         }
 
+        /// <summary>
+        /// Puts (writes) a bin to the DB record.
+        /// Note that if the namespace and/or set is different, this instances&apos;s values are used.
+        /// </summary>
+        /// <param name="primaryKey">
+        /// Primary AerospikeKey.
+        /// This can be a <see cref="Client.Key"/>, <see cref="Value"/>, or <see cref="Bin"/> object besides a native, collection, etc. value/object.
+        /// </param>
+        /// <param name="bin">BinName Name</param>
+        /// <param name="collectionValue">
+        /// BinName&apos;s Value.
+        /// If null, the bin is removed from the record.
+        /// </param>
+        /// <param name="setName">Set name or null for the null set</param>
+        /// <param name="writePolicy">
+        /// The write policy. If not provided , the default policy is used.
+        /// <seealso cref="WritePolicy"/>
+        /// </param>
+        /// <param name="ttl">Time-to-live of the record</param> 
+        public void Put<K,V>(string setName,
+                               [NotNull] dynamic primaryKey,
+                                [NotNull] string bin,
+                                [NotNull] IDictionary<K,V> collectionValue,
+                                WritePolicy writePolicy = null,
+                                TimeSpan? ttl = null)
+        {
+            var writePolicyPut = writePolicy ?? this.DefaultWritePolicy;
+
+            if (ttl.HasValue)
+            {
+                writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+            }
+
+            var cBin = Helpers.CreateBinRecord((IEnumerable<KeyValuePair<K,V>>) collectionValue, bin);
+            this.AerospikeConnection
+                .AerospikeClient.Put(writePolicyPut,
+                                        Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName),
+                                        cBin);
+
+            this.AddDynamicSet(setName, new Bin[] { cBin });
+        }
 
         /// <summary>
         /// Puts (writes) a bin to the DB record.
