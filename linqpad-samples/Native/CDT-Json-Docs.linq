@@ -36,14 +36,27 @@ void Main()
 	//	The default is to treat documents as JObject but you can configure this (via the connection properties)
 	//	to present them as .Net CDTs (i.e., List and Dictionary).
 	var fndTrackIdsCDT = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
-						 let custInvoiceLines = custInvoices.Invoices.ToCDT() //Not required if document mode was disabled
+						 let custInvoiceLines = custInvoices.Invoices
+						 									.ToCDT() //Not required if document mode was disabled
 						 where custInvoiceLines
 								   .SelectMany(il => ((IList<object>)il["Lines"]).Cast<IDictionary<string, object>>())
 								 .Any(l => (long)l["TrackId"] == 2527)
-						 select custInvoices;
+						 select custInvoices;						 	
 
 	fndTrackIdsCDT.Dump("Found Using Linq CDT");
 
+	//.Net CDTs using AValues -- Find all tracks for TrackId 2527 and return those customers who bought this track
+	// Note: Using AValues reduces type checking and casting...
+	var fndTrackIdsAValueCDT = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
+							   where custInvoices
+										.Invoices.AsEnumerable()//Get the list of invoices as an AValues
+									  	.Any(il => il.TryGetValue("Lines", returnEmptyAValue: true) //Get invoice lines as an AValue. If the property "Lines" doens't exist, a Null AValue is returned
+														.AsEnumerable() //Get List of invoice lines where each element ia an AValue. If there are no "Lines" this returns an empty collection.
+														.Any(i => i.TryGetValue<int>("TrackId") == 2527)) //Find invoice line
+							   select custInvoices;
+
+	fndTrackIdsAValueCDT.Dump("Found Using Linq CDT using AValues");
+	
 	//JObject -- Find all tracks for TrackId 2527 and return those customers
 	var fndTrackIdsJObj = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
 						  let custInvoiceLines = custInvoices.ToJson()["Invoices"]

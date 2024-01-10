@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
+
     /// <summary>
     /// A wrapper around an <see cref="Object"/> value. 
     /// This is used as an aid so that casting is not required to perform comparison operations, etc.
@@ -102,7 +103,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             , IEqualityComparer< JToken >
            
     {
-
+    #region Constructors
         public AValue(Aerospike.Client.Bin bin) 
             : this(bin.value, bin.name)
         { }
@@ -122,7 +123,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             : this(aValue.Value, aValue.BinName, aValue.FldName)
         {            
         }
-
+    #endregion
+    #region Properties
         /// <summary>
         /// Returns the actual value from the <see cref="Aerospike.Client.Record"/>
         /// </summary>
@@ -139,9 +141,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// The <see cref="Value"/> type
         /// </summary>
-        public Type UnderlyingType { get => this.Value.GetType(); }
+        public Type UnderlyingType { get => this.Value?.GetType(); }
 
-
+        /// <summary>
+        /// An empty AValue (<see cref="Value"/> is null).
+        /// </summary>
+        /// <seealso cref="IsEmpty"/>
+        public static readonly AValue Empty = new AValue(null, null, null); 
+        
+    #endregion
+    #region Underlying Type Test Properties
         /// <summary>
         /// Returns true if the value is a string
         /// </summary>
@@ -244,7 +253,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Returns true if the value is a IDictionary
+        /// Returns true if the value is a IDictionary (map)
         /// </summary>
         /// <seealso cref="IsCDT"/>
         /// <seealso cref="IsJson"/>
@@ -258,6 +267,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public bool IsMap
         {
             get => Helpers.IsSubclassOfInterface(typeof(IDictionary<,>), this.UnderlyingType);
+        }
+
+        /// <summary>
+        /// Returns true if the value is a IDictionary
+        /// </summary>
+        /// <seealso cref="IsMap"/>
+        /// <seealso cref="IsCDT"/>
+        /// <seealso cref="IsJson"/>
+        /// <seealso cref="IsList"/>
+        /// <seealso cref="IsBool"/>
+        /// <seealso cref="IsFloat"/>
+        /// <seealso cref="IsInt"/>
+        /// <seealso cref="IsNumeric"/>
+        /// <seealso cref="IsString"/>
+        /// <seealso cref="UnderlyingType"/>
+        public bool IsDictionary
+        {
+            get => IsMap;
         }
 
         /// <summary>
@@ -314,6 +341,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             get => this.UnderlyingType == typeof(TimeSpan);
         }
 
+        /// <summary>
+        /// Returns true if the underlying value is a <see cref="KeyValuePair"/>.
+        /// </summary>
+        public bool IsKeyValuePair
+        {
+            get => Helpers.IsSubclassOfInterface(typeof(KeyValuePair<,>), this.UnderlyingType);
+        }
+
+        /// <summary>
+        /// Returns true if <see cref="Value"/> is null
+        /// </summary>
+        /// <seealso cref="Empty"/>
+        public bool IsEmpty
+        {
+            get => this.Value is null;
+        }
+    #endregion
+    #region To type Methods
         /// <summary>
         /// Tries to convert <see cref="Value"/> to a JToken.
         /// </summary>
@@ -473,6 +518,151 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return new List<IDictionary<string,object>>(0);;
         }
 
+        #region IConvertible
+        public TypeCode GetTypeCode()
+        {
+            return Type.GetTypeCode(this.UnderlyingType);
+        }
+
+        bool IConvertible.ToBoolean(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToBoolean(provider);
+
+            return (bool) this;
+        }
+
+        byte IConvertible.ToByte(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToByte(provider);
+
+            return (byte) this;
+        }
+
+        char IConvertible.ToChar(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToChar(provider);
+
+            return (char) this;
+        }
+
+        DateTime IConvertible.ToDateTime(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToDateTime(provider);
+
+            return (DateTime) this;
+        }
+
+        decimal IConvertible.ToDecimal(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToDecimal(provider);
+
+            return (decimal) this;
+        }
+
+        double IConvertible.ToDouble(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToDouble(provider);
+
+            return (double) this;
+        }
+
+        short IConvertible.ToInt16(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToInt16(provider);
+
+            return (short) this;
+        }
+
+        int IConvertible.ToInt32(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToInt32(provider);
+
+            return (int) this;
+        }
+
+        long IConvertible.ToInt64(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToInt64(provider);
+
+            return (long) this;
+        }
+
+        sbyte IConvertible.ToSByte(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToSByte(provider);
+
+            return (sbyte) this;
+        }
+
+        float IConvertible.ToSingle(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToSingle(provider);
+
+            return (float) this;
+        }
+
+        string IConvertible.ToString(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToString(provider);
+
+            return (string) this;
+        }
+
+        object IConvertible.ToType(Type conversionType, IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToType(conversionType, provider);
+
+            return Helpers.CastToNativeType(this.FldName, conversionType, this.BinName, this.Value);
+        }
+
+        ushort IConvertible.ToUInt16(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToUInt16(provider);
+
+            return (ushort) this;
+        }
+
+        uint IConvertible.ToUInt32(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToUInt32(provider);
+
+            return (uint) this;
+        }
+
+        ulong IConvertible.ToUInt64(IFormatProvider provider)
+        {
+            if(this.Value is IConvertible iConvertible)
+                return iConvertible.ToUInt64(provider);
+
+            return (ulong) this;
+        }
+        #endregion
+
+        public static AValue ToValue(Aerospike.Client.Value value) => new AValue(value, "Value");
+        public static AValue ToValue(Aerospike.Client.Bin bin) => new AValue(bin);
+        public static AValue ToValue(object value) => new AValue(value, "Value", "ToValue");
+         
+        virtual public object ToDump()
+        {
+            return this.Value;
+        }
+    #endregion
+    #region Convert and As methods
         /// <summary>
         /// Converts <see cref="Value"/> into a .net native type, a <see cref="Newtonsoft.Json"/>, or <see cref="GeoJSON.Net.GeoJSONObject"/> instance.
         /// </summary>
@@ -496,15 +686,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
         /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
         public IEnumerable<T> AsEnumerable<T>() => (T[]) this.Convert<T[]>();
-
-        /// <summary>
-        /// Returns true if the underlying value is a <see cref="KeyValuePair"/>.
-        /// </summary>
-        public bool IsKeyValuePair
-        {
-            get => Helpers.IsSubclassOfInterface(typeof(KeyValuePair<,>), this.UnderlyingType);
-        }
-
+        
         /// <summary>
         /// Returns an enumerable object such that each item is an <see cref="AValue"/>.
         /// <seealso cref="AsEnumerable{T}()"/>
@@ -515,79 +697,135 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
         /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
         public IEnumerable<AValue> AsEnumerable()
-        {
+        {            
             AValue NewAValue(object value, int currIdx)
             {
                 var binName = currIdx < 0 ? this.BinName : $"{this.BinName}[{currIdx}]";
                 var fldName = currIdx < 0 ? this.FldName : $"{this.FldName}[{currIdx}]";
 
-                if (value is AValue avalue)
-                    return NewAValue(avalue.Value, currIdx);
+                switch (value)
+                {
+                    case AValue avalue:
+                        return NewAValue(avalue.Value, currIdx);
 
-                if(value is KeyValuePair<object,object> kvpo)
-                {
-                    return new AValue(new KeyValuePair<AValue, AValue>(NewAValue(kvpo.Key, currIdx),
-                                                                        NewAValue(kvpo.Value, currIdx)),
-                                        binName, fldName);
-                }
-                if (value is KeyValuePair<string, object> kvps)
-                {
-                    return new AValue(new KeyValuePair<AValue, AValue>(NewAValue(kvps.Key, currIdx),
-                                                                        NewAValue(kvps.Value, currIdx)),
-                                        binName, fldName);
-                }
-                if(value is IDictionary<object,object> dicto)
-                {
-                    int idx = 0;
-                    return new AValue(dicto.ToDictionary(k => NewAValue(k.Key, idx),
-                                                            v => NewAValue(v.Value, idx++)),
-                                        binName,
-                                        fldName);
-                }
-                if (value is IDictionary<string, object> dicts)
-                {
-                    int idx = 0;
-                    return new AValue(dicts.ToDictionary(k => NewAValue(k.Key, idx),
-                                                            v => NewAValue(v.Value, idx++)),
-                                        binName,
-                                        fldName);
-                }
-                if (value is IList<object> lsto)
-                {
-                    int idx = 0;
-                    return new AValue(lsto.Select(v => NewAValue(v, idx++)),
-                                        binName,
-                                        fldName);
+                    case KeyValuePair<object, object> kvpo:
+                        {
+                            return new AValue(new KeyValuePair<AValue, AValue>(NewAValue(kvpo.Key, currIdx),
+                                                                                NewAValue(kvpo.Value, currIdx)),
+                                                binName, fldName);
+                        }
+                    case KeyValuePair<string, object> kvps:
+                        {
+                            return new AValue(new KeyValuePair<AValue, AValue>(NewAValue(kvps.Key, currIdx),
+                                                                                NewAValue(kvps.Value, currIdx)),
+                                                binName, fldName);
+                        }
+                    case IDictionary<object, object> dicto:
+                        {
+                            int idx = 0;
+                            return new AValue(dicto.ToDictionary(k => NewAValue(k.Key, idx),
+                                                                    v => NewAValue(v.Value, idx++)),
+                                                binName,
+                                                fldName);
+                        }
+                    case IDictionary<string, object> dicts:
+                        {
+                            int idx = 0;
+                            return new AValue(dicts.ToDictionary(k => NewAValue(k.Key, idx),
+                                                                    v => NewAValue(v.Value, idx++)),
+                                                binName,
+                                                fldName);
+                        }
+                    case IList<object> lsto:
+                        {
+                            int idx = 0;
+                            return new AValue(lsto.Select(v => NewAValue(v, idx++)),
+                                                binName,
+                                                fldName);
+                        }
+                    case JsonDocument jDoc:
+                        {
+                            int idx = 0;
+                            return new AValue(jDoc.ToDictionary()
+                                                    .ToDictionary(k => NewAValue(k.Key, idx),
+                                                                    v => NewAValue(v.Value, idx++)),
+                                                binName,
+                                                fldName);
+                        }
+                    case JObject jObj:
+                        {
+                            int idx = 0;
+                            return new AValue(CDTConverter.ConvertToDictionary(jObj)
+                                                    .ToDictionary(k => NewAValue(k.Key, idx),
+                                                                    v => NewAValue(v.Value, idx++)),
+                                                binName,
+                                                fldName);
+                        }
+                    case JProperty jProp:
+                        {
+                            int idx = 0;
+                            return new AValue(CDTConverter.ConvertToDictionary(jProp)
+                                                    .ToDictionary(k => NewAValue(k.Key, idx),
+                                                                    v => NewAValue(v.Value, idx++)),
+                                                binName,
+                                                fldName);
+                        }
                 }
                 
                 return new AValue(value, binName, fldName);
             }
 
-            if(this.Value is IDictionary<object, object> dicto)
+            switch (this.Value)
             {
-                int idx = 0;
-                return dicto.Select(v => NewAValue(v, idx++));
+                case IDictionary<AValue, AValue> dicta:
+                    {
+                        int idx = 0;
+                        return dicta.Select(kvp => NewAValue(kvp, idx++));
+                    }
+                case IDictionary<object, object> dicto:
+                    {
+                        int idx = 0;
+                        return dicto.Select(v => NewAValue(v, idx++));
+                    }
+                case IDictionary<string, object> dicts:
+                    {
+                        int idx = 0;
+                        return dicts.Select(v => NewAValue(v, idx++));
+                    }                
+                case IList<object> lsto:
+                    {
+                        int idx = 0;
+                        return lsto.Select(v => NewAValue(v, idx++));
+                    }
+                case IList<JsonDocument> lstDoc:
+                    {
+                        int idx = 0;
+                        return lstDoc.Select(v => NewAValue(v, idx++));
+                    }
+                case IList<JObject> lstJObt:
+                    {
+                        int idx = 0;
+                        return lstJObt.Select(v => NewAValue(v, idx++));
+                    }
+                case IList<JProperty> lstJProp:
+                    {
+                        int idx = 0;
+                        return lstJProp.Select(v => NewAValue(v, idx++));
+                    }
+                case JProperty jProp:
+                    {
+                        int idx = 0;
+                        return CDTConverter.ConvertToDictionary(jProp)
+                                .Select(v => NewAValue(v, idx++));
+                    }
+                case IEnumerable<AValue> lsta:
+                    return lsta;
             }
-            if (this.Value is IDictionary<string, object> dicts)
-            {
-                int idx = 0;
-                return dicts.Select(v => NewAValue(v, idx++));
-            }
-            if (this.Value is IList<object> lsto)
-            {
-                int idx = 0;
-                return lsto.Select(v => NewAValue(v, idx++));
-            }
-
 
             return Enumerable.Empty<AValue>();
         }
-
-        virtual public object ToDump()
-        {
-            return this.Value;
-        }
-
+    #endregion
+    #region Equal and GetHashCode Methods
         protected virtual bool DigestRequired() => false;
         protected virtual bool CompareDigest(object value) => false;
 
@@ -663,6 +901,28 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
         public int GetHashCode(AValue value) => value?.GetHashCode() ?? 0;
 
+        public override int GetHashCode() => this.Value?.GetHashCode() ?? 0;
+
+        public override bool Equals(object obj)
+        {
+            if(ReferenceEquals(this,obj)) return true;
+            if(ReferenceEquals(this.Value, obj)) return true;
+            if(obj is null) return false;
+            if(obj is Aerospike.Client.Key key) return this.Equals(key);
+            if(obj is Aerospike.Client.Value value) return this.Equals(value);
+            if(obj is AValue pValue) return this.Equals(pValue);
+            if (this.UnderlyingType == obj.GetType()) return this.Value.Equals(obj);
+
+            var invokeEquals = this.GetType().GetMethod("Equals", new Type[] { obj.GetType() });
+
+            if(invokeEquals is null || invokeEquals.GetParameters().First().ParameterType == typeof(object)) 
+                return Helpers.Equals(this.Value, obj);
+            
+            return (bool) invokeEquals.Invoke(this, new object[] { obj });               
+        }
+
+    #endregion
+    #region ToString
         public override string ToString() => this.Value?.ToString();
         public string DebuggerString() => $"{this.FldName ?? this.BinName}{{{this.Value} ({this.UnderlyingType?.Name})}}";
 
@@ -866,27 +1126,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 return jToken.ToString(formatting, converters);
             return this.ToString();
         }
-
-        public override int GetHashCode() => this.Value?.GetHashCode() ?? 0;
-
-        public override bool Equals(object obj)
-        {
-            if(ReferenceEquals(this,obj)) return true;
-            if(ReferenceEquals(this.Value, obj)) return true;
-            if(obj is null) return false;
-            if(obj is Aerospike.Client.Key key) return this.Equals(key);
-            if(obj is Aerospike.Client.Value value) return this.Equals(value);
-            if(obj is AValue pValue) return this.Equals(pValue);
-            if (this.UnderlyingType == obj.GetType()) return this.Value.Equals(obj);
-
-            var invokeEquals = this.GetType().GetMethod("Equals", new Type[] { obj.GetType() });
-
-            if(invokeEquals is null || invokeEquals.GetParameters().First().ParameterType == typeof(object)) 
-                return Helpers.Equals(this.Value, obj);
-            
-            return (bool) invokeEquals.Invoke(this, new object[] { obj });               
-        }
-
+    #endregion
+        
+    #region Compare To methods
         public int CompareTo(object other)
         {
             if(ReferenceEquals(this,other)) return 0;
@@ -924,144 +1166,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
              if(other is null) return 1;
              return this.CompareTo(other.Object);
         }
+    #endregion
 
-         public TypeCode GetTypeCode()
-        {
-            return Type.GetTypeCode(this.UnderlyingType);
-        }
-
-        bool IConvertible.ToBoolean(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToBoolean(provider);
-
-            return (bool) this;
-        }
-
-        byte IConvertible.ToByte(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToByte(provider);
-
-            return (byte) this;
-        }
-
-        char IConvertible.ToChar(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToChar(provider);
-
-            return (char) this;
-        }
-
-        DateTime IConvertible.ToDateTime(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToDateTime(provider);
-
-            return (DateTime) this;
-        }
-
-        decimal IConvertible.ToDecimal(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToDecimal(provider);
-
-            return (decimal) this;
-        }
-
-        double IConvertible.ToDouble(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToDouble(provider);
-
-            return (double) this;
-        }
-
-        short IConvertible.ToInt16(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToInt16(provider);
-
-            return (short) this;
-        }
-
-        int IConvertible.ToInt32(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToInt32(provider);
-
-            return (int) this;
-        }
-
-        long IConvertible.ToInt64(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToInt64(provider);
-
-            return (long) this;
-        }
-
-        sbyte IConvertible.ToSByte(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToSByte(provider);
-
-            return (sbyte) this;
-        }
-
-        float IConvertible.ToSingle(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToSingle(provider);
-
-            return (float) this;
-        }
-
-        string IConvertible.ToString(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToString(provider);
-
-            return (string) this;
-        }
-
-        object IConvertible.ToType(Type conversionType, IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToType(conversionType, provider);
-
-            return Helpers.CastToNativeType(this.FldName, conversionType, this.BinName, this.Value);
-        }
-
-        ushort IConvertible.ToUInt16(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToUInt16(provider);
-
-            return (ushort) this;
-        }
-
-        uint IConvertible.ToUInt32(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToUInt32(provider);
-
-            return (uint) this;
-        }
-
-        ulong IConvertible.ToUInt64(IFormatProvider provider)
-        {
-            if(this.Value is IConvertible iConvertible)
-                return iConvertible.ToUInt64(provider);
-
-            return (ulong) this;
-        }
-
-        public static AValue ToValue(Aerospike.Client.Value value) => new AValue(value, "Value");
-        public static AValue ToValue(Aerospike.Client.Bin bin) => new AValue(bin);
-        public static AValue ToValue(object value) => new AValue(value, "Value", "ToValue");
-            
+    #region AValue operator methods 
         public static bool operator==(AValue value1, AValue value2)
         {
             if(value1 is null) return value2 is null;
@@ -1104,7 +1211,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 	    public static bool operator>(AValue aValue, Aerospike.Client.Key oValue) => aValue is not null && aValue?.CompareTo(oValue) > 0;
         public static bool operator<=(AValue aValue, Aerospike.Client.Key oValue) => aValue is null || aValue?.CompareTo(oValue) <= 0;
         public static bool operator>=(AValue aValue, Aerospike.Client.Key oValue) => aValue is null ? oValue is null : aValue?.CompareTo(oValue) >= 0;
-
+    #endregion
+    #region native DataTypes operator/Methods
         
             public static implicit operator string (AValue v) => v.Convert< string >();
             //public static implicit operator string[] (AValue v) => v.Convert<string[] >();            
@@ -2149,7 +2257,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(value));
                             }
 
-        
+            #endregion
+    #region Class Data Types operator/methods
         
             public static implicit operator JObject (AValue key) => key is null ? null : (JObject) key.Convert< JObject >();
             //public static implicit operator JObject[] (AValue key) => (JObject[]) key.Convert<JObject[]>();
@@ -2250,7 +2359,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
             public int GetHashCode(JToken value) => value?.GetHashCode() ?? 0;
 
-                
+            #endregion
+    #region Methods against Collections
         /// <summary>
         /// Returns the number of elements/chars if <see cref="Value"/> is either a collection or string.
         /// If <see cref="Value"/> is neither a collection or string, -1 is returned.
@@ -2288,9 +2398,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return this.Value switch
             {
                 string sValue => value is not null
-                                    && (value is string svalue
+                                    && ((value is string svalue
                                             && sValue.Contains(svalue))
-                                        || this.Equals(value),
+                                        || this.Equals(value)),
                 JArray jArray => jArray.Contains(JToken.FromObject(value)),
                 IEnumerable<T> iValue => iValue.Contains(value),
                 IEnumerable<KeyValuePair<string, object>> iKeyValuePair
@@ -2330,6 +2440,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 System.Collections.IDictionary cDict
                     => cDict.Contains((object)key)
                             && Helpers.Equals(cDict[key], value),
+                KeyValuePair<K, T> kvp
+                    => Helpers.Equals(kvp.Key, key) && Helpers.Equals(kvp.Value, value),
                 _ => false
             };
         }
@@ -2356,5 +2468,192 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 _ => false
             };
         }
+
+        /// <summary>
+        /// Returns the converted value based on <typeparamref name="R"/>, if possible, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
+        /// If the matched value cannot be converted to <typeparamref name="R"/>, this will return false.
+        /// A match occurs when any of the following happens:
+        ///     <see cref="Value"/> is a list and one of the elements match <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a dictionary and the key match <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a string and <paramref name="matchValue"/> is contained within
+        ///     When <see cref="Value"/> equals <paramref name="matchValue"/>
+        /// </summary>
+        /// <typeparam name="R">The type used to convert the matched value</typeparam>        
+        /// <param name="matchValue">
+        /// The value used to determine if a match occurred.
+        /// </param>
+        /// <param name="resultValue">
+        /// Returns the converted matched value, if possible. 
+        /// If a match dose not occur or the value could not be converted, this will be the default value of type <typeparamref name="R"/>. 
+        /// </param>
+        /// <returns>
+        /// True to indicate that a match occurred and the matched value could be converted.
+        /// </returns>
+        /// <seealso cref="Convert"/>
+        /// <seealso cref="Value"/>
+        /// <seealso cref="TryGetValue{R}(object, R)"/>
+        public bool TryGetValue<R>(object matchValue, out R resultValue)
+        {
+            if (matchValue is null)
+            {
+                if(this.IsEmpty)
+                {
+                    if (typeof(R) == typeof(AValue))
+                        resultValue = (R)(object)Empty;
+                    else
+                        resultValue = default;
+                    return true;
+                }
+
+                resultValue = default;
+                return false;
+            }
+
+            if (matchValue is AValue akey)
+                return this.TryGetValue(akey.Value, out resultValue);
+
+            bool TryConvertToTypeO(object oValue, out R resultValue)
+            {
+                try
+                {
+                    resultValue =  oValue is R rValue
+                                    ? rValue
+                                    : ( typeof(R) == typeof(AValue)
+                                        ? (R) (object) new AValue(oValue, this.BinName, this.FldName)
+                                        : (R) Helpers.CastToNativeType(this.FldName, typeof(R), this.BinName, oValue));
+                    return true;
+                }
+                catch (ArgumentException) { }
+
+                resultValue = default;
+                return false;
+            }
+            bool TryConvertToTypeA (AValue aValue, out R resultValue)
+                    => TryConvertToTypeO(aValue.Value, out resultValue);
+            bool TryConvertToType(out R resultValue) => TryConvertToTypeA(this, out resultValue);
+                        
+            switch (this.Value)
+            {
+                case R rValue:
+                    if (matchValue.Equals(rValue))
+                    {
+                        resultValue = rValue;
+                        return true;
+                    }
+                    break;
+                case AValue aValue:
+                    if(aValue.Equals(matchValue))
+                    {
+                        return TryConvertToTypeA(aValue, out resultValue);
+                    }
+                    break;
+                case string sValue:
+                    if((matchValue is string sKey
+                                && sValue.Contains(sKey))
+                            || Helpers.Equals(matchValue, sValue))
+                    {
+                        return TryConvertToType(out resultValue);
+                    }
+                    break;
+                case JArray jArray:
+                    if(jArray.Contains(JToken.FromObject(matchValue)))
+                    {
+                        return TryConvertToType(out resultValue);
+                    }
+                    break;
+                case IEnumerable<AValue> aCollection:
+                    {
+                        var fndValue = aCollection.FirstOrDefault(f => f.Equals(matchValue));
+                        if (fndValue is not null)
+                            return TryConvertToTypeA(fndValue, out resultValue);
+                    }
+                    break;
+                case IEnumerable<object> oCollection:
+                    {
+                        var fndValue = oCollection.FirstOrDefault(f => Helpers.Equals(matchValue, f));
+                        if (fndValue is not null)
+                            return TryConvertToTypeO(fndValue, out resultValue);
+                    }
+                    break;
+                case IDictionary<AValue,AValue> aDict:
+                    {
+                        var fndValue = aDict.FirstOrDefault(f => f.Key.Equals(matchValue));
+                        if (fndValue.Key is not null)
+                            return TryConvertToTypeA(fndValue.Value, out resultValue);
+                    }
+                    break;
+                case IDictionary<object,object> cDict:                    
+                    {
+                        var fndValue = cDict.FirstOrDefault(f => Helpers.Equals(matchValue, f.Key));
+                        if (fndValue.Key is not null)
+                            return TryConvertToTypeO(fndValue.Value, out resultValue);
+                    }
+                    break;
+                case IDictionary<string, object> sDict:
+                    {
+                        var fndValue = sDict.FirstOrDefault(f => Helpers.Equals(matchValue, f.Key));
+                        if (fndValue.Key is not null)
+                            return TryConvertToTypeO(fndValue.Value, out resultValue);
+                    }
+                    break;
+                case System.Collections.IEnumerable collection:
+                    {
+                        var fndValue = collection
+                                            .Cast<object>()
+                                            .FirstOrDefault(f => Helpers.Equals(matchValue, f));
+                        if (fndValue is not null)
+                            return TryConvertToTypeO(fndValue, out resultValue);
+                    }
+                    break;                
+            }
+
+            if (Helpers.EqualsKVP(this.Value, matchValue, out object kvpValue))
+            {
+                return TryConvertToTypeO(kvpValue, out resultValue);               
+            }
+            else if (Helpers.Equals(this.Value, matchValue))
+            {
+                return TryConvertToTypeO(this.Value, out resultValue);
+            }
+
+            resultValue = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Returns the converted value based on <typeparamref name="R"/>, if possible, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
+        /// If the matched value cannot be converted to <typeparamref name="R"/>, this will return <paramref name="defaultValue"/>.
+        /// A match occurs when any of the following happens:
+        ///     <see cref="Value"/> is a list and one of the elements match <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a dictionary and the key match <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a string and <paramref name="matchValue"/> is contained within
+        ///     When <see cref="Value"/> equals <paramref name="matchValue"/>
+        /// </summary>
+        /// <typeparam name="R">The type used to convert the matched value</typeparam>
+        /// <param name="matchValue">
+        /// The value used to determine if a match occurred.
+        /// </param>
+        /// <param name="defaultValue">
+        /// The default value if a match dose not occur or the value could not be converted.
+        /// </param>
+        /// <returns>
+        /// Returns the converted matched value, if possible. 
+        /// If a match dose not occur or the value could not be converted, this will return <paramref name="defaultValue"/>. 
+        /// </returns>
+        /// <seealso cref="Convert"/>
+        /// <seealso cref="Value"/>
+        /// <seealso cref="TryGetValue{R}(object, out R)"/>
+        public R TryGetValue<R>(object matchValue, R defaultValue = default)
+                    => TryGetValue(matchValue, out R matchedValue) ? matchedValue : defaultValue;
+
+        public bool TryGetValue(object matchValue, out AValue resultValue)
+                        => TryGetValue<AValue>(matchValue, out resultValue);
+
+        public AValue TryGetValue(object matchValue, bool returnEmptyAValue = false)
+                    => TryGetValue<AValue>(matchValue, out AValue matchedValue) 
+                            ? matchedValue
+                            : (returnEmptyAValue ? Empty : null);
+
+    #endregion
     }
 }

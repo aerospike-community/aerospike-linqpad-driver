@@ -44,7 +44,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// If true, the PK has an actual value. If false, the digest is only provided.
         /// </summary>
-        public bool HasKeyValue { get => !(this.AerospikeKey.userKey?.Object is null); }
+        public bool HasKeyValue { get => this.AerospikeKey.userKey?.Object is not null; }
 
         public static APrimaryKey ToValue(Aerospike.Client.Key key) => new APrimaryKey(key);
 

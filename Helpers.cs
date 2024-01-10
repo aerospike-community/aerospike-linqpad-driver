@@ -14,6 +14,7 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 using LPEDC = LINQPad.Extensibility.DataContext;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Data.SqlTypes;
 
 namespace Aerospike.Client
 {
@@ -135,18 +136,19 @@ namespace Aerospike.Client
                         byte[] castedObj => Exp.Val(castedObj),
                         IList castedObj => Exp.Val(castedObj),
                         IDictionary castedObj => Exp.Val(castedObj, MapOrder.UNORDERED),
-                        string castedObj =>  Exp.Val(castedObj),
-		                int castedObj => Exp.Val(castedObj),
-		                long castedObj => Exp.Val(castedObj),
-		                bool castedObj => Exp.Val(castedObj),
-		                Enum castedObj => Exp.Val(Convert.ToInt32(castedObj)),
-		                byte castedObj => Exp.Val(castedObj),
-		                sbyte castedObj => Exp.Val(castedObj),
-		                short castedObj => Exp.Val(castedObj),
-		                uint castedObj => Exp.Val(castedObj),
-		                ulong castedObj => Exp.Val(castedObj),
-		                ushort castedObj => Exp.Val(castedObj),
-		                _ => throw new ArgumentException($"Object type is not supported in Aerospike: {value.GetType()}"),
+                        string castedObj => Exp.Val(castedObj),
+                        int castedObj => Exp.Val(castedObj),
+                        long castedObj => Exp.Val(castedObj),
+                        bool castedObj => Exp.Val(castedObj),
+                        Enum castedObj => Exp.Val(Convert.ToInt32(castedObj)),
+                        byte castedObj => Exp.Val(castedObj),
+                        sbyte castedObj => Exp.Val(castedObj),
+                        short castedObj => Exp.Val(castedObj),
+                        uint castedObj => Exp.Val(castedObj),
+                        ulong castedObj => Exp.Val(castedObj),
+                        ushort castedObj => Exp.Val(castedObj),
+                        null => Exp.Nil(),
+                        _ => throw new ArgumentException($"Object type is not supported in Aerospike: {value.GetType()}"),
                     };
                         
 
@@ -850,6 +852,11 @@ namespace Aerospike.Database.LINQPadDriver
             if (b is null) return false;
             if(ReferenceEquals(a, b)) return true;
 
+            if (a is AValue aa)
+                return aa.Equals(b);
+            if (b is AValue ab)
+                return ab.Equals(a);
+
             if (a is string sa)
             {
                 if (b is string sb) return sa == sb;
@@ -860,7 +867,7 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 return false;
             }
-
+           
             if (a is IEnumerable<object> alist)
                 return SequenceEquals(alist, b);
             if (b is IEnumerable<object> blist)
@@ -900,6 +907,45 @@ namespace Aerospike.Database.LINQPadDriver
             return false;
         }
 
+
+        public static bool EqualsKVP(object a, object b, out object value)
+        {
+            if (a is null || b is null)
+            {
+                value = null;
+                return false;
+            }
+
+            if (Helpers.IsSubclassOfInterface(typeof(KeyValuePair<,>), a.GetType()))
+            {
+                var fldKeyMethod = a.GetType().GetProperty("Key");
+                var fldValueMethod = a.GetType().GetProperty("Value");
+
+                var vKey = fldKeyMethod.GetValue(a);
+                var vValue = fldValueMethod.GetValue(a);
+
+                if (Helpers.IsSubclassOfInterface(typeof(KeyValuePair<,>), b.GetType()))
+                {
+                    var vKey1 = fldKeyMethod.GetValue(b);
+                    var vValue1 = fldValueMethod.GetValue(b);
+
+                    if(Helpers.Equals(vKey, vKey1) && Helpers.Equals(vValue, vValue1))
+                    {
+                        value = vValue;
+                        return true;
+                    }
+                }
+                else if(Helpers.Equals(vKey, b))
+                {
+                    value = vValue;
+                    return true;
+                }
+            }
+
+            value = null;
+            return false;
+        }
+
         /// <summary>
         /// Based on <paramref name="fldType"/>, creates a .Net Native (int, decimal, string, datetime, etc.) instance based on <paramref name="binValue"/>.
         /// </summary>
@@ -928,7 +974,9 @@ namespace Aerospike.Database.LINQPadDriver
                                 ? "null"
                                 : (castValue is string
                                     ? $"\"{castValue}\""
-                                    : castValue.ToString());
+                                    : (IsSubclassOfInterface(typeof(IEnumerable), castValue.GetType()) 
+                                        ? "<IEnumerable Object(s)>"
+                                        : castValue.ToString()));
                 
                 if (binName == fldName)
                     return new ArgumentException($"Bin \"{binName}\" with Value {castStr} ({GetRealTypeName(binValue?.GetType()) ?? "<UnKnownType>"}) could not be cast to field type {GetRealTypeName(fldType)}",
@@ -1399,6 +1447,13 @@ namespace Aerospike.Database.LINQPadDriver
                                     throw CreateException(tsValue);
                                 }
                             }
+                        case IList<AValue> lstAValue:
+                            {
+                                return CastToNativeType(fldName,
+                                                        fldType,
+                                                        binName,
+                                                        lstAValue.Cast<object>().ToList());
+                            }
                         case IList<object> lstValue:
                             {
                                 if (fldType.IsArray)
@@ -1418,7 +1473,7 @@ namespace Aerospike.Database.LINQPadDriver
                                 if (IsSubclassOfInterface(typeof(IList<>), fldType))
                                 {
                                     var itemTypes = fldType.GetGenericArguments();
-                                    var newList = (IList)Activator.CreateInstance(fldType.GetGenericTypeDefinition().MakeGenericType(itemTypes[0]));
+                                    var newList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(itemTypes[0]));
 
                                     foreach (var item in lstValue.Select(i => CastToNativeType(fldName, itemTypes[0], binName, i)).ToArray())
                                     {
@@ -1444,6 +1499,13 @@ namespace Aerospike.Database.LINQPadDriver
 
                                 throw CreateException(lstValue);
                             }
+                        case IDictionary<AValue, AValue> dictAValue:
+                            {
+                                return CastToNativeType(fldName,
+                                                        fldType,
+                                                        binName,
+                                                        dictAValue.ToDictionary(k => (object) k.Key, v => (object) v.Value));
+                            }
                         case IDictionary<string, object> dictNameValue:
                             {
                                 return CastToNativeType(fldName,
@@ -1466,7 +1528,7 @@ namespace Aerospike.Database.LINQPadDriver
                                 if (IsSubclassOfInterface(typeof(IDictionary<,>), fldType))
                                 {
                                     var itemTypes = fldType.GetGenericArguments();
-                                    var newDict = (IDictionary)Activator.CreateInstance(fldType.GetGenericTypeDefinition().MakeGenericType(itemTypes[0], itemTypes[1]));
+                                    var newDict = (IDictionary)Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(itemTypes[0], itemTypes[1]));
                                     var keyValues = dictValue.Keys.Select(i => CastToNativeType(fldName, itemTypes[0], binName, i)).ToArray();
                                     var values = dictValue.Values.Select(i => CastToNativeType(fldName, itemTypes[1], binName, i)).ToArray();
 
@@ -1477,8 +1539,7 @@ namespace Aerospike.Database.LINQPadDriver
 
                                     return newDict;
                                 }
-
-
+                                
                                 return typeof(Helpers)
                                             .GetMethod("Transform")
                                             .MakeGenericMethod(fldType)
@@ -1496,6 +1557,14 @@ namespace Aerospike.Database.LINQPadDriver
                                                                     fldType.GetGenericArguments()[0],
                                                                     binName,
                                                                     binValue);
+                                    }
+                                    if(aValue.UnderlyingType.IsGenericType
+                                            && aValue.UnderlyingType.GetGenericTypeDefinition() == fldType.GetGenericTypeDefinition())
+                                    {
+                                        return CastToNativeType(fldName,
+                                                                    fldType,
+                                                                    binName,
+                                                                    aValue.Value);
                                     }
                                 }
 
@@ -1653,10 +1722,10 @@ namespace Aerospike.Database.LINQPadDriver
                                             return newArray;
                                         }
 
-                                        if (fldType.IsGenericType && IsSubclassOfInterface(typeof(IList<>), fldType))
+                                        if (fldType.IsGenericType && IsSubclassOfInterface(typeof(IEnumerable<>), fldType))
                                         {
                                             var itemTypes = fldType.GetGenericArguments();
-                                            var newList = (IList)Activator.CreateInstance(fldType.GetGenericTypeDefinition().MakeGenericType(itemTypes[0]));
+                                            var newList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(itemTypes[0]));
 
                                             foreach (var item in binArray)
                                             {

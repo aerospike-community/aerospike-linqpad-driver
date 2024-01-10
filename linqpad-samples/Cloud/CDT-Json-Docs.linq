@@ -3,15 +3,13 @@
     <ID>973104d1-5fc3-4e74-a869-59441d5e370d</ID>
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
-    <Persist>false</Persist>    
-    <DisplayName>Aerospike Cloud (Demo)</DisplayName>
+    <Server>localhost</Server>
+    <DisplayName>Aerospike Cluster (Demo)</DisplayName>
     <DriverData>
-      <DBType>Cloud</DBType>
-      <Port>4000</Port>
-      <TLSOnlyLogin>true</TLSOnlyLogin>
-      <SetNamesCloud>PlaylistTrack Track InvoiceLine Album Invoice Artist Playlist CustInvsDoc Customer Genre MediaType Employee DataTypes</SetNamesCloud>
-	  <ConnectionTimeout>5000</ConnectionTimeout>
-      <TotalTimeout>5000</TotalTimeout>
+      <UseExternalIP>false</UseExternalIP>
+      <Debug>false</Debug>
+      <RecordView>Record</RecordView>
+      <DocumentAPI>true</DocumentAPI>
     </DriverData>
   </Connection>
 </Query>
@@ -45,6 +43,18 @@ void Main()
 						 select custInvoices;
 
 	fndTrackIdsCDT.Dump("Found Using Linq CDT");
+
+	//.Net CDTs using AValues -- Find all tracks for TrackId 2527 and return those customers who bought this track
+	// Note: Using AValues reduces type checking and casting...
+	var fndTrackIdsAValueCDT = from custInvoices in aerospike_cloud.CustInvsDoc.AsEnumerable()
+							   where custInvoices
+										.Invoices.AsEnumerable()//Get the list of invoices as an AValues
+										.Any(il => il.TryGetValue("Lines", returnEmptyAValue: true) //Get invoice lines as an AValue. If the property "Lines" doens't exist, a Null AValue is returned
+														.AsEnumerable() //Get List of invoice lines where each element ia an AValue. If there are no "Lines" this returns an empty collection.
+														.Any(i => i.TryGetValue<int>("TrackId") == 2527)) //Find invoice line
+							   select custInvoices;
+
+	fndTrackIdsAValueCDT.Dump("Found Using Linq CDT using AValues");
 
 	//JObject -- Find all tracks for TrackId 2527 and return those customers
 	var fndTrackIdsJObj = from custInvoices in aerospike_cloud.CustInvsDoc.AsEnumerable()

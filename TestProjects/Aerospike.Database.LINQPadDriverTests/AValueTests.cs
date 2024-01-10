@@ -6,6 +6,7 @@ using System.Text;
 using Aerospike.Client;
 using NuGet.Frameworks;
 using Newtonsoft.Json.Linq;
+using System.Printing;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 {
@@ -309,6 +310,275 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.AreEqual("123456", aValue.ToString());
             Assert.AreEqual("123,456", aValue.ToString("###,###"));
             
+        }
+
+        [TestMethod]
+        public void EmptyTest()
+        {
+            Assert.IsTrue(AValue.Empty.IsEmpty);
+            Assert.IsFalse(AValue.Empty.IsBool);
+            Assert.IsFalse(AValue.Empty.IsInt);
+            Assert.IsFalse(AValue.Empty.IsCDT);
+            Assert.IsFalse(AValue.Empty.IsJson);
+            Assert.IsFalse(AValue.Empty.IsDateTime);
+            Assert.IsFalse(AValue.Empty.IsDateTimeOffset);
+            Assert.IsFalse(AValue.Empty.IsDictionary);
+            Assert.IsFalse(AValue.Empty.IsFloat);
+            Assert.IsFalse(AValue.Empty.IsGeoJson);
+            Assert.IsFalse(AValue.Empty.IsKeyValuePair);
+            Assert.IsFalse(AValue.Empty.IsList);
+            Assert.IsFalse(AValue.Empty.IsMap);
+            Assert.IsFalse(AValue.Empty.IsNumeric);
+            Assert.IsFalse(AValue.Empty.IsString);
+            Assert.IsFalse(AValue.Empty.IsTimeSpan);
+
+            Assert.IsNull(AValue.Empty.TryGetValue("abv"));
+            Assert.IsNull(AValue.Empty.TryGetValue(123));
+            Assert.AreEqual(AValue.Empty, AValue.Empty.TryGetValue(345, returnEmptyAValue: true ));
+
+            Assert.IsFalse(AValue.Empty.Contains("122"));
+            Assert.IsFalse(AValue.Empty.Contains("122", 123));
+            Assert.IsFalse(AValue.Empty.ContainsKey("123"));
+
+            Assert.IsNull(AValue.Empty.Convert<object>());
+            Assert.IsNull(AValue.Empty.Convert<string>());
+            Assert.IsNull(AValue.Empty.Convert<bool?>());
+            Assert.IsNotNull(AValue.Empty.ToAerospikeExpression());
+            Assert.AreEqual(Client.Value.NullValue.Instance, AValue.Empty.ToAerospikeValue());
+
+        }
+
+        [TestMethod]
+        public void ContainsMethodTest()
+        {
+            object checkValue = "123";
+            AValue aValue = checkValue.ToAValue();
+
+            Assert.IsTrue(aValue.Equals(checkValue));
+            Assert.IsTrue(aValue.Contains(checkValue));
+            Assert.IsFalse(aValue.Contains(checkValue, string.Empty));
+            Assert.IsFalse(aValue.Contains(string.Empty, checkValue));
+            Assert.IsFalse(aValue.ContainsKey(checkValue));
+            Assert.AreEqual(aValue, aValue.TryGetValue(checkValue));
+
+            checkValue = true;
+            aValue = checkValue.ToAValue();
+
+            Assert.IsTrue(aValue.Equals(checkValue));
+            Assert.IsTrue(aValue.Contains(checkValue));
+            Assert.IsFalse(aValue.Contains(checkValue, string.Empty));
+            Assert.IsFalse(aValue.Contains(string.Empty, checkValue));
+            Assert.IsFalse(aValue.ContainsKey(checkValue));
+            Assert.AreEqual(aValue, aValue.TryGetValue(checkValue));
+
+            checkValue = 123;
+            aValue = checkValue.ToAValue();
+
+            Assert.IsTrue(aValue.Equals(checkValue));
+            Assert.IsTrue(aValue.Contains(checkValue));
+            Assert.IsFalse(aValue.Contains(checkValue, string.Empty));
+            Assert.IsFalse(aValue.Contains(string.Empty, checkValue));
+            Assert.IsFalse(aValue.ContainsKey(checkValue));
+            Assert.AreEqual(aValue, aValue.TryGetValue(checkValue));
+
+
+            checkValue = 123.45M;
+            aValue = checkValue.ToAValue();
+
+            Assert.IsTrue(aValue.Equals(checkValue));
+            Assert.IsTrue(aValue.Contains(checkValue));
+            Assert.IsFalse(aValue.Contains(checkValue, string.Empty));
+            Assert.IsFalse(aValue.Contains(string.Empty, checkValue));
+            Assert.IsFalse(aValue.ContainsKey(checkValue));
+            Assert.AreEqual(aValue, aValue.TryGetValue(checkValue));
+
+            checkValue = 123.567D;
+            aValue = checkValue.ToAValue();
+
+            Assert.IsTrue(aValue.Equals(checkValue));
+            Assert.IsTrue(aValue.Contains(checkValue));
+            Assert.IsFalse(aValue.Contains(checkValue, string.Empty));
+            Assert.IsFalse(aValue.Contains(string.Empty, checkValue));
+            Assert.IsFalse(aValue.ContainsKey(checkValue));
+            Assert.AreEqual(aValue, aValue.TryGetValue(checkValue));
+
+            checkValue = new List<string>() { "a", "b", "c", "d" };
+            aValue = checkValue.ToAValue();
+            object matchValue = "c";
+            AValue matchAValue = matchValue.ToAValue();
+
+            Assert.IsTrue(aValue.Equals(checkValue));
+            Assert.IsTrue(aValue.Contains(matchValue));
+            Assert.IsFalse(aValue.Contains(matchValue, string.Empty));
+            Assert.IsFalse(aValue.Contains(string.Empty, matchValue));
+            Assert.IsFalse(aValue.ContainsKey(matchValue));
+            Assert.AreEqual(matchAValue, aValue.TryGetValue(matchValue));
+            Assert.IsNull(aValue.TryGetValue("z"));
+
+            checkValue = new List<int>() { 1, 2, 3, 4 };
+            aValue = checkValue.ToAValue();
+            matchValue = 4;
+            matchAValue = matchValue.ToAValue();
+
+            Assert.IsTrue(aValue.Equals(checkValue));
+            Assert.IsTrue(aValue.Contains(matchValue));
+            Assert.IsFalse(aValue.Contains(matchValue, string.Empty));
+            Assert.IsFalse(aValue.Contains(string.Empty, matchValue));
+            Assert.IsFalse(aValue.ContainsKey(matchValue));
+            Assert.AreEqual(matchAValue, aValue.TryGetValue(matchValue));
+            Assert.IsNull(aValue.TryGetValue(10));
+
+            checkValue = new Dictionary<string,object>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 } };
+            aValue = checkValue.ToAValue();
+            matchValue = "c";
+            matchAValue = 3.ToAValue();
+
+            Assert.IsTrue(aValue.Equals(checkValue));
+            Assert.IsTrue(aValue.Contains(3));
+            Assert.IsTrue(aValue.Contains(matchValue, 3));
+            Assert.IsTrue(aValue.ContainsKey(matchValue));
+            Assert.AreEqual(matchAValue, aValue.TryGetValue(matchValue));
+            
+            checkValue = new Dictionary<string, int>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 } };
+            aValue = checkValue.ToAValue();
+            matchValue = "c";
+            matchAValue = 3.ToAValue();
+
+            Assert.IsTrue(aValue.Equals(checkValue));
+            Assert.IsTrue(aValue.Contains(3));
+            Assert.IsTrue(aValue.Contains(matchValue, 3));
+            Assert.IsTrue(aValue.ContainsKey(matchValue));
+            Assert.IsNull(aValue.TryGetValue(matchValue));
+
+
+            checkValue = new Dictionary<object, object>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 } };
+            aValue = checkValue.ToAValue();
+            matchValue = "c";
+            matchAValue = 3.ToAValue();
+
+            Assert.IsTrue(aValue.Equals(checkValue));
+            Assert.IsTrue(aValue.Contains(3));
+            Assert.IsTrue(aValue.Contains(matchValue, 3));
+            Assert.IsTrue(aValue.ContainsKey(matchValue));
+            Assert.AreEqual(matchAValue, aValue.TryGetValue(matchValue));
+            Assert.IsNull(aValue.TryGetValue("z"));
+
+            checkValue = "123";
+            aValue = checkValue.ToAValue();
+
+            Assert.AreEqual(checkValue, aValue.TryGetValue<string>(checkValue));
+
+            checkValue = true;
+            aValue = checkValue.ToAValue();
+
+            Assert.AreEqual(checkValue, aValue.TryGetValue<bool>(checkValue));
+
+            checkValue = 123;
+            aValue = checkValue.ToAValue();
+
+            Assert.AreEqual(checkValue, aValue.TryGetValue<int>(checkValue));
+
+
+            checkValue = 123.45M;
+            aValue = checkValue.ToAValue();
+
+            Assert.AreEqual(aValue, aValue.TryGetValue<decimal>(checkValue));
+
+            checkValue = 123.567D;
+            aValue = checkValue.ToAValue();
+
+            Assert.AreEqual(aValue, aValue.TryGetValue<double>(checkValue));
+
+            checkValue = new List<string>() { "a", "b", "c", "d" };
+            aValue = checkValue.ToAValue();
+            matchValue = "c";
+            
+            Assert.AreEqual(matchValue, aValue.TryGetValue<string>(matchValue));
+
+            checkValue = new List<int>() { 1, 2, 3, 4 };
+            aValue = checkValue.ToAValue();
+            matchValue = 4;
+            
+            Assert.AreEqual(matchValue, aValue.TryGetValue<int>(matchValue));
+
+            checkValue = new Dictionary<string, object>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 } };
+            aValue = checkValue.ToAValue();
+            matchValue = "c";
+            
+            Assert.AreEqual(3, aValue.TryGetValue<int>(matchValue));
+
+            checkValue = new Dictionary<string, int>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 } };
+            aValue = checkValue.ToAValue();
+            matchValue = "c";
+            
+            Assert.AreEqual(0, aValue.TryGetValue<int>(matchValue));
+            
+            checkValue = new Dictionary<object, object>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 } };
+            aValue = checkValue.ToAValue();
+            matchValue = "c";
+            
+            Assert.AreEqual(3, aValue.TryGetValue<int>(matchValue));
+            Assert.AreEqual(0, aValue.TryGetValue<int>("z"));
+        }
+
+        [TestMethod]
+        public void AsEnumerableMethodTest()
+        {
+            object checkValue = "123";
+            AValue aValue = checkValue.ToAValue();
+
+            Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+
+            checkValue = true;
+            aValue = checkValue.ToAValue();
+
+            Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+
+            checkValue = 123;
+            aValue = checkValue.ToAValue();
+
+            Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+
+            checkValue = 123.45M;
+            aValue = checkValue.ToAValue();
+
+            Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+
+            checkValue = 123.567D;
+            aValue = checkValue.ToAValue();
+
+            Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+
+            checkValue = new List<object>() { "a", "b", "c", "d" };
+            aValue = checkValue.ToAValue();
+            var collection = aValue.AsEnumerable();
+
+            Assert.AreEqual(((List<object>)checkValue).Count, collection.Count());
+            foreach(var item in (List<object>) checkValue)
+            {
+                Assert.IsTrue(collection.Any(i => i.Equals(item)));
+            }
+
+            checkValue = new List<object>() { 1, 2, 3, 4 };
+            aValue = checkValue.ToAValue();
+            collection = aValue.AsEnumerable();
+
+            Assert.AreEqual(((List<object>)checkValue).Count, collection.Count());
+            foreach (var item in (List<object>)checkValue)
+            {
+                Assert.IsTrue(collection.Any(i => i.Equals(item)));
+            }
+
+            checkValue = new Dictionary<string, object>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 } };
+            aValue = checkValue.ToAValue();
+
+            collection = aValue.AsEnumerable();
+
+            Assert.AreEqual(((Dictionary<string, object>)checkValue).Count, collection.Count());
+            foreach (var item in ((Dictionary<string, object>)checkValue))
+            {
+                Assert.IsTrue(collection.Any(i => i.TryGetValue<object>(item.Key)?.Equals(item.Value) ?? false));
+            }
         }
     }
 }
