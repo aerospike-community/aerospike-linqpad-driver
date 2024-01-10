@@ -965,6 +965,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="TryGetValue(object, out AValue)"/>
         /// <seealso cref="TryGetValue{R}(object, out R)"/>
         /// <seealso cref="TryGetValue{R}(object, R)"/>
+        /// <seealso cref="Equals(object)"/>
         public bool Contains<T>(T value)
         {
             return this.Value switch
@@ -986,8 +987,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         /// <summary>
         /// Determines if <paramref name="key"/> and <paramref name="value"/> is contained in <see cref="Value"/>.
-        /// If <see cref="Value"/> is a IDictionary, <seealso cref="JsonDocument"/>, or <see cref="IDictionary{TKey, TValue}"/>, each Key/Value pair is compared. 
-        /// If <see cref="Value"/> is an instance, false is always returned.
+        /// If <see cref="Value"/> is a <seealso cref="System.Collections.IDictionary"/>, <seealso cref="JsonDocument"/>, or <see cref="KeyValuePair{TKey, TValue}"/>, each Key/Value pair is compared. 
+        /// If <see cref="Value"/> is anything else, false is always returned.
         /// </summary>
         /// <typeparam name="K">The type of <paramref name="key"/></typeparam>
         /// <typeparam name="T">The type of <paramref name="value"/></typeparam>
@@ -1002,6 +1003,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="TryGetValue(object, out AValue)"/>
         /// <seealso cref="TryGetValue{R}(object, out R)"/>
         /// <seealso cref="TryGetValue{R}(object, R)"/>
+        /// <seealso cref="Equals(object)"/>
         public bool Contains<K, T>(K key, T value)
         {
             return this.Value switch
@@ -1023,7 +1025,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
         /// <summary>
-        /// Determines if <paramref name="key"/> is a key/property field within a Dictionary or JObject.
+        /// Determines if <paramref name="key"/> is a key/property field within a <see cref="System.Collections.IDictionary"/> or <see cref="JObject"/>.
         /// </summary>
         /// <typeparam name="K">The type of <paramref name="key"/></typeparam>
         /// <param name="key">The value used to determined if the key exists</param>
@@ -1036,6 +1038,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="TryGetValue(object, out AValue)"/>
         /// <seealso cref="TryGetValue{R}(object, out R)"/>
         /// <seealso cref="TryGetValue{R}(object, R)"/>
+        /// <seealso cref="Equals(object)"/>
         public bool ContainsKey<K>(K key)
         {
             return this.Value switch
@@ -1053,10 +1056,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Returns the converted value based on <typeparamref name="R"/>, if possible, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
         /// If the matched value cannot be converted to <typeparamref name="R"/>, this will return false.
         /// A match occurs when any of the following happens:
-        ///     <see cref="Value"/> is a list and one of the elements match <paramref name="matchValue"/>
-        ///     <see cref="Value"/> is a dictionary and the key match <paramref name="matchValue"/>
-        ///     <see cref="Value"/> is a string and <paramref name="matchValue"/> is contained within
-        ///     When <see cref="Value"/> equals <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="IEnumerable{T}"/> or <see cref="JArray"/> and one of the elements matches <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="IDictionary{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="KeyValuePair{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
+        ///         If <paramref name="matchValue"/> is a <see cref="KeyValuePair{TKey, TValue}"/>, both the key and value must match
+        ///     <see cref="Value"/> is a <see cref="string"/> and <paramref name="matchValue"/> is contained within
+        ///     Otherwise <see cref="Value"/> <see cref="Equals(Object)"/> is applied against <paramref name="matchValue"/>
         /// </summary>
         /// <typeparam name="R">The type used to convert the matched value</typeparam>        
         /// <param name="matchValue">
@@ -1074,6 +1079,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Contains{K, T}(K, T)"/>
         /// <seealso cref="Contains{T}(T)"/>
         /// <seealso cref="ContainsKey{K}(K)"/>
+        /// <seealso cref="Equals(object)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
         /// <seealso cref="TryGetValue(object, out AValue)"/>
         /// <seealso cref="TryGetValue{R}(object, R)"/>
@@ -1207,12 +1213,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         /// <summary>
         /// Returns the converted value based on <typeparamref name="R"/>, if possible, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
-        /// If the matched value cannot be converted to <typeparamref name="R"/>, this will return <paramref name="defaultValue"/>.
+        /// If the matched value cannot be converted to <typeparamref name="R"/>, this will return false.
         /// A match occurs when any of the following happens:
-        ///     <see cref="Value"/> is a list and one of the elements match <paramref name="matchValue"/>
-        ///     <see cref="Value"/> is a dictionary and the key match <paramref name="matchValue"/>
-        ///     <see cref="Value"/> is a string and <paramref name="matchValue"/> is contained within
-        ///     When <see cref="Value"/> equals <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="IEnumerable{T}"/> or <see cref="JArray"/> and one of the elements matches <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="IDictionary{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="KeyValuePair{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
+        ///         If <paramref name="matchValue"/> is a <see cref="KeyValuePair{TKey, TValue}"/>, both the key and value must match
+        ///     <see cref="Value"/> is a <see cref="string"/> and <paramref name="matchValue"/> is contained within
+        ///     Otherwise <see cref="Value"/> <see cref="Equals(Object)"/> is applied against <paramref name="matchValue"/>
         /// </summary>
         /// <typeparam name="R">The type used to convert the matched value</typeparam>
         /// <param name="matchValue">
@@ -1230,6 +1238,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Contains{K, T}(K, T)"/>
         /// <seealso cref="Contains{T}(T)"/>
         /// <seealso cref="ContainsKey{K}(K)"/>
+        /// <seealso cref="Equals(object)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
         /// <seealso cref="TryGetValue(object, out AValue)"/>
         /// <seealso cref="TryGetValue{R}(object, out R)"/>        
@@ -1237,12 +1246,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     => TryGetValue(matchValue, out R matchedValue) ? matchedValue : defaultValue;
 
         /// <summary>
-        /// Returns an AValue, only if there is a match based on <paramref name="matchValue"/>.
+        /// Returns the converted value based on <typeparamref name="R"/>, if possible, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
+        /// If the matched value cannot be converted to <typeparamref name="R"/>, this will return false.
         /// A match occurs when any of the following happens:
-        ///     <see cref="Value"/> is a list and one of the elements match <paramref name="matchValue"/>
-        ///     <see cref="Value"/> is a dictionary and the key match <paramref name="matchValue"/>
-        ///     <see cref="Value"/> is a string and <paramref name="matchValue"/> is contained within
-        ///     When <see cref="Value"/> equals <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="IEnumerable{T}"/> or <see cref="JArray"/> and one of the elements matches <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="IDictionary{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="KeyValuePair{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
+        ///         If <paramref name="matchValue"/> is a <see cref="KeyValuePair{TKey, TValue}"/>, both the key and value must match
+        ///     <see cref="Value"/> is a <see cref="string"/> and <paramref name="matchValue"/> is contained within
+        ///     Otherwise <see cref="Value"/> <see cref="Equals(Object)"/> is applied against <paramref name="matchValue"/>
         /// </summary>
         /// <param name="matchValue">
         /// The value used to determine if a match occurred.
@@ -1259,6 +1271,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Contains{K, T}(K, T)"/>
         /// <seealso cref="Contains{T}(T)"/>
         /// <seealso cref="ContainsKey{K}(K)"/>
+        /// <seealso cref="Equals(object)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
         /// <seealso cref="TryGetValue{R}(object, out R)"/>
         /// <seealso cref="TryGetValue{R}(object, R)"/>
@@ -1266,12 +1279,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         => TryGetValue<AValue>(matchValue, out resultValue);
 
         /// <summary>
-        /// Returns an AValue, only if there is a match based on <paramref name="matchValue"/>.
+        /// Returns the converted value based on <typeparamref name="R"/>, if possible, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
+        /// If the matched value cannot be converted to <typeparamref name="R"/>, this will return false.
         /// A match occurs when any of the following happens:
-        ///     <see cref="Value"/> is a list and one of the elements match <paramref name="matchValue"/>
-        ///     <see cref="Value"/> is a dictionary and the key match <paramref name="matchValue"/>
-        ///     <see cref="Value"/> is a string and <paramref name="matchValue"/> is contained within
-        ///     When <see cref="Value"/> equals <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="IEnumerable{T}"/> or <see cref="JArray"/> and one of the elements matches <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="IDictionary{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
+        ///     <see cref="Value"/> is a <see cref="KeyValuePair{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
+        ///         If <paramref name="matchValue"/> is a <see cref="KeyValuePair{TKey, TValue}"/>, both the key and value must match
+        ///     <see cref="Value"/> is a <see cref="string"/> and <paramref name="matchValue"/> is contained within
+        ///     Otherwise <see cref="Value"/> <see cref="Equals(Object)"/> is applied against <paramref name="matchValue"/>
         /// </summary>
         /// <param name="matchValue">
         /// The value used to determine if a match occurred.
@@ -1287,6 +1303,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Contains{K, T}(K, T)"/>
         /// <seealso cref="Contains{T}(T)"/>
         /// <seealso cref="ContainsKey{K}(K)"/>
+        /// <seealso cref="Equals(object)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
         /// <seealso cref="TryGetValue(object, out AValue)"/>
         /// <seealso cref="TryGetValue{R}(object, out R)"/>
