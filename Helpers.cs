@@ -450,8 +450,15 @@ namespace Aerospike.Database.LINQPadDriver
                                             CDTConverter.ConvertToDictionary(jObject));
                 return false;
             }
+            if (obj is JProperty jProp)
+            {
+                if (IsSubclassOfInterface(typeof(KeyValuePair<,>), typeof(T)))
+                    return SequenceEquals(items,
+                                            CDTConverter.ConvertToDictionary(jProp));
+                return false;
+            }
 
-            if(obj is IEnumerable iobj)
+            if (obj is IEnumerable iobj)
             {
                 return items.Cast<object>().SequenceEqual(iobj.Cast<object>());
             }
@@ -873,6 +880,11 @@ namespace Aerospike.Database.LINQPadDriver
             if (b is IEnumerable<object> blist)
                 return SequenceEquals(blist, a);
 
+            if (a is IEnumerable aiobj)
+                return SequenceEquals(aiobj.Cast<object>(), b);
+            if (b is IEnumerable biobj)            
+                return SequenceEquals(biobj.Cast<object>(), a);
+            
             var aType = a.GetType();
             var bType = b.GetType();
 
@@ -886,7 +898,10 @@ namespace Aerospike.Database.LINQPadDriver
                 return Helpers.Equals(a, ((dynamic)b).Value);
             }
 
-            if (aType == bType) return a.Equals(b);
+            if (aType == bType)
+            {                
+                return a.Equals(b);
+            }
 
             if (aType.IsPrimitive
                 && bType.IsPrimitive

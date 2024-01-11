@@ -10,9 +10,6 @@
       <Debug>false</Debug>
       <RecordView>Record</RecordView>
       <DocumentAPI>true</DocumentAPI>
-      <DBType>Native</DBType>
-      <UsePasswordManager>false</UsePasswordManager>
-      <Port>3000</Port>
     </DriverData>
   </Connection>
 </Query>
@@ -35,8 +32,11 @@ void Main()
 
 	//Adding Dictionary (Map) and a List as new rows to "BinB"
 	Demo.DataTypes.Put("Map1", "BinB", new Dictionary<string, object>() { { "Key2", "BinB123" }, { "Key3", 456 }, { "Key4", "Map1Bin" } });
-	Demo.DataTypes.Put("Map2", "BinB", new Dictionary<string, object>() { { "key1", "BinA123" }, { "Key3", 7 }, { "Map4", "Map2Bin" } });
-	Demo.DataTypes.Put("List3", "BinB", new List<object>() { "BinB123", 89, "List3Bin", "Key3"});
+	Demo.DataTypes.Put("Map2", "BinB", new Dictionary<string, object>() { { "key1", "BinA123" }, { "Key3", 7 }, { "Map4", "Map2Bin" }, { "Map5", "ABKey3CD" } });
+	Demo.DataTypes.Put("Map3", "BinB", new Dictionary<string, object>() { { "key1", "BinA456" }, { "Map7", "Map2Bin" }, { "Map8", "ABKey3CD" } });
+	Demo.DataTypes.Put("Map4", "BinB", new Dictionary<string, object>() { { "key12", "BinA456" }, { "Map9", "Map2Bin" }, { "Map10", "Key3" } });
+	Demo.DataTypes.Put("List3", "BinB", new List<object>() { "BinB123", 89, "List3Bin", "Key3" });
+	Demo.DataTypes.Put("Key3", new Dictionary<string, object>() { { "BinA", "BinA123" }, { "BinB", "Key3" }, { "BinC", "BinCKey3" } });
 
 	Demo.DataTypes.Dump("DataTypes Set with New Records");
 	
@@ -75,4 +75,12 @@ void Main()
 	//When using a DateTime object, it will match all records based on this object's actual DateTime...
 	Demo.DataTypes.Where(dt => dt.BinC == dateTimeOffset.DateTime) //We are storing dB Datetimes as string, so we can use a string or actual DateTime object...
 			.Dump("Records using DateTime object");
+			
+	//Using Contains
+	Demo.DataTypes.Where(dt => dt.BinB.Contains("Key3"))
+			.Dump("Records where BinB has value \"Key3\" as a value or within a collection");
+	Demo.DataTypes.Where(dt => dt.BinB.Contains("Key3", AValue.MatchOptions.Any))
+			.Dump("Records where BinB has value \"Key3\" as a value or anywhere (canbe an element, Key, or Value) within collection");
+	Demo.DataTypes.Where(dt => dt.BinB.Contains("Key3", AValue.MatchOptions.Any | AValue.MatchOptions.SubString))
+			.Dump("Records where BinB has value \"Key3\" as a substring within a value or anywhere (canbe an element, Key, or Value) within collection");
 }

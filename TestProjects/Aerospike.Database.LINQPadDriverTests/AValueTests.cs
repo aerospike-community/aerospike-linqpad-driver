@@ -187,7 +187,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsTrue(aValue.ContainsKey("pb"));
             Assert.IsTrue(aValue.ContainsKey("pc"));
             Assert.IsFalse(aValue.ContainsKey("a"));
-            Assert.IsTrue(aValue.Contains("b"));
+            Assert.IsTrue(aValue.Contains("b", AValue.MatchOptions.Any));
             Assert.IsFalse(aValue.Contains("x"));
 
             Assert.IsTrue(aValue.Contains("pa", "a"));
@@ -244,9 +244,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.AreEqual(strTest.Length, aValue.Count());
             Assert.AreEqual(strTest.Length, aValue.ToList().Count);
             Assert.AreEqual(1, aValue.ToListItem().Count);
-            Assert.IsTrue(aValue.Contains("abc"));
-            Assert.IsTrue(aValue.Contains("def"));
-            Assert.IsTrue(aValue.Contains("fg"));
+            Assert.IsFalse(aValue.Contains("abc"));
+            Assert.IsTrue(aValue.Contains("abc", AValue.MatchOptions.SubString));
+            Assert.IsFalse(aValue.Contains("def"));
+            Assert.IsTrue(aValue.Contains("def", AValue.MatchOptions.SubString));
+            Assert.IsFalse(aValue.Contains("fg"));
+            Assert.IsTrue(aValue.Contains("fg", AValue.MatchOptions.SubString));
             Assert.IsFalse(aValue.Contains("dzf"));
             Assert.IsFalse(aValue.Equals(testEqual));
             Assert.IsFalse(aValue.Equals(1));
@@ -402,13 +405,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsFalse(aValue.ContainsKey(checkValue));
             Assert.AreEqual(aValue, aValue.TryGetValue(checkValue));
 
-            checkValue = new List<string>() { "a", "b", "c", "d" };
+            checkValue = new List<string>() { "a", "b", "c", "d", "abcde" };
             aValue = checkValue.ToAValue();
             object matchValue = "c";
             AValue matchAValue = matchValue.ToAValue();
 
             Assert.IsTrue(aValue.Equals(checkValue));
             Assert.IsTrue(aValue.Contains(matchValue));
+            Assert.IsTrue(aValue.Contains(checkValue, AValue.MatchOptions.Exact));
+            Assert.IsTrue(aValue.Contains(((List<string>)checkValue).ToList(), AValue.MatchOptions.Exact));
+            Assert.IsTrue(aValue.Contains("cd", AValue.MatchOptions.SubString));
+            Assert.IsFalse(aValue.Contains("cd"));
             Assert.IsFalse(aValue.Contains(matchValue, string.Empty));
             Assert.IsFalse(aValue.Contains(string.Empty, matchValue));
             Assert.IsFalse(aValue.ContainsKey(matchValue));
@@ -428,23 +435,38 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.AreEqual(matchAValue, aValue.TryGetValue(matchValue));
             Assert.IsNull(aValue.TryGetValue(10));
 
-            checkValue = new Dictionary<string,object>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 } };
+            checkValue = new Dictionary<string,object>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 }, { "e", "abcde" } };
             aValue = checkValue.ToAValue();
             matchValue = "c";
             matchAValue = 3.ToAValue();
 
             Assert.IsTrue(aValue.Equals(checkValue));
-            Assert.IsTrue(aValue.Contains(3));
-            Assert.IsTrue(aValue.Contains(matchValue, 3));
+            Assert.IsFalse(aValue.Contains(3));
+            Assert.IsTrue(aValue.Contains(3, AValue.MatchOptions.Any));
+            Assert.IsTrue(aValue.Contains(matchValue));
+            Assert.IsTrue(aValue.Contains(matchValue, AValue.MatchOptions.Any));
+            Assert.IsTrue(aValue.Contains("cd", AValue.MatchOptions.SubString | AValue.MatchOptions.Any));
+            Assert.IsTrue(aValue.Contains(matchValue, AValue.MatchOptions.Any));
+            Assert.IsFalse(aValue.Contains(matchValue, AValue.MatchOptions.Exact));
+            Assert.IsTrue(aValue.Contains(checkValue, AValue.MatchOptions.Exact));
+            Assert.IsTrue(aValue.Contains(((Dictionary<string, object>)checkValue)
+                                                .ToDictionary(k => k.Key, v => v.Value),
+                                                AValue.MatchOptions.Exact));
+            Assert.IsFalse(aValue.Contains(checkValue));
             Assert.IsTrue(aValue.ContainsKey(matchValue));
             Assert.AreEqual(matchAValue, aValue.TryGetValue(matchValue));
             
-            checkValue = new Dictionary<string, int>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 } };
+            checkValue = new Dictionary<string, int>() { { "a", 1 }, { "b", 2 }, { "c", 3 }, { "d", 4 }, {"abcde", 5 } };
             aValue = checkValue.ToAValue();
             matchValue = "c";
             
             Assert.IsTrue(aValue.Equals(checkValue));
-            Assert.IsTrue(aValue.Contains(3));
+            Assert.IsFalse(aValue.Contains(3));
+            Assert.IsFalse(aValue.Contains(3, AValue.MatchOptions.Exact));
+            Assert.IsTrue(aValue.Contains(3, AValue.MatchOptions.Any));
+            Assert.IsTrue(aValue.Contains("cd", AValue.MatchOptions.SubString));
+            Assert.IsFalse(aValue.Contains("cd"));
+            Assert.IsFalse(aValue.Contains("cd", AValue.MatchOptions.Any));
             Assert.IsTrue(aValue.Contains(matchValue, 3));
             Assert.IsTrue(aValue.ContainsKey(matchValue));
             Assert.IsNull(aValue.TryGetValue(matchValue));
@@ -456,8 +478,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             matchAValue = 3.ToAValue();
 
             Assert.IsTrue(aValue.Equals(checkValue));
-            Assert.IsTrue(aValue.Contains(3));
-            Assert.IsTrue(aValue.Contains(matchValue, 3));
+            Assert.IsFalse(aValue.Contains(3));
+            Assert.IsFalse(aValue.Contains("z"));
+            Assert.IsTrue(aValue.Contains(matchValue));
             Assert.IsTrue(aValue.ContainsKey(matchValue));
             Assert.AreEqual(matchAValue, aValue.TryGetValue(matchValue));
             Assert.IsNull(aValue.TryGetValue("z"));

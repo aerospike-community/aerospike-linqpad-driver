@@ -1,10 +1,11 @@
-﻿ using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -948,17 +949,61 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             };
         }
 
+        [Flags]
+        public enum MatchOptions
+        {
+            /// <summary>
+            /// Depending on the <see cref="UnderlyingType"/> and matching options:
+            ///     <see cref="System.Collections.IEnumerable"/> -- tries to match an element
+            ///     <see cref="System.Collections.IDictionary"/> -- tries to match on Key
+            ///     other types -- Tries to match on <see cref="AValue.Value"/>
+            /// </summary>
+            Value = 0x0001,
+            /// <summary>
+            /// Uses <see cref="AValue.Equals(object)"/> for matching.
+            /// This is the default matching method.
+            /// </summary>
+            Equals = 0x0002,
+            /// <summary>
+            /// Depending on the <see cref="UnderlyingType"/> and matching options (default is <see cref="Equals"/>:
+            ///     <see cref="System.Collections.IEnumerable"/> -- tries to match an element
+            ///     <see cref="System.Collections.IDictionary"/> -- tries to match on Key or Value
+            ///     other types -- Tries to match on <see cref="AValue.Value"/>
+            /// If provided, <see cref="Value"/> is ignored.
+            /// </summary>
+            Any = 0x0004 | Value, 
+            /// <summary>
+            /// If the value is a string, the match occurs if this value is a substring of <see cref="AValue.Value"/>. 
+            /// If not a string, the defined matching method is used.
+            /// </summary>
+            SubString = 0x0008,
+            /// <summary>
+            /// Will not try to match any elements in a collection. It will apply <see cref="AValue.Equals(object)"/> to all <see cref="AValue.Value"/>.
+            /// If provided, all other options are ignored except <see cref="Regex"/>.
+            /// </summary>
+            Exact =  0x0010,
+            /// <summary>
+            /// <see cref="ToString()"/> is call on the <see cref="AValue.Value"/>, and the RegEx is applied.
+            /// </summary>
+            Regex = 0x0020
+        }
+
         /// <summary>
-        /// Determines if <paramref name="value"/> is contained in <see cref="Value"/>.
-        /// If <see cref="Value"/> is a collection, each element is compared. 
-        /// If <see cref="Value"/> is a string and <paramref name="value"/> is a string, determines if param is contained in the Value, otherwise Equals is applied.
-        /// If <see cref="Value"/> is an instance, the Equals method is applied.
+        /// Determines if <paramref name="matchValue"/> matches <see cref="Value"/> based on <paramref name="options"/>.        
         /// </summary>
-        /// <typeparam name="T">The type of <paramref name="value"/></typeparam>
-        /// <param name="value">The value used to determined if it exists</param>
+        /// <typeparam name="T">The type of <paramref name="matchValue"/></typeparam>
+        /// <param name="matchValue">
+        /// The value used to determined a match based on <paramref name="options"/>.
+        /// If <paramref name="options"/> is <see cref="MatchOptions.Regex"/>, this param should be a RegEx string or a <see cref="Regex"/> instance.
+        /// If this param is a <see cref="KeyValuePair{TKey, TValue}"/>, both the key and value must match.
+        /// </param>
+        /// <param name="options">
+        /// Matching options based on <see cref="MatchOptions"/>.
+        /// </param>
         /// <returns>
-        /// True if it is contained within a collection or is equal to an instance.
+        /// True if a match occurred.
         /// </returns>
+        /// <seealso cref="MatchOptions"/>
         /// <seealso cref="Contains{K, T}(K, T)"/>
         /// <seealso cref="ContainsKey{K}(K)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
@@ -966,23 +1011,183 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="TryGetValue{R}(object, out R)"/>
         /// <seealso cref="TryGetValue{R}(object, R)"/>
         /// <seealso cref="Equals(object)"/>
-        public bool Contains<T>(T value)
+        public bool Contains<T>(T matchValue, MatchOptions options = MatchOptions.Value | MatchOptions.Equals)
         {
-            return this.Value switch
+            Regex regex = null;
+            string strMatchValue = matchValue is string sValue ? sValue : null;
+            bool isKVP = Helpers.IsSubclassOfInterface(typeof(KeyValuePair<,>), matchValue.GetType());
+
+            if(options.HasFlag(MatchOptions.Regex))
             {
-                string sValue => value is not null
-                                    && ((value is string svalue
-                                            && sValue.Contains(svalue))
-                                        || this.Equals(value)),
-                JArray jArray => jArray.Contains(JToken.FromObject(value)),
-                IEnumerable<T> iValue => iValue.Contains(value),
-                IEnumerable<KeyValuePair<string, object>> iKeyValuePair
-                    => iKeyValuePair.Any(kvp => Helpers.Equals(kvp.Value, value)),
-                System.Collections.IDictionary cDict
-                    => cDict.Values.Cast<object>().Any(i => Helpers.Equals(i, value)),
-                System.Collections.IEnumerable iValue => iValue.Cast<object>().Any(i => Helpers.Equals(i, value)),                
-                _ => this.Equals(value)
-            };
+                if (matchValue is Regex rValue)
+                {
+                    regex = rValue;
+                }
+                else if (strMatchValue is not null)
+                {
+                    regex = new Regex(strMatchValue);
+                }
+                else
+                    throw new ArgumentException($"Match Option Regex was supplied but value provided \"{matchValue}\" was not a string or Regex instance.", nameof(options));
+            }
+
+            bool Match(object value)
+            {
+                if (value is AValue aValue) return Match(aValue.Value);
+
+                if(regex is not null)
+                {
+                    if (value is null) return false;
+                    return regex.IsMatch(value.ToString());
+                }
+                else if(options.HasFlag(MatchOptions.SubString)
+                            && strMatchValue is not null
+                            && value is string sValue)
+                {
+                    return sValue.Contains(strMatchValue);
+                }
+              
+                return isKVP
+                        ? Helpers.EqualsKVP(value, matchValue, out var ignore)
+                        : Helpers.Equals(value, matchValue);
+            }
+
+            bool Matches(object value)
+            {
+                if(value is AValue aValue) { return Matches(aValue.Value); }
+
+                switch(value)
+                {
+                    case IEnumerable<AValue> aCollection:
+                        return Matches(aCollection.Select(a => a.Value));
+                    case string sValue:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                                return options.HasFlag(MatchOptions.Regex)
+                                            ? Match(sValue)
+                                            : Helpers.Equals(sValue, matchValue);
+                            return Match(sValue);
+                        }
+                    case JArray jArray:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                                return options.HasFlag(MatchOptions.Regex)
+                                            ? Match(jArray)
+                                            : Helpers.Equals(jArray, matchValue);
+
+                            return jArray.Any(j => j.Type == JTokenType.Array
+                                                ? Matches(j)
+                                                : Match(j.ToString()));
+                        }
+                    case JsonDocument jDoc:
+                        return Matches(jDoc.ToDictionary().AsEnumerable());
+                    case JObject jObj:
+                        return Matches(CDTConverter.ConvertToDictionary(jObj).AsEnumerable());
+                    case JProperty jProperty:
+                        return Matches(CDTConverter.ConvertToDictionary(jProperty).AsEnumerable());                                      
+                    case IEnumerable<KeyValuePair<string,object>> kvpCollection:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                                return options.HasFlag(MatchOptions.Regex)
+                                            ? Match(kvpCollection)
+                                            : Helpers.Equals(kvpCollection, matchValue);
+
+                            foreach(var kvp in kvpCollection)
+                            {
+                                if (Match(kvp.Key))
+                                    return true;
+                                else if (options.HasFlag(MatchOptions.Any)
+                                            && Match(kvp.Value))
+                                    return true;
+                            }
+                            break;                           
+                        }
+                    case IEnumerable<KeyValuePair<object, object>> kvpCollection:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                                return options.HasFlag(MatchOptions.Regex)
+                                            ? Match(kvpCollection)
+                                            : Helpers.Equals(kvpCollection, matchValue);
+
+                            foreach (var kvp in kvpCollection)
+                            {
+                                if (Match(kvp.Key))
+                                    return true;
+                                else if (options.HasFlag(MatchOptions.Any)
+                                            && Match(kvp.Value))
+                                    return true;
+
+                            }
+                            break;
+                        }
+                    case IEnumerable<T> collection:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                                return options.HasFlag(MatchOptions.Regex)
+                                            ? Match(collection)
+                                            : Helpers.Equals(collection, matchValue);
+
+                            return collection.Any(j => Match(j));
+                        }
+                    case IEnumerable<object> objCollection:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                                return options.HasFlag(MatchOptions.Regex)
+                                            ? Match(objCollection)
+                                            : Helpers.Equals(objCollection, matchValue);
+
+                            return objCollection.Any(j => Match(j));
+                        }
+                    case System.Collections.IDictionary cDict:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                                return options.HasFlag(MatchOptions.Regex)
+                                            ? Match(cDict)
+                                            : Helpers.Equals(cDict, matchValue);
+
+                            foreach (object obj in cDict.Keys)
+                            {
+                                if (Match(obj))
+                                    return true;                               
+                            }
+
+                            if (options.HasFlag(MatchOptions.Any))
+                            {
+                                foreach (object obj in cDict.Values)
+                                {
+                                    if (Match(obj))
+                                        return true;
+                                }
+                            }
+                            break;
+                        }
+                    case System.Collections.IEnumerable iValue:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                                return options.HasFlag(MatchOptions.Regex)
+                                            ? Match(iValue)
+                                            : Helpers.Equals(iValue, matchValue);
+
+                            foreach(object obj in iValue)
+                            {
+                                if(Match(obj)) return true;
+                            }
+                            break;
+                        }
+                    default:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                                return options.HasFlag(MatchOptions.Regex)
+                                            ? Match(matchValue)
+                                            : Helpers.Equals(value, matchValue);
+                            return Match(value);
+                        }                       
+                }
+
+                return false;
+            }
+
+            return Matches(this.Value);
         }
 
         /// <summary>
