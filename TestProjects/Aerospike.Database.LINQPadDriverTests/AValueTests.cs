@@ -602,5 +602,1466 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
                 Assert.IsTrue(collection.Any(i => i.TryGetValue<object>(item.Key)?.Equals(item.Value) ?? false));
             }
         }
+
+        [TestMethod]
+        public void RecordTest()
+        {
+            string jsonRecords = @"
+[
+  {
+    ""_id"": ""10.01"",
+    ""BinA"": 10.01,
+    ""BinB"": ""1001"",
+    ""BinC"": 123
+  },
+  {
+    ""_id"": ""Map4"",
+    ""BinB"": {
+      ""Map10"": ""Key3"",
+      ""Map11"": ""Key3"",
+      ""Map9"": ""Map2Bin"",
+      ""key12"": ""BinA456""
+    }
+  },
+  {
+    ""_id"": ""Map3"",
+    ""BinB"": {
+      ""Map7"": ""Map2Bin"",
+      ""Map8"": ""ABKey3CD"",
+      ""key1"": ""BinA456""
+    }
+  },
+  {
+    ""_id"": 10.01,
+    ""BinA"": ""10.01"",
+    ""BinB"": 1001,
+    ""BinC"": ""14:42:40""
+  },
+  {
+    ""_id"": {
+      ""$oid"": ""c363ecde6a39ae0611c69ee2c7bd8a3b6930337b""
+    },
+    ""BinA"": 10.02,
+    ""BinB"": ""1002"",
+    ""BinC"": 456
+  },
+  {
+    ""_id"": ""MyPK"",
+    ""BinA"": 456,
+    ""BinB"": 456,
+    ""BinC"": ""5/9/2023 2:42:40 PM -07:00""
+  },
+  {
+    ""_id"": ""Map2"",
+    ""BinB"": {
+      ""Key3"": 7,
+      ""Map4"": ""Map2Bin"",
+      ""Map5"": ""ABKey3CD"",
+      ""key1"": ""BinA123""
+    }
+  },
+  {
+    ""_id"": 7.89,
+    ""BinA"": 7.89,
+    ""BinB"": 789,
+    ""BinC"": 1683668560000000000
+  },
+  {
+    ""_id"": ""List1"",
+    ""BinA"": [
+      ""BinA123"",
+      456,
+      ""List1Bin""
+    ]
+  },
+  {
+    ""_id"": ""List3"",
+    ""BinB"": [
+      ""BinB123"",
+      89,
+      ""List3Bin"",
+      ""Key3""
+    ]
+  },
+  {
+    ""_id"": ""Map1"",
+    ""BinB"": {
+      ""Key2"": ""BinB123"",
+      ""Key3"": 456,
+      ""Key4"": ""Map1Bin""
+    }
+  },
+  {
+    ""_id"": ""List2"",
+    ""BinA"": [
+      ""BinA123"",
+      7.89,
+      ""List2Bin""
+    ]
+  },
+  {
+    ""_id"": ""Key3"",
+    ""BinA"": ""BinA123"",
+    ""BinB"": ""Key3"",
+    ""BinC"": ""BinCKey3""
+  },
+  {
+    ""_id"": 123,
+    ""BinA"": ""BinA123"",
+    ""BinB"": 123,
+    ""BinC"": ""5/9/2023 2:42:40 PM""
+  }
+]";
+            var expectedDateTimeOffset = DateTimeOffset.Parse("5/9/2023 2:42:40 PM -07:00");
+            var ns = new ANamespaceAccess("testit");
+
+            var records = new List<ARecord>();
+
+            ns.FromJson("DataTypes", jsonRecords, insertIntoList: records);
+
+            Assert.AreEqual(14, records.Count);
+
+            //**************************************
+            var testRecords = records.Where(x => x["PK"] == "MyPK");
+
+            Assert.AreEqual(1, testRecords.Count());
+            Assert.IsNotNull(testRecords.First().Aerospike.PrimaryKey);
+            Assert.AreEqual("MyPK", testRecords.First().Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecords.First().Aerospike.GetValues());
+            Assert.AreEqual(3, testRecords.First().Aerospike.GetValues().Count);
+            Assert.AreEqual(456L,
+                                testRecords.First().GetValue("BinA").Value);
+            Assert.AreEqual(456L,
+                                testRecords.First().GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.ToString(),
+                                testRecords.First().GetValue("BinC").Value);
+
+            var testValue = records.Where(x => x["PK"] == 123)
+                                .First() //Get first (only record)  BTW, could wrote as "Demo[demoSet].First(x => x["PK"] == 123)"
+                                .GetValue("BinC"); //Get Bin "BinC"'s value
+            Assert.IsNotNull(testValue);
+            Assert.IsInstanceOfType<AValue>(testValue);
+            Assert.AreEqual(@expectedDateTimeOffset.DateTime.ToString(),
+                                testValue.Value);
+
+            //**************************************
+            testRecords = records.Where(x => x["PK"] == 10.01M);
+            Assert.AreEqual(1, testRecords.Count());
+            var testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(10.01D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("10.01",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(1001L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.TimeOfDay.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(x => x["PK"] == "10.01");
+            Assert.AreEqual(1, testRecords.Count());
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("10.01", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(10.01D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("1001",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(x => x["PK"] == "NoPKValueSaved");
+            Assert.AreEqual(1, testRecords.Count());
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsFalse(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            //Assert.AreEqual("10.01", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(10.02D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("1002",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(x => x["BinC"] == expectedDateTimeOffset.DateTime);
+            Assert.AreEqual(2, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("MyPK", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecords = records.Where(x => x["BinC"] == expectedDateTimeOffset.DateTime.ToUniversalTime());
+            Assert.AreEqual(1, testRecords.Count());
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(7.89D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(7.89D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(789L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual((long) (expectedDateTimeOffset.ToUnixTimeMilliseconds() * 1000000),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecords = records.Where(x => x["BinC"] == expectedDateTimeOffset);
+            Assert.AreEqual(3, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("MyPK", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(7.89D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(7.89D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(789L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual((long)(expectedDateTimeOffset.ToUnixTimeMilliseconds() * 1000000),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(2);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(x => x["BinC"] == 1683668560000000000);
+            Assert.AreEqual(1, testRecords.Count());
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(7.89D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(7.89D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(789L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual((long)(expectedDateTimeOffset.ToUnixTimeMilliseconds() * 1000000),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(x => x["PK"] < 11);
+            Assert.AreEqual(3, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.AreEqual(10.01D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("10.01",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(1001L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.TimeOfDay.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("MyPK", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(2);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(7.89D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(7.89D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(789L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual((long)(expectedDateTimeOffset.ToUnixTimeMilliseconds() * 1000000),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(x => x["BinB"] < 800);
+            Assert.AreEqual(7, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("10.01", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(10.01D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("1001",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsFalse(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            //Assert.AreEqual("10.01", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(10.02D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("1002",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(2);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("MyPK", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(3);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(7.89D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(7.89D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(789L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual((long)(expectedDateTimeOffset.ToUnixTimeMilliseconds() * 1000000),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(4);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List1", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            Assert.IsTrue(testRecord.GetValue("BinA").IsList);
+            CollectionAssert.AreEqual(new object[] { "BinA123", 456L, "List1Bin" },
+                                        (List<object>) testRecord.GetValue("BinA").Value);            
+            
+            testRecord = testRecords.ElementAt(5);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List2", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            Assert.IsTrue(testRecord.GetValue("BinA").IsList);
+            CollectionAssert.AreEqual(new object[] { "BinA123", 7.89D, "List2Bin" },
+                                        (List<object>)testRecord.GetValue("BinA").Value);
+
+            testRecord = testRecords.Last();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(x => x.BinExists("BinB") && x["BinB"].IsInt && x["BinB"] < 800).ToList();
+            Assert.AreEqual(3, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("MyPK", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(7.89D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(7.89D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(789L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual((long)(expectedDateTimeOffset.ToUnixTimeMilliseconds() * 1000000),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(2);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(x => x["BinA"] == "10.01" || x["BinB"] == "1001");
+            Assert.AreEqual(2, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("10.01", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(10.01D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("1001",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.AreEqual(10.01D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("10.01",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(1001L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.TimeOfDay.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.GetValue("BinA")?.Contains("BinA123") ?? false);
+            //.Dump("All Records with value \"BinA123\"");
+            Assert.AreEqual(4, testRecords.Count());
+
+            testRecord = testRecords.ElementAt(0);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List1", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            Assert.IsTrue(testRecord.GetValue("BinA").IsList);
+            CollectionAssert.AreEqual(new object[] { "BinA123", 456L, "List1Bin" },
+                                        (List<object>)testRecord.GetValue("BinA").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List2", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            Assert.IsTrue(testRecord.GetValue("BinA").IsList);
+            CollectionAssert.AreEqual(new object[] { "BinA123", 7.89D, "List2Bin" },
+                                        (List<object>)testRecord.GetValue("BinA").Value);
+
+            testRecord = testRecords.ElementAt(2);
+            Assert.AreEqual("Key3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("Key3",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual("BinCKey3",
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(3);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.BinExists("BinA") &&  dt.GetValue("BinA").IsList && dt.GetValue("BinA").Contains("BinA123"));
+            //        .Dump("Records with value \"BinA123\" within a list");
+            Assert.AreEqual(2, testRecords.Count());
+
+            testRecord = testRecords.ElementAt(0);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List1", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            Assert.IsTrue(testRecord.GetValue("BinA").IsList);
+            CollectionAssert.AreEqual(new object[] { "BinA123", 456L, "List1Bin" },
+                                        (List<object>)testRecord.GetValue("BinA").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List2", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            Assert.IsTrue(testRecord.GetValue("BinA").IsList);
+            CollectionAssert.AreEqual(new object[] { "BinA123", 7.89D, "List2Bin" },
+                                        (List<object>)testRecord.GetValue("BinA").Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.BinExists("BinA") && dt.GetValue("BinA").IsString && dt.GetValue("BinA").Contains("BinA123"));
+            //        .Dump("Records with value \"BinA123\" is a string");
+            Assert.AreEqual(2, testRecords.Count());
+
+            testRecord = testRecords.ElementAt(0);
+            Assert.AreEqual("Key3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("Key3",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual("BinCKey3",
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.BinExists("BinA") && dt.BinExists("BinB") && dt.GetValue("BinA").Contains("BinA123"));
+            //        .Dump("Records with value \"BinA123\" and BinB exists in the record");
+            Assert.AreEqual(2, testRecords.Count());
+
+            testRecord = testRecords.ElementAt(0);
+            Assert.AreEqual("Key3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("Key3",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual("BinCKey3",
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.BinExists("BinA") && dt.GetValue("BinA").Contains("BinA123"));
+            //       .Dump("Records with value \"BinA123\" in All record");
+            Assert.AreEqual(4, testRecords.Count());
+            testRecord = testRecords.ElementAt(0);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List1", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            Assert.IsTrue(testRecord.GetValue("BinA").IsList);
+            CollectionAssert.AreEqual(new object[] { "BinA123", 456L, "List1Bin" },
+                                        (List<object>)testRecord.GetValue("BinA").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List2", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            Assert.IsTrue(testRecord.GetValue("BinA").IsList);
+            CollectionAssert.AreEqual(new object[] { "BinA123", 7.89D, "List2Bin" },
+                                        (List<object>)testRecord.GetValue("BinA").Value);
+
+            testRecord = testRecords.ElementAt(2);
+            Assert.AreEqual("Key3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("Key3",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual("BinCKey3",
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(3);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.GetValue("BinA") == "BinA123");
+            //       .Dump("Records with value \"BinA123\" using ==");
+            Assert.AreEqual(2, testRecords.Count());
+
+            testRecord = testRecords.ElementAt(0);
+            Assert.AreEqual("Key3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("Key3",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual("BinCKey3",
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+
+            //**************************************
+            testRecords = records.Where(dt => dt.GetValue("BinB") == 1001);
+            //        .Dump("Records with value 1001 in BinB");
+            Assert.AreEqual(1, testRecords.Count());
+
+            testRecord = testRecords.ElementAt(0);
+            Assert.AreEqual(10.01D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("10.01",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(1001L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.TimeOfDay.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.GetValue("BinC") == expectedDateTimeOffset.ToString());
+            //        .Dump("Records using DateTime string");
+            Assert.AreEqual(1, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("MyPK", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.GetValue("BinC") == expectedDateTimeOffset);
+            //        .Dump("Records using DateTimeOffset object");
+            Assert.AreEqual(3, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("MyPK", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(7.89D, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(7.89D,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(789L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual((long)(expectedDateTimeOffset.ToUnixTimeMilliseconds() * 1000000),
+                                testRecord.GetValue("BinC").Value);
+
+            testRecord = testRecords.ElementAt(2);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.GetValue("BinC") == expectedDateTimeOffset.DateTime);
+            Assert.AreEqual(2, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("MyPK", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(456L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.ToString(),
+                                testRecord.GetValue("BinC").Value);
+            
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual(123L, testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual(123L,
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual(expectedDateTimeOffset.DateTime.ToString(),
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.GetValue("BinB")?.Contains("Key3") ?? false);
+            //        .Dump("Records where BinB has value \"Key3\" as a value or within a collection");
+            Assert.AreEqual(4, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("Map2", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            var aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsTrue(aBinValue.IsMap);
+            Assert.IsTrue(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsTrue((((IDictionary<string,object>) aBinValue.Value).First().ToAValue().IsKeyValuePair));
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(4, ((IDictionary<string, object>)aBinValue.Value).Count);
+            var dictStrObj = new Dictionary<string, object>() { { "Key3", 7L }, { "Map4", "Map2Bin" }, { "Map5", "ABKey3CD" }, { "key1", "BinA123" } };
+            CollectionAssert.AreEqual(dictStrObj.Keys,
+                                        ((Dictionary<string, object>) aBinValue.Value).Keys);
+            CollectionAssert.AreEqual(dictStrObj.Values,
+                                        ((Dictionary<string, object>)aBinValue.Value).Values);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsTrue(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(4, ((IList<object>)aBinValue.Value).Count);
+            var listObj = new List<object>() { "BinB123", 89L, "List3Bin", "Key3" };
+            CollectionAssert.AreEqual(listObj,
+                                        ((List<object>)aBinValue.Value));
+
+            testRecord = testRecords.ElementAt(2);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("Map1", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsTrue(aBinValue.IsMap);
+            Assert.IsTrue(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsTrue((((IDictionary<string, object>)aBinValue.Value).First().ToAValue().IsKeyValuePair));
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(3, ((IDictionary<string, object>)aBinValue.Value).Count);
+            dictStrObj = new Dictionary<string, object>() { { "Key2", "BinB123" }, { "Key3", 456L }, { "Key4", "Map1Bin" } };
+            CollectionAssert.AreEqual(dictStrObj.Keys,
+                                        ((Dictionary<string, object>)aBinValue.Value).Keys);
+            CollectionAssert.AreEqual(dictStrObj.Values,
+                                        ((Dictionary<string, object>)aBinValue.Value).Values);
+
+            testRecord = testRecords.ElementAt(3);
+            Assert.AreEqual("Key3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("Key3",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual("BinCKey3",
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            var aValues  = records
+                            .Select(i => i.GetValue("BinB"))
+                            .Where(i => i is not null)
+                            .FindAll("Key3");
+            //        .Dump("Values in BinB with value \"Key3\" as a value or within a collection");
+            Assert.AreEqual(4, testRecords.Count());
+
+            aBinValue = aValues.First();
+            Assert.IsFalse(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsTrue(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual("Key3", ((KeyValuePair<string, object>)aBinValue.Value).Key);
+            Assert.AreEqual(7L, ((KeyValuePair<string, object>)aBinValue.Value).Value);
+
+            aBinValue = aValues.ElementAt(1);
+            Assert.IsFalse(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsTrue(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual("Key3", aBinValue.Value);
+
+            aBinValue = aValues.ElementAt(2);
+            Assert.IsFalse(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsTrue(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual("Key3", ((KeyValuePair<string, object>)aBinValue.Value).Key);
+            Assert.AreEqual(456L, ((KeyValuePair<string, object>)aBinValue.Value).Value);
+
+            aBinValue = aValues.ElementAt(3);
+            Assert.IsFalse(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsTrue(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual("Key3", aBinValue.Value);
+
+            //**************************************
+            testRecords = records.Where(dt => dt.GetValue("BinB")?.Contains("Key3", AValue.MatchOptions.Any) ?? false);
+            //        .Dump("Records where BinB has value \"Key3\" as a value or anywhere (canbe an element, Key, or Value) within collection");
+            Assert.AreEqual(5, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("Map4", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsTrue(aBinValue.IsMap);
+            Assert.IsTrue(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsTrue((((IDictionary<string, object>)aBinValue.Value).First().ToAValue().IsKeyValuePair));
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(4, ((IDictionary<string, object>)aBinValue.Value).Count);
+            dictStrObj = new Dictionary<string, object>() { { "Map10", "Key3" }, { "Map11", "Key3" }, { "Map9", "Map2Bin" }, { "key12", "BinA456" } };
+            CollectionAssert.AreEqual(dictStrObj.Keys,
+                                        ((Dictionary<string, object>)aBinValue.Value).Keys);
+            CollectionAssert.AreEqual(dictStrObj.Values,
+                                        ((Dictionary<string, object>)aBinValue.Value).Values);
+
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("Map2", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsTrue(aBinValue.IsMap);
+            Assert.IsTrue(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsTrue((((IDictionary<string, object>)aBinValue.Value).First().ToAValue().IsKeyValuePair));
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(4, ((IDictionary<string, object>)aBinValue.Value).Count);
+            dictStrObj = new Dictionary<string, object>() { { "Key3", 7L }, { "Map4", "Map2Bin" }, { "Map5", "ABKey3CD" }, { "key1", "BinA123" } };
+            CollectionAssert.AreEqual(dictStrObj.Keys,
+                                        ((Dictionary<string, object>)aBinValue.Value).Keys);
+            CollectionAssert.AreEqual(dictStrObj.Values,
+                                        ((Dictionary<string, object>)aBinValue.Value).Values);
+
+            testRecord = testRecords.ElementAt(2);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsTrue(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(4, ((IList<object>)aBinValue.Value).Count);
+            listObj = new List<object>() { "BinB123", 89L, "List3Bin", "Key3" };
+            CollectionAssert.AreEqual(listObj,
+                                        ((List<object>)aBinValue.Value));
+
+            testRecord = testRecords.ElementAt(3);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("Map1", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsTrue(aBinValue.IsMap);
+            Assert.IsTrue(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsTrue((((IDictionary<string, object>)aBinValue.Value).First().ToAValue().IsKeyValuePair));
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(3, ((IDictionary<string, object>)aBinValue.Value).Count);
+            dictStrObj = new Dictionary<string, object>() { { "Key2", "BinB123" }, { "Key3", 456L }, { "Key4", "Map1Bin" } };
+            CollectionAssert.AreEqual(dictStrObj.Keys,
+                                        ((Dictionary<string, object>)aBinValue.Value).Keys);
+            CollectionAssert.AreEqual(dictStrObj.Values,
+                                        ((Dictionary<string, object>)aBinValue.Value).Values);
+
+            testRecord = testRecords.ElementAt(4);
+            Assert.AreEqual("Key3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("Key3",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual("BinCKey3",
+                                testRecord.GetValue("BinC").Value);
+
+            //**************************************
+            aValues = records
+                            .Select(i => i.GetValue("BinB"))
+                            .Where(i => i is not null)
+                            .FindAll("Key3", AValue.MatchOptions.Any);
+            //        .Dump("Values in BinB with value \"Key3\" as a value or anywhere within a collection");
+            Assert.AreEqual(6, aValues.Count());
+
+            aBinValue = aValues.ElementAt(0);
+            Assert.IsFalse(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsTrue(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual("Map10",
+                            ((KeyValuePair<string,object>)aBinValue.Value).Key);
+            Assert.AreEqual("Key3",
+                            ((KeyValuePair<string, object>)aBinValue.Value).Value);
+
+            aBinValue = aValues.ElementAt(1);
+            Assert.IsFalse(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsTrue(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual("Map11",
+                            ((KeyValuePair<string, object>)aBinValue.Value).Key);
+            Assert.AreEqual("Key3",
+                            ((KeyValuePair<string, object>)aBinValue.Value).Value);
+
+            aBinValue = aValues.ElementAt(2);
+            Assert.IsFalse(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsTrue(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual("Key3", ((KeyValuePair<string, object>)aBinValue.Value).Key);
+            Assert.AreEqual(7L, ((KeyValuePair<string, object>)aBinValue.Value).Value);
+
+            aBinValue = aValues.ElementAt(3);
+            Assert.IsFalse(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsTrue(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual("Key3", aBinValue.Value);
+
+            aBinValue = aValues.ElementAt(4);
+            Assert.IsFalse(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsTrue(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual("Key3", ((KeyValuePair<string, object>)aBinValue.Value).Key);
+            Assert.AreEqual(456L, ((KeyValuePair<string, object>)aBinValue.Value).Value);
+
+            aBinValue = aValues.ElementAt(5);
+            Assert.IsFalse(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsTrue(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual("Key3", aBinValue.Value);
+
+
+            //**************************************
+            testRecords = records.Where(dt => dt.GetValue("BinB")?.Contains("Key3", AValue.MatchOptions.Any | AValue.MatchOptions.SubString) ?? false);
+            //        .Dump("Records where BinB has value \"Key3\" as a substring within a value or anywhere (canbe an element, Key, or Value) within collection");
+            Assert.AreEqual(6, testRecords.Count());
+
+            testRecord = testRecords.First();
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("Map4", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsTrue(aBinValue.IsMap);
+            Assert.IsTrue(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsTrue((((IDictionary<string, object>)aBinValue.Value).First().ToAValue().IsKeyValuePair));
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(4, ((IDictionary<string, object>)aBinValue.Value).Count);
+            dictStrObj = new Dictionary<string, object>() { { "Map10", "Key3" }, { "Map11", "Key3" }, { "Map9", "Map2Bin" }, { "key12", "BinA456" } };
+            CollectionAssert.AreEqual(dictStrObj.Keys,
+                                        ((Dictionary<string, object>)aBinValue.Value).Keys);
+            CollectionAssert.AreEqual(dictStrObj.Values,
+                                        ((Dictionary<string, object>)aBinValue.Value).Values);
+
+            testRecord = testRecords.ElementAt(1);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("Map3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsTrue(aBinValue.IsMap);
+            Assert.IsTrue(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsTrue((((IDictionary<string, object>)aBinValue.Value).First().ToAValue().IsKeyValuePair));
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(3, ((IDictionary<string, object>)aBinValue.Value).Count);
+            dictStrObj = new Dictionary<string, object>() { { "Map7", "Map2Bin" }, { "Map8", "ABKey3CD" }, { "key1", "BinA456" }};
+            CollectionAssert.AreEqual(dictStrObj.Keys,
+                                        ((Dictionary<string, object>)aBinValue.Value).Keys);
+            CollectionAssert.AreEqual(dictStrObj.Values,
+                                        ((Dictionary<string, object>)aBinValue.Value).Values);
+
+            testRecord = testRecords.ElementAt(2);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("Map2", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsTrue(aBinValue.IsMap);
+            Assert.IsTrue(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsTrue((((IDictionary<string, object>)aBinValue.Value).First().ToAValue().IsKeyValuePair));
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(4, ((IDictionary<string, object>)aBinValue.Value).Count);
+            dictStrObj = new Dictionary<string, object>() { { "Key3", 7L }, { "Map4", "Map2Bin" }, { "Map5", "ABKey3CD" }, { "key1", "BinA123" } };
+            CollectionAssert.AreEqual(dictStrObj.Keys,
+                                        ((Dictionary<string, object>)aBinValue.Value).Keys);
+            CollectionAssert.AreEqual(dictStrObj.Values,
+                                        ((Dictionary<string, object>)aBinValue.Value).Values);
+
+            testRecord = testRecords.ElementAt(3);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("List3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsFalse(aBinValue.IsMap);
+            Assert.IsFalse(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsTrue(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(4, ((IList<object>)aBinValue.Value).Count);
+            listObj = new List<object>() { "BinB123", 89L, "List3Bin", "Key3" };
+            CollectionAssert.AreEqual(listObj,
+                                        ((List<object>)aBinValue.Value));
+
+            testRecord = testRecords.ElementAt(4);
+            Assert.IsNotNull(testRecord.Aerospike.PrimaryKey);
+            Assert.IsTrue(testRecord.Aerospike.PrimaryKey.HasKeyValue);
+            Assert.AreEqual("Map1", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(1, testRecord.Aerospike.GetValues().Count);
+            aBinValue = testRecord.GetValue("BinB");
+            Assert.IsTrue(aBinValue.IsCDT);
+            Assert.IsTrue(aBinValue.IsMap);
+            Assert.IsTrue(aBinValue.IsDictionary);
+            Assert.IsFalse(aBinValue.IsBool);
+            Assert.IsFalse(aBinValue.IsKeyValuePair);
+            Assert.IsTrue((aBinValue.ToDictionary().First().ToAValue().IsKeyValuePair));
+            Assert.IsFalse(aBinValue.IsEmpty);
+            Assert.IsFalse(aBinValue.IsFloat);
+            Assert.IsFalse(aBinValue.IsGeoJson);
+            Assert.IsFalse(aBinValue.IsInt);
+            Assert.IsFalse(aBinValue.IsJson);
+            Assert.IsFalse(aBinValue.IsList);
+            Assert.IsFalse(aBinValue.IsNumeric);
+            Assert.IsFalse(aBinValue.IsString);
+            Assert.IsFalse(aBinValue.IsTimeSpan);
+            Assert.IsFalse(aBinValue.IsDateTime);
+            Assert.IsFalse(aBinValue.IsDateTimeOffset);
+            Assert.AreEqual(3, ((IDictionary<string, object>)aBinValue.Value).Count);
+            dictStrObj = new Dictionary<string, object>() { { "Key2", "BinB123" }, { "Key3", 456L }, { "Key4", "Map1Bin" } };
+            CollectionAssert.AreEqual(dictStrObj.Keys,
+                                        ((Dictionary<string, object>)aBinValue.Value).Keys);
+            CollectionAssert.AreEqual(dictStrObj.Values,
+                                        ((Dictionary<string, object>)aBinValue.Value).Values);
+
+            {
+                var jDoc = aBinValue.ToJObject();
+                Assert.IsInstanceOfType<JObject>(jDoc);
+                Assert.AreEqual(3, jDoc.Count);
+                var dictObj = aBinValue.ToDictionary();
+                Assert.AreEqual(3, dictObj.Count);
+            }
+
+            testRecord = testRecords.ElementAt(5);
+            Assert.AreEqual("Key3", testRecord.Aerospike.PrimaryKey.Value);
+            Assert.IsNotNull(testRecord.Aerospike.GetValues());
+            Assert.AreEqual(3, testRecord.Aerospike.GetValues().Count);
+            Assert.AreEqual("BinA123",
+                                testRecord.GetValue("BinA").Value);
+            Assert.AreEqual("Key3",
+                                testRecord.GetValue("BinB").Value);
+            Assert.AreEqual("BinCKey3",
+                                testRecord.GetValue("BinC").Value);
+
+        }
+
     }
 }

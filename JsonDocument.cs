@@ -390,7 +390,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 case "$int":
                     return Convert.ToInt32(vToken);
                 case "$numberdecimal":
-                case "$decimal":
+                case "$decimal":                    
                     return Convert.ToDecimal(vToken);
                 case "$numberdouble":
                 case "$double":

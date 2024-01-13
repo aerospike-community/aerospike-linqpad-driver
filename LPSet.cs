@@ -316,13 +316,61 @@ namespace Aerospike.Database.LINQPadDriver
             var setClassFldsConst = new StringBuilder();
             var paramsNewRec = new StringBuilder();
             var dictValuesNewRec = new StringBuilder();
-            var fldSeen = new List<string>();
+            var binIEnums = new StringBuilder();
+            var fldSeen = new List<string>();            
 
             setClassFlds.AppendLine($"\t\t\tpublic APrimaryKey {ARecord.DefaultASPIKeyName} {{ get; }}");
             setClassFldsConst.AppendLine($"\t\t\t\t\t{ARecord.DefaultASPIKeyName} = new APrimaryKey(this.Aerospike.Key);");
 
             paramsNewRec.AppendLine($"\t\t\tdynamic {ARecord.DefaultASPIKeyName},");
             
+            void ObtainConvertBinValue(StringBuilder statement, 
+                                            BinType setBinType,
+                                            string getStmt, 
+                                            string fldName, 
+                                            string fldType, 
+                                            string jsonType,
+                                            string aRecord,
+                                            bool makeNullable = false)
+            {
+                statement.Append(" = (");
+                statement.Append(fldType);
+                if (makeNullable)
+                    statement.Append('?');
+                statement.Append(") ");
+
+                if (setBinType.Duplicate || alwaysUseAValues)
+                {
+                    if (!string.IsNullOrEmpty(jsonType))
+                    {
+                        statement.Append($" new AValue(");
+                        statement.Append($" Helpers.CastToNativeType({aRecord}, \"{fldName}\", typeof({jsonType}), \"{setBinType.BinName}\", {getStmt}.GetValue(\"");
+                        statement.Append(setBinType.BinName);
+                        statement.Append("\"))");
+                        statement.Append($", \"{setBinType.BinName}\",  \"{fldName}\" );");
+                    }
+                    else
+                    {
+                        statement.Append($" new AValue({getStmt}.GetValue(\"");
+                        statement.Append(setBinType.BinName);
+                        statement.Append($"\"), \"{setBinType.BinName}\",  \"{fldName}\" );");
+                    }
+                }
+                else if (setBinType.DataType.IsValueType && !makeNullable)
+                {
+                    statement.Append($" (Helpers.CastToNativeType({aRecord}, \"{fldName}\", typeof({fldType}), \"{setBinType.BinName}\", {getStmt}.GetValue(\"");
+                    statement.Append(setBinType.BinName);
+                    statement.Append("\"))");
+                    statement.Append($" ?? default({fldType}));");
+                }
+                else
+                {
+                    statement.Append($" Helpers.CastToNativeType({aRecord}, \"{fldName}\", typeof({fldType}), \"{setBinType.BinName}\",  {getStmt} .GetValue(\"");
+                    statement.Append(setBinType.BinName);
+                    statement.Append("\"));");
+                }
+            }
+
             var generateBinsTask = Task.Run(() =>
             {
                 foreach (var setBinType in bins)
@@ -362,44 +410,12 @@ namespace Aerospike.Database.LINQPadDriver
 
                     setClassFldsConst.Append("\t\t\t\t\t");
                     setClassFldsConst.Append(fldName);
-                    setClassFldsConst.Append(" = (");
-                    setClassFldsConst.Append(fldType);
-                    setClassFldsConst.Append(") ");
-
-                    if (setBinType.Duplicate || alwaysUseAValues)
-                    {                        
-                        if (!string.IsNullOrEmpty(jsonType))
-                        {
-                            setClassFldsConst.Append($" new AValue(");
-                            setClassFldsConst.Append($" Helpers.CastToNativeType(this, \"{fldName}\", typeof({jsonType}), \"{setBinType.BinName}\", this.Aerospike.GetValue(\"");
-                            setClassFldsConst.Append(setBinType.BinName);
-                            setClassFldsConst.Append("\"))");
-                            setClassFldsConst.Append($", \"{setBinType.BinName}\",  \"{fldName}\" );");
-                        }
-                        else
-                        {
-                            setClassFldsConst.Append($" new AValue(this.Aerospike.GetValue(\"");
-                            setClassFldsConst.Append(setBinType.BinName);
-                            setClassFldsConst.Append($"\"), \"{setBinType.BinName}\",  \"{fldName}\" );");
-                        }
-                    }
-                    else if (setBinType.DataType.IsValueType)
-                    {
-                        setClassFldsConst.Append($" (Helpers.CastToNativeType(this, \"{fldName}\", typeof({fldType}), \"{setBinType.BinName}\", this.Aerospike.GetValue(\"");
-                        setClassFldsConst.Append(setBinType.BinName);
-                        setClassFldsConst.Append("\"))");
-                        setClassFldsConst.Append($" ?? default({fldType}));");
-                    }
-                    else
-                    {
-                        setClassFldsConst.Append($" Helpers.CastToNativeType(this, \"{fldName}\", typeof({fldType}), \"{setBinType.BinName}\", this.Aerospike.GetValue(\"");
-                        setClassFldsConst.Append(setBinType.BinName);
-                        setClassFldsConst.Append("\"));");
-                    }
-
+                    
+                    ObtainConvertBinValue(setClassFldsConst, setBinType, "this.Aerospike", fldName, fldType, jsonType, "this");
+                    
                     if (setBinType.DataType.IsValueType)
-                    {
-                        paramsNewRec.Append($"\t\t\t\t{paramType}? ");
+                    { 
+                        paramsNewRec.Append($"\t\t\t\t{paramType}? ");                        
                     }
                     else
                     {
@@ -420,6 +436,75 @@ namespace Aerospike.Database.LINQPadDriver
                         paramsNewRec.AppendLine($"{fldName} = null,");
                     }
                     
+                    {
+                        var useFldType = fldType.StartsWith("Nullable<")
+                                            ? paramType
+                                            : fldType;
+                        binIEnums.Append($@"
+        /// <summary>
+        /// Returns a collection of existing values for this set&apos;s Bin.
+        /// </summary>
+        /// <return>
+        /// A collection of bin values.
+        /// </return>
+        public IEnumerable<{useFldType}> Get{fldName}Values()
+        {{
+            var queryPolicy = new QueryPolicy(this.DefaultQueryPolicy);
+            var stmt = new Statement();
+
+            stmt.SetNamespace(this.Namespace);
+            stmt.SetSetName(this.SetName);
+            stmt.SetBinNames(""{setBinType.BinName}"");
+
+            using var recordset = this.SetAccess.AerospikeConnection
+                                   .AerospikeClient
+                                   .Query(queryPolicy, stmt);
+            {{
+                while (recordset.Next())
+                {{
+                    var value "
+
+                        );
+
+                        ObtainConvertBinValue(binIEnums,
+                                                setBinType,
+                                                "recordset.Record",
+                                                fldName,
+                                                useFldType,
+                                                jsonType,
+                                                "null",
+                                                makeNullable: true);
+
+                        if (useFldType == "AValue")
+                        {
+                            binIEnums.AppendLine($@"
+                    if (value is not null && !value.IsEmpty)
+                        yield return value;"
+                            );
+                        }
+                        else if (setBinType.DataType.IsValueType)
+                        {
+                            binIEnums.AppendLine($@"
+                    if (value.HasValue)
+                        yield return value.Value;"
+                            );
+                        }
+                        else
+                        {
+                            binIEnums.AppendLine($@"
+                    if (value is not null)
+                        yield return value;"
+                            );
+                        }
+
+                    binIEnums.AppendLine(@"
+                }
+            }
+        }"
+                        );
+
+                    }
+
                     dictValuesNewRec.AppendLine($"\t\t\t\tif(!({fldName} is null)) dictRec.Add(\"{setBinType.BinName}\",{fldName});");
 
                     setClassFldsConst.AppendLine();
@@ -476,8 +561,8 @@ namespace Aerospike.Database.LINQPadDriver
         /// Primary AerospikeKey.
         /// This can be a <see cref=""Client.Key""/>, <see cref=""Value""/>, or <see cref=""Bin""/> object besides a native, collection, etc. value/object.
         /// </param>
-        /// <param name=""additionalValues"">
-        /// Additional values as a dictionary where the key is the bin and the value is the bin&apos;s value.
+        /// <param name=""additionalBinValues"">
+        /// Additional bins and values as a dictionary where the key is the bin name and the value is the bin&apos;s value.
         /// </param>
         /// <param name=""writePolicy"">
         /// The write policy. If not provided, the default policy is used.
@@ -485,12 +570,12 @@ namespace Aerospike.Database.LINQPadDriver
         /// </param>
         /// <param name=""ttl"">Time-to-live of the record</param>
         public new void PutRec(
-{paramsNewRec}				IEnumerable<KeyValuePair<string,object>> additionalValues = null,
+{paramsNewRec}				IEnumerable<KeyValuePair<string,object>> additionalBinValues = null,
 				global::Aerospike.Client.WritePolicy writePolicy = null,
 				TimeSpan? ttl = null
         )
         {{
-            var dictRec = new Dictionary<string,object>( additionalValues
+            var dictRec = new Dictionary<string,object>( additionalBinValues
                                                             ?? Enumerable.Empty<KeyValuePair<string,object>>() );
 
 {dictValuesNewRec}
@@ -501,6 +586,8 @@ namespace Aerospike.Database.LINQPadDriver
                                 writePolicy: writePolicy,
                                 ttl: ttl);                                                               
         }}
+
+        {binIEnums}
 
 		public new {this.SafeName}_SetCls Clone() => new {this.SafeName}_SetCls(this);
 

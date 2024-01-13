@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,6 +7,8 @@ using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
+using Aerospike.Client;
+using LINQPad.Internal;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -26,6 +29,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(object)"/>
     /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
     /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
+    /// <seealso cref="AValueHelper.TryGetValue{T}(IEnumerable{AValue}, T, bool)"/>
+    /// <seealso cref="AValueHelper.Contains{T}(IEnumerable{AValue}, T, AValue.MatchOptions)"/>
+    /// <seealso cref="AValueHelper.FindAll{T}(IEnumerable{AValue}, T, AValue.MatchOptions)"/>
     [DebuggerDisplay("{DebuggerString()}")]
     public partial class AValue 
     {
@@ -573,8 +579,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// The converted value
         /// </returns>
-        /// <exception cref="ArgumentException">Thrown if value cannot be converted</exception>
-        public T Convert<T>() => this.Value is T tValue ? tValue : (T)Helpers.CastToNativeType(this.FldName, typeof(T), this.BinName, this.Value);
+        /// <exception cref="InvalidCastException">Thrown if value cannot be converted</exception>
+        public T Convert<T>() => this.Value is T tValue ? tValue : (T)Helpers.CastToNativeTypeInvalidCast(this.FldName, typeof(T), this.BinName, this.Value);
 
         /// <summary>
         /// Returns an enumerable object converting each element to <typeparamref name="T"/>. 
@@ -586,8 +592,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Returns an enumerable object
         /// </returns>
         /// <exception cref="ArgumentException">Thrown if value cannot be converted</exception>
-        /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
-        /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
+        /// <seealso cref="AsEnumerable()"/>
+        /// <seealso cref="Convert{T}()"/>
         public IEnumerable<T> AsEnumerable<T>() => (T[])this.Convert<T[]>();
 
         /// <summary>
@@ -599,6 +605,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </returns>
         /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
         /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
+        /// <seealso cref="AValueHelper.Convert{TResult}(IEnumerable{AValue})"/>
+        /// <seealso cref="AValueHelper.TryGetValue{T, R}(IEnumerable{AValue}, T, R)"/>        
         public IEnumerable<AValue> AsEnumerable()
         {
             AValue NewAValue(object value, int currIdx)
@@ -845,6 +853,18 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         #endregion
 
         #region Compare To methods
+
+        public class EqualityComparer : IEqualityComparer<AValue>
+        {
+            public bool Equals(AValue x, AValue y)
+                            => x?.Equals(y) ?? false;
+
+            public int GetHashCode(AValue obj)
+                            => obj?.GetHashCode() ?? 0;
+
+            public static EqualityComparer Instance => new EqualityComparer();
+        }
+
         public int CompareTo(object other)
         {
             if (ReferenceEquals(this, other)) return 0;
@@ -1010,6 +1030,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="TryGetValue(object, out AValue)"/>
         /// <seealso cref="TryGetValue{R}(object, out R)"/>
         /// <seealso cref="TryGetValue{R}(object, R)"/>
+        /// <seealso cref="FindAll{T}(T, MatchOptions)"/>
         /// <seealso cref="Equals(object)"/>
         public bool Contains<T>(T matchValue, MatchOptions options = MatchOptions.Value | MatchOptions.Equals)
         {
@@ -1076,8 +1097,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             : Helpers.Equals(jArray, matchValue);
 
                             return jArray.Any(j => j.Type == JTokenType.Array
-                                                ? Matches(j)
-                                                : Match(j.ToString()));
+                                                        ? Match(j)
+                                                        : Match(j.ToString()));
                         }
                     case JsonDocument jDoc:
                         return Matches(jDoc.ToDictionary().AsEnumerable());
@@ -1096,9 +1117,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             {
                                 if (Match(kvp.Key))
                                     return true;
-                                else if (options.HasFlag(MatchOptions.Any)
+                                else if(options.HasFlag(MatchOptions.Any)
                                             && Match(kvp.Value))
-                                    return true;
+                                    return true;                                            
                             }
                             break;                           
                         }
@@ -1120,15 +1141,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             }
                             break;
                         }
-                    case IEnumerable<T> collection:
-                        {
-                            if (options.HasFlag(MatchOptions.Exact))
-                                return options.HasFlag(MatchOptions.Regex)
-                                            ? Match(collection)
-                                            : Helpers.Equals(collection, matchValue);
-
-                            return collection.Any(j => Match(j));
-                        }
                     case IEnumerable<object> objCollection:
                         {
                             if (options.HasFlag(MatchOptions.Exact))
@@ -1138,6 +1150,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                             return objCollection.Any(j => Match(j));
                         }
+                    case IEnumerable<T> collection:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                                return options.HasFlag(MatchOptions.Regex)
+                                            ? Match(collection)
+                                            : Helpers.Equals(collection, matchValue);
+
+                            return collection.Any(j => Match(j));
+                        }                    
                     case System.Collections.IDictionary cDict:
                         {
                             if (options.HasFlag(MatchOptions.Exact))
@@ -1178,7 +1199,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         {
                             if (options.HasFlag(MatchOptions.Exact))
                                 return options.HasFlag(MatchOptions.Regex)
-                                            ? Match(matchValue)
+                                            ? Match(value)
                                             : Helpers.Equals(value, matchValue);
                             return Match(value);
                         }                       
@@ -1188,6 +1209,300 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
 
             return Matches(this.Value);
+        }
+
+        /// <summary>
+        /// Determines if <paramref name="matchValue"/> matches <see cref="Value"/> based on <paramref name="options"/> and return the found value..        
+        /// </summary>
+        /// <typeparam name="T">The type of <paramref name="matchValue"/></typeparam>
+        /// <param name="matchValue">
+        /// The value used to determined a match based on <paramref name="options"/>.
+        /// If <paramref name="options"/> is <see cref="MatchOptions.Regex"/>, this param should be a RegEx string or a <see cref="Regex"/> instance.
+        /// If this param is a <see cref="KeyValuePair{TKey, TValue}"/>, both the key and value must match.
+        /// </param>
+        /// <param name="options">
+        /// Matching options based on <see cref="MatchOptions"/>.
+        /// </param>
+        /// <returns>
+        /// All matched values or an empty collection.
+        /// </returns>
+        /// <seealso cref="MatchOptions"/>
+        /// <seealso cref="Contains{T}(T, MatchOptions)"/>
+        /// <seealso cref="Contains{K, T}(K, T)"/>
+        /// <seealso cref="ContainsKey{K}(K)"/>
+        /// <seealso cref="TryGetValue(object, bool)"/>
+        /// <seealso cref="TryGetValue(object, out AValue)"/>
+        /// <seealso cref="TryGetValue{R}(object, out R)"/>
+        /// <seealso cref="TryGetValue{R}(object, R)"/>        
+        public IEnumerable<AValue> FindAll<T>(T matchValue,
+                                                MatchOptions options = MatchOptions.Value | MatchOptions.Equals)
+        {            
+            Regex regex = null;
+            string strMatchValue = matchValue is string sValue ? sValue : null;
+            bool isKVP = Helpers.IsSubclassOfInterface(typeof(KeyValuePair<,>), matchValue.GetType());
+
+            if (options.HasFlag(MatchOptions.Regex))
+            {
+                if (matchValue is Regex rValue)
+                {
+                    regex = rValue;
+                }
+                else if (strMatchValue is not null)
+                {
+                    regex = new Regex(strMatchValue);
+                }
+                else
+                    throw new ArgumentException($"Match Option Regex was supplied but value provided \"{matchValue}\" was not a string or Regex instance.", nameof(options));
+            }
+
+            bool Match(object value)
+            {
+                if (value is AValue aValue) return Match(aValue.Value);
+
+                if (regex is not null)
+                {
+                    if (value is null) return false;
+                    return regex.IsMatch(value.ToString());
+                }
+                else if (options.HasFlag(MatchOptions.SubString)
+                            && strMatchValue is not null
+                            && value is string sValue)
+                {
+                    return sValue.Contains(strMatchValue);
+                }
+
+                return isKVP
+                        ? Helpers.EqualsKVP(value, matchValue, out var ignore)
+                        : Helpers.Equals(value, matchValue);
+            }
+
+            IEnumerable<AValue> Matches(object value)
+            {
+                if (value is AValue aValue) { return Matches(aValue.Value); }
+
+                switch (value)
+                {
+                    case IEnumerable<AValue> aCollection:
+                        return Matches(aCollection.Select(a => a.Value));
+                    case string sValue:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                            {
+                                if (options.HasFlag(MatchOptions.Regex)
+                                            ? Match(sValue)
+                                            : Helpers.Equals(sValue, matchValue))
+                                    return new AValue[] { new AValue(sValue, this.BinName, this.FldName) };                                
+                            }
+                            else if(Match(sValue))
+                                return new AValue[] { new AValue(sValue, this.BinName, this.FldName) };
+                            
+                            return null;
+                        }
+                    case JArray jArray:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                            {
+                                if (options.HasFlag(MatchOptions.Regex)
+                                            ? Match(jArray)
+                                            : Helpers.Equals(jArray, matchValue))
+                                    return new AValue[] { new AValue(jArray, this.BinName, this.FldName) };
+                                else 
+                                    return Enumerable.Empty<AValue>();
+                            }
+                            var items = new List<AValue>();
+
+                            foreach( var item in jArray)
+                            {
+                                if (item.Type == JTokenType.Array)
+                                {
+                                    if (Match(item))
+                                        items.Add(new AValue(item, this.BinName, this.FldName));
+                                }
+                                else if (Match(item.ToString()))
+                                    items.Add(new AValue(item, this.BinName, this.FldName));
+                            }
+                            return items.Count == 0 ? null : items;
+                        }
+                    case JsonDocument jDoc:
+                        return Matches(jDoc.ToDictionary().AsEnumerable());
+                    case JObject jObj:
+                        return Matches(CDTConverter.ConvertToDictionary(jObj).AsEnumerable());
+                    case JProperty jProperty:
+                        return Matches(CDTConverter.ConvertToDictionary(jProperty).AsEnumerable());
+                    case IEnumerable<KeyValuePair<string, object>> kvpCollection:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                            {
+                                if (options.HasFlag(MatchOptions.Regex)
+                                            ? Match(kvpCollection)
+                                            : Helpers.Equals(kvpCollection, matchValue))
+                                    return new AValue[] { new AValue(kvpCollection, this.BinName, this.FldName) };
+                                else
+                                    return null;
+                            }
+
+                            var items = new List<AValue>();
+
+                            foreach (var kvp in kvpCollection)
+                            {
+                                if (Match(kvp.Key)
+                                        || (options.HasFlag(MatchOptions.Any)
+                                                    && Match(kvp.Value)))
+                                    items.Add(new AValue(kvp, this.BinName, this.FldName));                                
+                            }
+                            return items.Any() ? items : null;
+                        }
+                    case IEnumerable<KeyValuePair<object, object>> kvpCollection:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                            {
+                                if (options.HasFlag(MatchOptions.Regex)
+                                            ? Match(kvpCollection)
+                                            : Helpers.Equals(kvpCollection, matchValue))
+                                    return new AValue[] { new AValue(kvpCollection, this.BinName, this.FldName) };
+                                else
+                                    return null;
+                            }
+
+                            var items = new List<AValue>();
+
+                            foreach (var kvp in kvpCollection)
+                            {                                
+                                if (Match(kvp.Key)
+                                        || (options.HasFlag(MatchOptions.Any)
+                                                    && Match(kvp.Value)))
+                                    items.Add(new AValue(kvp, this.BinName, this.FldName));
+                            }
+                            return items.Any() ? items : null;
+                        }
+                    case IEnumerable<object> objCollection:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                            {
+                                if (options.HasFlag(MatchOptions.Regex)
+                                            ? Match(objCollection)
+                                            : Helpers.Equals(objCollection, matchValue))
+                                    return new AValue[] { new AValue(objCollection, this.BinName, this.FldName) };
+                                else
+                                    return null;
+                            }
+
+                            var items = objCollection
+                                            .Where(j => Match(j))
+                                            .Select(j => j is AValue jValue 
+                                                            ? jValue
+                                                            : new AValue(j, this.BinName, this.FldName));
+                            return items.Any()
+                                    ? items
+                                    : null;
+                        }
+                    case IEnumerable<T> collection:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                            {
+                                if (options.HasFlag(MatchOptions.Regex)
+                                ? Match(collection)
+                                            : Helpers.Equals(collection, matchValue))
+                                    return new AValue[] { new AValue(collection, this.BinName, this.FldName) };
+                                else
+                                    return null;
+                            }
+
+                            var items = collection
+                                            .Where(j => Match(j))
+                                            .Select(j => j is AValue jValue
+                                                            ? jValue
+                                                            : new AValue(j, this.BinName, this.FldName));
+                            return items.Any()
+                                    ? items
+                                    : null;
+                        }                    
+                    case System.Collections.IDictionary cDict:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                            {
+                                if (options.HasFlag(MatchOptions.Regex)
+                                            ? Match(cDict)
+                                            : Helpers.Equals(cDict, matchValue))
+                                    return new AValue[] { new AValue(cDict, this.BinName, this.FldName) };
+                                else
+                                    return null;
+                            }
+
+                            var items = new List<AValue>();
+
+                            foreach (object obj in cDict.Keys)
+                            {
+                                if (Match(obj))
+                                    items.Add(new AValue(obj, this.BinName, this.FldName));
+                            }
+
+                            if (options.HasFlag(MatchOptions.Any))
+                            {
+                                foreach (object obj in cDict.Values)
+                                {
+                                    if (Match(obj))
+                                        items.Add(new AValue(obj, this.BinName, this.FldName));
+                                }
+                            }
+
+                            return items.Any()
+                                    ? items.Distinct(EqualityComparer.Instance)
+                                    : null;
+                        }
+                    case System.Collections.IEnumerable iValue:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                            {
+                                if (options.HasFlag(MatchOptions.Regex)
+                                            ? Match(iValue)
+                                            : Helpers.Equals(iValue, matchValue))
+                                    return new AValue[] { new AValue(iValue, this.BinName, this.FldName) };
+                                else
+                                    return null;
+                            }
+
+                            var items = new List<AValue>();
+
+                            foreach (object obj in iValue)
+                            {
+                                if (Match(obj))
+                                {
+                                    if (obj is AValue aObj)
+                                        items.Add(aObj);
+                                    else
+                                        items.Add(new AValue(obj, this.BinName, this.FldName));
+                                }
+                            }
+                            return items.Any()
+                                    ? items
+                                    : null;
+                        }
+                    default:
+                        {
+                            if (options.HasFlag(MatchOptions.Exact))
+                            {
+                                if (options.HasFlag(MatchOptions.Regex)
+                                            ? Match(value)
+                                            : Helpers.Equals(value, matchValue))
+                                    return new AValue[] { new AValue(value, this.BinName, this.FldName) };
+                                else
+                                    return null;
+                            }
+
+                            if(Match(value))
+                            {
+                                return new AValue[] { new AValue(value, this.BinName, this.FldName) };
+                            }
+                        }
+                        break;
+                }
+
+                return null;
+            }
+
+            return Matches(this.Value)?.Where(i => i is not null)
+                    ?? Enumerable.Empty<AValue>();
         }
 
         /// <summary>
@@ -1202,7 +1517,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// True if it is contained within a collection or false otherwise.
         /// </returns>
-        /// <seealso cref="Contains{T}(T)"/>
+        /// <seealso cref="Contains{T}(T, MatchOptions)"/>
         /// <seealso cref="ContainsKey{K}(K)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
         /// <seealso cref="TryGetValue(object, out AValue)"/>
@@ -1238,7 +1553,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// True is the key/property field exists.
         /// </returns>
         /// <seealso cref="Contains{K, T}(K, T)"/>
-        /// <seealso cref="Contains{T}(T)"/>
+        /// <seealso cref="Contains{T}(T, MatchOptions)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
         /// <seealso cref="TryGetValue(object, out AValue)"/>
         /// <seealso cref="TryGetValue{R}(object, out R)"/>
@@ -1279,10 +1594,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns>
         /// True to indicate that a match occurred and the matched value could be converted.
         /// </returns>
+        /// <exception cref="InvalidCastException">
+        /// Thrown if <paramref name="matchValue"/> cannot be converted to <typeparamref name="R"/>
+        /// </exception>
         /// <seealso cref="Convert"/>
         /// <seealso cref="Value"/>
         /// <seealso cref="Contains{K, T}(K, T)"/>
-        /// <seealso cref="Contains{T}(T)"/>
+        /// <seealso cref="Contains{T}(T, MatchOptions)"/>
         /// <seealso cref="ContainsKey{K}(K)"/>
         /// <seealso cref="Equals(object)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
@@ -1316,7 +1634,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     ? rValue
                                     : ( typeof(R) == typeof(AValue)
                                         ? (R) (object) new AValue(oValue, this.BinName, this.FldName)
-                                        : (R) Helpers.CastToNativeType(this.FldName, typeof(R), this.BinName, oValue));
+                                        : (R) Helpers.CastToNativeTypeInvalidCast(this.FldName, typeof(R), this.BinName, oValue));
                     return true;
                 }
                 catch (ArgumentException) { }
@@ -1441,14 +1759,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Convert"/>
         /// <seealso cref="Value"/>
         /// <seealso cref="Contains{K, T}(K, T)"/>
-        /// <seealso cref="Contains{T}(T)"/>
+        /// <seealso cref="Contains{T}(T, MatchOptions)"/>
         /// <seealso cref="ContainsKey{K}(K)"/>
         /// <seealso cref="Equals(object)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
         /// <seealso cref="TryGetValue(object, out AValue)"/>
         /// <seealso cref="TryGetValue{R}(object, out R)"/>        
         public R TryGetValue<R>(object matchValue, R defaultValue = default)
-                    => TryGetValue(matchValue, out R matchedValue) ? matchedValue : defaultValue;
+                    => TryGetValue<R>(matchValue, out R matchedValue) ? matchedValue : defaultValue;
 
         /// <summary>
         /// Returns <see cref="AValue"/>, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="Value"/>.
@@ -1474,7 +1792,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Convert"/>
         /// <seealso cref="Value"/>
         /// <seealso cref="Contains{K, T}(K, T)"/>
-        /// <seealso cref="Contains{T}(T)"/>
+        /// <seealso cref="Contains{T}(T, MatchOptions)"/>
         /// <seealso cref="ContainsKey{K}(K)"/>
         /// <seealso cref="Equals(object)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
@@ -1506,7 +1824,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Convert"/>
         /// <seealso cref="Value"/>
         /// <seealso cref="Contains{K, T}(K, T)"/>
-        /// <seealso cref="Contains{T}(T)"/>
+        /// <seealso cref="Contains{T}(T, MatchOptions)"/>
         /// <seealso cref="ContainsKey{K}(K)"/>
         /// <seealso cref="Equals(object)"/>
         /// <seealso cref="TryGetValue(object, bool)"/>
@@ -1517,6 +1835,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     => TryGetValue<AValue>(matchValue, out AValue matchedValue) 
                             ? matchedValue
                             : (returnEmptyAValue ? Empty : null);
+       
         #endregion
     }
 }

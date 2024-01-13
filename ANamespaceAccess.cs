@@ -38,6 +38,23 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// </summary>
     public class ANamespaceAccess
     {
+        /// <summary>
+        /// Used for a placeholder.
+        /// </summary>
+        /// <param name="ns">Namespace</param>
+        /// <param name="binNames">A array of bin names associated to this namespace</param>
+        public ANamespaceAccess(string ns, string[] binNames = null)
+        {
+            this.Namespace = ns;
+            this.BinNames = binNames is null 
+                                ? Array.Empty<string>()
+                                : Helpers.RemoveDups(binNames);
+
+            this.DefaultWritePolicy = new WritePolicy();
+            this.DefaultQueryPolicy = new QueryPolicy();
+            this.DefaultReadPolicy = new QueryPolicy();
+
+        }
 
         public ANamespaceAccess(IDbConnection dbConnection, string ns, string[] binNames)
         {
@@ -1017,7 +1034,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </param>
         /// <returns>Json Array of the records in the set.</returns>
         /// <seealso cref="FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="FromJson(string, string, string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.ToJson(string, bool)"/>
@@ -1069,6 +1086,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
+        /// <param name="insertIntoList">
+        /// If provided, records are inserted into this collection instead of inserting into the database.
+        /// </param>
         /// <returns>The number of items put.</returns>
         /// <seealso cref="ToJson(string, string, bool)"/>
         /// <seealso cref="ARecord.ToJson(string, bool)"/>
@@ -1117,7 +1137,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 string jsonBinName = null,
                                 WritePolicy writePolicy = null,
                                 TimeSpan? ttl = null,
-                                bool writePKPropertyName = false)
+                                bool writePKPropertyName = false,
+                                IList<ARecord> insertIntoList = null)
         {
             
             var converter = new CDTConverter();
@@ -1140,11 +1161,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 var (pk, recBins) = GetRecord(binDictionary);
 
-                this.Put(setName,
-                            pk,
-                            recBins,
-                            writePolicy: writePolicy,
-                            ttl: ttl);
+                if (insertIntoList is null)
+                {
+                    this.Put(setName,
+                                pk,
+                                recBins,
+                                writePolicy: writePolicy,
+                                ttl: ttl);
+                }
+                else
+                {
+                    insertIntoList.Add(new ARecord(this.Namespace,
+                                                    setName,
+                                                    pk,
+                                                    recBins,
+                                                    expirationDate: ttl.HasValue
+                                                                        ? DateTimeOffset.Now + ttl.Value
+                                                                        : null));
+                }
                 cnt++;
             }
             else if (bins is List<object> binList)
@@ -1155,11 +1189,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     {
                         var (pk, recBins) = GetRecord(binDict);
 
-                        this.Put(setName,
-                                    pk,
-                                    recBins,
-                                    writePolicy: writePolicy,
-                                    ttl: ttl);
+                        if (insertIntoList is null)
+                        {
+                            this.Put(setName,
+                                        pk,
+                                        recBins,
+                                        writePolicy: writePolicy,
+                                        ttl: ttl);
+                        }
+                        else
+                        {
+                            insertIntoList.Add(new ARecord(this.Namespace,
+                                                            setName,
+                                                            pk,
+                                                            recBins,
+                                                            expirationDate: ttl.HasValue
+                                                                                ? DateTimeOffset.Now + ttl.Value
+                                                                                : null));
+                        }
                         cnt++;
                     }
                     else

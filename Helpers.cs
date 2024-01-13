@@ -1783,12 +1783,40 @@ namespace Aerospike.Database.LINQPadDriver
             }
             catch (ArgumentException e)
             {
-                if (asRecord.DumpType == ARecord.DumpTypes.Record) asRecord.DumpType = ARecord.DumpTypes.Dynamic;
+                if (asRecord is not null)
+                {
+                    if (asRecord.DumpType == ARecord.DumpTypes.Record) asRecord.DumpType = ARecord.DumpTypes.Dynamic;
 
-                asRecord.SetException(e);
-
+                    asRecord.SetException(e);
+                }
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Wrapper around <see cref="CastToNativeType(string, Type, string, object)"/> to trap exceptions.
+        /// </summary>
+        /// <exception cref="InvalidCastException"></exception>
+        /// <return>
+        /// The converted value or null if an exception occurred and <paramref name="ignoreException"/> is true.
+        /// </return>
+        public static object CastToNativeTypeInvalidCast(string fldName,
+                                                            Type fldType,
+                                                            string binName,
+                                                            object binValue,
+                                                            bool ignoreException = false)
+        {
+            try
+            {
+                return CastToNativeType(fldName, fldType, binName, binValue);
+            }
+            catch (ArgumentException e)
+            {
+                if (!ignoreException)
+                    throw new InvalidCastException($"Cannot cast from {GetRealTypeName(binValue.GetType())} to {GetRealTypeName(fldType)} for field \"{fldName}\"",
+                                                    e);               
+            }
+            return null;
         }
 
         /// <summary>
