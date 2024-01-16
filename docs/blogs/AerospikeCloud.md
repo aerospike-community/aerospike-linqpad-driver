@@ -47,7 +47,7 @@ Al the features of the Aerospike LINQPad driver are available including the foll
 
 ![A screenshot of a computer Description automatically generated](media/3f6e576c3fc07d27cf84b4f77bf2ee72.gif)
 
-![A screenshot of a computer Description automatically generated](media/43a2730ad33697eafa28f30bb2e95136.gif)
+![A screenshot of a computer Description automatically generated](media/531c087326a1b81ab6d15bdf8b37b279.gif)
 
 ## Using the Aerospike NullSet
 
