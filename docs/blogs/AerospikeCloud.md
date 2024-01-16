@@ -25,7 +25,7 @@ The Cloud client connection port.
 6.  The associated API Key’s secret.
 7.  If checked, it will show the API secret in plain text.
 8.  The associated cloud namespace.
-9.  If provided, a list of [set](https://aerospike.com/docs/server/architecture/data-model) names separated by comma or space. The set names will be used to populate the sets under the namespace in the LINQPad connection tree (see below image). Also, set and bin “detection” will be performed to obtain the bins and data types. Regardless if this field is provided or not, you can always obtain this information from the “[Null Set](https://aerospike.com/docs/server/architecture/data-model)”. See “Using NullSet” section below.
+9.  If provided, a list of [set](https://aerospike.com/docs/server/architecture/data-model) names separated by comma or space. The set names will be used to populate the sets under the namespace in the LINQPad connection tree (see below image). Also, set and bin “detection” will be performed to obtain the bins and data types. Regardless if this field is provided or not, you can always obtain this information from the “[Null Set](https://aerospike.com/docs/server/architecture/data-model)”. See “[Using Null Set](#_Using_the_Aerospike)” section below.
 10. Hyperlinks to additional topics
 11. The timeout values that will be used when obtaining the connection or performing an operation. Note that the “Sleep” field is ignored for cloud connections.
 
@@ -49,7 +49,7 @@ Al the features of the Aerospike LINQPad driver are available including the foll
 
 ![A screenshot of a computer Description automatically generated](media/531c087326a1b81ab6d15bdf8b37b279.gif)
 
-## Using the Aerospike NullSet
+## Using the Aerospike Null Set
 
 If the connection property “set names” is not provided, the set and bin names will not be provided in the LINQPad connection tree.
 
@@ -64,6 +64,10 @@ Below is the output:
 ![A screenshot of a computer Description automatically generated](media/1c9975fdd132b4905cc4da72168e7fc9.png)
 
 You can always extend the “where” clause or interact with the result set.
+
+## Samples
+
+You can find samples for Aerospike LINQPad Cloud under the [samples folder](https://github.com/aerospike-community/aerospike-linqpad-driver/tree/main/linqpad-samples/Cloud) or under the “Samples” tab in LINQPad.
 
 ## More Information
 
