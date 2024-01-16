@@ -45,9 +45,9 @@ Al the features of the Aerospike LINQPad driver are available including the foll
 -   JSON support
 -   Explore the Aerospike API directly or use the driver’s enhanced API.
 
-![A screenshot of a computer Description automatically generated](media/0607b2c8080692049fa15536e08a8356.gif)
+![A screenshot of a computer Description automatically generated](media/3f6e576c3fc07d27cf84b4f77bf2ee72.gif)
 
-![A screenshot of a computer Description automatically generated](media/b204ce1394a7009a7a0f2dfbde34a41b.gif)
+![A screenshot of a computer Description automatically generated](media/43a2730ad33697eafa28f30bb2e95136.gif)
 
 ## Using the Aerospike NullSet
 
