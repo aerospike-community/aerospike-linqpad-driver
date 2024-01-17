@@ -8,7 +8,8 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using Aerospike.Client;
-using LINQPad.Internal;
+using Google.Protobuf.Compiler;
+using System.Dynamic;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -838,6 +839,28 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public string DebuggerString() => $"{this.FldName ?? this.BinName}{{{this.Value} ({this.UnderlyingType?.Name})}}";
         
         /// <summary>
+        /// Displays all the  public properties and fields for this object.
+        /// </summary>
+        /// <returns>
+        /// Returns this instance.
+        /// </returns>
+        public AValue DebugDump()
+        {
+            var dictionary = new Dictionary<string, object>();
+
+            foreach (var property in this.GetType().GetProperties())
+                dictionary.Add(property.Name, property.GetValue(this));
+            foreach (var field in this.GetType().GetFields())
+                dictionary.Add(field.Name, field.GetValue(this));
+
+            var underlyingType = this.IsEmpty
+                                    ? "Empty"
+                                    : Helpers.GetRealTypeName(this.UnderlyingType);
+            LINQPad.Extensions.Dump(dictionary, $"{this.GetType().Name} {this.FldName ?? this.BinName} ({underlyingType}):");
+            return this;
+        }
+
+        /// <summary>
         /// Returns the JSON string for <see cref="Value"/> using the given formatting and converters only if <see cref="Value"/> is a JToken.
         /// Otherwise the ToString of <see cref="Value"/>.
         /// </summary>
@@ -876,7 +899,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             var invokeCompare = this.GetType().GetMethod("CompareTo", new Type[] { other.GetType() });
 
-            if (invokeCompare is null) return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(other));
+            if (invokeCompare is null || invokeCompare.GetParameters().First().ParameterType == typeof(object)) 
+                return Helpers.GetStableHashCode(this.Value).CompareTo(Helpers.GetStableHashCode(other));
 
             return (int)invokeCompare.Invoke(this, new object[] { other });
         }

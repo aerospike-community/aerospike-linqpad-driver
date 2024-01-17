@@ -217,15 +217,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator==(List< <#= datatype #> > v, AValue av) => av == v;
 	        public static bool operator!=(List< <#= datatype #> > v, AValue av) => av != v;
 
-            public static bool operator<(<#= datatype #> oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
-	        public static bool operator>(<#= datatype #> oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-            public static bool operator<=(<#= datatype #> oValue, AValue aValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
-            public static bool operator>=(<#= datatype #> oValue, AValue aValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
+            public static bool operator<(<#= datatype #> oValue, AValue aValue) => aValue is not null && (aValue.CompareTo(oValue) > 0);
+	        public static bool operator>(<#= datatype #> oValue, AValue aValue) => aValue is null || (aValue.CompareTo(oValue) < 0);
+            public static bool operator<=(<#= datatype #> oValue, AValue aValue) => aValue is not null && (aValue.CompareTo(oValue) >= 0);
+            public static bool operator>=(<#= datatype #> oValue, AValue aValue) => aValue is null || (aValue.CompareTo(oValue) <= 0);
 
-            public static bool operator<(AValue aValue, <#= datatype #> oValue) => aValue is null || aValue.CompareTo(oValue) < 0;
-	        public static bool operator>(AValue aValue, <#= datatype #> oValue) => aValue is not null && aValue.CompareTo(oValue) > 0;
-            public static bool operator<=(AValue aValue, <#= datatype #> oValue) => aValue is null || aValue.CompareTo(oValue) <= 0;
-            public static bool operator>=(AValue aValue, <#= datatype #> oValue) => aValue is not null && aValue.CompareTo(oValue) >= 0;
+            public static bool operator<(AValue aValue, <#= datatype #> oValue) => aValue is null || (aValue.CompareTo(oValue) < 0);
+	        public static bool operator>(AValue aValue, <#= datatype #> oValue) => aValue is not null && (aValue.CompareTo(oValue) > 0);
+            public static bool operator<=(AValue aValue, <#= datatype #> oValue) => aValue is null || (aValue.CompareTo(oValue) <= 0);
+            public static bool operator>=(AValue aValue, <#= datatype #> oValue) => aValue is not null && (aValue.CompareTo(oValue) >= 0);
 
             <# if(datatype != "string") { #>
             public <#= datatype #> To<#= datatype #>() => (<#= datatype #>) this;
