@@ -64,7 +64,7 @@ Below are examples where a .Net DateTimeOffset, DateTime, and TimeSpan instance 
 
 ![A screenshot of a computer Description automatically generated](media/2176692840fe02bac6b38ba566daf383.png)
 
-BTW, You can control how values are converted and display based on the properties found in the “Display/Conversion Options” section of the connection dialog.
+BTW, you can control how values are converted and display based on the properties found in the “Display/Conversion Options” section of the connection dialog.
 
 ## Conversion
 
@@ -72,8 +72,9 @@ Auto-Values provide a rich set of conversion functions. Some of them are:
 
 -   Convert\<T\> -- Will try to convert to the provided .Net data type. If it cannot, an invalid cast exception is thrown.
 -   To{data type} – Will try to convert to the .Net {data type}, if possible. If it cannot be converted, the default value of that type is returned. Note {data type} can be Dictionary, List, .Net native type, etc. (examples of this function are: ToList, ToBoolean, ToByte, etc.)
--   TryGetValue\<T\> – This will try to convert the value into the provided .Net data type. If not successful, the default value of that data type or false is returned.
--   AsEnumerable – This will convert an Auto-Value into an enumerable object based on Auto-Values. If the DB type is not a collection, a collection is created with that Auto-Value. If it is a DB CDT all elements are scanned and converted into Auto-Values. This will provide the highest level of protection again invalid casts or null value references. This also allow for the use of the advance Auto-Value functions outlined in the [Collection Data Types](#collection-data-types) section.
+-   TryGetValue\<T\> – This will try to match a provided value and convert the value into the provided .Net data type. If not successful, the default value of that data type or false is returned. Depending on usage. This function can be applied against CDTs or non-CDT values.
+-   TryGetValue – This will try to match the provided value. If successful, the matched value is returned as an Auto-Value. If not, an empty Auto-Value, false, or null can be returned depending on usage. This function can be applied against CDTs or non-CDT values.
+-   AsEnumerable – This will convert an Auto-Value into an enumerable object if it is a DB CDT. If not a CDT, an empty enumeration is returned. All elements in the CDT are scanned and converted into Auto-Values. This will provide the highest level of protection again invalid casts or null value reference exceptions. This also allow for the use of the advance Auto-Value functions outlined in the [Collection Data Types](#collection-data-types) section.
 -   Implicit Casting – Auto-Values know how to implicitly cast from an Aerospike data types to any .Net primary type without explicitly providing the type.
 
 Detailed documentation can be found by means of IntelliSense or reviewing the functions individual documentation.
@@ -83,8 +84,8 @@ Detailed documentation can be found by means of IntelliSense or reviewing the fu
 Auto-Values can seamlessly be used to find elements within CDTs. The supported operations are:
 
 -   Contains – returns true if the matching value is contained in a bin’s value or an element within a CDT. The matching options determine how the matches occur.
--   FindAll – returns a collection of matching Auto-Values. A match can occur as a bin’s value or an element within a CDT. The matching options determine how the matches occur.
--   TryGetValue – returns the first matching value (as an Auto-Value) contained in a bin’s value or an element within a CDT.
+-   FindAll – returns a collection of matching Auto-Values. A match can occur as a bin’s value or an element within a CDT. The matching options determine how the matches occur. If no matches are found, an empty enumerable is returned.
+-   TryGetValue – returns the first matching value (as an Auto-Value) contained in a bin’s value or an element within a CDT. If the Auto-Value is not found an Empty Auto-Value is returned.
 -   OfType\<T\> -- Tries to cast the Auto-Value to the provided .Net type creating a new collection of those types. If a value cannot be cast, it will be ignored.
 -   Cast\<T\> -- Will cast the Auto-Value to the provided .Net type. If it cannot be cast, an invalid cast exception will occur.
 -   Convert\<T\> -- Will try to convert the Auto-Value resulting in a collection of converted .Net values. If an Auto-Value cannot be converted, it will be ignored.
