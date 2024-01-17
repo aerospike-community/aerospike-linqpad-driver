@@ -34,10 +34,10 @@ void Main()
 								(cust, invoices) => new { Customer = cust, Invoices = invoices.ToArray() });
 
 	//Truncate the new set if exists...
-	aerospike_cloud.Truncate(setName);
+	//aerospike_cloud.Truncate(setName);
 	
 	//Helper function to create invoice with details (lines) by quering the InvoiceLine set using Aerospike Expresions
-	IDictionary<string,object> DetermineInvoiceDetails(Demo_NamespaceCls.Invoice_SetCls.RecordCls invoiceRecord)
+	IDictionary<string,object> DetermineInvoiceDetails(aerospike_cloud_NamespaceCls.Invoice_SetCls.RecordCls invoiceRecord)
 	{
 		var invoiceDict = invoiceRecord.ToDictionary();
 		var invoiceLines = aerospike_cloud.InvoiceLine.Query(Exp.EQ(Exp.IntBin("InvoiceId"), Exp.Val((long) invoiceRecord.PK)));

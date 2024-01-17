@@ -19,10 +19,10 @@
 /*
 This example updates the Customer set using the Aerospike Put functions based on the Primary Key.
 
-Note: this is not meant to be used in a production environment and there can be performance implications using either this LinqPad driver and expresions! 
+Note: this is not meant to be used in a production environment and there can be performance implications using either this LinqPad driver and expresions!
 */
 aerospike_cloud.Customer.Get(20).Dump("Orginal Values");
-aerospike_cloud.Customer.PutRec(20, Phone: "+1 (650) 123-4567", additionalValues: new Dictionary<string, object>() { { "MyBin", "Hello" }});
+aerospike_cloud.Customer.PutRec(20, Phone: "+1 (650) 123-4567", additionalBinValues: new Dictionary<string, object>() { { "MyBin", "Hello" }});
 aerospike_cloud.Customer.Get(20).Dump("Check Phone Number is +1 (650) 123-4567 and the new Bin is listed in the newly display \"Values\" properties");
 aerospike_cloud.Customer.Put(20, "Phone", "+1 (650) 644-3358");
 aerospike_cloud.Customer.Get(20).Dump("Phone Number restored to orginal value");
