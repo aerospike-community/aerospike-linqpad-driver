@@ -465,6 +465,18 @@ Below is an example of Dynamic Display View:
 
 ![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/RecordDisplayViewDynamic.png?raw=true)
 
+# Auto-Values
+
+Auto-Values are a wrapper around Aerospike DB values so that working with unstructured data is simple and risk free of exceptions like null reference and invalid cast.
+
+They provide a rich set of functions to work with conversions from or to DB and .Net values. The have the following main features:
+
+-   Implicit Casting – don’t have to worry about check and cast. Just use the standard .Net operators.
+-   Convert functions – Will try to convert a DB or .Net value with or without any explicit reference.
+-   Contains, TryGetValue, FindAll, etc. functions – Search/Match functions used to find a value within a CDT or match a single non-CDT value.
+
+For more information, see the [Auto-Values blog](docs/blogs/AutoValues.md).
+
 # Examples
 
 Sample scripts can be found in the [LINQPad Sample tree view tab](https://www.linqpad.net/nugetsamples.aspx) under “nuget” or in the “linqpad-samples” [folder](https://github.com/aerospike-community/aerospike-linqpad-driver/tree/main/linqpad-samples) in GitHub.
