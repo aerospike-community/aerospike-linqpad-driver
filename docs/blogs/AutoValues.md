@@ -4,11 +4,11 @@
 
 When working with NoSQL databases like Aerospike where a record has unstructured data. Strongly typed languages like C\# add programming complexity by having to check the existences of “bin(s)” (i.e., columns) within a record and the fact that different records for the same bin can have different data type.
 
-Auto-Values (AValue) simplify the need to check, cast, or convert values between Aerospike data types and .Net datatypes. They provide a rich set of operations and seamlessly work with any type of data including collections and JSON. They provide protection against null reference exceptions, invliad cast exceptions, etc.
+Auto-Values (AValue is the class) simplify the need to check, cast, or convert values between Aerospike data types and .Net datatypes. They provide a rich set of operations and seamlessly work with any type of data including collections and JSON. They provide protection against null reference exceptions, invalid cast exceptions, etc.
 
 ## Example Set
 
-Below shows an Aerospike set where different records have varied number of bins and each bin in the record set can have varying data types (e.g., bin “BinA” can be a double, long, string, and a list).
+Below shows an Aerospike set where different records have varied number of bins and bins in the record set can have varying data types (e.g., bin “BinA” can be a double, long, string, or list in different records).
 
 ![A screenshot of a computer Description automatically generated](media/cc3b22a5ebb8f63863866f815bdf421b.png)
 
@@ -72,11 +72,11 @@ Auto-Values provide a rich set of conversion functions. Some of them are:
 
 -   Convert\<T\> -- Will try to convert to the provided .Net data type. If it cannot, an invalid cast exception is thrown.
 -   Is{data type} – Use to test if the underlying .Net data type is that {date type}. Examples of these functions are: IsList, IsCDT, IsJSON, IsInt16, IsNumeric, IsString, etc.
--   To{data type} – Will try to convert to the .Net {data type}, if possible. If it cannot be converted, the default value of that type is returned. Note {data type} can be Dictionary, List, .Net native type, etc. Examples of these functions are: ToList, ToBoolean, ToByte, etc.
--   TryGetValue\<T\> – This will try to match a provided value and convert the value into the provided .Net data type. If not successful, the default value of that data type or false is returned. Depending on usage. This function can be applied against CDTs or non-CDT values.
+-   To{data type} – Will try to convert to the .Net {data type}, if possible. Note {data type} can be Dictionary, List, .Net native type, etc. Examples of these functions are: ToList, ToBoolean, ToByte, etc.
+-   TryGetValue\<T\> – This will try to match a provided value and convert the value into the provided .Net data type. If not successful, the default value of that data type and/or false is returned, depending on usage. This function can be applied against CDTs or non-CDT values.
 -   TryGetValue – This will try to match the provided value. If successful, the matched value is returned as an Auto-Value. If not, an empty Auto-Value, false, or null can be returned depending on usage. This function can be applied against CDTs or non-CDT values.
 -   AsEnumerable – This will convert an Auto-Value into an enumerable object if it is a DB CDT. If not a CDT, an empty enumeration is returned. All elements in the CDT are scanned and converted into Auto-Values. This will provide the highest level of protection again invalid casts or null value reference exceptions. This also allow for the use of the advance Auto-Value functions outlined in the [Collection Data Types](#collection-data-types) section.
--   Implicit Casting – Auto-Values know how to implicitly cast from an Aerospike data types to any .Net primary type without explicitly providing the type.
+-   Implicit Casting – Auto-Values know how to implicitly cast from an Aerospike data type to any .Net primary type without explicitly providing the type.
 
 Detailed documentation can be found by means of IntelliSense or reviewing the functions individual documentation.
 
