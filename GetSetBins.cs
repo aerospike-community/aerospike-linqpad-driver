@@ -23,6 +23,8 @@ namespace Aerospike.Database.LINQPadDriver
         /// <see href="https://docs.aerospike.com/apidocs/csharp/html/t_aerospike_client_querypolicy"/>
         /// </summary>
         QueryPolicy QueryPolicy { get; }
+
+        public Exception LastException { get; private set; }
         
         IEnumerable<Aerospike.Client.Record> GetRecords(string nsName, string setName, int maxRecords)
         {
@@ -144,6 +146,8 @@ namespace Aerospike.Database.LINQPadDriver
             if (maxRecords > 0)
                 try
                 {
+                    this.LastException = null;
+
                     var records = GetRecords(nsName, setName, maxRecords);
                     var nbrRecs = records.Count();
 
@@ -157,8 +161,14 @@ namespace Aerospike.Database.LINQPadDriver
                                     .SelectMany(x => x.Select(i => new LPSet.BinType(i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs))).ToList();
                     }
                 }
-                catch
-                {                    
+                catch(Exception ex) 
+                {
+                    this.LastException = ex;
+                    if (Client.Log.DebugEnabled())
+                    {
+                        Client.Log.Error($"GetSetBins.Get Exception {ex.GetType().Name} ({ex.Message})");
+                        DynamicDriver.WriteToLog(ex, "GetSetBins.Get");
+                    }
                 }
 
             return new List<LPSet.BinType>(0);

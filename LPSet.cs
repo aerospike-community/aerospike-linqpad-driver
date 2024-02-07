@@ -185,6 +185,8 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public IEnumerable<LPSecondaryIndex> SIndexes { get; internal set; } = Enumerable.Empty<LPSecondaryIndex>();
 
+        public Exception LastException { get; internal set; }
+
         internal void GetRecordBins(GetSetBins getBins,
                                         bool determineDocType,
                                         int maxRecords,
@@ -194,7 +196,7 @@ namespace Aerospike.Database.LINQPadDriver
             lock (binTypes)
             {
                 this.binTypes = getBins.Get(this.LPnamespace.Name, this.Name, determineDocType, maxRecords, minRecs);
-
+                
                 if (updateCntd)
                 {
                     Interlocked.Increment(ref nbrCodeUpdates);
@@ -640,8 +642,14 @@ namespace Aerospike.Database.LINQPadDriver
             var sIdxs = this.SIndexes
                             .OrderBy(sIdx => sIdx.Name)
                             .Select(sIdx => sIdx.CreateExplorerItem());
+            var name = this.Name;
 
-            return new ExplorerItem(this.Name,
+            if(this.LastException is not null)
+            {
+                name += " (Exception)";
+            }
+
+            return new ExplorerItem(name,
                                         ExplorerItemKind.QueryableObject,
                                         ExplorerIcon.Schema)
             {

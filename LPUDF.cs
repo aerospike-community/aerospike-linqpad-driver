@@ -4,19 +4,41 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using System.Xml.Linq;
 
 namespace Aerospike.Database.LINQPadDriver
 {
-    public sealed class LPUDF
-    {        
-        public static readonly Regex CodeRegEx = new Regex(@"\s*(?<local>local\s+)?function\s+(?<name>[^ (]+)\s*\((?<params>[^\)]+)\)",
+    public sealed partial class LPUDF
+    {
+
+#if NET7_0_OR_GREATER
+        [GeneratedRegex(@"\s*(?<local>local\s+)?function\s+(?<name>[^ (]+)\s*\((?<params>[^\)]+)\)",
+                            RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+        static private partial Regex CodeRegEx();
+#else
+        private static readonly Regex codeRegEx = new Regex(@"\s*(?<local>local\s+)?function\s+(?<name>[^ (]+)\s*\((?<params>[^\)]+)\)",
                                                             RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        static private Regex CodeRegEx() => codeRegEx;
+#endif
+
         public LPUDF(LPModule module, string code)
         {
             this.Code = code;
             this.Module = module;
 
-            var partsMatches = CodeRegEx.Match(code);
+            if (Client.Log.DebugEnabled())
+            {
+                if (code is null)
+                    Client.Log.Debug($"Module {module.Name} Code is null");
+                else if (code == string.Empty)
+                    Client.Log.Debug($"Module {module.Name} Code is Empty");
+                else
+                {
+                    Client.Log.Debug($"Module {module.Name}: {code}");
+                }
+            }
+
+            var partsMatches = CodeRegEx().Match(code);
 
             this.Name = partsMatches.Groups["name"].Value.Trim();
             this.SafeName = Helpers.CheckName(this.Name, "UDF");
@@ -77,12 +99,24 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public string Code { get; }
         public bool IsNotFound { get; }
-       
-        public static readonly Regex FunctionRegEx = new Regex(@"^\s*(local\s+)?function\s",
-                                                                RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
-        public static readonly Regex FunctionEndRegEx = new Regex(@"^\s*end\s*$",
-                                                                    RegexOptions.RightToLeft | RegexOptions.Multiline | RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+#if NET7_0_OR_GREATER
+        [GeneratedRegex(@"^\s*(local\s+)?function\s",
+                            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline)]
+        static private partial Regex FunctionRegEx();
+
+        [GeneratedRegex(@"^\s*end\s*$",
+                            RegexOptions.RightToLeft | RegexOptions.Multiline | RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+        static private partial Regex FunctionEndRegEx();
+#else
+        private static readonly Regex functionRegEx = new Regex(@"^\s*(local\s+)?function\s",
+                                                                RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        static private Regex FunctionRegEx() => functionRegEx;
+
+        public static readonly Regex functionEndRegEx = new Regex(@"^\s*end\s*$",
+                                                                    RegexOptions.RightToLeft | RegexOptions.Multiline | RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        static private Regex FunctionEndRegEx() => functionEndRegEx;
+#endif
 
         public static LPUDF[]  Create(Connection connection, LPModule module)
         {
@@ -109,10 +143,10 @@ namespace Aerospike.Database.LINQPadDriver
             end
             */
 
-            Tuple<string, int> GetFunctionBeginEnd(string codeBlock)
+            static Tuple<string, int> GetFunctionBeginEnd(string codeBlock)
             {
                 
-                var beginMatch = FunctionRegEx.Match(codeBlock);
+                var beginMatch = FunctionRegEx().Match(codeBlock);
 
                 if (!beginMatch.Success)
                 {
@@ -120,7 +154,7 @@ namespace Aerospike.Database.LINQPadDriver
                 }
 
                 var searchFuncBlock = codeBlock.Substring(beginMatch.Index + beginMatch.Length);
-                var nextFuncMatch = FunctionRegEx.Match(searchFuncBlock);
+                var nextFuncMatch = FunctionRegEx().Match(searchFuncBlock);
 
                 if (!nextFuncMatch.Success)
                 {
@@ -129,7 +163,7 @@ namespace Aerospike.Database.LINQPadDriver
 
                 var searchEndCodeBlock = searchFuncBlock.Substring(0, nextFuncMatch.Index);
 
-                var fndEndMatch = FunctionEndRegEx.Match(searchEndCodeBlock);
+                var fndEndMatch = FunctionEndRegEx().Match(searchEndCodeBlock);
 
                 if (!fndEndMatch.Success)
                 {

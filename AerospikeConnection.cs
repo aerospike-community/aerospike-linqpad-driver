@@ -128,7 +128,7 @@ namespace Aerospike.Database.LINQPadDriver
             }
             cxInfo.DatabaseInfo.CustomCxString = this.ConnectionString;
             cxInfo.DatabaseInfo.Provider = "Aerospike";
-
+            
             this.SeedHosts = connectionInfo.SeedHosts
                                 .Select(s => s?.Trim())
                                 .Where(s => !string.IsNullOrEmpty(s))
@@ -394,6 +394,10 @@ namespace Aerospike.Database.LINQPadDriver
                             }
                             catch(Exception ex)
                             {
+                                if (this.Debug || Client.Log.DebugEnabled())
+                                {
+                                    DynamicDriver.WriteToLog(ex, "AerospikeConnection.ObtainMetaDate");
+                                }
                                 throw new AerospikeException(11, $"Connection to Cloud Host \"{hostName}\" failed.", ex);
                             }
                             #endregion
@@ -524,6 +528,10 @@ namespace Aerospike.Database.LINQPadDriver
             if (this.Debug)
                 System.Diagnostics.Debugger.Launch();
 #endif
+            if (Client.Log.InfoEnabled())
+            {
+                Client.Log.Info(this.ConnectionString);
+            }
 
             static string GetPasswordName(string name)
             {
@@ -628,6 +636,9 @@ namespace Aerospike.Database.LINQPadDriver
             }
             catch(AerospikeException.Connection ex)
             {
+                if(this.Debug || Client.Log.DebugEnabled())
+                    DynamicDriver.WriteToLog(ex, "AerospikeConnection.Open");
+                
                 this.Close();
                 this.State = ConnectionState.Broken;
 
@@ -642,8 +653,11 @@ namespace Aerospike.Database.LINQPadDriver
 
                 throw;
             }
-            catch
+            catch(Exception ex)
             {
+                if (this.Debug || Client.Log.DebugEnabled())
+                    DynamicDriver.WriteToLog(ex, "AerospikeConnection.Open");
+
                 this.Close();
                 this.State = ConnectionState.Broken;
                 throw;
@@ -662,6 +676,8 @@ namespace Aerospike.Database.LINQPadDriver
 
             Console.Write(": ");
             Console.WriteLine(LINQPad.Util.WithStyle(message, "color:darkgreen"));
+
+            DynamicDriver.WriteToLog($"{level} - {message}");
         }
 
         private void Dispose(bool disposing)

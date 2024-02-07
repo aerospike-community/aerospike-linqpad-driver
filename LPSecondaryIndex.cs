@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 namespace Aerospike.Database.LINQPadDriver
 {
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-    public sealed class LPSecondaryIndex : ILPExplorer
+    public sealed partial class LPSecondaryIndex : ILPExplorer
     {
         
         public LPSecondaryIndex(string name, 
@@ -30,13 +30,21 @@ namespace Aerospike.Database.LINQPadDriver
             this.IndexType = indexType;
             this.Context = context == "null" ? null : context;
         }
-        
+
+
         /// <summary>
         /// ns=test:indexname=State_index:set=players:bin=State:type=string:indextype=default:context=null:state=RW;
         /// ns=test:indexname=idx_list_map_bin_subobj:set=expressionExp:bin=map_bin:type=numeric:indextype=mapvalues:context=[list_value(*):state=RW
         /// </summary>
-        static private readonly Regex IdxRegEx = new Regex("ns=(?<namespace>[^:;]+):indexname=(?<indexname>[^:;]+):set=(?<setname>[^:;]+):bin=(?<binname>[^:;]+):type=(?<type>[^:;]+):indextype=(?<indextype>[^:;]+):context=(?<context>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-       
+#if NET7_0_OR_GREATER
+        [GeneratedRegex("ns=(?<namespace>[^:;]+):indexname=(?<indexname>[^:;]+):set=(?<setname>[^:;]+):bin=(?<binname>[^:;]+):type=(?<type>[^:;]+):indextype=(?<indextype>[^:;]+):context=(?<context>[^:;]+)",
+                            RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+        static private partial Regex IdxRegEx();
+#else
+        static private readonly Regex idxRegEx = new Regex("ns=(?<namespace>[^:;]+):indexname=(?<indexname>[^:;]+):set=(?<setname>[^:;]+):bin=(?<binname>[^:;]+):type=(?<type>[^:;]+):indextype=(?<indextype>[^:;]+):context=(?<context>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        static private Regex IdxRegEx() => idxRegEx;
+#endif
+
         /// <summary>
         /// The name of the DB Secondary Index name
         /// </summary>
@@ -76,7 +84,7 @@ namespace Aerospike.Database.LINQPadDriver
             var idxsAttrib = Info.Request(asConnection, "sindex");
             
             var idxs = (from nsSetIdx in idxsAttrib.Split(';', StringSplitOptions.RemoveEmptyEntries)
-                                let match = IdxRegEx.Match(nsSetIdx)
+                                let match = IdxRegEx().Match(nsSetIdx)
                                 let ns = match.Groups["namespace"].Value
                                 let set = match.Groups["setname"].Value
                                 let bin = match.Groups["binname"].Value

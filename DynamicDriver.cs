@@ -13,6 +13,7 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
+using static Aerospike.Client.Log;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -30,9 +31,17 @@ namespace Aerospike.Database.LINQPadDriver
 				if (args.Exception.StackTrace.Contains ("Aerospike.Database.LINQPadDriver"))
 					Debugger.Launch ();
 			};*/
-            
+
+#if DEBUG
+            AppDomain.CurrentDomain.FirstChanceException += (sender, args) =>
+            {
+                if (args.Exception.StackTrace.Contains(typeof(DynamicDriver).Namespace))
+                    Debugger.Launch();
+            };
+#endif
+
         }
-		
+
         public override string Name => "Aerospike DB";
 
 		public override string Author => "Richard Andersen";
@@ -89,6 +98,11 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public override void InitializeContext(IConnectionInfo cxInfo, object context, QueryExecutionManager executionManager)
 		{
+            if(Client.Log.InfoEnabled()) 
+            {
+                Client.Log.Info("InitializeContext");
+            }
+
 			ObtainConnection(cxInfo, true);
 
             base.InitializeContext (cxInfo, context, executionManager);
@@ -101,7 +115,12 @@ namespace Aerospike.Database.LINQPadDriver
                                                 QueryExecutionManager executionManager,
                                                 object[] constructorArguments)
         {
-			base.TearDownContext(cxInfo, context, executionManager, constructorArguments);
+            if (Client.Log.InfoEnabled())
+            {
+                Client.Log.Info("TearDownContext");
+            }
+
+            base.TearDownContext(cxInfo, context, executionManager, constructorArguments);
         }
 
         public override void ClearConnectionPools(IConnectionInfo cxInfo)
@@ -121,10 +140,19 @@ namespace Aerospike.Database.LINQPadDriver
             //System.Diagnostics.Debugger.Launch();
             if (_Connection?.Namespaces?.Any(n => n.CodeNeedsUpdating) ?? Interlocked.Read(ref ANamespaceAccess.ForceExplorerRefresh) > 0) 
 			{
-				Interlocked.Exchange(ref ANamespaceAccess.ForceExplorerRefresh, 0);
+                if(Client.Log.InfoEnabled())
+                {
+                    Client.Log.Info("OnQueryFinishing Refresh Namespaces");
+                }
+
+                Interlocked.Exchange(ref ANamespaceAccess.ForceExplorerRefresh, 0);
 				cxInfo.ForceRefresh();
 			}
-
+            else if (Client.Log.InfoEnabled())
+            {
+                Client.Log.Info("OnQueryFinishing");
+            }
+            
 			base.OnQueryFinishing (cxInfo, context, executionManager);
 		}
 
@@ -609,9 +637,19 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
             return items;
         }
 
+        public static void WriteToLog(string message)
+        {
+            DataContextDriver.WriteToLog(message, "AerospikeLINQPadDriver.log");
+        }
+
+        public static void WriteToLog(Exception ex, string additionalInfo = "")
+        {
+            DataContextDriver.WriteToLog(ex, "AerospikeLINQPadDriver.log", additionalInfo);
+        }
+
         #region Data Grid
 
-		/*
+        /*
         public class SaveChangesAdapterTest : SaveChangesAdapter
         {
 			public SaveChangesAdapterTest()
@@ -676,7 +714,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 #if NETCORE
         // Put stuff here that's just for LINQPad 6+ (.NET Core and .NET 5+).
 #else
-		// Put stuff here that's just for LINQPad 5 (.NET Framework)
+        // Put stuff here that's just for LINQPad 5 (.NET Framework)
 #endif
     }
 }

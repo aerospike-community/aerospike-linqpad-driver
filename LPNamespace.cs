@@ -47,6 +47,21 @@ namespace Aerospike.Database.LINQPadDriver
             /*
              * ns=test:set=demo:objects=4:tombstones=0:memory_data_bytes=0:device_data_bytes=368:truncate_lut=0:sindexes=0:index_populating=false:disable-eviction=false:enable-index=false:stop-writes-count=0
              */
+            if (Client.Log.DebugEnabled())
+            {
+                if (setAttribs is null)
+                    Client.Log.Debug($"NS {name} Set Attributes is null");
+                else if (setAttribs.Any())
+                {
+                    foreach(var setAttr in setAttribs)
+                    {
+                        Client.Log.Debug($"NS {name} {setAttr}");
+                    }
+                }
+                else
+                    Client.Log.Debug($"NS {name} Set Attributes is Empty");
+            }
+
             var setNames = from setAttrib in setAttribs
                            let matches = SetNameRegEx().Match(setAttrib)
                            select matches.Groups["setname"].Value;
@@ -67,6 +82,18 @@ namespace Aerospike.Database.LINQPadDriver
             /*
              * bin_names=62,bin_names_quota=65535,addbin,appendbin,prependbin,bbin,lbin,lbin2,lbin3,bbin3,bbin2,putgetbin,asqbin,name,age,B5,audfbin1,bin5,A,listmapbin,bin1,bin2,expirebin,D,B,C,H,E,genbin,hllbin_1,hllbin_2,hllbin_3,testbin,listbin2,listbin1,mapbin2,mapbin1,optintbin,optstringbin,optintbin1,optintbin2,opbbin,ophbin,ophbinother,ophbino,oplistbin,otherbin,opmapbin,bin3,bin4,l2,l1,map_bin,list,tqebin1,tqebin2,foo,password,fltint,listbin,mapbin,blob_data_1,catalog,diffbin
              */
+            if (Client.Log.DebugEnabled())
+            {
+                if (binNames is null)
+                    Client.Log.Debug($"NS {name} Bins is null");
+                else if(binNames == string.Empty)
+                    Client.Log.Debug($"NS {name} Bins is Empty");
+                else
+                {
+                    Client.Log.Debug($"NS {name}: {binNames}");
+                }
+            }
+
             var binNameSplit = binNames.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
             this.bins = binNameSplit.Where(s => !s.Contains('=')).ToList();

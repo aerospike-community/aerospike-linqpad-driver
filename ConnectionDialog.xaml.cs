@@ -623,7 +623,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
 
         private void btnKeyFile_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog()
+            var openFileDialog = new OpenFileDialog()
             {
                 Filter = "API Key files (*.csv)|*.csv|All files (*.*)|*.*",
                 Title = "Select API Key Exported CSV File",
@@ -806,20 +806,18 @@ Note: If the DB has Public/NATted/Alternate Addresses,
 
         private static void Attach(DependencyObject sender,
             DependencyPropertyChangedEventArgs e)
-        {
-            PasswordBox passwordBox = sender as PasswordBox;
-
-            if (passwordBox == null)
-                return;
-
-            if ((bool)e.OldValue)
+        {           
+            if(sender is PasswordBox passwordBox)
             {
-                passwordBox.PasswordChanged -= PasswordChanged;
-            }
+                if ((bool)e.OldValue)
+                {
+                    passwordBox.PasswordChanged -= PasswordChanged;
+                }
 
-            if ((bool)e.NewValue)
-            {
-                passwordBox.PasswordChanged += PasswordChanged;
+                if ((bool)e.NewValue)
+                {
+                    passwordBox.PasswordChanged += PasswordChanged;
+                }
             }
         }
 

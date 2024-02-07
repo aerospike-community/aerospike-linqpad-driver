@@ -1878,7 +1878,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
         /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
-        /// <seealso cref="ANamespaceAccess.FromJson(string, string, string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ANamespaceAccess.FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="Put(ARecord, WritePolicy, TimeSpan?)"/>
         /// <exception cref="KeyNotFoundException">
         /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 

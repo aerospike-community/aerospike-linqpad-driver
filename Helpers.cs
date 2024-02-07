@@ -1761,12 +1761,22 @@ namespace Aerospike.Database.LINQPadDriver
                             }
                     }
                 }
-                catch(ArgumentException)
-                { 
+                catch(ArgumentException ex)
+                {
+                    if (Client.Log.DebugEnabled())
+                    {
+                        Client.Log.Error($"Helpers.CastToNativeType Exception {ex.GetType().Name} ({ex.Message})");
+                        DynamicDriver.WriteToLog(ex, "Helpers.CastToNativeType");
+                    }
                     throw; 
                 }
                 catch (Exception ex) 
                 {
+                    if (Client.Log.DebugEnabled())
+                    {
+                        Client.Log.Error($"Helpers.CastToNativeType Exception {ex.GetType().Name} ({ex.Message})");
+                        DynamicDriver.WriteToLog(ex, "Helpers.CastToNativeType");
+                    }
                     throw CreateException(binValue, ex);
                 }
             }

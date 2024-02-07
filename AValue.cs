@@ -168,9 +168,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 throwOnFormatException = false;
                 return String.Format($"{{0:{format}}}", this.Value);
             }
-            catch(FormatException)
+            catch(FormatException ex)
             {
-                if(throwOnFormatException) throw;
+                if(throwOnFormatException)
+                {
+                    if (Client.Log.DebugEnabled())
+                    {
+                        Client.Log.Error($"AValue.ToString Exception {ex.GetType().Name} ({ex.Message})");
+                        DynamicDriver.WriteToLog(ex, "AValue.ToString");
+                    }
+                    throw;
+                }
             }
 
             return this.ToString();
@@ -230,9 +238,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                 return String.Format(provider, "{0}", this.Value);
             }
-            catch(FormatException)
+            catch(FormatException ex)
             {
-                if(throwOnFormatException) throw;
+                if(throwOnFormatException)
+                {
+                    if (Client.Log.DebugEnabled())
+                    {
+                        Client.Log.Error($"AValue.ToString Exception {ex.GetType().Name} ({ex.Message})");
+                        DynamicDriver.WriteToLog(ex, "AValue.ToString");
+                    }
+                    throw;
+                }
             }
             return this.ToString();
         }
@@ -292,9 +308,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 throwOnFormatException = false;
                 return String.Format(provider, $"{{0:{format}}}", this.Value);
             }
-            catch(FormatException)
+            catch(FormatException ex)
             {
-                if(throwOnFormatException) throw;
+                if(throwOnFormatException)
+                {
+                    if (Client.Log.DebugEnabled())
+                    {
+                        Client.Log.Error($"AValue.ToString Exception {ex.GetType().Name} ({ex.Message})");
+                        DynamicDriver.WriteToLog(ex, "AValue.ToString");
+                    }
+                    throw;
+                }
             }
             return this.ToString();
         }
