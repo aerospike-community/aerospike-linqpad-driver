@@ -120,9 +120,10 @@ namespace Aerospike.Database.LINQPadDriver
             static string DetermineContext(string context) => string.IsNullOrEmpty(context) ? string.Empty : ":" + context;
 
             return new ExplorerItem($"{this.Name} ({this.Bin})",
-                                    ExplorerItemKind.Schema,
+                                    ExplorerItemKind.QueryableObject,
                                     ExplorerIcon.Key)
             {
+                IsEnumerable = true,
                 DragText = $"{this.Namespace.SafeName}.{this.Set.SafeName}.{this.SafeName}",
                 Children = new List<ExplorerItem>() { new ExplorerItem($"{this.Bin} ({this.Type}:{this.IndexType}{DetermineContext(this.Context)})",
                                                                             ExplorerItemKind.Schema,
