@@ -72,6 +72,18 @@ namespace Aerospike.Client
 
     public static class LPDHelpers
     {
+        /// <summary>
+        /// Returns a collection of <see cref="Aerospike.Client.Record"/> from an <see cref="Aerospike.Client.RecordSet"/>.
+        /// </summary>
+        /// <param name="recordSet">
+        /// An <see cref="Aerospike.Client.RecordSet"/>
+        /// </param>
+        /// <returns>
+        /// A collection of <see cref="Aerospike.Client.Record"/>
+        /// </returns>
+        /// <exception cref="NullReferenceException">
+        /// Thrown if <paramref name="recordSet"/> is null.
+        /// </exception>
         public static IEnumerable<Record> AsEnumerable(this RecordSet recordSet)
         {
                 while (recordSet.Next())
@@ -80,14 +92,40 @@ namespace Aerospike.Client
                 }
         }
 
+        /// <summary>
+        /// Casts a <see cref="Aerospike.Client.Bin"/>&apos;s value into <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Data type that the Value will try to be cast too.
+        /// </typeparam>
+        /// <param name="bin">
+        /// The <see cref="Aerospike.Client.Bin"/>
+        /// </param>
+        /// <returns>
+        /// The value casted to <typeparamref name="T"/> or an exception.
+        /// </returns>
+        /// <exception cref="InvalidCastException">
+        /// If the value cannot be casted.
+        /// </exception>
         public static T Cast<T>(this Bin bin) => (T) Helpers.CastToNativeType(bin.name, typeof(T), bin.name, bin.value.Object);
+
+        /// <summary>
+        ///  Casts a <see cref="Aerospike.Client.Value"/>&apos;s value into <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Data type that the Value will try to be cast too.
+        /// </typeparam>
+        /// <param name="value">
+        /// The <see cref="Aerospike.Client.Value"/>
+        /// </param>
+        /// <returns>
+        /// The value casted to <typeparamref name="T"/> or an exception.
+        /// </returns>
+        /// <exception cref="InvalidCastException">
+        /// If the value cannot be casted.
+        /// </exception>
         public static T Cast<T>(this Value value) => value is null ? default : (T) Helpers.CastToNativeType("Value", typeof(T), "Value", value.Object);
-
-        public static AValue ToAValue(this Bin bin) => new AValue(bin);
-        public static AValue ToAValue(this Value value) => new AValue(value, "Value", "Value");
-        public static APrimaryKey ToAPrimaryKey(this Key key) => new APrimaryKey(key);
-        public static AValue ToAValue(this object value) => new AValue(value, "Object", "Value");
-
+        
         public static JArray ToJArray(this IEnumerable<JsonDocument> documents) => new JArray(documents.Cast<JObject>());
         public static JsonDocument ToJsonDocument(this IDictionary<string,object> document) => new JsonDocument(document);
 
@@ -150,8 +188,7 @@ namespace Aerospike.Client
                         null => Exp.Nil(),
                         _ => throw new ArgumentException($"Object type is not supported in Aerospike: {value.GetType()}"),
                     };
-                        
-
+         
     }
 }
 

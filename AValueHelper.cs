@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Aerospike.Client;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +9,56 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 {
     public static class AValueHelper
     {
+        public static AValue ToAValue(this Bin bin) => new AValue(bin);
+        public static AValue ToAValue(this Value value) => new AValue(value, "Value", "Value");
+        public static APrimaryKey ToAPrimaryKey(this Key key) => new APrimaryKey(key);
+        public static AValue ToAValue(this object value) => new AValue(value, "Object", "Value");
+
+        /// <summary>
+        /// Converts a collection of <see cref="AValue"/>s into a dictionary where the key is the AValue&apos;s Bin Name and the value is the AValue.
+        /// </summary>
+        /// <param name="values">
+        /// A collection of <see cref="AValue"/>s
+        /// </param>
+        /// <returns>
+        /// A dictionary where the key is the AValue&apos;s Bin Name and the value is the AValue.
+        /// </returns>
+        /// <exception cref="NullReferenceException">
+        /// If <paramref name="values"/> is null.
+        /// </exception>
+        public static IDictionary<string,AValue> ToDictionary(this IEnumerable<AValue> values)
+            => new Dictionary<string,AValue>(values.Select(x => new KeyValuePair<string,AValue>(x.BinName, x)));
+
+        /// <summary>
+        /// Converts an <see cref="ARecord"/> to a collection of AValues.
+        /// </summary>
+        /// <param name="record">
+        /// An <see cref="ARecord"/>
+        /// </param>
+        /// <returns>
+        /// Collection of AValues that represent <paramref name="record"/>.
+        /// </returns>
+        /// <exception cref="NullReferenceException">
+        /// If <paramref name="record"/> is null.
+        /// </exception>
+        public static IEnumerable<AValue> ToAValueList(this ARecord record)
+            => record.Aerospike.Bins.Select(bin => new AValue(bin));
+
+        /// <summary>
+        /// Converts an <see cref="Aerospike.Client.Record"/> to a collection of AValues.
+        /// </summary>
+        /// <param name="record">
+        /// An <see cref="Aerospike.Client.Record"/>
+        /// </param>
+        /// <returns>
+        /// Collection of AValues that represent <paramref name="record"/>.
+        /// </returns>
+        /// <exception cref="NullReferenceException">
+        /// If <paramref name="record"/> is null.
+        /// </exception>
+        public static IEnumerable<AValue> ToAValueList(this Record record)
+            => record.bins.Select(kvp => new AValue(kvp.Value, kvp.Key, kvp.Key));
+
         /// <summary>
         /// This method returns only those values that exactly of type <typeparamref name="TResult"/>. 
         /// To obtain values coerce into a type, use <see cref="Convert{TResult}(IEnumerable{AValue})"/>.
@@ -304,5 +355,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public static IEnumerable<AValue> FindAll<T>(this IEnumerable<AValue> source, T matchValue, AValue.MatchOptions matchOptions = AValue.MatchOptions.Value | AValue.MatchOptions.Equals)
                         => source.SelectMany(a => a.FindAll(matchValue, matchOptions));
         
+
     }
 }

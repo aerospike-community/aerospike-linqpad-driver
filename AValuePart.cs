@@ -24,10 +24,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="AValue.ToValue(Client.Bin)"/>
     /// <seealso cref="AValue.ToValue(Client.Value)"/>
     /// <seealso cref="APrimaryKey.ToValue(Client.Key)"/>
-    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Bin)"/>
-    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAPrimaryKey(Client.Key)"/>
-    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Value)"/>
-    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(object)"/>
+    /// <seealso cref="AValueHelper.ToAValue(Client.Bin)"/>
+    /// <seealso cref="AValueHelper.ToAPrimaryKey(Client.Key)"/>
+    /// <seealso cref="AValueHelper.ToAValue(Client.Value)"/>
+    /// <seealso cref="AValueHelper.ToAValue(object)"/>
     /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
     /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
     /// <seealso cref="AValueHelper.TryGetValue{T}(IEnumerable{AValue}, T, bool)"/>
@@ -325,6 +325,57 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
 
             return new Dictionary<object, object>(0);
+        }
+
+        /// <summary>
+        /// Tries to convert <see cref="Value"/> to a IDictionary. If not possible an empty IDictionary is returned.
+        /// </summary>
+        /// <typeparam name="K">
+        /// The key value as type K.
+        /// </typeparam>
+        /// <typeparam name="V">
+        /// The value as type V.
+        /// </typeparam>
+        /// <param name="keySelector">
+        /// The function that will transform the key as an <see cref="AValue"/> to <typeparamref name="K"/>.
+        /// </param>
+        /// <param name="valueSelector">
+        /// The function that will transform the value as an <see cref="AValue"/> to <typeparamref name="V"/>.
+        /// </param>
+        /// <returns>
+        /// An IDictionary, if possible, or an empty IDictionary.
+        /// </returns>
+        public IDictionary<K, V> ToDictionary<K,V>(Func<AValue,K> keySelector,
+                                                    Func<AValue, V> valueSelector)
+        {
+            if (this.Value is JObject jObject)
+            {
+                return CDTConverter.ConvertToDictionary(jObject)
+                        .ToDictionary(kvp => keySelector(kvp.Key.ToAValue()), kvp => valueSelector(kvp.Value?.ToAValue()));
+            }
+            else if (this.Value is JProperty jProp)
+            {
+                return CDTConverter.ConvertToDictionary(jProp)
+                        .ToDictionary(kvp => keySelector(kvp.Key.ToAValue()), kvp => valueSelector(kvp.Value?.ToAValue()));
+            }
+            else if (this.Value is IDictionary<object, object> oDict)
+                return oDict
+                        .ToDictionary(kvp => keySelector(kvp.Key.ToAValue()), kvp => valueSelector(kvp.Value?.ToAValue()));
+            else if (this.Value is IDictionary<string, object> sDict)
+                return sDict.ToDictionary(kvp => keySelector(kvp.Key.ToAValue()), kvp => valueSelector(kvp.Value?.ToAValue()));
+            else if (this.Value is IDictionary<AValue, AValue> aDict)
+                return aDict.ToDictionary(kvp => keySelector(kvp.Key), kvp => valueSelector(kvp.Value));
+            else if (this.Value is System.Collections.IDictionary iDict)
+            {
+                var kvpList = new List<KeyValuePair<K, V>>();
+                foreach(KeyValuePair<object,object> kvp in iDict)
+                {
+                    kvpList.Add(new KeyValuePair<K, V>(keySelector(kvp.Key.ToAValue()),
+                                                        valueSelector(kvp.Value?.ToAValue())));
+                }
+            }
+
+            return new Dictionary<K, V>(0);
         }
 
         /// <summary>

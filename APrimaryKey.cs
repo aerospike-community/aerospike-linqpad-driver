@@ -19,10 +19,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="AValue.ToValue(Client.Bin)"/>
     /// <seealso cref="AValue.ToValue(Client.Value)"/>
     /// <seealso cref="APrimaryKey.ToValue(Client.Key)"/>
-    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Bin)"/>
-    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAPrimaryKey(Client.Key)"/>
-    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(Client.Value)"/>
-    /// <seealso cref="Aerospike.Client.LPDHelpers.ToAValue(object)"/>
+    /// <seealso cref="AValueHelper.ToAValue(Client.Bin)"/>
+    /// <seealso cref="AValueHelper.ToAPrimaryKey(Client.Key)"/>
+    /// <seealso cref="AValueHelper.ToAValue(Client.Value)"/>
+    /// <seealso cref="AValueHelper.ToAValue(object)"/>
     /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
     /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
     public class APrimaryKey : AValue
