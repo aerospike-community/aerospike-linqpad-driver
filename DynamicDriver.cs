@@ -61,7 +61,12 @@ namespace Aerospike.Database.LINQPadDriver
 
 		static AerospikeConnection ObtainConnection(IConnectionInfo cxInfo, bool openIfClosed)
 		{
-			AerospikeConnection connection;
+            if (Client.Log.InfoEnabled())
+            {
+                Client.Log.Info("ObtainConnection");
+            }
+
+            AerospikeConnection connection;
 
             lock (ConnectionLock)
             {
@@ -125,7 +130,12 @@ namespace Aerospike.Database.LINQPadDriver
 
         public override void ClearConnectionPools(IConnectionInfo cxInfo)
         {
-			GetConnection()?.Dispose();
+            if(Client.Log.InfoEnabled())
+            {
+                Client.Log.Info("ClearConnectionPools");
+            }
+
+            GetConnection()?.Dispose();
 			_Connection = null;
 
 			base.ClearConnectionPools (cxInfo);
@@ -185,9 +195,14 @@ namespace Aerospike.Database.LINQPadDriver
 		public override List<ExplorerItem> GetSchemaAndBuildAssembly (
 			IConnectionInfo cxInfo, AssemblyName assemblyToBuild, ref string nameSpace, ref string typeName)
 		{
-			//System.Diagnostics.Debugger.Launch();
+            //System.Diagnostics.Debugger.Launch();
 
-			var connection = ObtainConnection(cxInfo, false);
+            if (Client.Log.InfoEnabled())
+            {
+                Client.Log.Info("GetSchemaAndBuildAssembly Start");
+            }
+
+            var connection = ObtainConnection(cxInfo, false);
 
 #if DEBUG
 			if(connection.Debug)
@@ -272,7 +287,12 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
 			items.Add(CreateInformationalExploreItem(cxInfo, connection));
 
-			return items;			
+            if (Client.Log.InfoEnabled())
+            {
+                Client.Log.Info("GetSchemaAndBuildAssembly End");
+            }
+
+            return items;			
 		}
 		
 		public override IEnumerable<string> GetAssembliesToAdd(IConnectionInfo cxInfo)
@@ -297,7 +317,12 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
         }
         
 		static void Compile(string cSharpSourceCode, string outputFile, IConnectionInfo cxInfo, bool debug = false)
-        {           
+        {
+            if (Client.Log.InfoEnabled())
+            {
+                Client.Log.Info("Compile Start");
+            }
+
             string[] assembliesToReference =
 
 			// GetCoreFxReferenceAssemblies is helper method that returns the full set of .NET Core reference assemblies.
@@ -326,6 +351,11 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 			else if(debug)
 			{
                 DumpCompilerError.ToLinqPadFile(cSharpSourceCode, compileResult.Errors);
+            }
+
+            if (Client.Log.InfoEnabled())
+            {
+                Client.Log.Info("Compile End");
             }
         }
 

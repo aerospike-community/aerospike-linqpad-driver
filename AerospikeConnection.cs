@@ -530,7 +530,7 @@ namespace Aerospike.Database.LINQPadDriver
 #endif
             if (Client.Log.InfoEnabled())
             {
-                Client.Log.Info(this.ConnectionString);
+                Client.Log.Info($"Open Start {this.ConnectionString}");
             }
 
             static string GetPasswordName(string name)
@@ -661,6 +661,11 @@ namespace Aerospike.Database.LINQPadDriver
                 this.Close();
                 this.State = ConnectionState.Broken;
                 throw;
+            }
+
+            if (Client.Log.InfoEnabled())
+            {
+                Client.Log.Info($"Open Exit {this}");
             }
         }
         
