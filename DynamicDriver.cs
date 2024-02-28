@@ -469,10 +469,10 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 			}}"
 					);
 
-					udfProps.AppendLine($@"			public {udfName} {udf.SafeName} {{ get; }}"
+					udfProps.AppendLine($@"			public static {udfName} {udf.SafeName} {{ get; private set;}}"
 						);
 
-					udfConstructors.AppendLine($@"				this.{udf.SafeName} = new {udfName}(dbConnection);"
+					udfConstructors.AppendLine($@"				{udf.SafeName} = new {udfName}(dbConnection);"
 					);					
                 }
 

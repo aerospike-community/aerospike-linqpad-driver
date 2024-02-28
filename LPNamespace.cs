@@ -369,11 +369,11 @@ namespace Aerospike.Database.LINQPadDriver
 
             //Code to access namespace properties. 
             $@"
-		public {this.SafeName}_NamespaceCls {this.SafeName} {{get; }}",
+		public static {this.SafeName}_NamespaceCls {this.SafeName} {{get; private set; }}",
 
             //Code to construct namespace instance
             $@"
-			this.{this.SafeName} = new {this.SafeName}_NamespaceCls(dbConnection);"
+			{this.SafeName} = new {this.SafeName}_NamespaceCls(dbConnection);"
             );
         }
 
