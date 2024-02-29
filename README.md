@@ -1,6 +1,54 @@
+[Aerospike Database for LINQPad 7+](#_Toc160111413)
+
+[Description](#_Toc160111414)
+
+[Aerospike Namespace, Set, Records, Bins, and Secondary Indexes](#_Toc160111415)
+
+[User-Defined Functions (UDFs)](#_Toc160111416)
+
+[Aerospike API](#_Toc160111417)
+
+[Serialization/Object-Mapper](#_Toc160111418)
+
+[Json Support](#_Toc160111419)
+
+[Document API](#_Toc160111420)
+
+[Importing/Exporting](#_Toc160111421)
+
+[Encryption and Authentication](#_Toc160111422)
+
+[Connection Dialog](#_Toc160111423)
+
+[Self-Managed Tab](#_Toc160111424)
+
+[TLS Panel (only Self-Managed Clusters)](#_Toc160111425)
+
+[Cloud Tab](#_Toc160111426)
+
+[Display/Conversion Options Panel](#_Toc160111427)
+
+[Auto-Values](#_Toc160111428)
+
+[Working with the “null” Set](#_Toc160111429)
+
+[Examples](#_Toc160111430)
+
+[Prerequisites](#_Toc160111431)
+
+[Installation of LINQPad Driver](#_Toc160111432)
+
+[LINQPad NuGet Manager](#_Toc160111433)
+
+[Manual](#_Toc160111434)
+
+[Installation of the Aerospike Database](#_Toc160111435)
+
+[Other Resources](#_Toc160111436)
+
 # Aerospike Database for LINQPad 7+
 
-# Description
+## Description
 
 [Aerospike](https://aerospike.com/) for LINQPad 7+ is a data context dynamic driver for interactively querying and updating an Aerospike database using "[LINQPad](https://www.linqpad.net/)". LINQPad is a Graphical Development Tool designed for rapid prototyping, interactive testing, data modeling, data mining, drag-and-drop execution, interactive debugging, etc. The Aerospike driver for LINQPad is designed to support all LINQPad capabilities including the enhanced ability to learn and use the [Aerospike API directly](https://developer.aerospike.com/client/csharp).
 
@@ -10,7 +58,7 @@ Here is a subset of what you can perform using the driver:
 -   Use the driver’s extension methods to perform operations like Aerospike Expression, CRUD operations, etc. without understanding the underlying Aerospike API.
 -   Serialize and deserialize any C\# object via the Object-Mapper (POCO). The driver supports all C\# data types, nested classes, and collections.
 -   Full JSON support using [Json.NET](https://www.newtonsoft.com/json).
--   Be able to execute [UDF](https://docs.aerospike.com/server/guide/udf)s directly and display their underlying code. UDFs are treated like C\# methods with [intellisense](https://learn.microsoft.com/en-us/visualstudio/ide/using-intellisense?view=vs-2022) and code completion. This feature is not available for the cloud.
+-   Be able to execute [UDF](https://docs.aerospike.com/server/guide/udf)s directly and display their underlying code. UDFs are treated like C\# methods with [IntelliSense](https://learn.microsoft.com/en-us/visualstudio/ide/using-intellisense?view=vs-2022) and code completion. This feature is not available for the cloud.
 -   Export or Import Sets directly or by means of an [Aerospike Filter](https://docs.aerospike.com/server/operations/configure/cross-datacenter/filters).
 -   Provides metadata about the cluster which includes active/inactive nodes, Aerospike server version, etc. This feature is not available for the cloud.
 -   Use the Aerospike API directly to perform advance operations or instantly test snippets used in your application code.
@@ -23,42 +71,30 @@ The driver can, also, dynamically detect the structure of records within an Aero
 -   enhanced [Aerospike CDT](https://docs.aerospike.com/server/guide/data-types/cdt) handling
 -   driver extension methods to programmatically interrogate Namespaces, Sets, records, Bins, Bin data types, etc.
 
-The screenshot below show how Aerospike Sets and Bins are represented in LinqPad:
-
-![Example](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/DupBinTypeInRecordDialog.png?raw=true)
-
-The LINQPad connection pane will display the different [Aerospike components](https://docs.aerospike.com/server/architecture/data-model) in an hierarchical manner where namespace is under Aerospike cluster connection. Aerospike Sets are under namespaces and bins are under Sets. Below screenshot shows the relationship between these components:
-
-![ComponentExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ClusterNamespaceSetBinsDialog.png)
+![A screenshot of a computer Description automatically generated](media/2590c33dc0562b6c0f3583edb1e4f91c.png)The LINQPad connection pane will display the different [Aerospike components](https://docs.aerospike.com/server/architecture/data-model) in an hierarchical manner where namespace is under Aerospike cluster connection. Aerospike Sets are under namespaces and bins are under Sets. Below screenshot shows the relationship between these components:
 
 Each component can be dragged-and-dropped onto the LINQPad Query pane to be executed by LINQPad. The execution behavior will depend on the component. For example, a Set or Secondary Index will present the records within that component. For other components, the properties are displayed. In all cases, you can always execute the driver’s extension methods. These extension methods, greatly simplify Aerospike API commands like [Get, Put, Query, Operate, etc](https://developer.aerospike.com/client/csharp). plus, the ability to perform things like importing or exporting data. Of course, you can always use LINQ against Aerospike Sets or Secondary Indexes. Below is an example of some of the driver extensions:
 
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/NamespaceShowMethods.png)
+![A screenshot of a computer Description automatically generated](media/7b6d6cfdfe43159fb1c6dedfc6ef5cc0.png)
 
-# Aerospike Namespace, Set, Records, Bins, and Secondary Indexes
-
-The LINQPad connection pane will display the different [Aerospike components](https://docs.aerospike.com/server/architecture/data-model) in a hierarchical manner where namespace is under Aerospike cluster connection. Aerospike Sets are under namespaces and bins are under Sets. Below screenshot shows the relationship between these components:
-
-![ComponentExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ClusterNamespaceSetBinsDialog.png?raw=true)
-
-Each component can be dragged-and-dropped onto the LINQPad Query pane to be executed by LINQPad. The execution behavior will depend on the component. For example, a Set or Secondary Index will present the records within that component. For other components, the properties are displayed. In all cases, you can always execute the driver’s extension methods and properties. These extensions, greatly simplify Aerospike API commands like [Get, Put, Query, Operate, etc](https://developer.aerospike.com/client/csharp). plus, the ability to perform things like importing or exporting data. Below is an example of some of the driver extensions:
-
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/NamespaceShowMethods.png?raw=true)
+## Aerospike Namespace, Set, Records, Bins, and Secondary Indexes
 
 Aerospike Sets and records are very easy to use. The detected bins in a record are integrated into LINQPad and are treated as C\# properties. As such, features like Intellisense and Autocompletion just work. You can also access bins within a record by using the bin name.
 
-Since Aerospike is a schemaless database, a record can consist of varying number of bins, or a bin can have different data types between records. The driver can handle these conditions seamlessly. This is done using extension methods and implicit data conversion.
+Since Aerospike is a schemaless database, a record can consist of varying number of bins, or a bin can have different data types between records. The driver can handle these conditions seamlessly.
 
-Implicit data conversion eliminates the need to test and cast a bin’s value so that it can be used directly in any operation. Below is an example that shows how implicit conversion works. The set, “graphDeviceNodeIdSet”, has a bin named “nodeID” that consists of two different data type values. Some records have a list value while others have a string value. This example uses the “where” clause which compares each record in the set looking for a numeric value of 367 or the value “a” in the list values.  
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ImplictConversionExample.png?raw=true)
+![A screenshot of a computer Description automatically generated](media/9c8cd24effbc3f7e5369afa39c8b51dd.png)
 
-# User-Defined Functions (UDFs)
+Implicit data conversion ([auto-values](#auto-values)) eliminates the need to test and cast a bin’s value so that it can be used directly in any operation. Below is an example that shows how implicit conversion works. The set, “graphDeviceNodeIdSet”, has a bin named “nodeID” that consists of two different data type values. Some records have a list value while others have a string value. This example uses the “where” clause which compares each record in the set looking for a numeric value of 367 or the value “a” in the list values.  
+![A screenshot of a computer Description automatically generated](media/a3bdd0a57f08799db46a07babdfebe71.png)
+
+## User-Defined Functions (UDFs)
 
 The driver supports the execution of UDFs by calling the Execute extension method. The Execute method will reflect the actual arguments used in the UDF. Below is an example:
 
-![UDFExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/UDFExample.png?raw=true)
+![A screenshot of a computer Description automatically generated](media/e4ada943becfc25d28525ec1992e803a.png)
 
-# Aerospike API
+## Aerospike API
 
 At any time, you can use the underlying Aerospike API directly or a combination of API or driver extension methods. Below is an example:
 
@@ -92,7 +128,7 @@ void Main()
 }
 ```
 
-# Serialization/Object-Mapper
+## Serialization/Object-Mapper
 
 The driver supports serialize and deserialize any C\# object to/from an Aerospike record. Native C\# types are stored as Aerospike data type. Unsupported types like [DateTime](https://learn.microsoft.com/en-us/dotnet/api/system.datetime?view=net-8.0), [DateTimeOffset](https://learn.microsoft.com/en-us/dotnet/api/system.datetimeoffset?view=net-8.0), [Timespan](https://learn.microsoft.com/en-us/dotnet/api/system.timespan?view=net-8.0), etc. are serialized as an ISO string or a numeric value based on behavior defined in the connection dialog. This behavior can also be changed programmability by the driver’s API or by providing a custom serializer.
 
@@ -267,13 +303,13 @@ public class InvoiceLine
 
 Below is the output from LINQPad:
 
-![SerializationObjectMapper-Output](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/SerializationObjectMapper-Output.png?raw=true)
+![A screenshot of a computer Description automatically generated](media/ae6910dfe7fed97988b59ca7946cc3ff.png)
 
-# Json Support
+## Json Support
 
 You can read and write Json to or from an Aerospike namespace, set, or record by means of the “ToJson” and “FromJson“ methods. The driver supports embedded JSON data types which are compatible with Json generated from multiple databases. The driver uses [Json.Net](https://www.newtonsoft.com/json) when working with Json.
 
-# Document API
+## Document API
 
 The driver supports the use of the Aerospike Document API. This feature can be turned on or off from within the connection dialog. Below is an example where we obtain all artist recording track 2527 purchased by a customer.
 
@@ -316,9 +352,9 @@ The driver supports the use of the Aerospike Document API. This feature can be t
 
 Below is the output from LINQPad:
 
-![DocumentAPI-Output](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/DocumentAPI-Output.png?raw=true)
+![A blue and white rectangular object with a white background Description automatically generated with medium confidence](media/ae2dbce86def7cc842be4c981428c645.png)
 
-# Importing/Exporting
+## Importing/Exporting
 
 The driver can import a valid JSON file into an Aerospike namespace or set. The set can be an existing set or a new set which will be created. Each JSON property will be mapped to an Aerospike bin. Any JSON collection types will be transformed into the corresponding Aerospike CDT. Nested JSON objects will be treated as Aerospike JSON documents.
 
@@ -335,11 +371,11 @@ test.players.Import(@"c:\users\randersen_aerospike\Desktop\player.json");
 test.Import(@"c:\users\randersen_aerospike\Desktop\player.json", "players");
 ```
 
-# Encryption and Authentication
+## Encryption and Authentication
 
 Support for TLS encryption and authentication is fully supported by enabling these options in the connection dialog. This includes using the LIINQPad Password Manager integration. If the password manager is not used, all passwords are encrypted using the Windows Data Protection API.
 
-# Connection Dialog
+## Connection Dialog
 
 The connection dialog is used to establish a connection to an Aerospike cluster. This can be a self-managed/native cluster or an Aerospike Cloud (DBaaS) cluster.
 
@@ -347,18 +383,18 @@ This dialog also defines the connection [policies](https://aerospike.com/docs/se
 
 The dialog is divided into multiple sections.
 
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSections.png?raw=true)
+![A screenshot of a computer Description automatically generated](media/ca796c6e58c1ad7808bf2303fdb6293c.png)
 
 The sections are:
 
 1.  Self-Managed/Cloud tabs. Each tab provides the parameters needed to connect to an Aerospike cluster based on the targeted platform.
 2.  This section provides the general policies and features used by the [Aerospike C\# driver](https://github.com/aerospike/aerospike-client-csharp) or LINQPad feature.
-3.  Display/Conversion Options expansion panel, provides the options needed for auto-set bin discovery, serialization/deserialization options, use of auto-values, record display views, etc.
-4.  Buttons used to determine if the options are saved, canceled, or to test the connection.
+3.  Display/Conversion Options expansion panel, provides the options needed for auto-set bin discovery, serialization/deserialization options, use of [auto-values](#auto-values), record display views, etc.
+4.  Buttons are used to determine if the options are saved, canceled, or to test the connection.
 
-## Self-Managed Tab
+### Self-Managed Tab
 
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionSelfMgmt.png?raw=true)
+![A screenshot of a computer Description automatically generated](media/aea590330b05fe5fc6a08a37627dd353.png)
 
 This tab is used to [connect to a self-managed/native Aerospike cluster](https://aerospike.com/docs/connect/kafka/to-asdb/configuring/aerospike).
 
@@ -392,7 +428,7 @@ The properties are:
 
 The options needed to establish a [TLS connection to an Aerospike cluster](https://aerospike.com/docs/server/operations/configure/network/tls).
 
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectTLSProps.png?raw=true)
+![A screenshot of a computer Description automatically generated](media/7456c5b622c2bf528609a31fdbd132e6.png)
 
 Fields are:
 
@@ -403,9 +439,9 @@ Fields are:
 5.  Reject server certificates whose serial numbers match.
 6.  If enabled, TLS is only used for authentication (login).
 
-## Cloud Tab
+### Cloud Tab
 
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionCloudProps.png?raw=true)
+![A screenshot of a computer Description automatically generated](media/d8355895f7c79bd986bb852354a05c3f.png)
 
 This tab is used to connect to an [Aerospike Cloud (DBaaS) cluster](https://aerospike.com/products/aerospike-cloud/).
 
@@ -426,11 +462,13 @@ The fields are:
 
 Below shows the relationship between the Cloud’s Set Name connection property (point 10 above) and what is displayed in the Connection Pane:
 
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/CloudStaticSetNamesProp.png?raw=true)
+![A screenshot of a computer Description automatically generated](media/dbd20f8ea4df82beb1380b0a04afddc0.png)
 
-## Display/Conversion Options Panel
+For more information, see [Aerospike Cloud Blog](https://aerospike.com/developer/blog/connecting-linqpad-to-aerospike-cloud).
 
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/ConnectionDisplayConvFmtProps.png?raw=true)
+### Display/Conversion Options Panel
+
+![A screenshot of a computer Description automatically generated](media/54e1ce4026ab41a6e3cc4a2c4707a4bc.png)
 
 This panel provides information on how to handle things like serialization, Set-Bin Datatype discovery, conversion, etc.
 
@@ -453,19 +491,19 @@ The fields are:
 6.  The format used to convert a Date/Time to/from a string.
 7.  The format used to convert a Date/Time with offset to/from a string.
 8.  The format used to convert a Time to/from a string.
-9.  If enabled, auto-values are always used. This eliminates the use of casting for bin values plus reduces the strong typing of C\#. If disable, bin values will be strongly typed.
+9.  If enabled, [auto-values](#_Auto-Values) are always used. This eliminates the use of casting for bin values plus reduces the strong typing of C\#. If disable, bin values will be strongly typed.
 10. The default property name of primary keys.
 11. If enabled, internal LINQPad driver debugging is enabled which includes persisting of the dynamic C\# classes to the LINQPad script folder.
 
 Below is an example of Record Display View:
 
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/RecordDisplayViewRecord.png?raw=true)
+![A screenshot of a computer Description automatically generated](media/de70ba8ea31f1b5ef8b14d576f111523.png)
 
 Below is an example of Dynamic Display View:
 
-![MethodsExample](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/docs/RecordDisplayViewDynamic.png?raw=true)
+![A screenshot of a computer Description automatically generated](media/714499372aafd2767b8569bb8cfb8f1d.png)
 
-# Auto-Values
+## Auto-Values
 
 Auto-Values are a wrapper around Aerospike DB values so that working with unstructured data is simple and risk free of exceptions like null reference and invalid cast.
 
@@ -475,9 +513,19 @@ They provide a rich set of functions to work with conversions from or to DB and 
 -   Convert functions – Will try to convert a DB or .Net value with or without any explicit reference.
 -   Contains, TryGetValue, FindAll, etc. functions – Search/Match functions used to find a value within a CDT or match a single non-CDT value.
 
-For more information, see the [Auto-Values blog](docs/blogs/AutoValues.md).
+For more information, see the [Auto-Values blog](https://aerospike.com/developer/blog/how-to-use-auto-values-in-nosql-linqpad-driver).
 
-# Examples
+## Working with the “null” Set
+
+You can still perform queries and API calls using the driver’s extension APIs against the [“null” set](https://aerospike.com/docs/server/operations/manage/sets). Below is an example of an API call to obtain the records for Aerospike set “Artist”:
+
+aerospike_cloud.NullSet.Where(ns =\> ns.Aerospike.SetName == "Artist")
+
+Below is the output:
+
+![A screenshot of a computer Description automatically generated](media/91e25c7d71d4591891fb9834201f509b.png)
+
+## Examples
 
 Sample scripts can be found in the [LINQPad Sample tree view tab](https://www.linqpad.net/nugetsamples.aspx) under “nuget” or in the “linqpad-samples” [folder](https://github.com/aerospike-community/aerospike-linqpad-driver/tree/main/linqpad-samples) in GitHub.
 
@@ -495,7 +543,7 @@ The sample scripts are:
 -   CDT-Json-Docs.linq – Show the use of CDTs (Collection Data Types), Json, and documents by means of Linq and Aerospike [Expressions](https://docs.aerospike.com/server/guide/expressions).
 -   Using NullSet.linq – This shows the use of the [Null Set](https://aerospike.com/docs/server/architecture/data-model).
 
-# Prerequisites
+## Prerequisites
 
 -   [LINQPad 8](https://www.linqpad.net/LINQPad8.aspx): [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0)/[.NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)/[.NET 6](https://dotnet.microsoft.com/download/dotnet/6.0)
 -   [LINQPad 7](https://www.linqpad.net/LINQPad7.aspx): [.NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)/[.NET 6](https://dotnet.microsoft.com/download/dotnet/6.0)/[.NET 5](https://dotnet.microsoft.com/download/dotnet/5.0)/[.NET Core 3.1](https://dotnet.microsoft.com/download/dotnet-core/3.1)
@@ -528,7 +576,7 @@ There are multiple ways to install Aerospike DB.
 -   [Docker, Cloud, and Linux](https://docs.aerospike.com/server/operations/install)
 -   [AeroLab](https://github.com/aerospike/aerolab)
 
-## Other Resources
+# Other Resources
 
 -   <https://www.linqpad.net/>
 -   <https://aerospike.com/>
