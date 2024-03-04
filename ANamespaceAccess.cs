@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
@@ -9,10 +10,12 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Documents;
 using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using static System.Net.WebRequestMethods;
 using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
@@ -345,6 +348,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </summary>
         public Policy DefaultReadPolicy { get; }
 
+        #region Get Methods
         /// <summary>
         /// Gets all records in a set
         /// </summary>        
@@ -438,7 +442,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 setAccess?.BinNames,
                                 dumpType: this.AerospikeConnection.RecordView);
         }
+        #endregion
 
+        #region Put Methods
         /// <summary>
         /// Puts (Writes) a DB record based on the provided record including Expiration.
         /// Note that if the namespace and/or set is different, this instances&apos;s values are used.
@@ -456,6 +462,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If null (default), the TTL of <paramref name="record"/> is used.
         /// </param>
         /// <seealso cref="Get(string, dynamic, string[])"/>
+        /// <seealso cref="BatchWriteRecord{R}(IEnumerable{R}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
         public void Put([NotNull] ARecord record,
                             string setName = null,
                             WritePolicy writePolicy = null,
@@ -485,6 +492,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="WritePolicy"/>
         /// </param>
         /// <param name="ttl">Time-to-live of the record</param>
+        /// <seealso cref="BatchWrite{P,V}(string, IEnumerable{ValueTuple{P, IDictionary{string, V}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
         public void Put<V>(string setName,
                             [NotNull] dynamic primaryKey,
                             [NotNull] IDictionary<string, V> binValues,
@@ -775,6 +783,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Put(string, dynamic, string, object, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?)"/>
         /// <seealso cref="Get(string, dynamic, string[])"/>
+        /// <seealso cref="BatchWriteObject{P,T}(string, IEnumerable{ValueTuple{P, T}}, BatchPolicy, BatchWritePolicy, ParallelOptions, Func{string, string, object, bool, object}, string)"/>
         /// <exception cref="TypeAccessException">Thrown if cannot write <paramref name="instance"/></exception>
         public void WriteObject<T>(string setName,
                                     [NotNull] dynamic primaryKey,
@@ -802,7 +811,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             else if (instance is IEnumerable)
             {
                 var instanceType = Helpers.GetRealTypeName(instance.GetType());
-                throw new TypeAccessException($"Don't know how to Write an IEnumerable Object (\"{instanceType}\"). Try using a \"Put\" method or call this method on each item in the collection.");
+                throw new TypeAccessException($"Don't know how to Write an IEnumerable Object (\"{instanceType}\"). Try using a \"Put\" method, use BatchWriteObject, or call this method on each item in the collection.");
             }
             else
                 dictItem = Helpers.TransForm(instance, transform);
@@ -831,6 +840,535 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                     { new LPSet.BinType(doctumentBinName, typeof(JsonDocument), false, true)});
             }          
         }
+        #endregion
+
+        #region Batch Methods
+
+        #region Batch Write
+        /// <summary>
+        /// Writes a collection of <see cref="ARecord"/> as a <seealso cref="Aerospike.Client.BatchPolicy"/> operation.
+        /// </summary>
+        /// <typeparam name="R">A <see cref="ARecord"/> instance</typeparam>
+        /// <param name="writeRecords">
+        /// A collection of <see cref="ARecord"/>.
+        /// </param>
+        /// <param name="batchPolicy">
+        /// <seealso cref="BatchPolicy"/>
+        /// </param>
+        /// <param name="batchWritePolicy">
+        /// <seealso cref="BatchWritePolicy"/>
+        /// </param>
+        /// <param name="parallelOptions">
+        /// <seealso cref="ParallelOptions"/>
+        /// </param>
+        /// <returns>True if successful</returns>
+        /// <seealso cref="BatchWriteObject{P,T}(string, IEnumerable{ValueTuple{P, T}}, BatchPolicy, BatchWritePolicy, ParallelOptions, Func{string, string, object, bool, object}, string)"/>
+        /// <seealso cref="BatchWrite{P,V}(string, IEnumerable{ValueTuple{P, IDictionary{string, V}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?)"/>
+        public bool BatchWriteRecord<R>([NotNull] IEnumerable<R> writeRecords,
+                                        BatchPolicy batchPolicy = null,
+                                        BatchWritePolicy batchWritePolicy = null,
+                                        ParallelOptions parallelOptions = null)
+            where R : ARecord
+        {           
+            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+                            {
+                                maxRetries = 1,
+                                sendKey = true,
+                                maxConcurrentThreads = 2,
+                                sleepBetweenRetries = 5
+                            };                
+            
+            batchWritePolicy ??= new BatchWritePolicy()
+                                    {                    
+                                        sendKey = true,
+                                        recordExistsAction = RecordExistsAction.REPLACE
+                                    };
+
+            parallelOptions ??= new ParallelOptions();
+            
+            var batchArray = new BatchRecord[writeRecords.Count()];
+
+            Parallel.For(0, batchArray.Length, parallelOptions, idx =>
+            {
+                var aRecord = writeRecords.ElementAt(idx);
+                var operations = new Operation[aRecord.Aerospike.Count];
+
+                for(int i = 0; i < operations.Length; ++i)
+                {
+                    operations[i] = Operation.Put(aRecord.Aerospike.Bins[i]);
+                }
+
+                batchArray[idx] = new BatchWrite(batchWritePolicy,
+                                                    aRecord.Aerospike.Key,
+                                                    operations);       
+            });
+
+            return this.AerospikeConnection.AerospikeClient.Operate(batchPolicy,
+                                                                    batchArray.ToList());
+        }
+
+        /// <summary>
+        /// Writes a collection of items to <paramref name="setName"/>.
+        /// </summary>
+        /// <typeparam name="P">The Primary Key Type</typeparam>
+        /// <param name="setName">Set name or null for the null set</param>
+        /// <param name="binRecords">
+        /// A collection where each item is the following:
+        ///     The Primary Key
+        ///     A collection of <see cref="Bin"/>s
+        /// </param>
+        /// <param name="batchPolicy">
+        /// <seealso cref="BatchPolicy"/>
+        /// </param>
+        /// <param name="batchWritePolicy">
+        /// <seealso cref="BatchWritePolicy"/>
+        /// </param>
+        /// <param name="parallelOptions">
+        /// <seealso cref="ParallelOptions"/>
+        /// </param>
+        /// <returns>True if successful</returns>
+        /// <seealso cref="BatchWrite{P,V}(string, IEnumerable{ValueTuple{P, IDictionary{string, V}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="BatchWriteRecord{R}(IEnumerable{R}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="BatchWriteObject{P,T}(string, IEnumerable{ValueTuple{P, T}}, BatchPolicy, BatchWritePolicy, ParallelOptions, Func{string, string, object, bool, object}, string)"/>
+        /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
+        public bool BatchWrite<P>([NotNull] string setName,
+                                    [NotNull] IEnumerable<(P pk, IEnumerable<Bin> bins)> binRecords,
+                                    BatchPolicy batchPolicy = null,
+                                    BatchWritePolicy batchWritePolicy = null,
+                                    ParallelOptions parallelOptions = null)
+        {
+            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+            {
+                maxRetries = 1,
+                sendKey = true,
+                maxConcurrentThreads = 2,
+                sleepBetweenRetries = 5
+            };
+
+            batchWritePolicy ??= new BatchWritePolicy()
+            {
+                sendKey = true,
+                recordExistsAction = RecordExistsAction.REPLACE
+            };
+
+            parallelOptions ??= new ParallelOptions();
+
+            var batchArray = new BatchRecord[binRecords.Count()];
+            var allBins = new ConcurrentQueue<Bin[]>();
+
+            Parallel.For(0, batchArray.Length, parallelOptions, idx =>
+            {
+                var record = binRecords.ElementAt(idx);
+                var bins = record.bins.ToArray();
+                var operations = new Operation[bins.Length];
+                allBins.Enqueue(bins);
+
+                for (int i = 0; i < operations.Length; ++i)
+                {
+                    operations[i] = Operation.Put(bins[i]);
+                }
+
+                batchArray[idx] = new BatchWrite(batchWritePolicy,
+                                                    Helpers.DetermineAerospikeKey(record.pk, this.Namespace, setName),
+                                                    operations);
+            });
+
+            var result = this.AerospikeConnection.AerospikeClient.Operate(batchPolicy,
+                                                                    batchArray.ToList());
+            this.AddDynamicSet(setName,
+                                allBins
+                                    .SelectMany(a => a)
+                                    .DistinctBy(a => a.name));
+            return result;
+        }
+
+
+
+        /// <summary>
+        /// Writes a collection of items to <paramref name="setName"/>.
+        /// </summary>
+        /// <typeparam name="P">The Primary Key Type</typeparam>
+        /// <typeparam name="V">Bin&apos;s value type</typeparam>
+        /// <param name="setName">Set name or null for the null set</param>
+        /// <param name="binRecords">
+        /// A collection where each item is the following:
+        ///     The Primary Key
+        ///     A dictionary where the key is the bin name and the value is the bin&apos;s value.
+        /// </param>
+        /// <param name="batchPolicy">
+        /// <seealso cref="BatchPolicy"/>
+        /// </param>
+        /// <param name="batchWritePolicy">
+        /// <seealso cref="BatchWritePolicy"/>
+        /// </param>
+        /// <param name="parallelOptions">
+        /// <seealso cref="ParallelOptions"/>
+        /// </param>
+        /// <returns>True if successful</returns>
+        /// <seealso cref="BatchWrite{P, V}(string, IEnumerable{ValueTuple{P, IEnumerable{ValueTuple{string, V}}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="BatchWrite{P}(string, IEnumerable{ValueTuple{P, IEnumerable{Bin}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="BatchWriteRecord{R}(IEnumerable{R}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="BatchWriteObject{P,T}(string, IEnumerable{ValueTuple{P, T}}, BatchPolicy, BatchWritePolicy, ParallelOptions, Func{string, string, object, bool, object}, string)"/>
+        /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
+        public bool BatchWrite<P,V>([NotNull] string setName,
+                                    [NotNull] IEnumerable<(P pk, IDictionary<string, V> bins)> binRecords,
+                                    BatchPolicy batchPolicy = null,
+                                    BatchWritePolicy batchWritePolicy = null,
+                                    ParallelOptions parallelOptions = null)
+        {
+           batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+                            {
+                                maxRetries = 1,
+                                sendKey = true,
+                                maxConcurrentThreads = 2,
+                                sleepBetweenRetries = 5
+                            };
+
+            batchWritePolicy ??= new BatchWritePolicy()
+                                    {
+                                        sendKey = true,
+                                        recordExistsAction = RecordExistsAction.REPLACE
+                                    };
+
+            parallelOptions ??= new ParallelOptions();            
+
+            var batchArray = new BatchRecord[binRecords.Count()];
+            var allBins = new ConcurrentQueue<Bin[]>();
+
+            Parallel.For(0, batchArray.Length, parallelOptions, idx =>
+            {
+                var record = binRecords.ElementAt(idx);
+                var bins = Helpers.CreateBinRecord(record.bins);
+                var operations = new Operation[bins.Length];
+                allBins.Enqueue(bins);
+
+                for (int i = 0; i < operations.Length; ++i)
+                {
+                    operations[i] = Operation.Put(bins[i]);
+                }
+
+                batchArray[idx] = new BatchWrite(batchWritePolicy,
+                                                    Helpers.DetermineAerospikeKey(record.pk, this.Namespace, setName),
+                                                    operations);
+            });
+
+            var result = this.AerospikeConnection.AerospikeClient.Operate(batchPolicy,
+                                                                    batchArray.ToList());
+            this.AddDynamicSet(setName,
+                                allBins
+                                    .SelectMany(a => a)
+                                    .DistinctBy(a => a.name));
+            return result;
+        }
+
+        /// <summary>
+        /// Writes a collection of items to <paramref name="setName"/>.
+        /// </summary>
+        /// <typeparam name="P">The Primary Key Type</typeparam>
+        /// <typeparam name="V">Bin&apos;s value type</typeparam>
+        /// <param name="setName">Set name or null for the null set</param>
+        /// <param name="binRecords">
+        /// A collection where each item is the following:
+        ///     The Primary Key
+        ///     A dictionary where the key is the bin name and the value is the bin&apos;s value.
+        /// </param>
+        /// <param name="batchPolicy">
+        /// <seealso cref="BatchPolicy"/>
+        /// </param>
+        /// <param name="batchWritePolicy">
+        /// <seealso cref="BatchWritePolicy"/>
+        /// </param>
+        /// <param name="parallelOptions">
+        /// <seealso cref="ParallelOptions"/>
+        /// </param>
+        /// <returns>True if successful</returns>
+        /// <seealso cref="BatchWrite{P}(string, IEnumerable{ValueTuple{P, IEnumerable{Bin}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="BatchWriteRecord{R}(IEnumerable{R}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="BatchWriteObject{P,T}(string, IEnumerable{ValueTuple{P, T}}, BatchPolicy, BatchWritePolicy, ParallelOptions, Func{string, string, object, bool, object}, string)"/>
+        /// <seealso cref="BatchWrite{P, V}(string, IEnumerable{ValueTuple{P, IDictionary{string, V}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
+        public bool BatchWrite<P, V>([NotNull] string setName,
+                                    [NotNull] IEnumerable<(P pk, IEnumerable<(string binName, V value)> bins)> binRecords,
+                                    BatchPolicy batchPolicy = null,
+                                    BatchWritePolicy batchWritePolicy = null,
+                                    ParallelOptions parallelOptions = null)
+        {            
+            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+            {
+                maxRetries = 1,
+                sendKey = true,
+                maxConcurrentThreads = 2,
+                sleepBetweenRetries = 5
+            };
+
+            batchWritePolicy ??= new BatchWritePolicy()
+            {
+                sendKey = true,
+                recordExistsAction = RecordExistsAction.REPLACE
+            };
+
+            parallelOptions ??= new ParallelOptions();
+
+            var batchArray = new BatchRecord[binRecords.Count()];
+            var allBins = new ConcurrentQueue<Bin[]>();
+
+            Parallel.For(0, batchArray.Length, parallelOptions, idx =>
+            {
+                var record = binRecords.ElementAt(idx);
+                var bins = Helpers.CreateBinRecord(record.bins);
+                var operations = new Operation[bins.Length];
+                allBins.Enqueue(bins);
+
+                for (int i = 0; i < operations.Length; ++i)
+                {
+                    operations[i] = Operation.Put(bins[i]);
+                }
+
+                batchArray[idx] = new BatchWrite(batchWritePolicy,
+                                                    Helpers.DetermineAerospikeKey(record.pk, this.Namespace, setName),
+                                                    operations);
+            });
+
+            var result = this.AerospikeConnection.AerospikeClient.Operate(batchPolicy,
+                                                                    batchArray.ToList());
+            this.AddDynamicSet(setName,
+                                allBins
+                                    .SelectMany(a => a)
+                                    .DistinctBy(a => a.name));
+            return result;
+        }
+
+        /// <summary>
+        /// Writes a collection of <typeparamref name="T"/> objects to <paramref name="setName"/>.
+        /// </summary>
+        /// <typeparam name="P">The Primary Key Type</typeparam>
+        /// <typeparam name="T">instance type</typeparam>
+        /// <param name="setName">Set name or null for the null set</param>
+        /// <param name="objRecords"></param>
+        /// <param name="batchPolicy">
+        /// <seealso cref="BatchPolicy"/>
+        /// </param>
+        /// <param name="batchWritePolicy">
+        /// <seealso cref="BatchWritePolicy"/>
+        /// </param>
+        /// <param name="parallelOptions">
+        /// <seealso cref="ParallelOptions"/>
+        /// </param>
+        /// <param name="transform">
+        /// A action that is called to perform customized transformation. 
+        /// First argument -- the name of the property/field within the instance/class
+        /// Second argument -- the name of the bin (can be different from property/field name if <see cref="BinNameAttribute"/> is defined)
+        /// Third argument -- the instance being transformed
+        /// Fourth argument -- if true the instance is within another object.
+        /// Returns the new transformed object or null to indicate that this instance should be skipped.
+        /// </param>
+        /// <param name="doctumentBinName">
+        /// If provided the record is created as a document and this will be the name of the bin. 
+        /// </param>
+        /// <returns>True if successful</returns>
+        /// <exception cref="TypeAccessException">Thrown if cannot write <paramref name="objRecords"/></exception>
+        /// <seealso cref="BatchWrite{P,V}(string, IEnumerable{ValueTuple{P, IDictionary{string, V}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="BatchWriteRecord{R}(IEnumerable{R}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+        /// <seealso cref="WriteObject{T}(string, dynamic, T, Func{string, string, object, bool, object}, string, WritePolicy, TimeSpan?)"/>
+        public bool BatchWriteObject<P,T>([NotNull] string setName,
+                                        [NotNull] IEnumerable<(P pk, T instance)> objRecords,
+                                        BatchPolicy batchPolicy = null,
+                                        BatchWritePolicy batchWritePolicy = null,
+                                        ParallelOptions parallelOptions = null,
+                                        Func<string, string, object, bool, object> transform = null,
+                                        string doctumentBinName = null)
+        {
+            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+            {
+                maxRetries = 1,
+                sendKey = true,
+                maxConcurrentThreads = 2,
+                sleepBetweenRetries = 5
+            };
+
+            batchWritePolicy ??= new BatchWritePolicy()
+            {
+                sendKey = true,
+                recordExistsAction = RecordExistsAction.REPLACE
+            };
+
+            parallelOptions ??= new ParallelOptions();
+
+            var batchArray = new BatchRecord[objRecords.Count()];
+            var allBins = new ConcurrentQueue<Bin[]>();
+
+            Parallel.For(0, batchArray.Length, parallelOptions, idx =>
+            {
+                var (pk,instance) = objRecords.ElementAt(idx);
+                var dictItem = Helpers.TransForm(instance, transform);
+                Operation[] operations;
+
+                if (string.IsNullOrEmpty(doctumentBinName))
+                {
+                    var bins = Helpers.CreateBinRecord(dictItem);
+                    operations = new Operation[bins.Length];
+                    allBins.Enqueue(bins);
+
+                    for (int i = 0; i < operations.Length; ++i)
+                    {
+                        operations[i] = Operation.Put(bins[i]);
+                    }
+                }
+                else
+                {                    
+                    var mapPolicy = new MapPolicy(MapOrder.UNORDERED, MapWriteFlags.DEFAULT);
+                    
+                    operations = new Operation[] {
+                                        MapOperation.PutItems(mapPolicy,
+                                                                doctumentBinName,
+                                                                dictItem) };
+                }
+
+                batchArray[idx] = new BatchWrite(batchWritePolicy,
+                                                    Helpers.DetermineAerospikeKey(pk, this.Namespace, setName),
+                                                    operations);
+            });
+
+            var result = this.AerospikeConnection.AerospikeClient.Operate(batchPolicy,
+                                                                            batchArray.ToList());
+
+            if(string.IsNullOrEmpty(doctumentBinName))
+            {
+                this.AddDynamicSet(setName,
+                                    allBins
+                                        .SelectMany(a => a)
+                                        .DistinctBy(a => a.name));
+            }
+            else
+            {
+                this.AddDynamicSet(setName, new LPSet.BinType[]
+                                                    { new LPSet.BinType(doctumentBinName, typeof(JsonDocument), false, true)});
+            }
+            
+            return result;
+        }
+
+        /// <summary>
+        /// Deletes records defined in <paramref name="primaryKeys"/>.
+        /// </summary>
+        /// <typeparam name="R">Primary Key Type</typeparam>
+        /// <param name="setName">The Set name</param>
+        /// <param name="primaryKeys">
+        /// A collection of primary keys that will be deleted.
+        /// </param>
+        /// <param name="batchPolicy">
+        /// <see cref="BatchPolicy"/>
+        /// </param>
+        /// <param name="deletePolicy">
+        /// <seealso cref="BatchDeletePolicy"/>
+        /// </param>
+        /// <param name="filterExpresion">The expression that will be applied to the result set. Can be null.</param>
+        /// <returns>Returns true if all records deleted or false if one or more wasn't found</returns>
+        public bool BatchDelete<R>([NotNull] string setName,
+                                    [NotNull] IEnumerable<R> primaryKeys,
+                                    BatchPolicy batchPolicy = null,
+                                    BatchDeletePolicy deletePolicy = null,
+                                    Expression filterExpresion = null)
+        {
+            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+            {
+                maxRetries = 1,
+                maxConcurrentThreads = 2,
+                sleepBetweenRetries = 5,
+                filterExp = filterExpresion
+            };
+
+            if (filterExpresion is not null && batchPolicy.filterExp is null)
+                batchPolicy.filterExp = filterExpresion;
+
+            var keys = primaryKeys
+                        .Select(k => Helpers.DetermineAerospikeKey(k, this.Namespace, setName))
+                        .ToArray();
+
+            var result = this.AerospikeConnection.AerospikeClient.Delete(batchPolicy,
+                                                                            deletePolicy,
+                                                                            keys);
+
+            return result.status;
+        }
+        #endregion
+
+        #region Batch Read
+
+        /// <summary>
+        /// Return a collection of <see cref="ARecord"/> based on <paramref name="primaryKeys"/>
+        /// </summary>
+        /// <typeparam name="P">Primary Key Type</typeparam>
+        /// <param name="setName">The Set Name</param>
+        /// <param name="primaryKeys">A collection of Primarily Keys that will be part of the collection</param>
+        /// <param name="batchPolicy">
+        /// <seealso cref="BatchPolicy"/>
+        /// </param>
+        /// <param name="batchReadPolicy">
+        /// <seealso cref="BatchReadPolicy"/>
+        /// </param>        
+        /// <param name="filterExpresion">The expression that will be applied to the result set. Can be null.</param>
+        /// <param name="returnBins">
+        /// Only return these bins
+        /// </param>
+        /// <param name="dumpType"></param> 
+        /// <returns>
+        /// A collection of records based on <paramref name="primaryKeys"/> or an empty collection.
+        /// If a key is not found, there will be no bins associated with the record.
+        /// </returns>
+        /// <param name="definedBins">internal use</param>
+        public IEnumerable<ARecord> BatchRead<P>([NotNull] string setName,
+                                                    [NotNull] IEnumerable<P> primaryKeys,
+                                                    BatchPolicy batchPolicy = null,
+                                                    BatchReadPolicy batchReadPolicy = null,
+                                                    Expression filterExpresion = null,
+                                                    string[] returnBins = null,
+                                                    ARecord.DumpTypes dumpType = ARecord.DumpTypes.Record,
+                                                    string[] definedBins = null)
+        {            
+            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+            {
+                maxRetries = 2,
+                maxConcurrentThreads = 1,
+                filterExp = filterExpresion
+            };
+
+            batchReadPolicy ??= new BatchReadPolicy()
+            {
+                filterExp = filterExpresion
+            };
+
+            var batchList = new List<BatchRead>(primaryKeys.Count());
+            
+            foreach(var pk in primaryKeys)
+            {                
+                if(returnBins is null)
+                    batchList.Add(new BatchRead(batchReadPolicy,
+                                                    Helpers.DetermineAerospikeKey(pk, this.Namespace, setName),
+                                                    true));
+                else
+                    batchList.Add(new BatchRead(batchReadPolicy,
+                                                    Helpers.DetermineAerospikeKey(pk, this.Namespace, setName),
+                                                    returnBins));
+            };
+
+            this.AerospikeConnection.AerospikeClient.Get(batchPolicy, batchList);
+            
+            foreach (var batch in batchList)
+            {
+                yield return new ARecord(this,
+                                            batch.key,
+                                            batch.record,
+                                            binNames: definedBins ?? returnBins,
+                                            dumpType: dumpType,
+                                            inDoubt: batch.inDoubt);
+            }
+        }
+
+        #endregion
+
+        #endregion
 
         #endregion
 

@@ -12,6 +12,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IO;
+using static System.Net.WebRequestMethods;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -38,7 +39,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] Record record,
                             string[] binNames,
                             DumpTypes dumpType = DumpTypes.Record,
-                            int setBinsHashCode = 0)
+                            int setBinsHashCode = 0,
+                            bool? inDoubt = null)
         {            
             this.SetAccess = setAccess;
 
@@ -46,12 +48,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 record,
                                                 binNames == null
                                                     ? Array.Empty<string>()
-                                                    : (binNames.Length == 0 ? setAccess.BinNames : binNames));
+                                                    : (binNames.Length == 0 ? setAccess.BinNames : binNames),
+                                                inDoubt: inDoubt);
 
             this.DumpType = dumpType;
             this.SetBinsHashCode = setBinsHashCode;
 
-            var recordBins = record.bins?.Keys.ToArray();
+            var recordBins = record?.bins?.Keys.ToArray();
             this.BinsHashCode = Helpers.GetStableHashCode(recordBins);
             
             if (this.BinsHashCode != this.SetBinsHashCode && this.DumpType == DumpTypes.Record)
@@ -88,6 +91,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="generation">record generation</param>
         /// <param name="dumpType"><see cref="DumpTypes"/></param>
         /// <param name="setBinsHashCode">An internal HashCode defined by the associated Set used to determine if this record has dynamic bins</param>
+        /// <param name="inDoubt">
+        /// For strong consistency, this indicates if this record&apos;s situation is uncertain of a transaction outcome.
+        /// <see cref="AerospikeAPI.InDoubt"/>
+        /// </param>
         public ARecord([NotNull] string ns,
                             [NotNull] string set,
                             [NotNull] dynamic keyValue,
@@ -97,7 +104,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             DateTimeOffset? expirationDate = null,
                             int? generation = null,
                             DumpTypes dumpType = DumpTypes.Record,
-                            int setBinsHashCode = 0)
+                            int setBinsHashCode = 0,
+                            bool? inDoubt = null)
         {
             this.SetAccess = setAccess;
             this.Aerospike = new AerospikeAPI(ns,
@@ -106,7 +114,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 binValues,
                                                 expiration,
                                                 expirationDate,
-                                                generation);
+                                                generation,
+                                                inDoubt);
            
             this.DumpType = dumpType;
             this.SetBinsHashCode = setBinsHashCode;
@@ -230,11 +239,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public sealed class AerospikeAPI
         {
-            internal AerospikeAPI(Client.Key key, Client.Record record, string[] binNames)
+            internal AerospikeAPI(Client.Key key,
+                                    Client.Record record,
+                                    string[] binNames,
+                                    bool? inDoubt = null)
             {
                 this.BinNames = binNames;
-                this.Record = record;
+                this.Record = record ?? new Record(new Dictionary<string, object>(0), 0, 0);
                 this.Key = key;
+                this.InDoubt = inDoubt;
             }
 
             internal AerospikeAPI([NotNull] string ns,
@@ -243,7 +256,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     [NotNull] IDictionary<string, object> binValues,
                                     int? expiration = null,
                                     DateTimeOffset? expirationDate = null,
-                                    int? generation = null)
+                                    int? generation = null,
+                                    bool? inDoubt = null)
             {
                 this.Key = Helpers.DetermineAerospikeKey(keyValue, ns, set);              
                 this.Record = new Record((Dictionary<string, object>)binValues,
@@ -253,6 +267,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                                     : 0));
                 this.BinNames = binValues.Keys.ToArray();
                 this._bins = this.Record?.bins?.Select(b => new Bin(b.Key, b.Value)).ToArray();
+                this.InDoubt = inDoubt;
             }
 
             internal AerospikeAPI(AerospikeAPI cloneRecord)
@@ -260,10 +275,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 this.Key = new Client.Key(cloneRecord.Key.ns,
                                                 cloneRecord.Key.setName,
                                                 Value.Get(cloneRecord.Key.userKey));
+                
                 this.Record = new Record(new Dictionary<string, object>(cloneRecord.Record.bins),
-                                                        cloneRecord.Record.generation,
-                                                        cloneRecord.Record.expiration);
+                                                                            cloneRecord.Record.generation,
+                                                                            cloneRecord.Record.expiration);
                 this.BinNames = cloneRecord.BinNames;
+                this.InDoubt = cloneRecord.InDoubt;
             }
 
             private Bin[] _bins;
@@ -407,6 +424,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             /// </summary>
             public int Count { get => this.Record.bins?.Count ?? 0; }
 
+            /// <summary>
+            /// For strong consistency, this indicates if this record&apos;s situation is uncertain of a transaction outcome.
+            /// </summary>
+            /// <seealso href="https://support.aerospike.com/s/article/What-does-InDoubt-true-boolean-exception-response-means"/>
+            /// <seealso href="https://aerospike.com/blog/resolving-uncertain-transactions-in-aerospike/"/>
+            /// <seealso href="https://aerospike.com/blog/developers-understanding-aerospike-transactions/"/>
+            public bool? InDoubt { get; }
+
             private ExpandoObject _definedValuesCache = null;
 
             /// <summary>
@@ -513,12 +538,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         #endregion
 
         /// <summary>
-        /// Returns the value associated with <paramref name="pkbinName"/> or null to indicate the bin doesn't exists.
+        /// Returns the value associated with Primary Key (<see cref="DefaultASPIKeyName"/>), a bin, or null to indicate the bin doesn't exists.
         /// </summary>
         /// <param name="pkbinName">Name of the bin or primary key name defined by <see cref="DefaultASPIKeyName"/>.</param>
-        /// <returns>A BinName or null indicating the bin name does not exists</returns>
+        /// <returns>An <see cref="AValue"/> or null indicating the bin name does not exists</returns>
         /// <seealso cref="AerospikeAPI.GetValue(string)"/>
         /// <seealso cref="AerospikeAPI.ToValue(string)"/>
+        /// <seealso cref="AerospikeAPI.PrimaryKey"/>
+        /// <seealso cref="GetPK"/>
         /// <seealso cref="SetValue(string, object, bool)"/>
         /// <seealso cref="BinExists(string)"/>
         /// <seealso cref="AerospikeAPI.Values"/>
@@ -604,7 +631,19 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="AerospikeAPI.GetValue(string)"/>
         /// <seealso cref="AerospikeAPI.ToValue(string)"/>
         /// <seealso cref="AerospikeAPI.Bins"/>
+        /// <seealso cref="GetPK"/>
         public AValue GetValue([NotNull]string binName) => this.Aerospike.ToValue(binName);
+
+        /// <summary>
+        /// Returns the Primary Key for this record.
+        /// </summary>
+        /// <returns>
+        /// Returns a <see cref="APrimaryKey"/> value.
+        /// </returns>
+        /// <seealso cref="this[string]"/>
+        /// <seealso cref="AerospikeAPI.Key"/>
+        /// <seealso cref="GetValue(string)"/>
+        public AValue GetPK() => new APrimaryKey(this.Aerospike.Key);
 
         /// <summary>
         /// Deletes the record from the DB. 

@@ -764,6 +764,33 @@ namespace Aerospike.Database.LINQPadDriver
             return dictionary;
         }
 
+        public static Bin[] CreateBinRecord<V>(IEnumerable<(string binName, V value)> binItems,
+                                                    string prefix = null,
+                                                    params Bin[] additionalBins)
+        {
+            var bins = new List<Aerospike.Client.Bin>(additionalBins);
+
+            if (IsAerospikeType(typeof(V)))
+            {
+                foreach (var kvPair in binItems)
+                {
+                    var binName = prefix == null ? kvPair.binName : $"{prefix}.{kvPair.binName}";
+                    bins.Add(new Bin(binName, kvPair.value));
+                }
+            }
+            else
+            {
+                foreach (var kvPair in binItems)
+                {
+                    var binName = prefix == null ? kvPair.binName : $"{prefix}.{kvPair.binName}";
+                    bins.Add(new Bin(binName, ConvertToAerospikeType(kvPair.value)));
+                }
+            }
+
+            return bins.ToArray();
+        }
+
+
         public static Bin[] CreateBinRecord<K, V>(IDictionary<K, V> dict,
                                                     string prefix = null,
                                                     params Bin[] additionalBins)
@@ -867,6 +894,10 @@ namespace Aerospike.Database.LINQPadDriver
             if (item is IDictionary<string, object> dict)
             {
                 bins.AddRange(CreateBinRecord(dict, prefix));
+            }
+            else if (item is IEnumerable<(string, object)> binItems)
+            {
+                bins.AddRange(CreateBinRecord<object>(binItems, prefix));
             }
             else if (item is string strItem)
             {
