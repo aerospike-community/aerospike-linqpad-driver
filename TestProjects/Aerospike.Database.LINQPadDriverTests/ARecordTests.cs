@@ -19479,7 +19479,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.AreEqual("00-358", customer.PostalCode);
             Assert.AreEqual(4, customer.SupportRepId);
             Assert.AreEqual(7, customer.Invoices.Count);
-            Assert.AreEqual(14, customer.Invoices.First().Lines.Count());
+            Assert.AreEqual(14, customer.Invoices.First().Lines.Count);
             Assert.IsNull(customer.State);
            
             var invoice = customer.Invoices.First();
@@ -19529,6 +19529,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
                 this.PostalCode = postalCode;
                 this.State = state;
                 this.SupportRepId = supportRepId;
+                this.Invoices = [];
             }
 
             /// <summary>

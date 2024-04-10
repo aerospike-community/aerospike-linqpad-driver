@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Ignore Spelling: Pnamespace
+
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -769,7 +771,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Fourth argument -- if true the instance is within another object.
         /// Returns the new transformed object or null to indicate that this instance should be skipped.
         /// </param>
-        /// <param name="doctumentBinName">
+        /// <param name="documentBinName">
         /// If provided the record is created as a document and this will be the name of the bin. 
         /// </param>
         /// <param name="writePolicy"></param>
@@ -789,7 +791,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     [NotNull] dynamic primaryKey,
                                     [NotNull] T instance,
                                     Func<string, string, object, bool, object> transform = null,
-                                    string doctumentBinName = null,
+                                    string documentBinName = null,
                                     WritePolicy writePolicy = null,
                                     TimeSpan? ttl = null)
         {            
@@ -816,7 +818,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             else
                 dictItem = Helpers.TransForm(instance, transform);
 
-            if(string.IsNullOrEmpty(doctumentBinName))
+            if(string.IsNullOrEmpty(documentBinName))
             {
                 var bins = Helpers.CreateBinRecord(dictItem);
 
@@ -834,10 +836,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     .AerospikeClient.Operate(writePolicy,
                                                 key,
                                                 MapOperation.PutItems(mapPolicy,
-                                                                        doctumentBinName,
+                                                                        documentBinName,
                                                                         dictItem));
                 this.AddDynamicSet(setName, new LPSet.BinType[] 
-                                                    { new LPSet.BinType(doctumentBinName, typeof(JsonDocument), false, true)});
+                                                    { new LPSet.BinType(documentBinName, typeof(JsonDocument), false, true)});
             }          
         }
         #endregion
@@ -983,8 +985,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return result;
         }
 
-
-
         /// <summary>
         /// Writes a collection of items to <paramref name="setName"/>.
         /// </summary>
@@ -1122,7 +1122,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                 for (int i = 0; i < operations.Length; ++i)
                 {
-                    operations[i] = Operation.Put(bins[i]);
+                    operations[i] = Operation.Put(bins[i]);                    
                 }
 
                 batchArray[idx] = new BatchWrite(batchWritePolicy,
@@ -1163,7 +1163,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Fourth argument -- if true the instance is within another object.
         /// Returns the new transformed object or null to indicate that this instance should be skipped.
         /// </param>
-        /// <param name="doctumentBinName">
+        /// <param name="documentBinName">
         /// If provided the record is created as a document and this will be the name of the bin. 
         /// </param>
         /// <returns>True if successful</returns>
@@ -1177,7 +1177,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         BatchWritePolicy batchWritePolicy = null,
                                         ParallelOptions parallelOptions = null,
                                         Func<string, string, object, bool, object> transform = null,
-                                        string doctumentBinName = null)
+                                        string documentBinName = null)
         {
             batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
             {
@@ -1204,7 +1204,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 var dictItem = Helpers.TransForm(instance, transform);
                 Operation[] operations;
 
-                if (string.IsNullOrEmpty(doctumentBinName))
+                if (string.IsNullOrEmpty(documentBinName))
                 {
                     var bins = Helpers.CreateBinRecord(dictItem);
                     operations = new Operation[bins.Length];
@@ -1221,7 +1221,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     
                     operations = new Operation[] {
                                         MapOperation.PutItems(mapPolicy,
-                                                                doctumentBinName,
+                                                                documentBinName,
                                                                 dictItem) };
                 }
 
@@ -1233,7 +1233,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             var result = this.AerospikeConnection.AerospikeClient.Operate(batchPolicy,
                                                                             batchArray.ToList());
 
-            if(string.IsNullOrEmpty(doctumentBinName))
+            if(string.IsNullOrEmpty(documentBinName))
             {
                 this.AddDynamicSet(setName,
                                     allBins
@@ -1243,7 +1243,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             else
             {
                 this.AddDynamicSet(setName, new LPSet.BinType[]
-                                                    { new LPSet.BinType(doctumentBinName, typeof(JsonDocument), false, true)});
+                                                    { new LPSet.BinType(documentBinName, typeof(JsonDocument), false, true)});
             }
             
             return result;
@@ -1263,24 +1263,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="deletePolicy">
         /// <seealso cref="BatchDeletePolicy"/>
         /// </param>
-        /// <param name="filterExpresion">The expression that will be applied to the result set. Can be null.</param>
+        /// <param name="filterExpression">The expression that will be applied to the result set. Can be null.</param>
         /// <returns>Returns true if all records deleted or false if one or more wasn't found</returns>
         public bool BatchDelete<R>([NotNull] string setName,
                                     [NotNull] IEnumerable<R> primaryKeys,
                                     BatchPolicy batchPolicy = null,
                                     BatchDeletePolicy deletePolicy = null,
-                                    Expression filterExpresion = null)
+                                    Expression filterExpression = null)
         {
             batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
             {
                 maxRetries = 1,
                 maxConcurrentThreads = 2,
                 sleepBetweenRetries = 5,
-                filterExp = filterExpresion
+                filterExp = filterExpression
             };
 
-            if (filterExpresion is not null && batchPolicy.filterExp is null)
-                batchPolicy.filterExp = filterExpresion;
+            if (filterExpression is not null && batchPolicy.filterExp is null)
+                batchPolicy.filterExp = filterExpression;
 
             var keys = primaryKeys
                         .Select(k => Helpers.DetermineAerospikeKey(k, this.Namespace, setName))
@@ -1308,7 +1308,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="batchReadPolicy">
         /// <seealso cref="BatchReadPolicy"/>
         /// </param>        
-        /// <param name="filterExpresion">The expression that will be applied to the result set. Can be null.</param>
+        /// <param name="filterExpression">The expression that will be applied to the result set. Can be null.</param>
         /// <param name="returnBins">
         /// Only return these bins
         /// </param>
@@ -1322,7 +1322,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                     [NotNull] IEnumerable<P> primaryKeys,
                                                     BatchPolicy batchPolicy = null,
                                                     BatchReadPolicy batchReadPolicy = null,
-                                                    Expression filterExpresion = null,
+                                                    Expression filterExpression = null,
                                                     string[] returnBins = null,
                                                     ARecord.DumpTypes dumpType = ARecord.DumpTypes.Record,
                                                     string[] definedBins = null)
@@ -1331,12 +1331,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 maxRetries = 2,
                 maxConcurrentThreads = 1,
-                filterExp = filterExpresion
+                filterExp = filterExpression
             };
 
             batchReadPolicy ??= new BatchReadPolicy()
             {
-                filterExp = filterExpresion
+                filterExp = filterExpression
             };
 
             var batchList = new List<BatchRead>(primaryKeys.Count());
@@ -1366,92 +1366,170 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
         }
 
-        #endregion
+		#endregion
 
-        #endregion
+		#endregion
 
-        #endregion
+		#endregion
 
-        #region Import/Export/Json
-        /// <summary>
-        /// Imports a <see cref="SetRecords.Export(string, Exp, bool)"/> generated JSON file into a set.
-        /// </summary>
-        /// <param name="importJSONFile">The JSON file that will be read</param>
-        /// <param name="setName">Set name or null for the null set. This can be a new set that will be created.</param>
-        /// <param name="writePolicy">
-        /// The write policy. If not provided, the default policy is used.
-        /// <seealso cref="WritePolicy"/>
-        /// </param>
-        /// <param name="ttl">
-        /// Time-to-live of the records being imported
-        /// Note: This is only used, if <paramref name="useImportRecTTL"/> is false.
-        /// <see cref="ARecord.AerospikeAPI.TTL"/>
-        /// <see cref="ARecord.AerospikeAPI.Expiration"/>
-        /// </param>
-        /// <param name="useImportRecTTL">
-        /// If true, the TTL of the record at export is used.
-        /// Otherwise, <paramref name="ttl"/> is used, if provided.
-        /// </param>
-        /// <param name="maxDegreeOfParallelism">
-        /// The maximum degree of parallelism.
-        /// <see cref="ParallelOptions.MaxDegreeOfParallelism"/>
-        /// </param>
-        /// The <see cref="System.Threading.CancellationToken">CancellationToken</see>
-        /// associated with this <see cref="ParallelOptions"/> instance.
-        /// <param name="cancellationToken">
-        /// </param>
-        /// <returns>The number of records imported</returns>
-        /// <seealso cref="Export(string, Exp, bool)"/>
-        /// <seealso cref="Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
-        /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>
-        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
-        /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy, int, CancellationToken)"/>
-        /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>        
-        public int Import([NotNull] string importJSONFile,
+		#region Import/Export/Json
+		/// <summary>
+		/// Imports a <see cref="SetRecords.Export(string, Exp, bool)"/> generated JSON file into a set.
+		/// </summary>
+		/// <param name="importJSONFile">The JSON file that will be read</param>
+		/// <param name="setName">Set name or null for the null set. This can be a new set that will be created.</param>
+		/// <param name="writePolicy">
+		/// The write policy. If not provided, the default policy is used.
+		/// <seealso cref="WritePolicy"/>
+		/// </param>
+		/// <param name="ttl">
+		/// Time-to-live of the records being imported
+		/// Note: This is only used, if <paramref name="useImportRecTTL"/> is false.
+		/// Also, The <see cref="Aerospike.Client.BatchWritePolicy.expiration"/> property is overwritten  with this value after a copy is made of the policy instance.
+		/// <see cref="ARecord.AerospikeAPI.TTL"/>
+		/// <see cref="ARecord.AerospikeAPI.Expiration"/>
+		/// </param>
+		/// <param name="useImportRecTTL">
+		/// If true, the TTL of the record at export is used.
+		/// Otherwise, <paramref name="ttl"/> is used, if provided.
+		/// Note: If true <paramref name="batchPolicy"/> and <paramref name="batchWritePolicy"/> are ignored since batch writes cannot be performed.
+		/// </param>
+		/// <param name="maxDegreeOfParallelism">
+		/// The maximum degree of parallelism.
+		/// <see cref="ParallelOptions.MaxDegreeOfParallelism"/>
+		/// </param>
+		/// <param name="batchPolicy">
+		/// <see cref="Aerospike.Client.BatchPolicy"/>
+		/// </param>
+		/// <param name="batchWritePolicy">
+		/// <see cref="Aerospike.Client.BatchWritePolicy"/>
+		/// </param>
+		/// <param name="useParallelPuts">
+		/// If true, Parallel Put actions are used based on <paramref name="maxDegreeOfParallelism"/> is used instead of batch writes.
+		/// </param>
+		/// <param name="cancellationToken">
+		/// The <see cref="System.Threading.CancellationToken">CancellationToken</see>
+		/// associated with this <see cref="ParallelOptions"/> instance.
+		/// </param>
+		/// <returns>The number of records imported</returns>
+		/// <seealso cref="Export(string, Exp, bool)"/>
+		/// <seealso cref="Import(string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
+		/// <seealso cref="SetRecords.Export(string, Exp, bool)"/>
+		/// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
+		/// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy, int, CancellationToken)"/>
+		/// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>        
+		public int Import([NotNull] string importJSONFile,
                             string setName,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null,
                             bool useImportRecTTL = false,
                             int maxDegreeOfParallelism = -1,
-                            CancellationToken cancellationToken = default)
+							BatchPolicy batchPolicy = null,
+							BatchWritePolicy batchWritePolicy = null,
+							bool useParallelPuts = false,
+							CancellationToken cancellationToken = default)
         {
-            if (this.AerospikeConnection.CXInfo.IsProduction)
-                throw new InvalidOperationException("Cannot Import into a Cluster marked \"In Production\"");
+			//Debugger.Launch();
+			int failedImports = 0;
 
-            var jsonStr = System.IO.File.ReadAllText(importJSONFile);
-            var jsonSettings = new JsonSerializerSettings
-            {
-                TypeNameHandling = TypeNameHandling.All,
-                DateParseHandling = DateParseHandling.DateTimeOffset,
-                NullValueHandling = NullValueHandling.Ignore,
-            };
+			if(this.AerospikeConnection.CXInfo.IsProduction)
+				throw new InvalidOperationException("Cannot Truncate a Cluster marked \"In Production\"");
 
-            var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
+			var jsonStr = System.IO.File.ReadAllText(importJSONFile);
+			var jsonSettings = new JsonSerializerSettings
+			{
+				TypeNameHandling = TypeNameHandling.All,
+				NullValueHandling = NullValueHandling.Ignore,
+				DateParseHandling = DateParseHandling.DateTimeOffset
+			};
+			var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
 
-            if (maxDegreeOfParallelism == -1
-                    && this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
-                maxDegreeOfParallelism = Environment.ProcessorCount;
+			if(maxDegreeOfParallelism == -1
+					&& this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
+				maxDegreeOfParallelism = Environment.ProcessorCount;
 
-            var parallelOptions = new ParallelOptions()
-            {
-                CancellationToken = cancellationToken,
-                MaxDegreeOfParallelism = maxDegreeOfParallelism
-            };
+			var parallelOptions = new ParallelOptions()
+			{
+				CancellationToken = cancellationToken,
+				MaxDegreeOfParallelism = maxDegreeOfParallelism
+			};
 
-            Parallel.ForEach(jsonStructs, parallelOptions,
-                item =>
-            {
-                this.Put(setName,
-                            item.KeyValue ?? item.Digest,
-                            item.Values,
-                            writePolicy,
-                            useImportRecTTL
-                                ? ARecord.AerospikeAPI.CalcTTLTimeSpan(item.TimeToLive)
-                                : ttl);
-            });
+			if(useImportRecTTL || useParallelPuts)
+			{
+				Parallel.ForEach(jsonStructs, parallelOptions,
+				 item =>
+				 {
+					 this.Put(setName == string.Empty? item.SetName : setName,
+								item.KeyValue ?? item.Digest,
+								item.Values,
+								writePolicy,
+								useImportRecTTL
+									? ARecord.AerospikeAPI.CalcTTLTimeSpan(item.TimeToLive)
+									: ttl);
+				 });
+			}
+			else
+			{
+				if(ttl.HasValue)
+				{
+					if(batchWritePolicy is null)
+					{
+						batchWritePolicy = new BatchWritePolicy();
+					}
+					else
+					{
+						batchWritePolicy = new BatchWritePolicy(batchWritePolicy);
+					}
 
-            return jsonStructs.Length;
-        }
+					batchWritePolicy.expiration = SetRecords.DetermineExpiration(ttl.Value);
+				}
+
+				batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+				{
+					maxRetries = 1,
+					sendKey = true,
+					maxConcurrentThreads = 2,
+					sleepBetweenRetries = 5
+				};
+
+				batchWritePolicy ??= new BatchWritePolicy()
+				{
+					sendKey = true,
+					recordExistsAction = RecordExistsAction.REPLACE
+				};
+
+				var batchArray = new BatchRecord[jsonStructs.Length];
+				var allBins = new ConcurrentQueue<Bin[]>();
+
+				Parallel.For(0, batchArray.Length, parallelOptions, idx =>
+				{
+					var record = jsonStructs[idx];
+					var bins = Helpers.CreateBinRecord(record.Values);
+					var operations = new Operation[bins.Length];
+					allBins.Enqueue(bins);
+
+					for(int i = 0; i < operations.Length; ++i)
+					{
+						operations[i] = Operation.Put(bins[i]);
+					}
+
+					batchArray[idx] = new BatchWrite(batchWritePolicy,
+														Helpers.DetermineAerospikeKey(record.KeyValue,
+                                                                                        this.Namespace,
+																						setName == string.Empty ? record.SetName : setName),
+														operations);
+				});
+
+				if(!this.AerospikeConnection.AerospikeClient.Operate(batchPolicy,
+																		batchArray.ToList()))
+				{
+					failedImports = batchArray.Count(i => i.resultCode != ResultCode.OK);
+
+				}
+			}
+
+			return jsonStructs.Length - failedImports;
+		}
 
         /// <summary>
         /// Imports a <see cref="SetRecords.Export(string, Exp, bool)"/> generated JSON file into the originally exported set.
@@ -1464,24 +1542,35 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="ttl">
         /// Time-to-live of the records being imported
         /// Note: This is only used, if <paramref name="useImportRecTTL"/> is false.
+        /// Also, The <see cref="Aerospike.Client.BatchWritePolicy.expiration"/> property is overwritten  with this value after a copy is made of the policy instance.
         /// <see cref="ARecord.AerospikeAPI.TTL"/>
         /// <see cref="ARecord.AerospikeAPI.Expiration"/>
         /// </param>
         /// <param name="useImportRecTTL">
         /// If true, the TTL of the record at export is used.
         /// Otherwise, <paramref name="ttl"/> is used, if provided.
+        /// Note: If true <paramref name="batchPolicy"/> and <paramref name="batchWritePolicy"/> are ignored since batch writes cannot be performed.
         /// </param>
         /// <param name="maxDegreeOfParallelism">
         /// The maximum degree of parallelism.
         /// <see cref="ParallelOptions.MaxDegreeOfParallelism"/>
         /// </param>
+        /// <param name="batchPolicy">
+        /// <see cref="Aerospike.Client.BatchPolicy"/>
+        /// </param>
+        /// <param name="batchWritePolicy">
+        /// <see cref="Aerospike.Client.BatchWritePolicy"/>
+        /// </param>
+        /// <param name="useParallelPuts">
+        /// If true, Parallel Put actions are used based on <paramref name="maxDegreeOfParallelism"/> is used instead of batch writes.
+        /// </param>
+        /// <param name="cancellationToken">
         /// The <see cref="System.Threading.CancellationToken">CancellationToken</see>
         /// associated with this <see cref="ParallelOptions"/> instance.
-        /// <param name="cancellationToken">
         /// </param>
         /// <returns>The number of records imported</returns>
         /// <seealso cref="Export(string, Exp, bool)"/>
-        /// <seealso cref="Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="Import(string, string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>
         /// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy, int, CancellationToken)"/>
         public int Import([NotNull] string importJSONFile,
@@ -1489,45 +1578,20 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             TimeSpan? ttl = null,
                             bool useImportRecTTL = false,
                             int maxDegreeOfParallelism = -1,
+                            BatchPolicy batchPolicy = null,
+                            BatchWritePolicy batchWritePolicy = null,
+                            bool useParallelPuts = false,
                             CancellationToken cancellationToken = default)
-        {
-            //Debugger.Launch();
-            if (this.AerospikeConnection.CXInfo.IsProduction)
-                throw new InvalidOperationException("Cannot Truncate a Cluster marked \"In Production\"");
-
-            var jsonStr = System.IO.File.ReadAllText(importJSONFile);
-            var jsonSettings = new JsonSerializerSettings
-            {
-                TypeNameHandling = TypeNameHandling.All,
-                NullValueHandling = NullValueHandling.Ignore,
-                DateParseHandling = DateParseHandling.DateTimeOffset
-            };
-            var jsonStructs = Newtonsoft.Json.JsonConvert.DeserializeObject<JsonExportStructure[]>(jsonStr, jsonSettings);
-
-            if (maxDegreeOfParallelism == -1
-                    && this.AerospikeConnection.DBPlatform == DBPlatforms.Native)
-                maxDegreeOfParallelism = Environment.ProcessorCount;
-
-            var parallelOptions = new ParallelOptions()
-            {
-                CancellationToken = cancellationToken,
-                MaxDegreeOfParallelism = maxDegreeOfParallelism
-            };
-
-            Parallel.ForEach(jsonStructs, parallelOptions,
-                item =>
-            {
-                this.Put(item.SetName,
-                            item.KeyValue ?? item.Digest,
-                            item.Values,
-                            writePolicy,
-                            useImportRecTTL
-                                ? ARecord.AerospikeAPI.CalcTTLTimeSpan(item.TimeToLive)
-                                : ttl);
-            });
-
-            return jsonStructs.Length;
-        }
+        => this.Import(importJSONFile,
+                        string.Empty,
+                        writePolicy: writePolicy,
+                        ttl: ttl,
+                        useImportRecTTL: useImportRecTTL,
+                        maxDegreeOfParallelism: maxDegreeOfParallelism,
+                        batchPolicy: batchPolicy,
+                        batchWritePolicy: batchWritePolicy,
+                        useParallelPuts: useParallelPuts,
+                        cancellationToken: cancellationToken);
 
 
         /// <summary>
@@ -1542,9 +1606,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="filterExpression">A filter expression that will be applied that will determine the result set.</param>
         /// <param name="indented">If true the JSON string is formatted for readability</param>
         /// <returns>Number of records written</returns>
-        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="SetRecords.Import(string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
         /// <seealso cref="ARecord.Export(bool, JsonSerializerSettings)"/>
         public int Export([NotNull] string exportJSONFile, Client.Exp filterExpression = null, bool indented = true)
         {
