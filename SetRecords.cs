@@ -11,11 +11,9 @@ using System.IO;
 using Aerospike.Client;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
-using System.Windows.Media;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
-using System.Windows.Input;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -439,15 +437,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
         /// <returns></returns>
         /// <seealso cref="Take(int, Client.Exp)"/>
+        /// <see cref="First(Func{T, bool}, Exp)"/>
         /// <seealso cref="FirstOrDefault(Client.Exp)"/>
+        /// <seealso cref="FirstOrDefault(Func{T, bool}, Exp)"/>
         /// <seealso cref="AsEnumerable(Client.Exp)"/>
         /// <seealso cref="Get(dynamic, string[])"/>
         /// <seealso cref="SetRecords.Operate(dynamic, Operation[])"/>
         /// <seealso cref="SetRecords.DefaultQueryPolicy"/>
         public new T First(Client.Exp filterExpression = null)
-        {
-            return this.Take(1, filterExpression).First();
-        }
+                        => this.Take(1, filterExpression).First();        
 
         /// <summary>
         /// Returns the first record or null from the set based on <see cref="SetRecords.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
@@ -456,29 +454,67 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns></returns>
         /// <seealso cref="Take(int, Client.Exp)"/>
         /// <seealso cref="First(Client.Exp)"/>
+        /// <seealso cref="First(Func{T, bool}, Exp)"/>
+        /// <seealso cref="FirstOrDefault(Func{T, bool}, Exp)"/>
         /// <seealso cref="AsEnumerable(Client.Exp)"/>
         /// <seealso cref="Get(dynamic, string[])"/>
         /// <seealso cref="SetRecords.Operate(dynamic, Operation[])"/>
         /// <seealso cref="SetRecords.DefaultQueryPolicy"/>
         public new T FirstOrDefault(Client.Exp filterExpression = null)
-        {
-            return this.Take(1, filterExpression).FirstOrDefault();
-        }
+                        => this.Take(1, filterExpression).FirstOrDefault();
 
-        /// <summary>
-        /// Skips the number of records from the set based on <see cref="SetRecords.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
-        /// </summary>
-        /// <param name="numberRecords">Number of records to skip</param>
-        /// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
-        /// <returns></returns>
-        /// <seealso cref="Take(int, Client.Exp)"/>
-        /// <seealso cref="First(Client.Exp)"/>
-        /// <seealso cref="FirstOrDefault(Client.Exp)"/>
-        /// <seealso cref="AsEnumerable(Client.Exp)"/>
-        /// <seealso cref="Get(dynamic, string[])"/>
-        /// <seealso cref="SetRecords.Operate(dynamic, Operation[])"/>
-        /// <seealso cref="SetRecords.DefaultQueryPolicy"/>
-        public new IEnumerable<T> Skip(int numberRecords, Client.Exp filterExpression = null)
+		/// <summary>
+		/// Returns the first record from the set based on <see cref="SetRecords.DefaultScanPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="predicate">
+		/// Predicate used to find the first occurrence.
+		/// </param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp)"/>
+		/// <seealso cref="First(Exp)"/>
+		/// <seealso cref="First(Func{T, bool}, Exp)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp)"/>
+		/// <seealso cref="Get(dynamic, string[])"/>
+		/// <seealso cref="SetRecords.Operate(dynamic, Operation[])"/>
+		/// <seealso cref="SetRecords.DefaultScanPolicy"/>
+		public T First(Func<T, bool> predicate, Client.Exp filterExpression = null)
+						=> this.AsEnumerable(filterExpression).First(predicate);
+
+		/// <summary>
+		/// Returns the first record or null from the set based on <see cref="SetRecords.DefaultScanPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="predicate">
+		/// Predicate used to find the first occurrence.
+		/// </param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp)"/>
+		/// <seealso cref="First(Client.Exp)"/>
+		/// <seealso cref="First(Func{T, bool}, Exp)"/>
+		/// <seealso cref="FirstOrDefault(Exp)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp)"/>
+		/// <seealso cref="Get(dynamic, string[])"/>
+		/// <seealso cref="SetRecords.Operate(dynamic, Operation[])"/>
+		/// <seealso cref="SetRecords.DefaultScanPolicy"/>
+		public T FirstOrDefault(Func<T, bool> predicate, Client.Exp filterExpression = null)
+						=> this.AsEnumerable(filterExpression).FirstOrDefault(predicate);
+
+		/// <summary>
+		/// Skips the number of records from the set based on <see cref="SetRecords.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="numberRecords">Number of records to skip</param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp)"/>
+		/// <seealso cref="First(Client.Exp)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp)"/>
+		/// <seealso cref="Get(dynamic, string[])"/>
+		/// <seealso cref="SetRecords.Operate(dynamic, Operation[])"/>
+		/// <seealso cref="SetRecords.DefaultQueryPolicy"/>
+		public new IEnumerable<T> Skip(int numberRecords, Client.Exp filterExpression = null)
         {
             int currentIdx = 0;
 
@@ -530,39 +566,64 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public IEnumerable<TResult> Select<TResult>(Func<T, TResult> selector)
             => this.AsEnumerable().Select(selector);
 
-        /// <summary>
-        /// Returns IEnumerable&gt;<see cref="ARecord"/>&lt; for the records of this set based on <see cref="SetRecords.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
-        /// </summary>
-        /// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
-        /// <seealso cref="Take(int, Client.Exp)"/>
-        /// <seealso cref="First(Client.Exp)"/>
-        /// <seealso cref="FirstOrDefault(Client.Exp)"/>
-        /// <seealso cref="Get(dynamic, string[])"/>
-        /// <seealso cref="SetRecords.Operate(dynamic, Operation[])"/>
-        /// <seealso cref="SetRecords.DefaultQueryPolicy"/>
-        public new IEnumerable<T> AsEnumerable(Client.Exp filterExpression = null)
+		/// <summary>
+		/// Returns IEnumerable&gt;<see cref="ARecord"/>&lt; for the records of this set based on <see cref="SetRecords.DefaultScanPolicy"/> or <paramref name="filterExpression"/>.
+		/// Note: The records&apos; return order may vary between executions.
+		/// </summary>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <seealso cref="Take(int, Client.Exp)"/>
+		/// <seealso cref="First(Client.Exp)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp)"/>
+		/// <seealso cref="Get(dynamic, string[])"/>
+		/// <seealso cref="SetRecords.Operate(dynamic, Operation[])"/>
+		/// <seealso cref="SetRecords.DefaultScanPolicy"/>
+		public new IEnumerable<T> AsEnumerable(Client.Exp filterExpression = null)
         {
-            var queryPolicy = filterExpression == null
-                                    ? this.DefaultQueryPolicy
-                                    : new QueryPolicy(this.DefaultQueryPolicy) { filterExp = Exp.Build(filterExpression) };
+			var scanPolicy = filterExpression == null
+									? this.DefaultScanPolicy
+									: new ScanPolicy(this.DefaultScanPolicy)
+									{ filterExp = Exp.Build(filterExpression) };
 
-            using var recordset = this.SetAccess.AerospikeConnection
-                                    .AerospikeClient
-                                    .Query(queryPolicy,
-                                            string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
-                                            ? new Statement() { Namespace = this.Namespace }
-                                            : new Statement() { Namespace = this.Namespace, SetName = this.SetName });
 
-            while (recordset.Next())
-            {
-                yield return (T)CreateRecord(this.SetAccess,
-                                                recordset.Key,
-                                                recordset.Record,
-                                                this._bins,
-                                                this.BinsHashCode,
-                                                recordView: this.DefaultRecordView);
-            }
-        }
+			var allRecords = new ConcurrentQueue<T>();
+
+			var allTask = Task.Factory.StartNew(() =>
+							this.SetAccess.AerospikeConnection
+								.AerospikeClient
+								.ScanAll(scanPolicy,
+											this.Namespace,
+											string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
+												? null
+												: this.SetName,
+										(key, record)
+											=> allRecords
+												.Enqueue((T) CreateRecord(this.SetAccess,
+																			key,
+																			record,
+																			this._bins,
+																			this.BinsHashCode,
+																			recordView: this.DefaultRecordView))),
+							cancellationToken: CancellationToken.None,
+							creationOptions: TaskCreationOptions.DenyChildAttach
+												| TaskCreationOptions.LongRunning,
+							scheduler: TaskScheduler.Current);
+
+			while(!allTask.IsCompleted)
+			{
+				if(allRecords.TryDequeue(out T value))
+					yield return value;
+			}
+
+			foreach(var record in allRecords.TakeWhile(record => record is not null))
+			{
+				yield return record;
+			}
+
+			if(allTask.IsFaulted && allTask.Exception is not null)
+				throw allTask.Exception.InnerExceptions.Count == 1
+						? allTask.Exception.InnerExceptions[0]
+						: allTask.Exception;
+		}
 
         #endregion
 
@@ -626,30 +687,50 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                     int binsHashCode,
                                                     ARecord.DumpTypes recordView = ARecord.DumpTypes.Record);
 
-        public new IEnumerator<T> GetEnumerator()
-        {
-            using var recordset = this.SetAccess.AerospikeConnection
-                                    .AerospikeClient
-                                    .Query(this.DefaultQueryPolicy,
-                                            string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
-                                            ? new Statement() { Namespace = this.Namespace }
-                                            : new Statement() { Namespace = this.Namespace, SetName = this.SetName });
+		public new IEnumerator<T> GetEnumerator()
+		{
+			var allRecords = new ConcurrentQueue<T>();
 
-            while (recordset.Next())
-            {                    
-                yield return (T) CreateRecord(this.SetAccess,
-                                                recordset.Key,
-                                                recordset.Record,
-                                                this._bins,
-                                                this.BinsHashCode,
-                                                recordView: this.DefaultRecordView);
-            }
-        }
+			var allTask = Task.Factory.StartNew(() =>
+							this.SetAccess.AerospikeConnection
+								.AerospikeClient
+								.ScanAll(this.DefaultScanPolicy,
+											this.Namespace,
+											string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
+												? null
+												: this.SetName,
+										(key, record)
+											=> allRecords
+												.Enqueue((T) CreateRecord(this.SetAccess,
+												                            key,
+												                            record,
+												                            this._bins,
+												                            this.BinsHashCode,
+												                            recordView: this.DefaultRecordView))),
+							cancellationToken: CancellationToken.None,
+							creationOptions: TaskCreationOptions.DenyChildAttach
+												| TaskCreationOptions.LongRunning,
+							scheduler: TaskScheduler.Current);
 
+			while(!allTask.IsCompleted)
+			{
+				if(allRecords.TryDequeue(out T value))
+					yield return value;
+			}
+
+			foreach(var record in allRecords.TakeWhile(record => record is not null))
+			{
+				yield return record;
+			}
+
+			if(allTask.IsFaulted && allTask.Exception is not null)
+				throw allTask.Exception.InnerExceptions.Count == 1
+						? allTask.Exception.InnerExceptions[0]
+						: allTask.Exception;
+		}
+		
         IEnumerator IEnumerable.GetEnumerator()
-        {
-            return this.GetEnumerator();
-        }
+            => this.GetEnumerator();        
         #endregion
     }
 
@@ -682,8 +763,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultWritePolicy = new WritePolicy(this.SetAccess.DefaultWritePolicy);
             this.DefaultReadPolicy = new Policy(this.SetAccess.DefaultReadPolicy);
             this.DefaultQueryPolicy = new QueryPolicy(this.SetAccess.DefaultQueryPolicy);
+            this.DefaultScanPolicy = new ScanPolicy(this.SetAccess.DefaultScanPolicy);
             this.DefaultRecordView = this.SetAccess.AerospikeConnection.RecordView;
-
         }
 
         public SetRecords([NotNull] SetRecords clone)
@@ -697,6 +778,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultWritePolicy = new WritePolicy(clone.DefaultWritePolicy);
             this.DefaultReadPolicy = new Policy(clone.DefaultReadPolicy);
             this.DefaultQueryPolicy = new QueryPolicy(clone.DefaultQueryPolicy);
+            this.DefaultScanPolicy = new ScanPolicy(clone.DefaultScanPolicy);
             this.DefaultRecordView = clone.DefaultRecordView;
         }
         #endregion
@@ -824,6 +906,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <see href="https://docs.aerospike.com/apidocs/csharp/html/t_aerospike_client_querypolicy"/>
         /// </summary>
         public QueryPolicy DefaultQueryPolicy { get; set; }
+
+		/// <summary>
+		/// <see href="https://docs.aerospike.com/apidocs/csharp/html/t_aerospike_client_scanpolicy"/>
+		/// </summary>
+		public ScanPolicy DefaultScanPolicy { get; set; }
 
         protected string[] _bins = Array.Empty<string>();
         /// <summary>
@@ -1823,7 +1910,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
         /// <returns></returns>
         /// <seealso cref="Take(int, Client.Exp)"/>
+        /// <seealso cref="First(Func{ARecord, bool}, Exp)"/>
         /// <seealso cref="FirstOrDefault(Client.Exp)"/>
+        /// <seealso cref="FirstOrDefault(Func{ARecord, bool}, Exp)"/>
         /// <seealso cref="AsEnumerable(Client.Exp)"/>
         /// <seealso cref="Get(dynamic, string[])"/>
         /// <seealso cref="Operate(dynamic, Operation[])"/>
@@ -1840,6 +1929,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <returns></returns>
         /// <seealso cref="Take(int, Client.Exp)"/>
         /// <seealso cref="First(Client.Exp)"/>
+        /// <seealso cref="First(Func{ARecord, bool}, Exp)"/>
+        /// <seealso cref="FirstOrDefault(Func{ARecord, bool}, Exp)"/>
         /// <seealso cref="AsEnumerable(Client.Exp)"/>
         /// <seealso cref="Get(dynamic, string[])"/>
         /// <seealso cref="Operate(dynamic, Operation[])"/>
@@ -1849,20 +1940,59 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return this.Take(1, filterExpression).FirstOrDefault();
         }
 
-        /// <summary>
-        /// Skips the number of records from the set based on <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
-        /// </summary>
-        /// <param name="numberRecords">Number of records to skip</param>
-        /// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
-        /// <returns></returns>
-        /// <seealso cref="Take(int, Client.Exp)"/>
-        /// <seealso cref="First(Client.Exp)"/>
-        /// <seealso cref="FirstOrDefault(Client.Exp)"/>
-        /// <seealso cref="AsEnumerable(Client.Exp)"/>
-        /// <seealso cref="Get(dynamic, string[])"/>
-        /// <seealso cref="Operate(dynamic, Operation[])"/>
-        /// <seealso cref="DefaultQueryPolicy"/>
-        public IEnumerable<ARecord> Skip(int numberRecords, Client.Exp filterExpression = null)
+		/// <summary>
+		/// Returns the first record from the set based on <see cref="DefaultScanPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="predicate">
+		/// Predicate used to find the first occurrence.
+		/// </param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp)"/>
+		/// <seealso cref="First(Exp)"/>
+		/// <seealso cref="First(Func{ARecord, bool}, Exp)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp)"/>
+		/// <seealso cref="Get(dynamic, string[])"/>
+		/// <seealso cref="Operate(dynamic, Operation[])"/>
+		/// <seealso cref="DefaultScanPolicy"/>
+		public ARecord First(Func<ARecord, bool> predicate, Client.Exp filterExpression = null)
+						=> this.AsEnumerable(filterExpression).First(predicate);
+
+
+		/// <summary>
+		/// Returns the first record or null from the set based on <see cref="DefaultScanPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="predicate">
+		/// Predicate used to find the first occurrence.
+		/// </param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp)"/>
+		/// <seealso cref="First(Client.Exp)"/>
+		/// <seealso cref="First(Func{ARecord, bool}, Exp)"/>
+		/// <seealso cref="FirstOrDefault(Exp)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp)"/>
+		/// <seealso cref="Get(dynamic, string[])"/>
+		/// <seealso cref="Operate(dynamic, Operation[])"/>
+		/// <seealso cref="DefaultScanPolicy"/>
+		public ARecord FirstOrDefault(Func<ARecord, bool> predicate, Client.Exp filterExpression = null)
+						=> this.AsEnumerable(filterExpression).FirstOrDefault(predicate);
+
+		/// <summary>
+		/// Skips the number of records from the set based on <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="numberRecords">Number of records to skip</param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp)"/>
+		/// <seealso cref="First(Client.Exp)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp)"/>
+		/// <seealso cref="Get(dynamic, string[])"/>
+		/// <seealso cref="Operate(dynamic, Operation[])"/>
+		/// <seealso cref="DefaultQueryPolicy"/>
+		public IEnumerable<ARecord> Skip(int numberRecords, Client.Exp filterExpression = null)
         {
             int currentIdx = 0;
             var queryPolicy = filterExpression == null
@@ -1913,55 +2043,110 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public IEnumerable<TResult> Select<TResult>(Func<ARecord, TResult> selector)
             => this.AsEnumerable().Select(selector);
 
-        /// <summary>
-        /// Returns IEnumerable&gt;<see cref="ARecord"/>&lt; for the records of this set based on <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
-        /// </summary>
-        /// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
-        /// <seealso cref="Take(int, Client.Exp)"/>
-        /// <seealso cref="First(Client.Exp)"/>
-        /// <seealso cref="FirstOrDefault(Client.Exp)"/>
-        /// <seealso cref="Get(dynamic, string[])"/>
-        /// <seealso cref="Operate(dynamic, Operation[])"/>
-        /// <seealso cref="DefaultQueryPolicy"/>
-        public IEnumerable<ARecord> AsEnumerable(Client.Exp filterExpression = null)
+		/// <summary>
+		/// Returns IEnumerable&gt;<see cref="ARecord"/>&lt; for the records of this set based on <see cref="DefaultScanPolicy"/> or <paramref name="filterExpression"/>.
+		/// Note: The records&apos; return order may vary between executions. 
+		/// </summary>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <seealso cref="Take(int, Client.Exp)"/>
+		/// <seealso cref="First(Client.Exp)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp)"/>
+		/// <seealso cref="Get(dynamic, string[])"/>
+		/// <seealso cref="Operate(dynamic, Operation[])"/>
+		/// <seealso cref="GetRecords(string[])"/>
+		/// <seealso cref="DefaultScanPolicy"/>        
+		public IEnumerable<ARecord> AsEnumerable(Client.Exp filterExpression = null)
         {
-            var queryPolicy = filterExpression == null
-                                    ? this.DefaultQueryPolicy
-                                    : new QueryPolicy(this.DefaultQueryPolicy) { filterExp = Exp.Build(filterExpression) };
+			var scanPolicy = filterExpression == null
+									? this.DefaultScanPolicy
+									: new ScanPolicy(this.DefaultScanPolicy)
+                                            { filterExp = Exp.Build(filterExpression) };
 
-            using var recordset = this.SetAccess.AerospikeConnection
-                                    .AerospikeClient
-                                    .Query(queryPolicy,
-                                            string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
-                                            ? new Statement() { Namespace = this.Namespace }
-                                            : new Statement() { Namespace = this.Namespace, SetName = this.SetName });
+			var allRecords = new ConcurrentQueue<ARecord>();
 
-                while (recordset.Next())
-                {
-                    yield return new ARecord(this.SetAccess,
-                                                recordset.Key,
-                                                recordset.Record,
-                                                this._bins,
-                                                setBinsHashCode: this.BinsHashCode,
-                                                dumpType: this.DefaultRecordView);
-                }
+			var allTask = Task.Factory.StartNew(() =>
+							this.SetAccess.AerospikeConnection
+								.AerospikeClient
+								.ScanAll(scanPolicy,
+											this.Namespace,
+											string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
+												? null
+												: this.SetName,
+										(key, record)
+											=> allRecords
+												.Enqueue(new ARecord(this.SetAccess,
+																		key,
+																		record,
+																		this._bins,
+																		setBinsHashCode: this.BinsHashCode,
+																		dumpType: this.DefaultRecordView))),
+							cancellationToken: CancellationToken.None,
+							creationOptions: TaskCreationOptions.DenyChildAttach
+												| TaskCreationOptions.LongRunning,
+							scheduler: TaskScheduler.Current);
+
+			while(!allTask.IsCompleted)
+			{
+				if(allRecords.TryDequeue(out ARecord value))
+					yield return value;
+			}
+
+			foreach(var record in allRecords.TakeWhile(rec => rec is not null))
+			{
+				yield return record;
+			}
+
+            if(allTask.IsFaulted && allTask.Exception is not null)
+                throw allTask.Exception.InnerExceptions.Count == 1
+                        ? allTask.Exception.InnerExceptions[0]
+                        : allTask.Exception;
         }
 
-        /// <summary>
-        /// Returns true if primary key exists
-        /// </summary>
-        /// <param name="primaryKey">
-        /// The primary key can be a <see cref="Aerospike.Client.Key"/>, <see cref="Aerospike.Client.Value"/>, digest (byte[]), or a .net type.
-        /// </param>  
-        /// <param name="filterExpression">
-        /// A filter <see cref="Aerospike.Client.Expression"/> that is applied after obtaining the record via the primary key.
-        /// </param>
-        /// <returns>
-        /// True if the <paramref name="primaryKey"/> exists, otherwise false.
-        /// </returns>
-        /// <seealso cref="Get(dynamic, Expression, string[])"/>
-        /// <seealso cref="Query(Exp, string[])"/>
-        public bool Exists([NotNull] dynamic primaryKey, Expression filterExpression)
+		/// <summary>
+		/// Gets all records in this set        
+		/// </summary>
+		/// <param name="bins">bins you wish to get. If not provided all bins for a record</param>
+		/// <returns>An array of records in the set</returns>
+		/// <seealso cref="AsEnumerable(Exp)"/>
+        /// <seealso cref="DefaultQueryPolicy"/>
+		public ARecord[] GetRecords(params string[] bins)
+		{
+			var recordSets = new List<ARecord>();
+
+			using(var recordset = this.SetAccess.AerospikeConnection
+									.AerospikeClient
+									.Query(this.DefaultQueryPolicy,
+											string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
+												? new Statement() { Namespace = this.Namespace, BinNames = bins }
+												: new Statement() { Namespace = this.Namespace, SetName = this.SetName, BinNames = bins }))
+				while(recordset.Next())
+				{
+					recordSets.Add(new ARecord(this.SetAccess,
+												recordset.Key,
+												recordset.Record,
+												bins,
+                                                setBinsHashCode: this.BinsHashCode,
+												dumpType: this.DefaultRecordView));
+				}
+
+			return recordSets.ToArray();
+		}
+
+		/// <summary>
+		/// Returns true if primary key exists
+		/// </summary>
+		/// <param name="primaryKey">
+		/// The primary key can be a <see cref="Aerospike.Client.Key"/>, <see cref="Aerospike.Client.Value"/>, digest (byte[]), or a .net type.
+		/// </param>  
+		/// <param name="filterExpression">
+		/// A filter <see cref="Aerospike.Client.Expression"/> that is applied after obtaining the record via the primary key.
+		/// </param>
+		/// <returns>
+		/// True if the <paramref name="primaryKey"/> exists, otherwise false.
+		/// </returns>
+		/// <seealso cref="Get(dynamic, Expression, string[])"/>
+		/// <seealso cref="Query(Exp, string[])"/>
+		public bool Exists([NotNull] dynamic primaryKey, Expression filterExpression)
         {
             var key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
 
@@ -1972,7 +2157,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         .AerospikeClient
                         .Exists(policy, key);
         }
-
 
         /// <summary>
         /// Placeholder for <see cref="System.Linq.Enumerable.Count{TSource}(IEnumerable{TSource})"/>
@@ -2108,8 +2292,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 							BatchWritePolicy batchWritePolicy = null,
 							bool useParallelPuts = false,
 							CancellationToken cancellationToken = default)
-        {
-            return this.SetAccess.Import(importJSONFile,
+            => this.SetAccess.Import(importJSONFile,
                                             this.SetName,
                                             writePolicy: writePolicy ?? this.DefaultWritePolicy,
                                             ttl: ttl,
@@ -2119,8 +2302,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             batchWritePolicy: batchWritePolicy,
                                             useParallelPuts: useParallelPuts,
                                             cancellationToken);
-        }
-
         /// <summary>
         /// Creates a Json Array of all records in the set based on the <paramref name="filterExpression"/>, if provided.
         /// </summary>
@@ -2381,33 +2562,54 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return this.SetName == other.SetName && this.Namespace == other.Namespace;
         }
 
-        #endregion
+		#endregion
 
-        #region IEnumerable
-        public IEnumerator<ARecord> GetEnumerator()
+		#region IEnumerable
+
+		public IEnumerator<ARecord> GetEnumerator()
         {
-            using var recordset = this.SetAccess.AerospikeConnection
-                                    .AerospikeClient
-                                    .Query(this.DefaultQueryPolicy,
-                                            string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
-                                            ? new Statement() { Namespace = this.Namespace }
-                                            : new Statement() { Namespace = this.Namespace, SetName = this.SetName });
+			var allRecords = new ConcurrentQueue<ARecord>();
 
-            while (recordset.Next())
-            {                    
-                yield return new ARecord(this.SetAccess,
-                                            recordset.Key,
-                                            recordset.Record,
-                                            this._bins,
-                                            setBinsHashCode: this.BinsHashCode,
-                                            dumpType: this.DefaultRecordView);
-            }
-        }
+			var allTask = Task.Factory.StartNew(() =>
+						    this.SetAccess.AerospikeConnection
+                                .AerospikeClient
+                                .ScanAll(this.DefaultScanPolicy,
+										    this.Namespace,
+										    string.IsNullOrEmpty(this.SetName) || this.SetName == LPSet.NullSetName
+                                                ? null
+											    : this.SetName,
+									    (key, record) 
+                                            => allRecords
+                                                .Enqueue(new ARecord(this.SetAccess,
+											                            key,
+											                            record,
+											                            this._bins,
+											                            setBinsHashCode: this.BinsHashCode,
+											                            dumpType: this.DefaultRecordView))),
+                            cancellationToken: CancellationToken.None,
+                            creationOptions: TaskCreationOptions.DenyChildAttach
+                                                | TaskCreationOptions.LongRunning,
+                            scheduler: TaskScheduler.Current );
+
+			while(!allTask.IsCompleted)
+			{
+				if(allRecords.TryDequeue(out ARecord value))
+					yield return value;
+			}
+
+			foreach(var record in allRecords.TakeWhile(rec => rec is not null))
+			{
+				yield return record;
+			}
+
+			if(allTask.IsFaulted && allTask.Exception is not null)
+				throw allTask.Exception.InnerExceptions.Count == 1
+						? allTask.Exception.InnerExceptions[0]
+						: allTask.Exception;
+		}
 
         IEnumerator IEnumerable.GetEnumerator()
-        {
-            return this.GetEnumerator();
-        }
+            => this.GetEnumerator();        
         #endregion
     }
 }

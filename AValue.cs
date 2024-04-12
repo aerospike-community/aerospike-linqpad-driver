@@ -329,6 +329,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     #region native DataTypes operator/Methods
         
             public static implicit operator string (AValue v) => v.Convert< string >();
+            
             //public static implicit operator string[] (AValue v) => v.Convert<string[] >();            
             
             public static bool operator==(AValue av, string v) => av?.Equals(v) ?? false;
@@ -374,6 +375,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator bool (AValue v) => v.Convert< bool >();
+            
             //public static implicit operator bool[] (AValue v) => v.Convert<bool[] >();            
             
             public static bool operator==(AValue av, bool v) => av?.Equals(v) ?? false;
@@ -434,6 +436,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator Enum (AValue v) => v.Convert< Enum >();
+            
             //public static implicit operator Enum[] (AValue v) => v.Convert<Enum[] >();            
             
             public static bool operator==(AValue av, Enum v) => av?.Equals(v) ?? false;
@@ -494,6 +497,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator Guid (AValue v) => v.Convert< Guid >();
+            
             //public static implicit operator Guid[] (AValue v) => v.Convert<Guid[] >();            
             
             public static bool operator==(AValue av, Guid v) => av?.Equals(v) ?? false;
@@ -539,6 +543,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator short (AValue v) => v.Convert< short >();
+            
             //public static implicit operator short[] (AValue v) => v.Convert<short[] >();            
             
             public static bool operator==(AValue av, short v) => av?.Equals(v) ?? false;
@@ -599,6 +604,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator int (AValue v) => v.Convert< int >();
+            
             //public static implicit operator int[] (AValue v) => v.Convert<int[] >();            
             
             public static bool operator==(AValue av, int v) => av?.Equals(v) ?? false;
@@ -659,6 +665,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator long (AValue v) => v.Convert< long >();
+            
             //public static implicit operator long[] (AValue v) => v.Convert<long[] >();            
             
             public static bool operator==(AValue av, long v) => av?.Equals(v) ?? false;
@@ -719,6 +726,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator ushort (AValue v) => v.Convert< ushort >();
+            
             //public static implicit operator ushort[] (AValue v) => v.Convert<ushort[] >();            
             
             public static bool operator==(AValue av, ushort v) => av?.Equals(v) ?? false;
@@ -779,6 +787,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator uint (AValue v) => v.Convert< uint >();
+            
             //public static implicit operator uint[] (AValue v) => v.Convert<uint[] >();            
             
             public static bool operator==(AValue av, uint v) => av?.Equals(v) ?? false;
@@ -839,6 +848,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator ulong (AValue v) => v.Convert< ulong >();
+            
             //public static implicit operator ulong[] (AValue v) => v.Convert<ulong[] >();            
             
             public static bool operator==(AValue av, ulong v) => av?.Equals(v) ?? false;
@@ -899,6 +909,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator decimal (AValue v) => v.Convert< decimal >();
+            
             //public static implicit operator decimal[] (AValue v) => v.Convert<decimal[] >();            
             
             public static bool operator==(AValue av, decimal v) => av?.Equals(v) ?? false;
@@ -959,6 +970,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator float (AValue v) => v.Convert< float >();
+            
             //public static implicit operator float[] (AValue v) => v.Convert<float[] >();            
             
             public static bool operator==(AValue av, float v) => av?.Equals(v) ?? false;
@@ -1019,6 +1031,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator double (AValue v) => v.Convert< double >();
+            
             //public static implicit operator double[] (AValue v) => v.Convert<double[] >();            
             
             public static bool operator==(AValue av, double v) => av?.Equals(v) ?? false;
@@ -1079,6 +1092,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator byte (AValue v) => v.Convert< byte >();
+            
             //public static implicit operator byte[] (AValue v) => v.Convert<byte[] >();            
             
             public static bool operator==(AValue av, byte v) => av?.Equals(v) ?? false;
@@ -1139,6 +1153,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator sbyte (AValue v) => v.Convert< sbyte >();
+            
             //public static implicit operator sbyte[] (AValue v) => v.Convert<sbyte[] >();            
             
             public static bool operator==(AValue av, sbyte v) => av?.Equals(v) ?? false;
@@ -1199,6 +1214,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator DateTime (AValue v) => v.Convert< DateTime >();
+            
             //public static implicit operator DateTime[] (AValue v) => v.Convert<DateTime[] >();            
             
             public static bool operator==(AValue av, DateTime v) => av?.Equals(v) ?? false;
@@ -1257,6 +1273,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator DateTimeOffset (AValue v) => v.Convert< DateTimeOffset >();
+            
             //public static implicit operator DateTimeOffset[] (AValue v) => v.Convert<DateTimeOffset[] >();            
             
             public static bool operator==(AValue av, DateTimeOffset v) => av?.Equals(v) ?? false;
@@ -1315,6 +1332,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator TimeSpan (AValue v) => v.Convert< TimeSpan >();
+            
             //public static implicit operator TimeSpan[] (AValue v) => v.Convert<TimeSpan[] >();            
             
             public static bool operator==(AValue av, TimeSpan v) => av?.Equals(v) ?? false;
@@ -1375,6 +1393,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     #region Class Data Types operator/methods
         
             public static implicit operator JObject (AValue key) => key is null ? null : (JObject) key.Convert< JObject >();
+            
             //public static implicit operator JObject[] (AValue key) => (JObject[]) key.Convert<JObject[]>();
             
             public JObject ToJObject() => (JObject) this;
@@ -1400,6 +1419,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator JArray (AValue key) => key is null ? null : (JArray) key.Convert< JArray >();
+            
             //public static implicit operator JArray[] (AValue key) => (JArray[]) key.Convert<JArray[]>();
             
             public JArray ToJArray() => (JArray) this;
@@ -1425,6 +1445,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator JValue (AValue key) => key is null ? null : (JValue) key.Convert< JValue >();
+            
             //public static implicit operator JValue[] (AValue key) => (JValue[]) key.Convert<JValue[]>();
             
             public JValue ToJValue() => (JValue) this;
@@ -1450,6 +1471,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         
             public static implicit operator JToken (AValue key) => key is null ? null : (JToken) key.Convert< JToken >();
+            
             //public static implicit operator JToken[] (AValue key) => (JToken[]) key.Convert<JToken[]>();
             
             public JToken ToJToken() => (JToken) this;

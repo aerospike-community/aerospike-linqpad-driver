@@ -26,8 +26,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="APrimaryKey.ToValue(Client.Key)"/>
     /// <seealso cref="AValueHelper.ToAValue(Client.Bin)"/>
     /// <seealso cref="AValueHelper.ToAPrimaryKey(Client.Key)"/>
-    /// <seealso cref="AValueHelper.ToAValue(Client.Value)"/>
-    /// <seealso cref="AValueHelper.ToAValue(object)"/>
+    /// <seealso cref="AValueHelper.ToAValue(object, string, string)"/>
+    /// <seealso cref="AValueHelper.ToAValue(Value, string, string)"/>
     /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
     /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
     /// <seealso cref="AValueHelper.TryGetValue{T}(IEnumerable{AValue}, T, bool)"/>
@@ -1643,7 +1643,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             && jObj.ContainsKey(sKey),                
                 System.Collections.IDictionary cDict
                     => cDict.Contains((object) key),
-                _ => Helpers.EqualsKVP(this.Value, key, out var ignore)
+                _ => Helpers.EqualsKVP(this.Value, key, out var _)
             };
         }
 

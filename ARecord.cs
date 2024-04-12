@@ -12,7 +12,6 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IO;
-using static System.Net.WebRequestMethods;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -137,6 +136,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public ARecord([NotNull] ARecord cloneRecord)
         {
+            this.SetAccess = cloneRecord.SetAccess;
             this.Aerospike = new AerospikeAPI(cloneRecord.Aerospike);
             this.DumpType = cloneRecord.DumpType;
             this.SetBinsHashCode = cloneRecord.SetBinsHashCode;
@@ -221,12 +221,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         
         /// <summary>
         /// This is the Set's Bin Names Hash Code
-        /// </summary>
-        private int SetBinsHashCode { get; }
+        /// </summary>        
+        protected int SetBinsHashCode { get; }
         /// <summary>
         /// This is the Record&apos;s Bin Name Hash Code
         /// </summary>
-        private int BinsHashCode { get; }
+        protected int BinsHashCode { get; }
         
         /// <summary>
         /// The Set Access instance that this record is associated with.
@@ -580,6 +580,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="this[string]"/>
         /// <seealso cref="BinExists(string)"/>
         /// <seealso cref="GetValue(string)"/>
+        /// <seealso cref="Refresh(Policy)"/>
+        /// <seealso cref="Update(WritePolicy)"/>
         public ARecord SetValue([NotNull] string binName, object value, bool cloneRecord = false)
         {
             ARecord newRec = cloneRecord ? new ARecord(this) : this;
@@ -605,18 +607,45 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             return newRec;
         }
-        
-        /// <summary>
-        /// Determines if the bin exists within the record.
-        /// </summary>
-        /// <param name="binName">BinName Name</param>
-        /// <returns>
-        /// True if it exists.
-        /// </returns>
-        /// <seealso cref="this[string]"/>
-        /// <seealso cref="GetValue(string)"/>
-        /// <seealso cref="SetValue(string, object, bool)"/>
-        public bool BinExists([NotNull] string binName) => this.Aerospike.BinExists(binName);
+
+		/// <summary>
+		/// Set a value to a bin within the record. This can be adding a new bin or updating an existing bin.
+		/// </summary>
+		/// <param name="binName">BinName Name</param>
+		/// <param name="value">
+		/// Value associated with the bin.
+		/// If null, the bin is removed from DB record.
+		/// <paramref name="value"/> can be a <see cref="Value"/>, <see cref="AerospikeAPI.Key"/>, <see cref="Bin"/> or a native type/class.
+		/// </param>
+		/// <param name="cloneRecord">
+		/// If true, this instance (record) is cloned and then updated.
+		/// </param>
+		/// <returns>
+		/// Returns the updated record. 
+		/// </returns>
+		/// <seealso cref="this[string]"/>
+		/// <seealso cref="BinExists(string)"/>
+		/// <seealso cref="GetValue(string)"/>
+		public ARecord SetValue<T>([NotNull] string binName, Nullable<T> value, bool cloneRecord = false)
+            where T : struct
+		{
+			if(value.HasValue)
+                return this.SetValue(binName, value.Value, cloneRecord);
+
+			return this.SetValue(binName, null, cloneRecord);
+		}
+
+		/// <summary>
+		/// Determines if the bin exists within the record.
+		/// </summary>
+		/// <param name="binName">BinName Name</param>
+		/// <returns>
+		/// True if it exists.
+		/// </returns>
+		/// <seealso cref="this[string]"/>
+		/// <seealso cref="GetValue(string)"/>
+		/// <seealso cref="SetValue(string, object, bool)"/>
+		public bool BinExists([NotNull] string binName) => this.Aerospike.BinExists(binName);
 
         /// <summary>
         /// Returns the Bin&apos;s value.
@@ -655,6 +684,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <exception cref="NullReferenceException">
         /// If <see cref="SetAccess"/> is null, a Null reference exception is thrown. 
         /// </exception>
+        /// <seealso cref="Update(WritePolicy)"/>
+        /// <seealso cref="Refresh(Policy)"/>
         public bool Delete(WritePolicy writePolicy = null)
         {
             if (this.SetAccess == null)
@@ -669,10 +700,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Updates this record in the DB
         /// </summary>
         /// <param name="writePolicy"></param>
+        /// <returns>Returns this object</returns>
         /// <exception cref="NullReferenceException">
         /// If <see cref="SetAccess"/> is null, a Null reference exception is thrown. 
         /// </exception>
-        public void Update(WritePolicy writePolicy = null)
+        /// <seealso cref="Refresh(Policy)"/>
+        /// <seealso cref="Delete(WritePolicy)"/>
+        public ARecord Update(WritePolicy writePolicy = null)
         {
             if (this.SetAccess == null)
                 throw new NullReferenceException("No Set Instance associated with this record. As such, it cannot be updated.");
@@ -680,7 +714,42 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.SetAccess
                 .AerospikeConnection
                 .AerospikeClient.Put(writePolicy, this.Aerospike.Key, this.Aerospike.Bins);
+
+            return this;
         }
+
+		/// <summary>
+		/// Re-retrieves the record from the DB based on <see cref="Key"/>.
+		/// A new instance of record is created and returned.
+		/// </summary>
+		/// <param name="policy">A <see cref="Policy"/> instance or the default policy is used.</param>
+		/// <returns>
+		/// A new instance of <see cref="ARecord"/> returned from the DB.
+		/// If the record is not found in the DB, null is returned.
+		/// </returns>
+		/// <exception cref="NullReferenceException">
+		/// If <see cref="SetAccess"/> is null, a Null reference exception is thrown. 
+		/// </exception>
+        /// <seealso cref="Update(Client.WritePolicy)"/>
+        /// <seealso cref="Delete(Client.WritePolicy)"/>
+		public ARecord Refresh(Policy policy = null)
+        {
+			if(this.SetAccess == null)
+				throw new NullReferenceException("No Set Instance associated with this record. As such, it cannot be retrieved.");
+
+			var record = this.SetAccess
+			                    .AerospikeConnection
+				                .AerospikeClient
+                                .Get(policy, this.Aerospike.Key);
+
+            return record is null 
+                    ? null
+                    : new ARecord(this.SetAccess,
+                                    this.Aerospike.Key,
+                                    record,
+                                    this.Aerospike.BinNames,
+                                    this.DumpType);
+		}
 
         /// <summary>
         /// Will convert the record into a user defined class were the bin's name is matches the class's field/property name and type.

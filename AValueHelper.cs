@@ -10,9 +10,20 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     public static class AValueHelper
     {
         public static AValue ToAValue(this Bin bin) => new AValue(bin);
-        public static AValue ToAValue(this Value value) => new AValue(value, "Value", "Value");
+        public static AValue ToAValue(this Value value, string bin = null, string fld = null)
+                                    => new AValue(value, bin ?? "Value", fld ?? "Value");        
         public static APrimaryKey ToAPrimaryKey(this Key key) => new APrimaryKey(key);
-        public static AValue ToAValue(this object value) => new AValue(value, "Object", "Value");
+
+        public static AValue ToAValue<T>(this Nullable<T> value, string bin = null, string fld = null)
+                                where T : struct
+        {
+            if(value.HasValue)
+                return ToAValue(value.Value, bin, fld);
+            return AValue.Empty;
+        }
+                                
+		public static AValue ToAValue(this object value, string bin = null, string fld = null)
+                                => new AValue(value, bin ?? "Object", fld ??"Value");
 
         /// <summary>
         /// Converts a collection of <see cref="AValue"/>s into a dictionary where the key is the AValue&apos;s Bin Name and the value is the AValue.

@@ -9,15 +9,12 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Documents;
 using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using static System.Net.WebRequestMethods;
 using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
@@ -58,7 +55,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultWritePolicy = new WritePolicy();
             this.DefaultQueryPolicy = new QueryPolicy();
             this.DefaultReadPolicy = new QueryPolicy();
-
+            this.DefaultScanPolicy = new ScanPolicy();
         }
 
         public ANamespaceAccess(IDbConnection dbConnection, string ns, string[] binNames)
@@ -71,7 +68,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultWritePolicy = new WritePolicy(this.AerospikeConnection.AerospikeClient.WritePolicyDefault);
             this.DefaultQueryPolicy = new QueryPolicy(this.AerospikeConnection.AerospikeClient.QueryPolicyDefault);
             this.DefaultReadPolicy = new QueryPolicy(this.AerospikeConnection.AerospikeClient.QueryPolicyDefault);
-
+            this.DefaultScanPolicy = new ScanPolicy(this.AerospikeConnection.AerospikeClient.ScanPolicyDefault);
         }
 
         public ANamespaceAccess(IDbConnection dbConnection, LPNamespace lpNamespace, string ns, string[] binNames)
@@ -350,86 +347,131 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </summary>
         public Policy DefaultReadPolicy { get; }
 
-        #region Get Methods
-        /// <summary>
-        /// Gets all records in a set
-        /// </summary>        
-        /// <param name="setName">Set name or null for the null set</param>
-        /// <param name="bins">bins you wish to get. If not provided all bins for a record</param>
-        /// <returns>An array of records in the set</returns>
-        public ARecord[] GetRecords(string setName, params string[] bins)
-        {            
-            var recordSets = new List<ARecord>();
+		/// <summary>
+		/// <see href="https://docs.aerospike.com/apidocs/csharp/html/t_aerospike_client_scanpolicy"/>
+		/// </summary>
+		public ScanPolicy DefaultScanPolicy { get; }
 
-            using (var recordset = this.AerospikeConnection
-                                    .AerospikeClient
-                                    .Query(this.DefaultQueryPolicy,
-                                            string.IsNullOrEmpty(setName) || setName == LPSet.NullSetName
-                                                ? new Statement() { Namespace = this.Namespace}
-                                                : new Statement() { Namespace = this.Namespace, SetName = setName }))
-
-                while (recordset.Next())
-                {
-                    recordSets.Add(new ARecord(this,
-                                                recordset.Key,
-                                                recordset.Record,
-                                                bins,
-                                                dumpType: this.AerospikeConnection.RecordView));
-                }
-
-            return recordSets.ToArray();
-        }
+		#region Get Methods
+		/// <summary>
+		/// Gets all records in a set		
+		/// </summary>        
+		/// <param name="setName">Set name or null for the null set</param>
+		/// <param name="bins">bins you wish to get. If not provided all bins for a record</param>
+		/// <returns>An array of records in the set</returns>
+		/// <seealso cref="AsEnumerable(string, Exp)"/>
+		/// <seealso cref="GetRecords(string, string, string[])"/>
+		/// <seealso cref="DefaultQueryPolicy"/>
+		public ARecord[] GetRecords(string setName, params string[] bins)
+                            => GetRecords(this.Namespace, setName, bins);
 
         /// <summary>
-        /// Gets all records in a namespace and/or set
+        /// Gets all records in a namespace and/or set        
         /// </summary>
         /// <param name="nsName">namespace</param>
         /// <param name="setName">Set name or null for the null set</param>
         /// <param name="bins">bins you wish to get. If not provided all bins for a record</param>
         /// <returns>An array of records in the set</returns>
+        /// <seealso cref="AsEnumerable(string, Exp)"/>
+        /// <seealso cref="GetRecords(string, string[])"/>
+        /// <seealso cref="DefaultQueryPolicy"/>
         public ARecord[] GetRecords([NotNull] string nsName, string setName, params string[] bins)
         {
-            var recordSets = new List<ARecord>();
+			var recordSets = new List<ARecord>();
+            
+			using(var recordset = this.AerospikeConnection
+									.AerospikeClient
+									.Query(this.DefaultQueryPolicy,
+											string.IsNullOrEmpty(setName) || setName == LPSet.NullSetName
+												? new Statement() { Namespace = nsName, BinNames = bins }
+												: new Statement() { Namespace = nsName, SetName = setName, BinNames = bins }))
+			while(recordset.Next())
+			{
+				recordSets.Add(new ARecord(this,
+											recordset.Key,
+											recordset.Record,
+											bins,
+											dumpType: this.AerospikeConnection.RecordView));
+			}
 
-            using (var recordset = this.AerospikeConnection
-                                    .AerospikeClient
-                                    .Query(this.DefaultQueryPolicy,
-                                            string.IsNullOrEmpty(setName) || setName == LPSet.NullSetName
-                                                ? new Statement() { Namespace = nsName }
-                                                : new Statement() { Namespace = nsName, SetName = setName }))
+			return recordSets.ToArray();
+		}
 
-                while (recordset.Next())
-                {
-                    recordSets.Add(new ARecord(this,
-                                                recordset.Key,
-                                                recordset.Record,
-                                                bins,
-                                                dumpType: this.AerospikeConnection.RecordView));
-                }
+		/// <summary>
+		/// Returns IEnumerable&gt;<see cref="ARecord"/>&lt; for the records of this set based on <see cref="DefaultScanPolicy"/> or <paramref name="filterExpression"/>.
+		/// Note: The records&apos; return order may vary between executions. 
+		/// </summary>
+		/// <param name="setName">Set name or null for the null set</param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <seealso cref="GetRecords(string, string[])"/>
+		/// <seealso cref="GetRecords(string, string, string[])"/>
+		/// <seealso cref="DefaultScanPolicy"/>
+		public IEnumerable<ARecord> AsEnumerable(string setName, Client.Exp filterExpression = null)
+		{
+			var scanPolicy = filterExpression == null
+									? this.DefaultScanPolicy
+									: new ScanPolicy(this.DefaultScanPolicy)
+									{ filterExp = Exp.Build(filterExpression) };
 
-            return recordSets.ToArray();
-        }
+			var allRecords = new ConcurrentQueue<ARecord>();
 
-        /// <summary>
-        /// Will retrieve a record based on the <paramref name="primaryKey"/>.
-        /// </summary>
-        /// <param name="setName">The name of the Aerospike set</param>
-        /// <param name="primaryKey">
-        /// Primary AerospikeKey.
-        /// This can be a <see cref="Client.Key"/>, <see cref="Value"/>, or <see cref="Bin"/> object besides a native, collection, etc. value/object.
-        /// </param>
-        /// <param name="bins">The bins that will be returned</param>
-        /// <returns>
-        /// The <see cref="ARecord"/>  or null
-        /// </returns>
-        /// <seealso cref="Put(string, dynamic, IEnumerable{Bin}, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="Put{T}(string, dynamic, string, IEnumerable{T}, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="Put{T}(string, dynamic, string, IList{T}, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="Put(string, dynamic, string, object, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="WriteObject{T}(string, dynamic, T, Func{string, string, object, bool, object}, string, WritePolicy, TimeSpan?)"/>
-        public ARecord Get(string setName, dynamic primaryKey, params string[] bins)
+			var allTask = Task.Factory.StartNew(() =>
+								this.AerospikeConnection
+									.AerospikeClient
+									.ScanAll(scanPolicy,
+												this.Namespace,
+												string.IsNullOrEmpty(setName) || setName == LPSet.NullSetName
+													? null
+													: setName,
+											(key, record)
+												=> allRecords
+													.Enqueue(new ARecord(this,
+																			key,
+																			record,
+                                                                            null,
+																			dumpType: this.AerospikeConnection.RecordView))),
+								cancellationToken: CancellationToken.None,
+								creationOptions: TaskCreationOptions.DenyChildAttach
+													| TaskCreationOptions.LongRunning,
+								scheduler: TaskScheduler.Current);
+
+			while(!allTask.IsCompleted)
+			{
+				if(allRecords.TryDequeue(out ARecord value))
+					yield return value;
+			}
+
+			foreach(var record in allRecords.TakeWhile(rec => rec is not null))
+			{
+				yield return record;
+			}
+
+			if(allTask.IsFaulted && allTask.Exception is not null)
+				throw allTask.Exception.InnerExceptions.Count == 1
+						? allTask.Exception.InnerExceptions[0]
+						: allTask.Exception;
+		}
+
+		/// <summary>
+		/// Will retrieve a record based on the <paramref name="primaryKey"/>.
+		/// </summary>
+		/// <param name="setName">The name of the Aerospike set</param>
+		/// <param name="primaryKey">
+		/// Primary AerospikeKey.
+		/// This can be a <see cref="Client.Key"/>, <see cref="Value"/>, or <see cref="Bin"/> object besides a native, collection, etc. value/object.
+		/// </param>
+		/// <param name="bins">The bins that will be returned</param>
+		/// <returns>
+		/// The <see cref="ARecord"/>  or null
+		/// </returns>
+		/// <seealso cref="Put(string, dynamic, IEnumerable{Bin}, WritePolicy, TimeSpan?)"/>
+		/// <seealso cref="Put{T}(string, dynamic, string, IEnumerable{T}, WritePolicy, TimeSpan?)"/>
+		/// <seealso cref="Put{T}(string, dynamic, string, IList{T}, WritePolicy, TimeSpan?)"/>
+		/// <seealso cref="Put{V}(string, dynamic, IDictionary{string, V}, WritePolicy, TimeSpan?)"/>
+		/// <seealso cref="Put(string, dynamic, string, object, WritePolicy, TimeSpan?)"/>
+		/// <seealso cref="Put(ARecord, string, WritePolicy, TimeSpan?)"/>
+		/// <seealso cref="WriteObject{T}(string, dynamic, T, Func{string, string, object, bool, object}, string, WritePolicy, TimeSpan?)"/>
+		public ARecord Get(string setName, dynamic primaryKey, params string[] bins)
         {
             var pk = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName);
 
@@ -1486,16 +1528,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 				batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
 				{
-					maxRetries = 1,
-					sendKey = true,
-					maxConcurrentThreads = 2,
-					sleepBetweenRetries = 5
+					maxRetries = this.DefaultWritePolicy.maxRetries,
+					sendKey = this.DefaultWritePolicy.sendKey,
+					maxConcurrentThreads = 5,
+					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries
 				};
 
 				batchWritePolicy ??= new BatchWritePolicy()
 				{
-					sendKey = true,
-					recordExistsAction = RecordExistsAction.REPLACE
+					sendKey = this.DefaultWritePolicy.sendKey,
+					recordExistsAction = this.DefaultWritePolicy.recordExistsAction
 				};
 
 				var batchArray = new BatchRecord[jsonStructs.Length];
@@ -1518,14 +1560,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                                                         this.Namespace,
 																						setName == string.Empty ? record.SetName : setName),
 														operations);
+					this.AddDynamicSet(record.SetName, bins);
 				});
 
 				if(!this.AerospikeConnection.AerospikeClient.Operate(batchPolicy,
 																		batchArray.ToList()))
 				{
 					failedImports = batchArray.Count(i => i.resultCode != ResultCode.OK);
-
-				}
+				}				
 			}
 
 			return jsonStructs.Length - failedImports;
@@ -1593,7 +1635,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         useParallelPuts: useParallelPuts,
                         cancellationToken: cancellationToken);
 
-
         /// <summary>
         /// Exports all the records in this namespace to a JSON file.
         /// </summary>
@@ -1646,7 +1687,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             var jsonArray = new JArray();
 
-            foreach (var rec in this.GetRecords(setName))
+            foreach (var rec in this.AsEnumerable(setName))
             {
                 jsonArray.Add(rec.ToJson(pkPropertyName, useDigest));
             }
