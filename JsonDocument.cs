@@ -3,6 +3,8 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Neo.IronLua;
+using Aerospike.Client.KVS;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -114,9 +116,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     public class CDTConverter : JsonConverter
     {
         private long _oid = 0;
+		bool _emptyStrIsNull = true;
 
-        public CDTConverter()
-        { }
+		public CDTConverter(bool treatEmptyStrAsNull = true)
+        {
+            this._emptyStrIsNull = treatEmptyStrAsNull;
+        }
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
@@ -143,7 +148,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                 return ReadJsonType(propertyName, jToken, null, serializer);
             }
-
+            
             return jToken.Value<object>();
         }
 
@@ -181,7 +186,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     this.ReadObject(jArray, newList, serializer);
                     existingValue.Add(kvp.Key, newList);
                 }
-                else if (kvp.Value is JValue jValue)
+				else if(this._emptyStrIsNull 
+                            && kvp.Value.Type == JTokenType.String
+                            && kvp.Value is JValue jStrValue)
+				{
+					var strValue = jStrValue.Value<string>();
+					existingValue.Add(kvp.Key,
+                                        strValue == string.Empty
+                                            ? null
+                                            : strValue);
+				}
+				else if (kvp.Value is JValue jValue)
                 {
                     existingValue.Add(kvp.Key, jValue.Value);
                 }
@@ -209,7 +224,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     this.ReadObject(jArray, newList, serializer);
                     existingValue.Add(newList);
                 }
-                else if (element is JValue jValue)
+				else if(this._emptyStrIsNull
+							&& element.Type == JTokenType.String
+							&& element is JValue jStrValue)
+				{
+					var strValue = jStrValue.Value<string>();
+					existingValue.Add(strValue == string.Empty
+											? null
+											: strValue);
+				}
+				else if (element is JValue jValue)
                 {
                     existingValue.Add(jValue.Value);
                 }
@@ -235,7 +259,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     this.ReadObject(jArray, newList, serializer);
                     existingValue.Add(jToken.Name, newList);
                 }
-                else if (element is JValue jValue)
+				else if(this._emptyStrIsNull
+							&& element.Type == JTokenType.String
+							&& element is JValue jStrValue)
+				{
+					var strValue = jStrValue.Value<string>();
+					existingValue.Add(jToken.Name,
+										strValue == string.Empty
+											? null
+											: strValue);
+				}
+				else if (element is JValue jValue)
                 {
                     existingValue.Add(jToken.Name, jValue.Value);
                 }
@@ -287,8 +321,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="serializer"></param>
         /// <returns></returns>
         private object ReadJsonType(string propType, JToken jToken, object existingValue, JsonSerializer serializer)
-        {
-
+        {           
             var tToken = jToken.Type;
             object vToken;
 
@@ -420,7 +453,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 case "$bool":
                 case "$boolean":
                     return Convert.ToBoolean(vToken);
-                default:
+                default:                    
                     return vToken;
             }
         }
