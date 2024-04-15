@@ -228,6 +228,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         { #>
 
             public static implicit operator <#= datatype #> (AValue v) => v.Convert< <#= datatype #> >();
+            
             //public static implicit operator <#= datatype #>[] (AValue v) => v.Convert<<#= datatype #>[] >();            
             
             public static bool operator==(AValue av, <#= datatype #> v) => av?.Equals(v) ?? false;
@@ -314,6 +315,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         { #>
 
             public static implicit operator <#= datatype #> (AValue key) => key is null ? null : (<#= datatype #>) key.Convert< <#= datatype #> >();
+            
             //public static implicit operator <#= datatype #>[] (AValue key) => (<#= datatype #>[]) key.Convert<<#= datatype #>[]>();
             
             public <#= datatype #> To<#= datatype #>() => (<#= datatype #>) this;

@@ -75,8 +75,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="cancellationToken">
         /// </param>
         /// <returns>The number of records imported</returns>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>        
         public int Import([NotNull] string nameSpace,
                             [NotNull] string setName,
@@ -131,8 +131,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="cancellationToken">
         /// </param>
         /// <returns>The number of records imported</returns>
-        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
-        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
+        /// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
         /// <seealso cref="SetRecords.Export(string, Exp, bool)"/>        
         public int Import([NotNull] string importJSONFile,
                             WritePolicy writePolicy = null,

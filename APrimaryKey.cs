@@ -21,8 +21,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// <seealso cref="APrimaryKey.ToValue(Client.Key)"/>
     /// <seealso cref="AValueHelper.ToAValue(Client.Bin)"/>
     /// <seealso cref="AValueHelper.ToAPrimaryKey(Client.Key)"/>
-    /// <seealso cref="AValueHelper.ToAValue(Client.Value)"/>
-    /// <seealso cref="AValueHelper.ToAValue(object)"/>
+    /// <seealso cref="AValueHelper.ToAValue(Client.Value, string, string)"/>
+    /// <seealso cref="AValueHelper.ToAValue(object, string, string)"/>
+    /// <seealso cref="AValueHelper.ToAValue{T}(T?, string, string)"/>
     /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
     /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
     public class APrimaryKey : AValue

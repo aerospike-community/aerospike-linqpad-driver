@@ -356,9 +356,36 @@ Below is the output from LINQPad:
 
 ## Importing/Exporting
 
-The driver can import a valid JSON file into an Aerospike namespace or set. The set can be an existing set or a new set which will be created. Each JSON property will be mapped to an Aerospike bin. Any JSON collection types will be transformed into the corresponding Aerospike CDT. Nested JSON objects will be treated as Aerospike JSON documents.
+The driver can import a valid JSON file into an Aerospike namespace or set from many different external databases via the “ImportJsonFile” method. Each JSON property will be mapped to an Aerospike bin, JSON collection types will be transformed into the corresponding Aerospike CDT, nested JSON objects will be treated as Aerospike JSON documents, etc. This behavior can be controlled via the methods arguments and connection dialog properties. Aerospike supports the following common in-line JSON types:
 
-The driver can also export an Aerospike namespace or set into a JSON file. Below is an example of an export from the “players” Aerospike set.
+-   \$date, \$datetime -- This can include an optional sub–Json Type. Example:   
+    bucket_start_date: { \$date: { \$numberLong: 1545886800000}}
+-   \$datetimeoffset -- This can include an optional sub–Json Type. Example:   
+    bucket_start_datetimeoffset: { \$datetimeoffset: { \$numberLong: 1545886800000}}
+-   \$timespan -- This can include an optional sub-Json Type. Example:  
+    bucket_start_time: { \$timespan: { \$numberLong: 1545886800000}}
+-   \$timestamp
+-   \$guid, \$uuid
+-   \$oid -- If the Json string value equals 40 in length it will be treated as a digest and converted into a byte array. Example:  
+    \_id: { \$oid: 0080a245fabe57999707dc41ced60edc4ac7ac40 } \_id:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]
+-   \$numberint64, \$numberlong
+-   \$numberint32, \$numberint
+-   \$numberdecimal
+-   \$numberdouble
+-   \$numberfloat, \$numbersingle
+-   \$numberint16, \$numbershort
+-   \$numberuint32, \$numberuint
+-   \$numberuint64, \$numberulong
+-   \$numberuint16, \$numberushort
+-   \$bool, \$boolean
+
+Below is an example of importing the Shipwreck sample dataset into the “Demo” namespace and creating the Aerospike set “shipwrecks”.
+
+```
+Demo.ImportJsonFile(@"C:\MonogoDBSampleCollection\shipwrecks.json", "shipwrecks")
+```
+
+The driver can also export and import between Aerospike cluster and/or namespaces and sets using the Export and Import methods. Below is an example of an export from the “players” Aerospike set.
 
 ```
 test.players.Export(@"c:\users\randersen_aerospike\Desktop\player.json");

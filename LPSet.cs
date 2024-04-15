@@ -318,10 +318,11 @@ namespace Aerospike.Database.LINQPadDriver
             var setClassFldsConst = new StringBuilder();
             var paramsNewRec = new StringBuilder();
             var dictValuesNewRec = new StringBuilder();
-            var binIEnums = new StringBuilder();
+			var propValuesUpdateRec = new StringBuilder();
+			var binIEnums = new StringBuilder();
             var fldSeen = new List<string>();            
 
-            setClassFlds.AppendLine($"\t\t\tpublic APrimaryKey {ARecord.DefaultASPIKeyName} {{ get; }}");
+            setClassFlds.AppendLine($"\t\t\tpublic APrimaryKey {ARecord.DefaultASPIKeyName} {{ get; private set; }}");
             setClassFldsConst.AppendLine($"\t\t\t\t\t{ARecord.DefaultASPIKeyName} = new APrimaryKey(this.Aerospike.Key);");
 
             paramsNewRec.AppendLine($"\t\t\tdynamic {ARecord.DefaultASPIKeyName},");
@@ -407,7 +408,7 @@ namespace Aerospike.Database.LINQPadDriver
                     setClassFlds.Append(fldType);
                     setClassFlds.Append(' ');
                     setClassFlds.Append(fldName);
-                    setClassFlds.Append("{ get; }");
+                    setClassFlds.Append("{ get; private set; }");
                     setClassFlds.AppendLine();
 
                     setClassFldsConst.Append("\t\t\t\t\t");
@@ -507,9 +508,10 @@ namespace Aerospike.Database.LINQPadDriver
 
                     }
 
-                    dictValuesNewRec.AppendLine($"\t\t\t\tif(!({fldName} is null)) dictRec.Add(\"{setBinType.BinName}\",{fldName});");
-
-                    setClassFldsConst.AppendLine();
+                    dictValuesNewRec.AppendLine($"\t\t\t\tif({fldName} is not null) dictRec.Add(\"{setBinType.BinName}\",{fldName});");
+                    propValuesUpdateRec.AppendLine($"\t\t\t\tif({fldName} is not null) base.SetValue(\"{setBinType.BinName}\", {fldName});");
+                
+					setClassFldsConst.AppendLine();
 
                     fldSeen.Add(setBinType.BinName);
 
@@ -532,6 +534,17 @@ namespace Aerospike.Database.LINQPadDriver
 
             Task.WaitAll(generateBinsTask, generateSIdxTask);
 
+            string setValuesParams = paramsNewRec.ToString().Trim();
+
+			{
+                var eopComma = setValuesParams.IndexOf(',');
+
+                setValuesParams = setValuesParams[(eopComma+1)..].Trim();
+
+                eopComma = setValuesParams.LastIndexOf(",");
+                setValuesParams = setValuesParams[..eopComma];
+			}
+                        
             var settClasses = $@"
 	public class {this.SafeName}_SetCls : Aerospike.Database.LINQPadDriver.Extensions.SetRecords<{this.SafeName}_SetCls.RecordCls>
 	{{
@@ -603,15 +616,74 @@ namespace Aerospike.Database.LINQPadDriver
 								Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes recordView = global::Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes.Record)
 				:base(setAccess, key, record, binNames, recordView, binsHashCode)
 			{{
-				try {{
+				RefreshFromDBRecord();
+			}}
+            
+            public RecordCls(RecordCls clone)
+                :base(clone)
+            {{
+				RefreshFromDBRecord();
+			}}
+
+            /// <summary>
+            /// Updates this instance based on the DB Record. 
+            /// This does not re-query the DB.
+            /// To perform this, call <see cref=""Refresh(Policy)""/> 
+            /// </summary>
+            /// <returns>
+            /// Returns the updated instance. 
+            /// </returns>            
+            /// <seealso cref=""Refresh(Policy)""/>            
+            public RecordCls RefreshFromDBRecord()
+            {{
+                try {{
 {setClassFldsConst}
 				}} catch (System.Exception ex) {{
 					this.SetException(ex);
 					this.SetDumpType(ARecord.DumpTypes.Dynamic);
 				}}
-			}}           
+                return this;
+            }}
 
 {setClassFlds}
+
+            /// <summary>
+            /// Sets values based on current record bin properties.
+            /// </summary>
+            /// <returns>
+            /// Returns the updated record. 
+            /// </returns>
+            /// <seealso cref=""this[string]""/>
+            /// <seealso cref=""BinExists(string)""/>
+            /// <seealso cref=""GetValue(string)""/>
+            /// <seealso cref=""Refresh(Policy)""/>
+            /// <seealso cref=""Update(WritePolicy)""/>
+            public RecordCls SetValues(
+{setValuesParams}
+)
+            {{
+{propValuesUpdateRec}
+
+                return RefreshFromDBRecord();                
+            }}
+
+            /// <inheritdoc/>
+            public new RecordCls Refresh(Policy policy = null) {{
+                var record = this.SetAccess
+			                    .AerospikeConnection
+				                .AerospikeClient
+                                .Get(policy, this.Aerospike.Key);
+                return new RecordCls(this.SetAccess,
+                                            this.Aerospike.Key,
+                                            record,
+                                            this.Aerospike.BinNames,
+                                            this.BinsHashCode,
+                                            this.DumpType);
+            }}
+
+            /// <inheritdoc/>
+            public new RecordCls Update(WritePolicy writePolicy = null) => (RecordCls) base.Update(writePolicy);
+
 			override public object ToDump() => this.ToDump( new string[] {{ ""{ARecord.DefaultASPIKeyName}"", {string.Join(',', flds.Select(s => "\"" + s + "\""))} }} );
 		}}
 

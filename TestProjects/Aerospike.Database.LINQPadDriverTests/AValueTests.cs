@@ -4,9 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Aerospike.Client;
-using NuGet.Frameworks;
 using Newtonsoft.Json.Linq;
-using System.Printing;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 {
@@ -1708,7 +1706,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsFalse(aBinValue.IsDateTime);
             Assert.IsFalse(aBinValue.IsDateTimeOffset);
             Assert.AreEqual(4, ((IList<object>)aBinValue.Value).Count);
-            listObj = new List<object>() { "BinB123", 89L, "List3Bin", "Key3" };
+            listObj = new() { "BinB123", 89L, "List3Bin", "Key3" };
             CollectionAssert.AreEqual(listObj,
                                         ((List<object>)aBinValue.Value));
 
@@ -2007,7 +2005,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsFalse(aBinValue.IsDateTime);
             Assert.IsFalse(aBinValue.IsDateTimeOffset);
             Assert.AreEqual(4, ((IList<object>)aBinValue.Value).Count);
-            listObj = new List<object>() { "BinB123", 89L, "List3Bin", "Key3" };
+            listObj = new () { "BinB123", 89L, "List3Bin", "Key3" };
             CollectionAssert.AreEqual(listObj,
                                         ((List<object>)aBinValue.Value));
 

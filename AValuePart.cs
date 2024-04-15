@@ -14,26 +14,27 @@ using System.Dynamic;
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
 
-    /// <summary>
-    /// A wrapper around an <see cref="Object"/> value. 
-    /// This is used as an aid so that casting is not required to perform comparison operations, etc.
-    /// This object also performs implicit casting to standard .Net data types while using LINQ...  
-    /// </summary>
-    /// <seealso cref="APrimaryKey"/>
-    /// <seealso cref="AValue.ToValue(object)"/>
-    /// <seealso cref="AValue.ToValue(Client.Bin)"/>
-    /// <seealso cref="AValue.ToValue(Client.Value)"/>
-    /// <seealso cref="APrimaryKey.ToValue(Client.Key)"/>
-    /// <seealso cref="AValueHelper.ToAValue(Client.Bin)"/>
-    /// <seealso cref="AValueHelper.ToAPrimaryKey(Client.Key)"/>
-    /// <seealso cref="AValueHelper.ToAValue(Client.Value)"/>
-    /// <seealso cref="AValueHelper.ToAValue(object)"/>
-    /// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
-    /// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
-    /// <seealso cref="AValueHelper.TryGetValue{T}(IEnumerable{AValue}, T, bool)"/>
-    /// <seealso cref="AValueHelper.Contains{T}(IEnumerable{AValue}, T, AValue.MatchOptions)"/>
-    /// <seealso cref="AValueHelper.FindAll{T}(IEnumerable{AValue}, T, AValue.MatchOptions)"/>
-    [DebuggerDisplay("{DebuggerString()}")]
+	/// <summary>
+	/// A wrapper around an <see cref="Object"/> value. 
+	/// This is used as an aid so that casting is not required to perform comparison operations, etc.
+	/// This object also performs implicit casting to standard .Net data types while using LINQ...  
+	/// </summary>
+	/// <seealso cref="APrimaryKey"/>
+	/// <seealso cref="AValue.ToValue(object)"/>
+	/// <seealso cref="AValue.ToValue(Client.Bin)"/>
+	/// <seealso cref="AValue.ToValue(Client.Value)"/>
+	/// <seealso cref="APrimaryKey.ToValue(Client.Key)"/>
+	/// <seealso cref="AValueHelper.ToAValue(Client.Bin)"/>
+	/// <seealso cref="AValueHelper.ToAPrimaryKey(Client.Key)"/>
+	/// <seealso cref="AValueHelper.ToAValue(object, string, string)"/>
+	/// <seealso cref="AValueHelper.ToAValue(Value, string, string)"/>
+	/// <seealso cref="AValueHelper.ToAValue{T}(T?, string, string)"/>
+	/// <seealso cref="AValueHelper.Cast{TResult}(IEnumerable{AValue})"/>
+	/// <seealso cref="AValueHelper.OfType{TResult}(IEnumerable{AValue})"/>
+	/// <seealso cref="AValueHelper.TryGetValue{T}(IEnumerable{AValue}, T, bool)"/>
+	/// <seealso cref="AValueHelper.Contains{T}(IEnumerable{AValue}, T, AValue.MatchOptions)"/>
+	/// <seealso cref="AValueHelper.FindAll{T}(IEnumerable{AValue}, T, AValue.MatchOptions)"/>
+	[DebuggerDisplay("{DebuggerString()}")]
     public partial class AValue 
     {
         #region Constructors
@@ -1643,7 +1644,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             && jObj.ContainsKey(sKey),                
                 System.Collections.IDictionary cDict
                     => cDict.Contains((object) key),
-                _ => Helpers.EqualsKVP(this.Value, key, out var ignore)
+                _ => Helpers.EqualsKVP(this.Value, key, out var _)
             };
         }
 

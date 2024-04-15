@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Ignore Spelling: TLS
+
+using System;
 using System.Collections.Generic;
 using LINQPad;
 using Aerospike.Client;
@@ -326,7 +328,7 @@ namespace Aerospike.Database.LINQPadDriver
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static Regex VersionRegEx() => versionRegex;
 #endif
-        public void ObtainMetaDate(bool obtainBinsInSet = true, bool closeUponClompletion = true)
+        public void ObtainMetaDate(bool obtainBinsInSet = true, bool closeUponCompletion = true)
         {
             bool performedOpen = false;
             
@@ -510,7 +512,7 @@ namespace Aerospike.Database.LINQPadDriver
             }
             finally
             {
-                if (performedOpen && closeUponClompletion)
+                if (performedOpen && closeUponCompletion)
                     try
                     {
                         this.Close();
@@ -600,7 +602,19 @@ namespace Aerospike.Database.LINQPadDriver
                         totalTimeout = this.ConnectionTimeout,
                         sendKey = this.SendPK,
                         sleepBetweenRetries = this.SleepBetweenRetries
-                    }
+                    },
+                    scanPolicyDefault = new ScanPolicy()
+                    {
+						compress = this.NetworkCompression,
+						sleepBetweenRetries = this.SleepBetweenRetries,						
+						sendKey = this.SendPK,
+						socketTimeout = this.SocketTimeout,
+						totalTimeout = 0,
+						failOnFilteredOut = false,
+                        includeBinData = true,
+                        maxRetries = 3,
+                        recordsPerSecond = 0
+					}
                 };
                 this.ClientPolicy = policy;
 

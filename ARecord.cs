@@ -12,7 +12,6 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IO;
-using static System.Net.WebRequestMethods;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -137,6 +136,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public ARecord([NotNull] ARecord cloneRecord)
         {
+            this.SetAccess = cloneRecord.SetAccess;
             this.Aerospike = new AerospikeAPI(cloneRecord.Aerospike);
             this.DumpType = cloneRecord.DumpType;
             this.SetBinsHashCode = cloneRecord.SetBinsHashCode;
@@ -221,12 +221,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         
         /// <summary>
         /// This is the Set's Bin Names Hash Code
-        /// </summary>
-        private int SetBinsHashCode { get; }
+        /// </summary>        
+        protected int SetBinsHashCode { get; }
         /// <summary>
         /// This is the Record&apos;s Bin Name Hash Code
         /// </summary>
-        private int BinsHashCode { get; }
+        protected int BinsHashCode { get; }
         
         /// <summary>
         /// The Set Access instance that this record is associated with.
@@ -580,6 +580,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="this[string]"/>
         /// <seealso cref="BinExists(string)"/>
         /// <seealso cref="GetValue(string)"/>
+        /// <seealso cref="Refresh(Policy)"/>
+        /// <seealso cref="Update(WritePolicy)"/>
         public ARecord SetValue([NotNull] string binName, object value, bool cloneRecord = false)
         {
             ARecord newRec = cloneRecord ? new ARecord(this) : this;
@@ -605,18 +607,45 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             return newRec;
         }
-        
-        /// <summary>
-        /// Determines if the bin exists within the record.
-        /// </summary>
-        /// <param name="binName">BinName Name</param>
-        /// <returns>
-        /// True if it exists.
-        /// </returns>
-        /// <seealso cref="this[string]"/>
-        /// <seealso cref="GetValue(string)"/>
-        /// <seealso cref="SetValue(string, object, bool)"/>
-        public bool BinExists([NotNull] string binName) => this.Aerospike.BinExists(binName);
+
+		/// <summary>
+		/// Set a value to a bin within the record. This can be adding a new bin or updating an existing bin.
+		/// </summary>
+		/// <param name="binName">BinName Name</param>
+		/// <param name="value">
+		/// Value associated with the bin.
+		/// If null, the bin is removed from DB record.
+		/// <paramref name="value"/> can be a <see cref="Value"/>, <see cref="AerospikeAPI.Key"/>, <see cref="Bin"/> or a native type/class.
+		/// </param>
+		/// <param name="cloneRecord">
+		/// If true, this instance (record) is cloned and then updated.
+		/// </param>
+		/// <returns>
+		/// Returns the updated record. 
+		/// </returns>
+		/// <seealso cref="this[string]"/>
+		/// <seealso cref="BinExists(string)"/>
+		/// <seealso cref="GetValue(string)"/>
+		public ARecord SetValue<T>([NotNull] string binName, Nullable<T> value, bool cloneRecord = false)
+            where T : struct
+		{
+			if(value.HasValue)
+                return this.SetValue(binName, value.Value, cloneRecord);
+
+			return this.SetValue(binName, null, cloneRecord);
+		}
+
+		/// <summary>
+		/// Determines if the bin exists within the record.
+		/// </summary>
+		/// <param name="binName">BinName Name</param>
+		/// <returns>
+		/// True if it exists.
+		/// </returns>
+		/// <seealso cref="this[string]"/>
+		/// <seealso cref="GetValue(string)"/>
+		/// <seealso cref="SetValue(string, object, bool)"/>
+		public bool BinExists([NotNull] string binName) => this.Aerospike.BinExists(binName);
 
         /// <summary>
         /// Returns the Bin&apos;s value.
@@ -655,6 +684,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <exception cref="NullReferenceException">
         /// If <see cref="SetAccess"/> is null, a Null reference exception is thrown. 
         /// </exception>
+        /// <seealso cref="Update(WritePolicy)"/>
+        /// <seealso cref="Refresh(Policy)"/>
         public bool Delete(WritePolicy writePolicy = null)
         {
             if (this.SetAccess == null)
@@ -669,10 +700,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Updates this record in the DB
         /// </summary>
         /// <param name="writePolicy"></param>
+        /// <returns>Returns this object</returns>
         /// <exception cref="NullReferenceException">
         /// If <see cref="SetAccess"/> is null, a Null reference exception is thrown. 
         /// </exception>
-        public void Update(WritePolicy writePolicy = null)
+        /// <seealso cref="Refresh(Policy)"/>
+        /// <seealso cref="Delete(WritePolicy)"/>
+        public ARecord Update(WritePolicy writePolicy = null)
         {
             if (this.SetAccess == null)
                 throw new NullReferenceException("No Set Instance associated with this record. As such, it cannot be updated.");
@@ -680,7 +714,42 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.SetAccess
                 .AerospikeConnection
                 .AerospikeClient.Put(writePolicy, this.Aerospike.Key, this.Aerospike.Bins);
+
+            return this;
         }
+
+		/// <summary>
+		/// Re-retrieves the record from the DB based on <see cref="Key"/>.
+		/// A new instance of record is created and returned.
+		/// </summary>
+		/// <param name="policy">A <see cref="Policy"/> instance or the default policy is used.</param>
+		/// <returns>
+		/// A new instance of <see cref="ARecord"/> returned from the DB.
+		/// If the record is not found in the DB, null is returned.
+		/// </returns>
+		/// <exception cref="NullReferenceException">
+		/// If <see cref="SetAccess"/> is null, a Null reference exception is thrown. 
+		/// </exception>
+        /// <seealso cref="Update(Client.WritePolicy)"/>
+        /// <seealso cref="Delete(Client.WritePolicy)"/>
+		public ARecord Refresh(Policy policy = null)
+        {
+			if(this.SetAccess == null)
+				throw new NullReferenceException("No Set Instance associated with this record. As such, it cannot be retrieved.");
+
+			var record = this.SetAccess
+			                    .AerospikeConnection
+				                .AerospikeClient
+                                .Get(policy, this.Aerospike.Key);
+
+            return record is null 
+                    ? null
+                    : new ARecord(this.SetAccess,
+                                    this.Aerospike.Key,
+                                    record,
+                                    this.Aerospike.BinNames,
+                                    this.DumpType);
+		}
 
         /// <summary>
         /// Will convert the record into a user defined class were the bin's name is matches the class's field/property name and type.
@@ -855,7 +924,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Returns a <see cref="JObject"/> representing the record.
         /// </returns>
         /// <seealso cref="FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
+        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess, bool, bool)"/>
         /// <seealso cref="SetRecords.FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
@@ -949,7 +1018,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </returns>
         /// <seealso cref="ToJson(string, bool)"/>
         /// <seealso cref="FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
+        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess, bool, bool)"/>
         /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
         /// <seealso cref="SetRecords.Put(ARecord, WritePolicy, TimeSpan?)"/>
@@ -1023,84 +1092,89 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 setAccess: setAccess);
         }
 
-        /// <summary>
-        /// Given a Json string, creates a <see cref="ARecord"/> object that can but used to update the DB.
-        /// </summary>
-        /// <param name="nameSpace">The associated namespace of the set</param>
-        /// <param name="setName">The associated Set of the record</param>       
-        /// <param name="json"></param>
-        /// <param name="pkPropertyName">
-        /// The property name used to obtain the primary key. This must be a top level field (cannot be nested).
-        /// The default is &apos;_id&apos;.
-        /// If the pkPropertyName doesn&apos;s exists, a <see cref="KeyNotFoundException"/> is thrown.
-        /// </param>
-        /// <param name="writePKPropertyName">
-        /// If true, the <paramref name="pkPropertyName"/>, is written to the record.
-        /// If false (default), it will not be part of the record (only used to define the PK).
-        /// </param>
-        /// <param name="jsonBinName">
-        /// If provided, the Json object is placed into this bin.
-        /// If null (default), the each top level Json property will be associated with a bin. Note, if the property name is greater than the bin name limit, an Aerospike exception will occur during the put.
-        /// </param>
-        /// <param name="setAccess">The set instance that will be associated to this record.</param>
-        /// <returns>
-        /// Returns ARecord instance.
-        /// </returns>
-        /// <seealso cref="ToJson(string, bool)"/>
-        /// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
-        /// <seealso cref="FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
-        /// <seealso cref="SetRecords.Put(ARecord, WritePolicy, TimeSpan?)"/>
-        /// <seealso cref="AerospikeAPI.Bins"/>
-        /// <exception cref="KeyNotFoundException">
-        /// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 
-        /// </exception>
-        /// <remarks>
-        /// The Json string can include Json in-line types. Below are the supported types:
-        ///     <code>$date</code> or <code>$datetime</code>,
-        ///         This can include an optional sub Json Type.Example:
-        ///             <code>&quot;bucket_start_date&quot;: &quot;$date&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
-        ///     <code>$datetimeoffset</code>,
-        ///         This can include an optional sub Json Type. Example:
-        ///             <code>&quot;bucket_start_datetimeoffset&quot;: &quot;$datetimeoffset&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
-        ///     <code>$timespan</code>,
-        ///         This can include an optional sub Json Type. Example:
-        ///             <code>&quot;bucket_start_time&quot;: &quot;$timespan&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
-        ///     <code>$timestamp</code>,
-        ///     <code>$guid</code> or <code>$uuid</code>,
-        ///     &quot;$oid&quot;,
-        ///         If the Json string value equals 40 in length it will be treated as a digest and converted into a byte array.
-        ///         Example:
-        ///             &quot; _id&quot;: { &quot;$oid&quot;:&quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; } ==&gt; &quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]
-        ///         This type can also take an optional keyword as a value. They are:
-        ///             <code>$guid</code> or <code>$uuid</code> -- If provided, a new guid/uuid is generate as a unique value used
-        ///             <code>$numeric</code> -- a sequential number starting at 1 will be used
-        ///         Example:
-        ///             &quot; _id&quot;: { &quot;$oid&quot;: &quot;$uuid&quot; } ==&gt; Generates a new uuid as the _id value
-        ///     <code>$numberint64</code>, <code>$numberlong</code> or <code>$long</code>,
-        ///     <code>$numberint32</code>, <code>$numberint</code>, or <code>$int</code>,
-        ///     <code>$numberdecimal</code> or  <code>$decimal</code>,
-        ///     <code>$numberdouble</code> or  <code>$double</code>,
-        ///     <code>$numberfloat</code>, <code>$single</code>, or  <code>$float</code>,
-        ///     <code>$numberint16</code>, <code>$numbershort</code> or  <code>$short</code>,
-        ///     <code>$numberuint32</code>, <code>$numberuint</code>, or  <code>$uint</code>,
-        ///     <code>$numberuint64</code>, <code>$numberulong</code>, or  <code>$ulong</code>,
-        ///     <code>$numberuint16</code>, <code>$numberushort</code> or  <code>$ushort</code>,
-        ///     <code>$bool</code> or <code>$boolean</code>;
-        ///     <code>$type</code>
-        ///         This item must be the first property in a JObject where the property&apos;s value is a .NET type.
-        ///         All reminding elements will be transformed into that .NET object.
-        /// </remarks>
-        public static ARecord FromJson(string nameSpace,
+		/// <summary>
+		/// Given a Json string, creates a <see cref="ARecord"/> object that can but used to update the DB.
+		/// </summary>
+		/// <param name="nameSpace">The associated namespace of the set</param>
+		/// <param name="setName">The associated Set of the record</param>       
+		/// <param name="json"></param>
+		/// <param name="pkPropertyName">
+		/// The property name used to obtain the primary key. This must be a top level field (cannot be nested).
+		/// The default is &apos;_id&apos;.
+		/// If the pkPropertyName doesn&apos;s exists, a <see cref="KeyNotFoundException"/> is thrown.
+		/// </param>
+		/// <param name="writePKPropertyName">
+		/// If true, the <paramref name="pkPropertyName"/>, is written to the record.
+		/// If false (default), it will not be part of the record (only used to define the PK).
+		/// </param>
+		/// <param name="jsonBinName">
+		/// If provided, the Json object is placed into this bin.
+		/// If null (default), the each top level Json property will be associated with a bin. Note, if the property name is greater than the bin name limit, an Aerospike exception will occur during the put.
+		/// </param>
+		/// <param name="treatEmptyStrAsNull">
+		/// If true, default, these properties with an empty string value will be considered null (bin not saved).
+		/// If false, these properties with an empty string value will have a bin value of empty string.
+		/// </param>
+		/// <param name="setAccess">The set instance that will be associated to this record.</param>
+		/// <returns>
+		/// Returns ARecord instance.
+		/// </returns>
+		/// <seealso cref="ToJson(string, bool)"/>
+		/// <seealso cref="FromJson(string, string, string, string, string, ANamespaceAccess, bool, bool)"/>
+		/// <seealso cref="FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
+		/// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
+		/// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
+		/// <seealso cref="SetRecords.Put(ARecord, WritePolicy, TimeSpan?)"/>
+		/// <seealso cref="AerospikeAPI.Bins"/>
+		/// <exception cref="KeyNotFoundException">
+		/// Thrown if the <paramref name="pkPropertyName"/> is not found as a top-level field. 
+		/// </exception>
+		/// <remarks>
+		/// The Json string can include Json in-line types. Below are the supported types:
+		///     <code>$date</code> or <code>$datetime</code>,
+		///         This can include an optional sub Json Type.Example:
+		///             <code>&quot;bucket_start_date&quot;: &quot;$date&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+		///     <code>$datetimeoffset</code>,
+		///         This can include an optional sub Json Type. Example:
+		///             <code>&quot;bucket_start_datetimeoffset&quot;: &quot;$datetimeoffset&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+		///     <code>$timespan</code>,
+		///         This can include an optional sub Json Type. Example:
+		///             <code>&quot;bucket_start_time&quot;: &quot;$timespan&quot;: { &quot;$numberLong&quot;: &quot;1545886800000&quot;}}</code>
+		///     <code>$timestamp</code>,
+		///     <code>$guid</code> or <code>$uuid</code>,
+		///     &quot;$oid&quot;,
+		///         If the Json string value equals 40 in length it will be treated as a digest and converted into a byte array.
+		///         Example:
+		///             &quot; _id&quot;: { &quot;$oid&quot;:&quot;0080a245fabe57999707dc41ced60edc4ac7ac40&quot; } ==&gt; &quot;_id&quot;:[00 80 A2 45 FA BE 57 99 97 07 DC 41 CE D6 0E DC 4A C7 AC 40]
+		///         This type can also take an optional keyword as a value. They are:
+		///             <code>$guid</code> or <code>$uuid</code> -- If provided, a new guid/uuid is generate as a unique value used
+		///             <code>$numeric</code> -- a sequential number starting at 1 will be used
+		///         Example:
+		///             &quot; _id&quot;: { &quot;$oid&quot;: &quot;$uuid&quot; } ==&gt; Generates a new uuid as the _id value
+		///     <code>$numberint64</code>, <code>$numberlong</code> or <code>$long</code>,
+		///     <code>$numberint32</code>, <code>$numberint</code>, or <code>$int</code>,
+		///     <code>$numberdecimal</code> or  <code>$decimal</code>,
+		///     <code>$numberdouble</code> or  <code>$double</code>,
+		///     <code>$numberfloat</code>, <code>$single</code>, or  <code>$float</code>,
+		///     <code>$numberint16</code>, <code>$numbershort</code> or  <code>$short</code>,
+		///     <code>$numberuint32</code>, <code>$numberuint</code>, or  <code>$uint</code>,
+		///     <code>$numberuint64</code>, <code>$numberulong</code>, or  <code>$ulong</code>,
+		///     <code>$numberuint16</code>, <code>$numberushort</code> or  <code>$ushort</code>,
+		///     <code>$bool</code> or <code>$boolean</code>;
+		///     <code>$type</code>
+		///         This item must be the first property in a JObject where the property&apos;s value is a .NET type.
+		///         All reminding elements will be transformed into that .NET object.
+		/// </remarks>
+		public static ARecord FromJson(string nameSpace,
                                         string setName,
                                         string json,
                                         string pkPropertyName = "_id",
                                         string jsonBinName = null,
                                         ANamespaceAccess setAccess = null,
-                                        bool writePKPropertyName = false)
+                                        bool writePKPropertyName = false,
+                                        bool treatEmptyStrAsNull = true)
         {
-            var converter = new CDTConverter();
+            var converter = new CDTConverter(treatEmptyStrAsNull);
             var binDict = JsonConvert.DeserializeObject<IDictionary<string, object>>(json, converter);
 
             var primaryKeyValue = binDict[pkPropertyName];
