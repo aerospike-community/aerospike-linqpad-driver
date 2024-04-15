@@ -2279,6 +2279,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// </param>
 		/// <returns>The number of records imported</returns>
 		/// <seealso cref="Export(string, Exp, bool)"/>
+        /// <seealso cref="ImportJsonFile(string, string, string, bool, WritePolicy, TimeSpan?, int, BatchPolicy, BatchWritePolicy, bool, bool, CancellationToken)"/>
 		/// <seealso cref="ANamespaceAccess.Import(string, string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
 		/// <seealso cref="ANamespaceAccess.Import(string, WritePolicy, TimeSpan?, bool, int, BatchPolicy, BatchWritePolicy, bool, CancellationToken)"/>
 		/// <seealso cref="AClusterAccess.Import(string, string, string, WritePolicy, int, CancellationToken)"/>
@@ -2302,28 +2303,114 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             batchWritePolicy: batchWritePolicy,
                                             useParallelPuts: useParallelPuts,
                                             cancellationToken);
+
         /// <summary>
-        /// Creates a Json Array of all records in the set based on the <paramref name="filterExpression"/>, if provided.
+        /// This will import a Json file and convert it into a DB record for update into the DB.
+        /// Each line in the file is treated as a new DB record.
+        /// 
+        /// Each top-level property in the Json is translated into a bin and value. Json Arrays and embedded objects are transformed into an Aerospike List or Map&lt;string,object&gt;.
+        /// Note: If the Json string is a Json Object, the following behavior occurs:
+        ///         If <paramref name="jsonBinName"/> is provided, the Json object is treated as an Aerospike document which will be associated with that bin.
+        ///         if <paramref name="jsonBinName"/> is null, each json property in that Json object is treated as a separate bin/value.
+        /// You can also insert individual records by calling <see cref="FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>.
         /// </summary>
-        /// <param name="filterExpression"></param>
+        /// <param name="importJSONFile">
+        /// The file containing Json value where each line is a separate DB record.
+        /// </param>        		
+        /// <param name="maxDegreeOfParallelism">
+        /// The maximum degree of parallelism.
+        /// <see cref="ParallelOptions.MaxDegreeOfParallelism"/>
+        /// </param>
+        /// <param name="batchPolicy">
+        /// <see cref="Aerospike.Client.BatchPolicy"/>
+        /// </param>
+        /// <param name="batchWritePolicy">
+        /// <see cref="Aerospike.Client.BatchWritePolicy"/>
+        /// </param>
+        /// <param name="useParallelPuts">
+        /// If true, Parallel Put actions are used based on <paramref name="maxDegreeOfParallelism"/> is used instead of batch writes.
+        /// </param>		
         /// <param name="pkPropertyName">
         /// The property name used for the primary key. The default is &apos;_id&apos;.
         /// If the primary key value is not present, the digest is used. In these cases the property value will be a sub property where that name will be &apos;$oid&apos; and the value is a byte string.
-        /// If this is null, no PK property is written. 
         /// </param>
-        /// <param name="useDigest">
-        /// If true, always use the PK digest as the primary key.
-        /// If false, use the PK value is present, otherwise use the digest. 
-        /// Default is false.
+        /// <param name="writePKPropertyName">
+        /// If true, the <paramref name="pkPropertyName"/>, is written to the record.
+        /// If false (default), it will not be written to the set (only used to define the PK).
         /// </param>
-        /// <returns>Json Array of the records in the set.</returns>
+        /// <param name="jsonBinName">
+        /// If provided, the Json object is placed into this bin.
+        /// If null (default), the each top level Json property will be associated with a bin. Note, if the property name is greater than the bin name limit, an Aerospike exception will occur during the put.
+        /// </param>
+        /// <param name="writePolicy">
+        /// The write policy. If not provided , the default policy is used.
+        /// <seealso cref="WritePolicy"/>
+        /// </param>
+        /// <param name="ttl">Time-to-live of the record</param>		
+        /// <param name="treatEmptyStrAsNull">
+        /// If true, default, these properties with an empty string value will be considered null (bin not saved).
+        /// If false, these properties with an empty string value will have a bin value of empty string.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// The <see cref="System.Threading.CancellationToken">CancellationToken</see>
+        /// associated with this <see cref="ParallelOptions"/> instance.
+        /// </param>
+        /// <returns>
+        /// Number of records inserted.
+        /// </returns>
         /// <seealso cref="FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
-        /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="ARecord.ToJson(string, bool)"/>
-        /// <seealso cref="Aerospike.Client.Exp"/>
-        public JArray ToJson(Exp filterExpression = null, [AllowNull] string pkPropertyName = "_id", bool useDigest = false)
+        /// <seealso cref="FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="ToJson(Exp, string, bool)"/>
+        /// <seealso cref="ANamespaceAccess.ImportJsonFile(string, string, string, string, bool, WritePolicy, TimeSpan?, int, BatchPolicy, BatchWritePolicy, bool, bool, CancellationToken)"/>       
+        /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
+        public int ImportJsonFile([NotNull] string importJSONFile,
+                                    string pkPropertyName = "_id",
+                                    string jsonBinName = null,
+                                    bool writePKPropertyName = false,
+                                    WritePolicy writePolicy = null,
+                                    TimeSpan? ttl = null,
+                                    int maxDegreeOfParallelism = -1,
+                                    BatchPolicy batchPolicy = null,
+                                    BatchWritePolicy batchWritePolicy = null,
+                                    bool useParallelPuts = false,
+                                    bool treatEmptyStrAsNull = true,
+                                    CancellationToken cancellationToken = default)
+            => this.SetAccess.ImportJsonFile(importJSONFile,
+                                            this.SetName,
+                                            pkPropertyName,
+                                            jsonBinName,
+                                            writePKPropertyName,
+                                            writePolicy ?? this.DefaultWritePolicy,
+                                            ttl,
+                                            maxDegreeOfParallelism,
+                                            batchPolicy,
+                                            batchWritePolicy,
+                                            useParallelPuts,
+                                            treatEmptyStrAsNull,
+                                            cancellationToken);
+
+		/// <summary>
+		/// Creates a Json Array of all records in the set based on the <paramref name="filterExpression"/>, if provided.
+		/// </summary>
+		/// <param name="filterExpression"></param>
+		/// <param name="pkPropertyName">
+		/// The property name used for the primary key. The default is &apos;_id&apos;.
+		/// If the primary key value is not present, the digest is used. In these cases the property value will be a sub property where that name will be &apos;$oid&apos; and the value is a byte string.
+		/// If this is null, no PK property is written. 
+		/// </param>
+		/// <param name="useDigest">
+		/// If true, always use the PK digest as the primary key.
+		/// If false, use the PK value is present, otherwise use the digest. 
+		/// Default is false.
+		/// </param>
+		/// <returns>Json Array of the records in the set.</returns>
+		/// <seealso cref="FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
+		/// <seealso cref="FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
+		/// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
+		/// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
+		/// <seealso cref="ARecord.ToJson(string, bool)"/>
+		/// <seealso cref="Aerospike.Client.Exp"/>
+		public JArray ToJson(Exp filterExpression = null, [AllowNull] string pkPropertyName = "_id", bool useDigest = false)
         {
             var jsonArray = new JArray();
 
@@ -2372,7 +2459,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="ARecord.ToJson(string, bool)"/>
         /// <seealso cref="FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
+        /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool, bool)"/>
         /// <seealso cref="ANamespaceAccess.FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="Put(ARecord, WritePolicy, TimeSpan?)"/>
         /// <exception cref="KeyNotFoundException">
@@ -2462,7 +2549,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="ARecord.ToJson(string, bool)"/>
         /// <seealso cref="FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
-        /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool)"/>
+        /// <seealso cref="ARecord.FromJson(string, string, string, string, string, ANamespaceAccess, bool, bool)"/>
         /// <seealso cref="ANamespaceAccess.FromJson(string, string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
         /// <seealso cref="Put(ARecord, WritePolicy, TimeSpan?)"/>
         /// <exception cref="KeyNotFoundException">
