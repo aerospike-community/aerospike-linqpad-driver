@@ -188,8 +188,32 @@ namespace Aerospike.Client
                         null => Exp.Nil(),
                         _ => throw new ArgumentException($"Object type is not supported in Aerospike: {value.GetType()}"),
                     };
-         
-    }
+
+        /// <summary>
+        /// Converts a date/time to Unix Epoch nanosecond value
+        /// </summary>
+        /// <param name="dateTime">Date time to convert</param>
+        /// <returns>
+        /// Unix Epoch time in nanoseconds
+        /// </returns>
+        public static long ToUnixEpochNS(this DateTime dateTime) => Helpers.NanosFromEpoch(dateTime);
+
+		/// <summary>
+		/// Converts a date/time offset to Unix Epoch nanosecond value
+		/// </summary>
+		/// <param name="dateTimeOffset">Date time offset to convert</param>
+		/// <returns>
+		/// Unix Epoch time in nanoseconds
+		/// </returns>
+		public static long ToUnixEpochNS(this DateTimeOffset dateTimeOffset) => Helpers.NanosFromEpoch(dateTimeOffset.UtcDateTime);
+
+        /// <summary>
+        /// Converts a Unix Epoch nanoseconds value to a date time value.
+        /// </summary>
+        /// <param name="unixEpoch">Unix Epoch in nanoseconds</param>
+        /// <returns>Date time value</returns>
+        public static DateTime FromUnixEpochNS(this long unixEpoch) => Helpers.NanoEpochToDateTime(unixEpoch);
+	}
 }
 
 namespace Aerospike.Database.LINQPadDriver
@@ -512,9 +536,12 @@ namespace Aerospike.Database.LINQPadDriver
 
         private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        public static long NanosFromEpoch(DateTime dt) => (long)dt.ToUniversalTime().Subtract(UnixEpoch).TotalMilliseconds * 1000000;
-        
-        public static DateTime NanoEpochToDateTime(long nanoseconds) => UnixEpoch.AddTicks(nanoseconds / 100);
+#if NET7_0_OR_GREATER
+        public static long NanosFromEpoch(DateTime dt) => (long) dt.ToUniversalTime().Subtract(UnixEpoch).TotalNanoseconds;
+#else
+		public static long NanosFromEpoch(DateTime dt) => (long) dt.ToUniversalTime().Subtract(UnixEpoch).TotalMilliseconds * 1000000;
+#endif
+		public static DateTime NanoEpochToDateTime(long nanoseconds) => UnixEpoch.AddTicks(nanoseconds / 100);
         
         internal const string defaultDateTimeFormat = "yyyy-MM-ddTHH:mm:ss.ffff";
         internal const string defaultDateTimeOffsetFormat = "yyyy-MM-ddTHH:mm:ss.ffffzzz";
