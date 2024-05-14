@@ -30,8 +30,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     {
         public APrimaryKey(Aerospike.Client.Key key)
             : base(key.userKey?.Object ?? key.digest, "PrimaryKey", "Value")
-        {           
-            this.AerospikeKey = key;            
+        {               
+            this.AerospikeKey = key;
         }
 
         public APrimaryKey(APrimaryKey clone)
@@ -42,10 +42,36 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public Aerospike.Client.Key AerospikeKey { get; }
 
-        /// <summary>
-        /// If true, the PK has an actual value. If false, the digest is only provided.
-        /// </summary>
-        public bool HasKeyValue { get => this.AerospikeKey.userKey?.Object is not null; }
+		public override bool Equals(byte[] byteArray)
+                => byteArray is null || byteArray.Length != 20
+                        ? false
+                        : this.AerospikeKey.digest.SequenceEqual(byteArray);                   
+            
+		public override bool Equals(AValue value)
+		{
+            if(value is not null)
+            {
+                if(value is APrimaryKey pkValue)                
+                    return this.CompareDigest(pkValue.AerospikeKey);
+				
+                if(value.Value is byte[] byteValue)
+                    return this.Equals(byteValue);
+            }
+            return base.Equals(value);
+		}
+
+		public override bool Equals(Aerospike.Client.Value value)
+		{
+			if(value is not null && value.Object is byte[] bArray)
+			    return this.Equals(bArray);
+
+			return base.Equals(value);
+		}
+
+		/// <summary>
+		/// If true, the PK has an actual value. If false, the digest is only provided.
+		/// </summary>
+		public bool HasKeyValue { get => this.AerospikeKey.userKey?.Object is not null; }
 
         public static APrimaryKey ToValue(Aerospike.Client.Key key) => new APrimaryKey(key);
 

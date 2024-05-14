@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using Aerospike.Client;
 using Newtonsoft.Json.Linq;
+using System.Collections;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 {
@@ -2061,5 +2062,69 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 
         }
 
+        [TestMethod]
+        public void PrimaryKeyTest()
+        {
+            var pk = new Key("ns", "set", 1007466L);
+            var pkDigest = pk.digest;
+            var aPK = pk.ToAPrimaryKey();
+            var aValue = pkDigest.ToAValue();
+            var asValue = Value.Get(pkDigest);
+
+            Assert.IsNotNull(pk);
+            Assert.IsNotNull(pkDigest);
+            Assert.IsTrue(aPK.Equals(pk));
+			Assert.IsTrue(aPK.Equals(pkDigest));
+			Assert.IsTrue(aPK.Equals(aPK));
+			Assert.IsTrue(aPK.Equals(new APrimaryKey(aPK)));
+			Assert.IsTrue(aPK.Equals(aValue));
+			Assert.IsTrue(aPK.Equals(asValue));
+
+			Assert.IsTrue(aPK == pk);			
+			Assert.IsTrue(aPK == new APrimaryKey(aPK));
+			Assert.IsTrue(aPK == aValue);
+			Assert.IsTrue(aPK == asValue);
+
+			Assert.IsFalse(aPK != pk);
+			Assert.IsFalse(aPK != new APrimaryKey(aPK));
+            Assert.IsFalse(aPK != aValue);
+            Assert.IsFalse(aPK != asValue);
+
+			Assert.IsTrue(aValue.Equals(pkDigest));
+			Assert.IsTrue(aValue.Equals(aValue));
+			Assert.IsTrue(aValue.Equals(asValue));
+			Assert.IsTrue(aValue.Equals(pk));
+			Assert.IsTrue(aValue.Equals(aPK));
+
+			pk = new Key("ns", "set", 1007478L);
+			pkDigest = pk.digest;			
+			aValue = pkDigest.ToAValue();
+			asValue = Value.Get(pkDigest);
+
+			Assert.IsFalse(aPK.Equals((object)null));
+			Assert.IsFalse(aPK.Equals(pk));
+			Assert.IsFalse(aPK.Equals(pkDigest));
+			Assert.IsFalse(aPK.Equals(aValue));
+			Assert.IsFalse(aPK.Equals(asValue));
+			Assert.IsFalse(aPK.Equals(Value.AsNull));
+			Assert.IsFalse(aPK.Equals(Value.Get("string")));
+			Assert.IsFalse(aPK.Equals(Value.Get(567)));
+			Assert.IsFalse(aPK.Equals(Value.Get(new List<string>())));
+
+			Assert.IsTrue(aValue.Equals(pkDigest));
+			Assert.IsTrue(aValue.Equals(aValue));
+			Assert.IsTrue(aValue.Equals(asValue));
+			Assert.IsTrue(aValue.Equals(pk));
+			Assert.IsFalse(aValue.Equals(aPK));
+			Assert.IsFalse(aValue.Equals(Value.AsNull));
+			Assert.IsFalse(aValue.Equals(Value.Get("string")));
+			Assert.IsFalse(aValue.Equals(Value.Get(567)));
+			Assert.IsFalse(aValue.Equals(Value.Get(new List<string>())));
+			Assert.IsTrue(aValue.Equals(pk.ToAPrimaryKey()));
+
+			Assert.IsFalse(aPK == pk);			
+			Assert.IsFalse(aPK == aValue);
+			Assert.IsFalse(aPK == asValue);
+		}
     }
 }

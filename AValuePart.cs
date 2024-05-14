@@ -10,6 +10,8 @@ using System.Text.RegularExpressions;
 using Aerospike.Client;
 using Google.Protobuf.Compiler;
 using System.Dynamic;
+using System.Windows.Controls;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -802,6 +804,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 if (key is null) return false;
             }
+
+            if(this.Value is byte[] bytes && bytes.Length == 20)
+                return key.digest.SequenceEqual(bytes);
+
             return this.Equals(key.userKey);
         }
         public bool Equals(Aerospike.Client.Key key1, Aerospike.Client.Key key2)
@@ -817,7 +823,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
         public int GetHashCode(Aerospike.Client.Key key) => key?.GetHashCode() ?? 0;
 
-        public bool Equals(Aerospike.Client.Value value)
+        public virtual bool Equals(Aerospike.Client.Value value)
         {
             if (this.DigestRequired())
                 return this.CompareDigest(value?.Object);
@@ -842,7 +848,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
         public int GetHashCode(Aerospike.Client.Value value) => value?.Object?.GetHashCode() ?? 0;
 
-        public bool Equals(AValue value)
+        public virtual bool Equals(AValue value)
         {
             if (this.DigestRequired())
                 return this.CompareDigest(value);
@@ -853,8 +859,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 return value.Value is null;
             }
 
-            if (value.DigestRequired()) return value.CompareDigest(this);
-
+            if (value.DigestRequired())
+                return value.CompareDigest(this);
+            if(value is APrimaryKey aPK)
+                return aPK.Equals(this);
+            
             return Helpers.Equals(this.Value, value.Value);
         }
         public bool Equals(AValue v1, AValue v2)
@@ -867,6 +876,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public override int GetHashCode() => this.Value?.GetHashCode() ?? 0;
 
+        public virtual bool Equals(byte[] byteArray) => Helpers.Equals(this.Value, byteArray);
+
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(this, obj)) return true;
@@ -875,8 +886,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if (obj is Aerospike.Client.Key key) return this.Equals(key);
             if (obj is Aerospike.Client.Value value) return this.Equals(value);
             if (obj is AValue pValue) return this.Equals(pValue);
-            if (this.UnderlyingType == obj.GetType()) return this.Value.Equals(obj);
-
+            if (obj is byte[] byteArray) return Helpers.Equals(this.Value, obj);
+			
             var invokeEquals = this.GetType().GetMethod("Equals", new Type[] { obj.GetType() });
 
             if (invokeEquals is null || invokeEquals.GetParameters().First().ParameterType == typeof(object))

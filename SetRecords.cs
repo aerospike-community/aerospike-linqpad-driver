@@ -730,9 +730,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		}
 		
         IEnumerator IEnumerable.GetEnumerator()
-            => this.GetEnumerator();        
-        #endregion
-    }
+            => this.GetEnumerator();
+
+        public new T[] ToArray() => this.AsEnumerable().ToArray();
+		public new List<T> ToList() => this.AsEnumerable().ToList();
+
+		#endregion
+	}
 
     /// <summary>
     /// Represents information about an Aerospike set within a namespace. 
@@ -874,13 +878,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
         }
 
-        #endregion
+		/// <summary>
+		/// Creates an Aerospike Digest byte array (always length of 20 bytes) based on <paramref name="value"/>.
+		/// </summary>
+		/// <param name="value">
+		/// The value that will be converted to a digest. 
+		/// </param>
+		/// <returns>
+		/// A byte array of length 20.
+		/// </returns>
+		public byte[] CreateDigest(object value)
+				=> Key.ComputeDigest(this.SetName,
+										Value.Get(value));
+		#endregion
 
-        #region Aerospike Client Properties, Policies, Put, Get, Query, etc.
-        /// <summary>
-        /// Returns the Aerospike &quot;Namespace&apos;s&quot; name
-        /// </summary>
-        public string Namespace { get { return this.SetAccess.Namespace; } }
+		#region Aerospike Client Properties, Policies, Put, Get, Query, etc.
+		/// <summary>
+		/// Returns the Aerospike &quot;Namespace&apos;s&quot; name
+		/// </summary>
+		public string Namespace { get { return this.SetAccess.Namespace; } }
 
         /// <summary>
         /// Returns the Aerospike &quot;Set&apos;s&quot; name
@@ -2696,7 +2712,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		}
 
         IEnumerator IEnumerable.GetEnumerator()
-            => this.GetEnumerator();        
-        #endregion
-    }
+            => this.GetEnumerator();
+
+		public ARecord[] ToArray() => this.AsEnumerable().ToArray();
+        public List<ARecord> ToList() => this.AsEnumerable().ToList();
+
+		#endregion
+	}
 }

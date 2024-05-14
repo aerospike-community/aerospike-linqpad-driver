@@ -829,9 +829,22 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="ARecord.AerospikeAPI.GetValues"/>
         public IDictionary<string, object> ToDictionary() => new Dictionary<string, object>((IDictionary<string, object>)this.Aerospike.GetValues());
 
-        #region JSON
+        /// <summary>
+        /// Creates an Aerospike Digest byte array (always length of 20 bytes) based on <paramref name="value"/>.
+        /// </summary>
+        /// <param name="value">
+        /// The value that will be converted to a digest. 
+        /// </param>
+        /// <returns>
+        /// A byte array of length 20.
+        /// </returns>
+        public byte[] CreateDigest(object value)
+                => Key.ComputeDigest(this.Aerospike.PrimaryKey.AerospikeKey.setName,
+                                        Value.Get(value));
 
-        static readonly Newtonsoft.Json.JsonSerializerSettings JSONSettings = new JsonSerializerSettings
+		#region JSON
+
+		static readonly Newtonsoft.Json.JsonSerializerSettings JSONSettings = new JsonSerializerSettings
         {
             TypeNameHandling = TypeNameHandling.All,
             NullValueHandling = NullValueHandling.Ignore,
