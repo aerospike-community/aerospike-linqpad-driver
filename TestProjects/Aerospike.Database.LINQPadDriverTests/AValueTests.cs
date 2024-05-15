@@ -2065,7 +2065,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
         [TestMethod]
         public void PrimaryKeyTest()
         {
-            var pk = new Key("ns", "set", 1007466L);
+            var key = 1007466L;
+			var pk = new Key("ns", "set", key);
             var pkDigest = pk.digest;
             var aPK = pk.ToAPrimaryKey();
             var aValue = pkDigest.ToAValue();
@@ -2074,6 +2075,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsNotNull(pk);
             Assert.IsNotNull(pkDigest);
             Assert.IsTrue(aPK.Equals(pk));
+			Assert.IsTrue(aPK.Equals(key));
+			Assert.IsTrue(aPK.Equals(1007466));
+			Assert.IsTrue(aPK.Equals(1007466D));
+			Assert.IsTrue(aPK.Equals(1007466M));
 			Assert.IsTrue(aPK.Equals(pkDigest));
 			Assert.IsTrue(aPK.Equals(aPK));
 			Assert.IsTrue(aPK.Equals(new APrimaryKey(aPK)));
@@ -2083,12 +2088,20 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsTrue(aPK == pk);			
 			Assert.IsTrue(aPK == new APrimaryKey(aPK));
 			Assert.IsTrue(aPK == aValue);
+			Assert.IsTrue(aValue == aPK);
 			Assert.IsTrue(aPK == asValue);
 
 			Assert.IsFalse(aPK != pk);
 			Assert.IsFalse(aPK != new APrimaryKey(aPK));
             Assert.IsFalse(aPK != aValue);
             Assert.IsFalse(aPK != asValue);
+
+			Assert.IsTrue(aValue.Equals(pk));
+			Assert.IsTrue(aValue.Equals(pkDigest));
+			Assert.IsTrue(aValue.Equals(aPK));
+			Assert.IsTrue(aValue.Equals(new APrimaryKey(aPK)));
+			Assert.IsTrue(aValue.Equals(aValue));
+			Assert.IsTrue(aValue.Equals(asValue));
 
 			Assert.IsTrue(aValue.Equals(pkDigest));
 			Assert.IsTrue(aValue.Equals(aValue));
