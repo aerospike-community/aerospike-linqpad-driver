@@ -886,7 +886,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if (obj is Aerospike.Client.Key key) return this.Equals(key);
             if (obj is Aerospike.Client.Value value) return this.Equals(value);
             if (obj is AValue pValue) return this.Equals(pValue);
-            if (obj is byte[] byteArray) return Helpers.Equals(this.Value, obj);
+            if (obj is byte[] byteArray) return Helpers.Equals(this.Value, byteArray);
 			
             var invokeEquals = this.GetType().GetMethod("Equals", new Type[] { obj.GetType() });
 

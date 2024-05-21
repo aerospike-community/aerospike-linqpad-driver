@@ -43,17 +43,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public Aerospike.Client.Key AerospikeKey { get; }
 
 		public override bool Equals(byte[] byteArray)
-                => byteArray is null || byteArray.Length != 20
-                        ? false
-                        : this.AerospikeKey.digest.SequenceEqual(byteArray);
+                => byteArray is not null && byteArray.Length == 20
+                        && this.AerospikeKey.digest.SequenceEqual(byteArray);
 
         public override bool Equals(string digestStr)
                 => (digestStr is not null
                         && digestStr.Length == 42
                         && digestStr[0] == '0'
                         && char.ToLower(digestStr[1]) == 'x'
-                        && Helpers.HasHexValues(digestStr.Substring(2))
-						&& this.Equals(Helpers.StringToByteArray(digestStr.Substring(2))))
+                        && Helpers.HasHexValues(digestStr[2..])
+						&& this.Equals(Helpers.StringToByteArray(digestStr[2..])))
                     || base.Equals(digestStr);
 
 		public override bool Equals(AValue value)

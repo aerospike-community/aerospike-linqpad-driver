@@ -971,8 +971,8 @@ namespace Aerospike.Database.LINQPadDriver
                         && sa.Length >= 4
                         && sa[0] == '0'
                         && char.ToLower(sa[1]) == 'x'
-                        && HasHexValues(sa.Substring(2)))
-                    return SequenceEquals(StringToByteArray(sa.Substring(2)), bBytes);
+                        && HasHexValues(sa[2..]))
+                    return SequenceEquals(StringToByteArray(sa[2..]), bBytes);
 
                 return false;
             }
@@ -983,8 +983,8 @@ namespace Aerospike.Database.LINQPadDriver
 						&& sbb.Length >= 4
 						&& sbb[0] == '0'
 						&& char.ToLower(sbb[1]) == 'x'
-						&& HasHexValues(sbb.Substring(2)))
-					return SequenceEquals(StringToByteArray(sbb.Substring(2)), aBytes);
+						&& HasHexValues(sbb[2..]))
+					return SequenceEquals(StringToByteArray(sbb[2..]), aBytes);
 
 				return false;
             }
@@ -2170,9 +2170,9 @@ namespace Aerospike.Database.LINQPadDriver
                         && digestStr.Length == 42
                         && digestStr[0] == '0'
                         && char.ToLower(digestStr[1]) == 'x'
-                        && HasHexValues(digestStr.Substring(2)))
+                        && HasHexValues(digestStr[2..]))
 				key = new Client.Key(nameSpace,
-                                        Helpers.StringToByteArray(digestStr.Substring(2)),
+                                        Helpers.StringToByteArray(digestStr[2..]),
                                         setName,
                                         Value.AsNull);            
             else
