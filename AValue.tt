@@ -255,7 +255,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             <# if(datatype != "string") { #>
             public <#= datatype #> To<#= datatype #>() => (<#= datatype #>) this;
              <# } #> 
+            <# if(datatype == "string") { #>
+            public virtual bool Equals(<#= datatype #> value)
+            <# } else { #>
             public bool Equals(<#= datatype #> value)
+            <# } #>
             {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)

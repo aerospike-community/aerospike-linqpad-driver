@@ -45,8 +45,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		public override bool Equals(byte[] byteArray)
                 => byteArray is null || byteArray.Length != 20
                         ? false
-                        : this.AerospikeKey.digest.SequenceEqual(byteArray);                   
-            
+                        : this.AerospikeKey.digest.SequenceEqual(byteArray);
+
+        public override bool Equals(string digestStr)
+                => (digestStr is not null
+                        && digestStr.Length == 42
+                        && digestStr[0] == '0'
+                        && char.ToLower(digestStr[1]) == 'x'
+                        && this.Equals(Helpers.StringToByteArray(digestStr.Substring(2))))
+                    || base.Equals(digestStr);
+
 		public override bool Equals(AValue value)
 		{
             if(value is not null)

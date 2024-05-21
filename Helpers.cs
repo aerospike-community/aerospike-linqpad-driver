@@ -963,11 +963,25 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 if (b is string sb) return sa == sb;
 
+                if(b is byte[] bBytes
+                        && sa is not null
+                        && sa.Length >= 4
+                        && sa[0] == '0'
+                        && char.ToLower(sa[1]) == 'x')
+                    return SequenceEquals(StringToByteArray(sa.Substring(2)), bBytes);
+
                 return false;
             }
-            if (b is string)
+            if (b is string sbb)
             {
-                return false;
+				if(a is byte[] aBytes
+						&& sbb is not null
+						&& sbb.Length >= 4
+						&& sbb[0] == '0'
+						&& char.ToLower(sbb[1]) == 'x')
+					return SequenceEquals(StringToByteArray(sbb.Substring(2)), aBytes);
+
+				return false;
             }
            
             if (a is IEnumerable<object> alist)
@@ -2129,26 +2143,32 @@ namespace Aerospike.Database.LINQPadDriver
             if (primaryKey is APrimaryKey aPrimaryKey)
                 primaryKey = aPrimaryKey.AerospikeKey;
 
-            if (primaryKey is Client.Key valueKey)
+            if(primaryKey is Client.Key valueKey)
             {
-                if (valueKey.userKey is null && setName != valueKey.setName)
+                if(valueKey.userKey is null && setName != valueKey.setName)
                     throw new InvalidOperationException($"An Aerospike Key (\"{primaryKey}\") was provided with only a digest and the set names where different (Old Set: \"{valueKey.setName}\" New Set: \"{setName}\"). Because of this a Primary Key Value is required.");
 
-                if (setName == valueKey.setName && nameSpace == valueKey.ns)
+                if(setName == valueKey.setName && nameSpace == valueKey.ns)
                     key = valueKey;
-                else if (valueKey.userKey is null)
+                else if(valueKey.userKey is null)
                     key = new Client.Key(nameSpace, valueKey.digest, valueKey.setName, valueKey.userKey);
                 else
                     key = new Client.Key(nameSpace, setName, valueKey.userKey);
             }
-            else if (primaryKey is AValue aValue)
-            {
-                key = new Client.Key(nameSpace, setName, Value.Get(aValue.Value));
-            }
-            else if (primaryKey is Value value)
+            else if(primaryKey is AValue aValue)
+                key = DetermineAerospikeKey(aValue.Value, nameSpace, setName);
+            else if(primaryKey is Value value)
                 key = new Client.Key(nameSpace, setName, value);
-            else if (primaryKey is byte[] digest)
+            else if(primaryKey is byte[] digest)
                 key = new Client.Key(nameSpace, digest, setName, Value.AsNull);
+            else if(primaryKey is string digestStr
+                        && digestStr.Length == 42
+                        && digestStr[0] == '0'
+                        && char.ToLower(digestStr[1]) == 'x')            
+                key = new Client.Key(nameSpace,
+                                        Helpers.StringToByteArray(digestStr.Substring(2)),
+                                        setName,
+                                        Value.AsNull);            
             else
                 key = new Client.Key(nameSpace, setName, Value.Get(primaryKey));
 

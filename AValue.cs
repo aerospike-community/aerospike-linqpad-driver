@@ -354,8 +354,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             public static bool operator>=(AValue aValue, string oValue) => aValue is not null && (aValue.CompareTo(oValue) >= 0);
 
              
-            public bool Equals(string value)
-            {
+                        public virtual bool Equals(string value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -401,8 +401,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public bool Tobool() => (bool) this;
               
-            public bool Equals(bool value)
-            {
+                        public bool Equals(bool value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -462,8 +462,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public Enum ToEnum() => (Enum) this;
               
-            public bool Equals(Enum value)
-            {
+                        public bool Equals(Enum value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -523,8 +523,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public Guid ToGuid() => (Guid) this;
               
-            public bool Equals(Guid value)
-            {
+                        public bool Equals(Guid value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -569,8 +569,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public short Toshort() => (short) this;
               
-            public bool Equals(short value)
-            {
+                        public bool Equals(short value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -630,8 +630,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public int Toint() => (int) this;
               
-            public bool Equals(int value)
-            {
+                        public bool Equals(int value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -691,8 +691,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public long Tolong() => (long) this;
               
-            public bool Equals(long value)
-            {
+                        public bool Equals(long value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -752,8 +752,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public ushort Toushort() => (ushort) this;
               
-            public bool Equals(ushort value)
-            {
+                        public bool Equals(ushort value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -813,8 +813,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public uint Touint() => (uint) this;
               
-            public bool Equals(uint value)
-            {
+                        public bool Equals(uint value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -874,8 +874,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public ulong Toulong() => (ulong) this;
               
-            public bool Equals(ulong value)
-            {
+                        public bool Equals(ulong value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -935,8 +935,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public decimal Todecimal() => (decimal) this;
               
-            public bool Equals(decimal value)
-            {
+                        public bool Equals(decimal value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -996,8 +996,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public float Tofloat() => (float) this;
               
-            public bool Equals(float value)
-            {
+                        public bool Equals(float value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -1057,8 +1057,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public double Todouble() => (double) this;
               
-            public bool Equals(double value)
-            {
+                        public bool Equals(double value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -1118,8 +1118,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public byte Tobyte() => (byte) this;
               
-            public bool Equals(byte value)
-            {
+                        public bool Equals(byte value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -1179,8 +1179,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public sbyte Tosbyte() => (sbyte) this;
               
-            public bool Equals(sbyte value)
-            {
+                        public bool Equals(sbyte value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -1240,8 +1240,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public DateTime ToDateTime() => (DateTime) this;
               
-            public bool Equals(DateTime value)
-            {
+                        public bool Equals(DateTime value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -1299,8 +1299,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public DateTimeOffset ToDateTimeOffset() => (DateTimeOffset) this;
               
-            public bool Equals(DateTimeOffset value)
-            {
+                        public bool Equals(DateTimeOffset value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
@@ -1358,8 +1358,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
                         public TimeSpan ToTimeSpan() => (TimeSpan) this;
               
-            public bool Equals(TimeSpan value)
-            {
+                        public bool Equals(TimeSpan value)
+                        {
                 return this.DigestRequired()
                             ? this.CompareDigest(value)
                             : this.CompareTo(value) == 0;
