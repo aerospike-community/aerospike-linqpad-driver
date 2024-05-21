@@ -361,6 +361,28 @@ namespace Aerospike.Database.LINQPadDriver.Tests
                                             .Select(i => (double) i)
                                             .ToList());
 
+            {
+				var key = 1007466L;
+				var pk = new Key("ns", "set", key);
+				var pkDigest = pk.digest;
+                var hexStr = "0x" + Helpers.ByteArrayToString(pkDigest);
+
+                Assert.IsTrue(Helpers.Equals(pkDigest, hexStr));
+				Assert.IsTrue(Helpers.Equals(hexStr, pkDigest));
+				Assert.IsTrue(Helpers.Equals(hexStr, hexStr));
+				Assert.IsTrue(Helpers.Equals(pkDigest, pkDigest));
+				Assert.IsFalse(Helpers.Equals(pkDigest, hexStr.Substring(2)));
+				Assert.IsFalse(Helpers.Equals(pkDigest, hexStr.Substring(0,10)));
+				Assert.IsFalse(Helpers.Equals(pkDigest, "0x" + hexStr));
+				Assert.IsFalse(Helpers.Equals(pkDigest, null));
+				Assert.IsFalse(Helpers.Equals(pkDigest, ""));
+				Assert.IsFalse(Helpers.Equals(null, pkDigest));
+				Assert.IsFalse(Helpers.Equals("", pkDigest));
+				Assert.IsFalse(Helpers.Equals(hexStr, null));
+				Assert.IsFalse(Helpers.Equals(hexStr, ""));
+			}
+
+
             var AllDateTimeUseUnixEpochNanoRestore = Helpers.AllDateTimeUseUnixEpochNano;
             try
             {

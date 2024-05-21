@@ -52,7 +52,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         && digestStr.Length == 42
                         && digestStr[0] == '0'
                         && char.ToLower(digestStr[1]) == 'x'
-                        && this.Equals(Helpers.StringToByteArray(digestStr.Substring(2))))
+                        && Helpers.HasHexValues(digestStr.Substring(2))
+						&& this.Equals(Helpers.StringToByteArray(digestStr.Substring(2))))
                     || base.Equals(digestStr);
 
 		public override bool Equals(AValue value)

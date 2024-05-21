@@ -2076,6 +2076,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
             Assert.IsNotNull(pkDigest);
             Assert.IsTrue(aPK.Equals(pk));
 			Assert.IsTrue(aPK.Equals(key));
+			Assert.IsTrue(aPK.Equals(aPK));
 			Assert.IsTrue(aPK.Equals(1007466));
 			Assert.IsTrue(aPK.Equals(1007466D));
 			Assert.IsTrue(aPK.Equals(1007466M));
@@ -2084,6 +2085,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsTrue(aPK.Equals(new APrimaryKey(aPK)));
 			Assert.IsTrue(aPK.Equals(aValue));
 			Assert.IsTrue(aPK.Equals(asValue));
+            Assert.IsTrue(aPK.Equals("0x" + Helpers.ByteArrayToString(pkDigest)));
+			Assert.IsFalse(aPK.Equals(Helpers.ByteArrayToString(pkDigest)));
+			Assert.IsFalse(aPK.Equals("0x" + Helpers.ByteArrayToString(pkDigest).Substring(0,9)));
+			Assert.IsFalse(aPK.Equals((string)null));
+			Assert.IsFalse(aPK.Equals(""));
 
 			Assert.IsTrue(aPK == pk);			
 			Assert.IsTrue(aPK == new APrimaryKey(aPK));

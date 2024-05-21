@@ -14,7 +14,6 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 using LPEDC = LINQPad.Extensibility.DataContext;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using System.Data.SqlTypes;
 
 namespace Aerospike.Client
 {
@@ -223,17 +222,17 @@ namespace Aerospike.Database.LINQPadDriver
 
         public static bool IsPrivateAddress(string ipAddress)
         {
-            if (string.IsNullOrEmpty(ipAddress)
+            if(string.IsNullOrEmpty(ipAddress)
                 || ipAddress.ToLower() == "localhost"
                 || ipAddress.ToLower() == "local")
                 return true;
-            
+
             try
             {
                 int[] ipParts = ipAddress.Split('.', StringSplitOptions.RemoveEmptyEntries)
                                      .Select(s => int.Parse(s)).ToArray();
                 // in private ip range
-                if (ipParts[0] == 10 || ipParts[0] == 127 ||
+                if(ipParts[0] == 10 || ipParts[0] == 127 ||
                     (ipParts[0] == 192 && ipParts[1] == 168) ||
                     (ipParts[0] == 172 && (ipParts[1] >= 16 && ipParts[1] <= 31)))
                 {
@@ -256,21 +255,21 @@ namespace Aerospike.Database.LINQPadDriver
         /// <returns></returns>
         public static bool IsSubclassOfInterface(Type interfaceClass, Type classToCheck)
         {
-            if (interfaceClass is null || classToCheck is null) return false;
-            if (ReferenceEquals(interfaceClass, classToCheck)) return true;
+            if(interfaceClass is null || classToCheck is null) return false;
+            if(ReferenceEquals(interfaceClass, classToCheck)) return true;
 
-            if (classToCheck.IsGenericType)
+            if(classToCheck.IsGenericType)
             {
-                if (!classToCheck.IsGenericTypeDefinition)
+                if(!classToCheck.IsGenericTypeDefinition)
                     classToCheck = classToCheck.GetGenericTypeDefinition();
             }
-            if (interfaceClass.IsGenericType)
+            if(interfaceClass.IsGenericType)
             {
-                if (!interfaceClass.IsGenericTypeDefinition)
+                if(!interfaceClass.IsGenericTypeDefinition)
                     interfaceClass = interfaceClass.GetGenericTypeDefinition();
             }
 
-            if (ReferenceEquals(interfaceClass, classToCheck)) return true;
+            if(ReferenceEquals(interfaceClass, classToCheck)) return true;
 
             return classToCheck.GetInterfaces().Any(ctc => IsSubclassOfInterface(interfaceClass, ctc));
 
@@ -281,9 +280,9 @@ namespace Aerospike.Database.LINQPadDriver
             var changeList = new char[] { '.', ' ', '[', ']', '(', ')', '+', '-', '=', '^', '*', '/', '\\', ',', '<', '>', ';', ':', '@', '#', '!', '%', '&', '?', '~', '`', '$', '"', '\'' };
             StringBuilder newName = new StringBuilder();
 
-            foreach (char c in name)
+            foreach(char c in name)
             {
-                if (changeList.Contains(c))
+                if(changeList.Contains(c))
                 {
                     newName.Append('_');
                 }
@@ -296,18 +295,18 @@ namespace Aerospike.Database.LINQPadDriver
             if(Char.IsDigit(newStr.FirstOrDefault()))
                 newStr = contextType + newStr;
 
-            if (LPEDC.DataContextDriver.IsCSharpKeyword(newStr))
+            if(LPEDC.DataContextDriver.IsCSharpKeyword(newStr))
             {
                 return newStr + '_' + contextType;
             }
 
             return newStr;
         }
-        
+
         public static string ByteArrayToString(byte[] ba)
         {
             StringBuilder hex = new StringBuilder(ba.Length * 2);
-            foreach (byte b in ba)
+            foreach(byte b in ba)
                 hex.AppendFormat("{0:x2}", b);
             return hex.ToString();
         }
@@ -332,19 +331,19 @@ namespace Aerospike.Database.LINQPadDriver
 
         public static string GetRealTypeName(Type t, bool makeIntoNullable = false, bool includeNameSpace = false)
         {
-            if (t == null) return null;
+            if(t == null) return null;
             string ns = null;
-           
-            if (includeNameSpace)
+
+            if(includeNameSpace)
             {
                 var parts = NamespaceRegEx().Matches(t.FullName);
-                
+
                 ns = string.Join(',', parts.SkipLast(1).Select(a => a.Value));
             }
 
             static string GetDeclaringClass(Type currentType)
             {
-                if (currentType.IsGenericParameter)
+                if(currentType.IsGenericParameter)
                     return "{PARAM}";
 
                 var declaringTpe = currentType.DeclaringType;
@@ -354,7 +353,7 @@ namespace Aerospike.Database.LINQPadDriver
                         : GetRealTypeName(declaringTpe, false, false) + '.' + currentType.Name;
             }
 
-            if (!t.IsGenericType)
+            if(!t.IsGenericType)
             {
                 string className = GetDeclaringClass(t);
 
@@ -372,13 +371,13 @@ namespace Aerospike.Database.LINQPadDriver
             var paramIdx = genericName.IndexOf('}');
             var genericFnd = genericName.Contains('`');
             bool appendComma = false;
-            
+
             if(!string.IsNullOrEmpty(ns))
                 sb.Append(ns);
 
-            if (genericFnd)
+            if(genericFnd)
             {
-                sb.Append(genericName. AsSpan(0, genericName.IndexOf('`')));
+                sb.Append(genericName.AsSpan(0, genericName.IndexOf('`')));
                 sb.Append('<');
                 appendComma = false;
             }
@@ -388,24 +387,24 @@ namespace Aerospike.Database.LINQPadDriver
                 appendComma = true;
             }
 
-            foreach (Type arg in t.GetGenericArguments())
+            foreach(Type arg in t.GetGenericArguments())
             {
                 var genericArg = GetRealTypeName(arg, makeIntoNullable, includeNameSpace);
 
-                if (paramCnt-- > 0)
+                if(paramCnt-- > 0)
                 {
-                    sb.Replace("{PARAM}", genericArg, 0, paramIdx+1);
-                    paramIdx = genericName.IndexOf('}', paramIdx+1);
+                    sb.Replace("{PARAM}", genericArg, 0, paramIdx + 1);
+                    paramIdx = genericName.IndexOf('}', paramIdx + 1);
                 }
                 else
                 {
-                    if (appendComma) sb.Append(',');
+                    if(appendComma) sb.Append(',');
                     sb.Append(genericArg);
                     appendComma = true;
                 }
             }
 
-            if (genericFnd)
+            if(genericFnd)
                 sb.Append('>');
 
             return makeIntoNullable && t.IsValueType
@@ -415,14 +414,14 @@ namespace Aerospike.Database.LINQPadDriver
 
         private static string GetBinNameFromProperty(PropertyInfo property)
         {
-            if (Attribute.IsDefined(property, typeof(BinIgnoreAttribute)))
+            if(Attribute.IsDefined(property, typeof(BinIgnoreAttribute)))
                 return null;
 
             string binName;
 
-            if (Attribute.IsDefined(property, typeof(BinNameAttribute)))
+            if(Attribute.IsDefined(property, typeof(BinNameAttribute)))
             {
-                binName = ((BinNameAttribute)Attribute.GetCustomAttribute(property, typeof(BinNameAttribute), false))
+                binName = ((BinNameAttribute) Attribute.GetCustomAttribute(property, typeof(BinNameAttribute), false))
                                 ?.Name
                             ?? property.Name;
             }
@@ -434,14 +433,14 @@ namespace Aerospike.Database.LINQPadDriver
 
         private static string GetBinNameFromField(FieldInfo field)
         {
-            if (Attribute.IsDefined(field, typeof(BinIgnoreAttribute)))
+            if(Attribute.IsDefined(field, typeof(BinIgnoreAttribute)))
                 return null;
 
             string binName;
 
-            if (Attribute.IsDefined(field, typeof(BinNameAttribute)))
+            if(Attribute.IsDefined(field, typeof(BinNameAttribute)))
             {
-                binName = ((BinNameAttribute)Attribute.GetCustomAttribute(field, typeof(BinNameAttribute), false))
+                binName = ((BinNameAttribute) Attribute.GetCustomAttribute(field, typeof(BinNameAttribute), false))
                                 ?.Name
                             ?? field.Name;
             }
@@ -457,22 +456,22 @@ namespace Aerospike.Database.LINQPadDriver
             var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             ConstructorInfo constructor = null;
 
-            if (constructors.Length > 0)
+            if(constructors.Length > 0)
             {
-                if (constructors.Length == 1 && constructors.First().GetParameters().Length == 0)
+                if(constructors.Length == 1 && constructors.First().GetParameters().Length == 0)
                 {
                     return null;
                 }
 
                 bool hasDefault = false;
 
-                foreach (var item in constructors)
+                foreach(var item in constructors)
                 {
-                    if (item.CustomAttributes.Any(a => a.AttributeType == typeof(ConstructorAttribute)))
+                    if(item.CustomAttributes.Any(a => a.AttributeType == typeof(ConstructorAttribute)))
                     {
                         return item;
                     }
-                    if (item.GetParameters().Length == 0)
+                    if(item.GetParameters().Length == 0)
                     {
                         hasDefault = true;
                     }
@@ -482,7 +481,7 @@ namespace Aerospike.Database.LINQPadDriver
                     }
                 }
 
-                if (hasDefault) return null;
+                if(hasDefault) return null;
             }
 
             return constructor;
@@ -495,31 +494,31 @@ namespace Aerospike.Database.LINQPadDriver
 
         public static bool SequenceEquals<T>(IEnumerable<T> items, object obj)
         {
-            if (items is null) return obj is null;
+            if(items is null) return obj is null;
 
-            if (ReferenceEquals(items, obj)) return true;
+            if(ReferenceEquals(items, obj)) return true;
 
-            if (obj is IEnumerable<T> tItems) return items.SequenceEqual(tItems);
-            if (obj is JArray jArray)
-            {                
+            if(obj is IEnumerable<T> tItems) return items.SequenceEqual(tItems);
+            if(obj is JArray jArray)
+            {
                 return SequenceEquals(items, CDTConverter.ConvertToList(jArray));
             }
-            if (obj is JObject jObject)
+            if(obj is JObject jObject)
             {
-                if (IsSubclassOfInterface(typeof(KeyValuePair<,>), typeof(T)))                    
-                    return SequenceEquals(items, 
+                if(IsSubclassOfInterface(typeof(KeyValuePair<,>), typeof(T)))
+                    return SequenceEquals(items,
                                             CDTConverter.ConvertToDictionary(jObject));
                 return false;
             }
-            if (obj is JProperty jProp)
+            if(obj is JProperty jProp)
             {
-                if (IsSubclassOfInterface(typeof(KeyValuePair<,>), typeof(T)))
+                if(IsSubclassOfInterface(typeof(KeyValuePair<,>), typeof(T)))
                     return SequenceEquals(items,
                                             CDTConverter.ConvertToDictionary(jProp));
                 return false;
             }
 
-            if (obj is IEnumerable iobj)
+            if(obj is IEnumerable iobj)
             {
                 return items.Cast<object>().SequenceEqual(iobj.Cast<object>());
             }
@@ -539,10 +538,10 @@ namespace Aerospike.Database.LINQPadDriver
 #if NET7_0_OR_GREATER
         public static long NanosFromEpoch(DateTime dt) => (long) dt.ToUniversalTime().Subtract(UnixEpoch).TotalNanoseconds;
 #else
-		public static long NanosFromEpoch(DateTime dt) => (long) dt.ToUniversalTime().Subtract(UnixEpoch).TotalMilliseconds * 1000000;
+        public static long NanosFromEpoch(DateTime dt) => (long) dt.ToUniversalTime().Subtract(UnixEpoch).TotalMilliseconds * 1000000;
 #endif
-		public static DateTime NanoEpochToDateTime(long nanoseconds) => UnixEpoch.AddTicks(nanoseconds / 100);
-        
+        public static DateTime NanoEpochToDateTime(long nanoseconds) => UnixEpoch.AddTicks(nanoseconds / 100);
+
         internal const string defaultDateTimeFormat = "yyyy-MM-ddTHH:mm:ss.ffff";
         internal const string defaultDateTimeOffsetFormat = "yyyy-MM-ddTHH:mm:ss.ffffzzz";
         internal const string defaultTimeSpanFormat = "c";
@@ -584,57 +583,57 @@ namespace Aerospike.Database.LINQPadDriver
 
         public static object ConvertToAerospikeType(object putObject)
         {
-            if (putObject == null)
+            if(putObject == null)
                 return null;
 
-            if (!IsAerospikeType(putObject.GetType()))
+            if(!IsAerospikeType(putObject.GetType()))
             {
-                if (putObject is ARecord aRecord)
+                if(putObject is ARecord aRecord)
                 {
                     putObject = ConvertToAerospikeType(aRecord.Aerospike.GetValues());
                 }
-                else if (putObject is AValue aValue)
+                else if(putObject is AValue aValue)
                 {
                     putObject = ConvertToAerospikeType(aValue.Value);
                 }
-                else if (putObject is Aerospike.Client.Value asValue)
+                else if(putObject is Aerospike.Client.Value asValue)
                 {
                     putObject = asValue.Object;
                 }
-                else if (putObject is Aerospike.Client.Bin asBin)
+                else if(putObject is Aerospike.Client.Bin asBin)
                 {
                     putObject = asBin.value?.Object;
                 }
-                else if (putObject is Decimal decValue)
+                else if(putObject is Decimal decValue)
                 {
-                    putObject = (double)decValue;
+                    putObject = (double) decValue;
                 }
-                else if (putObject is Enum enumValue)
+                else if(putObject is Enum enumValue)
                 {
                     putObject = putObject.ToString();
                 }
-                else if (putObject is DateTime dateTimeValue)
+                else if(putObject is DateTime dateTimeValue)
                 {
                     putObject = AllDateTimeUseUnixEpochNano
-                                    ? (object)NanosFromEpoch(dateTimeValue)
+                                    ? (object) NanosFromEpoch(dateTimeValue)
                                     : dateTimeValue.ToString(DateTimeFormat);
                 }
-                else if (putObject is DateTimeOffset dateTimeOffsetValue)
+                else if(putObject is DateTimeOffset dateTimeOffsetValue)
                 {
                     putObject = AllDateTimeUseUnixEpochNano
-                                    ? (object)NanosFromEpoch(dateTimeOffsetValue.UtcDateTime)
+                                    ? (object) NanosFromEpoch(dateTimeOffsetValue.UtcDateTime)
                                     : dateTimeOffsetValue.ToString(DateTimeOffsetFormat);
                 }
-                else if (putObject is TimeSpan timeSpanValue)
+                else if(putObject is TimeSpan timeSpanValue)
                 {
                     putObject = AllDateTimeUseUnixEpochNano
-                                    ? (object)((long)timeSpanValue.TotalMilliseconds * 1000000L)
+                                    ? (object) ((long) timeSpanValue.TotalMilliseconds * 1000000L)
                                     : timeSpanValue.ToString(TimeSpanFormat);
                 }
-                else if (putObject is Guid guidValue)
+                else if(putObject is Guid guidValue)
                 {
                     putObject = guidValue.ToString();
-                }                
+                }
                 else if(GeoJSONHelpers.IsGeoValue(putObject.GetType()))
                 {
                     return GeoJSONHelpers.ConvertFromGeoJson(putObject);
@@ -643,42 +642,42 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     return ConvertToAerospikeType(CDTConverter.ConvertToDictionary(jObject));
                 }
-                else if (putObject is JArray jArray)
+                else if(putObject is JArray jArray)
                 {
                     return ConvertToAerospikeType(CDTConverter.ConvertToList(jArray));
                 }
-                else if (putObject is JProperty jProp)
+                else if(putObject is JProperty jProp)
                 {
                     return ConvertToAerospikeType(CDTConverter.ConvertToDictionary(jProp));
                 }
-                else if (putObject is JValue jValue)
+                else if(putObject is JValue jValue)
                 {
                     return ConvertToAerospikeType(jValue.Value);
                 }
-                else if (putObject is IDictionary dictValue)
+                else if(putObject is IDictionary dictValue)
                 {
                     var genericTypes = dictValue.GetType().GetGenericArguments();
 
-                    if (genericTypes.Length == 2
+                    if(genericTypes.Length == 2
                             && genericTypes[0] == typeof(string))
                     {
-                        if (!IsAerospikeType(genericTypes[1]))
+                        if(!IsAerospikeType(genericTypes[1]))
                         {
                             var newDict = new Dictionary<string, object>();
 
-                            foreach (DictionaryEntry kvp in dictValue)
+                            foreach(DictionaryEntry kvp in dictValue)
                             {
-                                newDict.Add((string)kvp.Key,
+                                newDict.Add((string) kvp.Key,
                                             ConvertToAerospikeType(kvp.Value));
                             }
 
                             putObject = newDict;
                         }
                     }
-                    else if (genericTypes.Length == 0
+                    else if(genericTypes.Length == 0
                             || !IsAerospikeType(genericTypes[0])
                             || !IsAerospikeType(genericTypes[1]))
-                    {                        
+                    {
                         var kvps = dictValue.Keys
                                         .Cast<object>()
                                         .Select(key => ConvertToAerospikeType(key))
@@ -686,23 +685,23 @@ namespace Aerospike.Database.LINQPadDriver
                                             .Cast<object>()
                                             .Select(value => ConvertToAerospikeType(value)),
                                             (k, v) => new KeyValuePair<object, object>(k, v));
-                            
+
                         putObject = new Dictionary<object, object>(kvps);
                     }
                 }
-                else if (putObject is byte[] byteArray)
+                else if(putObject is byte[] byteArray)
                 {
                     putObject = byteArray;
                 }
-                else if (putObject is IEnumerable enumerableValue)
+                else if(putObject is IEnumerable enumerableValue)
                 {
                     var genericTypes = enumerableValue.GetType().GetGenericArguments();
 
-                    if (genericTypes.Length == 0 || !IsAerospikeType(genericTypes[0]))
+                    if(genericTypes.Length == 0 || !IsAerospikeType(genericTypes[0]))
                     {
                         var newList = new List<object>();
 
-                        foreach (var item in enumerableValue)
+                        foreach(var item in enumerableValue)
                         {
                             newList.Add(ConvertToAerospikeType(item));
                         }
@@ -746,15 +745,15 @@ namespace Aerospike.Database.LINQPadDriver
         {
             var dictionary = new Dictionary<string, object>();
 
-            foreach (var property in instance.GetType().GetProperties())
+            foreach(var property in instance.GetType().GetProperties())
             {
 
                 string binName = GetBinNameFromProperty(property);
                 object putObject;
 
-                if (string.IsNullOrEmpty(binName)) continue;
+                if(string.IsNullOrEmpty(binName)) continue;
 
-                if (transform == null)
+                if(transform == null)
                 {
                     putObject = property.GetValue(instance);
                     dictionary.Add(binName, ConvertToAerospikeType(putObject));
@@ -762,20 +761,20 @@ namespace Aerospike.Database.LINQPadDriver
                 else
                 {
                     putObject = transform.Invoke(property.Name, binName, property.GetValue(instance), nestedItem);
-                    if (putObject != null)
+                    if(putObject != null)
                         dictionary.Add(binName, putObject);
                 }
 
             }
 
-            foreach (var field in instance.GetType().GetFields())
+            foreach(var field in instance.GetType().GetFields())
             {
                 string binName = GetBinNameFromField(field);
                 object putObject;
 
-                if (string.IsNullOrEmpty(binName)) continue;
+                if(string.IsNullOrEmpty(binName)) continue;
 
-                if (transform == null)
+                if(transform == null)
                 {
                     putObject = field.GetValue(instance);
                     dictionary.Add(binName, ConvertToAerospikeType(putObject));
@@ -783,7 +782,7 @@ namespace Aerospike.Database.LINQPadDriver
                 else
                 {
                     putObject = transform.Invoke(field.Name, binName, field.GetValue(instance), nestedItem);
-                    if (putObject != null)
+                    if(putObject != null)
                         dictionary.Add(binName, putObject);
                 }
             }
@@ -797,9 +796,9 @@ namespace Aerospike.Database.LINQPadDriver
         {
             var bins = new List<Aerospike.Client.Bin>(additionalBins);
 
-            if (IsAerospikeType(typeof(V)))
+            if(IsAerospikeType(typeof(V)))
             {
-                foreach (var kvPair in binItems)
+                foreach(var kvPair in binItems)
                 {
                     var binName = prefix == null ? kvPair.binName : $"{prefix}.{kvPair.binName}";
                     bins.Add(new Bin(binName, kvPair.value));
@@ -807,7 +806,7 @@ namespace Aerospike.Database.LINQPadDriver
             }
             else
             {
-                foreach (var kvPair in binItems)
+                foreach(var kvPair in binItems)
                 {
                     var binName = prefix == null ? kvPair.binName : $"{prefix}.{kvPair.binName}";
                     bins.Add(new Bin(binName, ConvertToAerospikeType(kvPair.value)));
@@ -824,11 +823,11 @@ namespace Aerospike.Database.LINQPadDriver
         {
             var bins = new List<Aerospike.Client.Bin>(additionalBins);
 
-            if (typeof(K) == typeof(string))
+            if(typeof(K) == typeof(string))
             {
-                if (IsAerospikeType(typeof(V)))
+                if(IsAerospikeType(typeof(V)))
                 {
-                    foreach (var kvPair in dict)
+                    foreach(var kvPair in dict)
                     {
                         var binName = prefix == null ? kvPair.Key.ToString() : $"{prefix}.{kvPair.Key}";
                         bins.Add(new Bin(binName, kvPair.Value));
@@ -836,7 +835,7 @@ namespace Aerospike.Database.LINQPadDriver
                 }
                 else
                 {
-                    foreach (var kvPair in dict)
+                    foreach(var kvPair in dict)
                     {
                         var binName = prefix == null ? kvPair.Key.ToString() : $"{prefix}.{kvPair.Key}";
                         bins.Add(new Bin(binName, ConvertToAerospikeType(kvPair.Value)));
@@ -846,7 +845,7 @@ namespace Aerospike.Database.LINQPadDriver
                 return bins.ToArray();
             }
 
-            if (IsAerospikeType(typeof(K)) && IsAerospikeType(typeof(V)))
+            if(IsAerospikeType(typeof(K)) && IsAerospikeType(typeof(V)))
             {
                 bins.Add(new Bin(prefix, dict));
             }
@@ -861,12 +860,12 @@ namespace Aerospike.Database.LINQPadDriver
         public static Bin CreateBinRecord<T>(IEnumerable<T> collection,
                                                 string binName)
         {
-            if (IsAerospikeType(typeof(T)))
+            if(IsAerospikeType(typeof(T)))
                 return new Bin(binName, collection.ToList());
 
             var newLst = new List<object>();
 
-            foreach (var value in collection)
+            foreach(var value in collection)
             {
                 newLst.Add(ConvertToAerospikeType(value));
             }
@@ -877,12 +876,12 @@ namespace Aerospike.Database.LINQPadDriver
         public static Bin CreateBinRecord<K, V>(IEnumerable<KeyValuePair<K, V>> collection,
                                                 string binName)
         {
-            if (IsAerospikeType(typeof(K)) && IsAerospikeType(typeof(V)))
+            if(IsAerospikeType(typeof(K)) && IsAerospikeType(typeof(V)))
                 return new Bin(binName, collection.ToDictionary(k => k.Key, v => v.Value));
 
             var newDict = new Dictionary<object, object>();
 
-            foreach (var kvp in collection)
+            foreach(var kvp in collection)
             {
                 newDict.Add(ConvertToAerospikeType(kvp.Key), ConvertToAerospikeType(kvp.Value));
             }
@@ -918,19 +917,19 @@ namespace Aerospike.Database.LINQPadDriver
         {
             var bins = new List<Aerospike.Client.Bin>(additionalBins);
 
-            if (item is IDictionary<string, object> dict)
+            if(item is IDictionary<string, object> dict)
             {
                 bins.AddRange(CreateBinRecord(dict, prefix));
             }
-            else if (item is IEnumerable<(string, object)> binItems)
+            else if(item is IEnumerable<(string, object)> binItems)
             {
                 bins.AddRange(CreateBinRecord<object>(binItems, prefix));
             }
-            else if (item is string strItem)
+            else if(item is string strItem)
             {
                 bins.Add(new Bin(prefix, strItem));
             }
-            else if (item is IList<object> lst)
+            else if(item is IList<object> lst)
             {
                 bins.Add(CreateBinRecord(lst, prefix));
             }
@@ -941,6 +940,10 @@ namespace Aerospike.Database.LINQPadDriver
 
             return bins.ToArray();
         }
+
+		static readonly char[] HexChars = new char[]{'a', 'A', 'b', 'B', 'c', 'C', 'd', 'D', 'e', 'E', 'f', 'F'};
+        static public bool HasHexValues(string hexstring)
+            => hexstring.All(i => char.IsDigit(i) || HexChars.Any(c => c == i));
 
         /// <summary>
         /// Compares two values to determine if they are equal
@@ -967,7 +970,8 @@ namespace Aerospike.Database.LINQPadDriver
                         && sa is not null
                         && sa.Length >= 4
                         && sa[0] == '0'
-                        && char.ToLower(sa[1]) == 'x')
+                        && char.ToLower(sa[1]) == 'x'
+                        && HasHexValues(sa.Substring(2)))
                     return SequenceEquals(StringToByteArray(sa.Substring(2)), bBytes);
 
                 return false;
@@ -978,7 +982,8 @@ namespace Aerospike.Database.LINQPadDriver
 						&& sbb is not null
 						&& sbb.Length >= 4
 						&& sbb[0] == '0'
-						&& char.ToLower(sbb[1]) == 'x')
+						&& char.ToLower(sbb[1]) == 'x'
+						&& HasHexValues(sbb.Substring(2)))
 					return SequenceEquals(StringToByteArray(sbb.Substring(2)), aBytes);
 
 				return false;
@@ -2164,8 +2169,9 @@ namespace Aerospike.Database.LINQPadDriver
             else if(primaryKey is string digestStr
                         && digestStr.Length == 42
                         && digestStr[0] == '0'
-                        && char.ToLower(digestStr[1]) == 'x')            
-                key = new Client.Key(nameSpace,
+                        && char.ToLower(digestStr[1]) == 'x'
+                        && HasHexValues(digestStr.Substring(2)))
+				key = new Client.Key(nameSpace,
                                         Helpers.StringToByteArray(digestStr.Substring(2)),
                                         setName,
                                         Value.AsNull);            
