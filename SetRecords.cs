@@ -70,7 +70,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </returns>
         /// <seealso cref="Get(dynamic, Expression, string[])"/>
         public new T Get([NotNull] dynamic primaryKey, params string[] bins)
-        {
+        {            
             Client.Key key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
 
             var record = this.SetAccess
@@ -85,7 +85,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         record,
                                         this._bins,
                                         this.BinsHashCode,
-                                        recordView: this.DefaultRecordView);
+                                        recordView: this.DefaultRecordView,
+										fkBins: this.DetermineFKBins(record));
         }
 
         /// <summary>
@@ -122,7 +123,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         record,
                                         this._bins,
                                         this.BinsHashCode,
-                                        recordView: this.DefaultRecordView);
+                                        recordView: this.DefaultRecordView,
+										fkBins: this.DetermineFKBins(record));
         }
         #endregion
 
@@ -162,7 +164,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 recordset.Record,
                                                 this._bins,
                                                 this.BinsHashCode,
-                                                recordView: this.DefaultRecordView);
+                                                recordView: this.DefaultRecordView,
+                                                fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
 
@@ -202,7 +205,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 recordset.Record,
                                                 this._bins,
                                                 this.BinsHashCode,
-                                                recordView: this.DefaultRecordView);
+                                                recordView: this.DefaultRecordView,
+                                                fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
 
@@ -244,7 +248,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 recordset.Record,
                                                 this._bins,
                                                 this.BinsHashCode,
-                                                recordView: this.DefaultRecordView);
+                                                recordView: this.DefaultRecordView,
+                                                fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
 
@@ -296,7 +301,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 recordset.Record,
                                                 this._bins,
                                                 this.BinsHashCode,
-                                                recordView: this.DefaultRecordView);
+                                                recordView: this.DefaultRecordView,
+                                                fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
 
@@ -427,7 +433,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 recordset.Record,
                                                 this._bins,
                                                 this.BinsHashCode,
-                                                recordView: this.DefaultRecordView);
+                                                recordView: this.DefaultRecordView,
+												fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
 
@@ -537,7 +544,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                     recordset.Record,
                                                     this._bins,
                                                     this.BinsHashCode,
-                                                    recordView: this.DefaultRecordView);
+                                                    recordView: this.DefaultRecordView,
+                                                    fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
 
@@ -602,7 +610,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 																			record,
 																			this._bins,
 																			this.BinsHashCode,
-																			recordView: this.DefaultRecordView))),
+																			recordView: this.DefaultRecordView,
+                                                                            fkBins: this.DetermineFKBins(record)))),
 							cancellationToken: CancellationToken.None,
 							creationOptions: TaskCreationOptions.DenyChildAttach
 												| TaskCreationOptions.LongRunning,
@@ -685,7 +694,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                     [NotNull] Record record,
                                                     string[] binNames,
                                                     int binsHashCode,
-                                                    ARecord.DumpTypes recordView = ARecord.DumpTypes.Record);
+                                                    ARecord.DumpTypes recordView = ARecord.DumpTypes.Record,
+													IEnumerable<LPSet.BinType> fkBins = null);
 
 		public new IEnumerator<T> GetEnumerator()
 		{
@@ -706,7 +716,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 												                            record,
 												                            this._bins,
 												                            this.BinsHashCode,
-												                            recordView: this.DefaultRecordView))),
+												                            recordView: this.DefaultRecordView,
+																			fkBins: this.DetermineFKBins(record)))),
 							cancellationToken: CancellationToken.None,
 							creationOptions: TaskCreationOptions.DenyChildAttach
 												| TaskCreationOptions.LongRunning,
@@ -762,8 +773,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.SetName = setName;
             this.SetAccess = setAccess;
             this.SetFullName = $"{this.Namespace}.{this.SetName}";
-            this._bins = Helpers.RemoveDups(bins);
-
+            this._bins = Helpers.RemoveDups(bins);            
             this.DefaultWritePolicy = new WritePolicy(this.SetAccess.DefaultWritePolicy);
             this.DefaultReadPolicy = new Policy(this.SetAccess.DefaultReadPolicy);
             this.DefaultQueryPolicy = new QueryPolicy(this.SetAccess.DefaultQueryPolicy);
@@ -778,6 +788,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.SetAccess = clone.SetAccess;
             this._bins = clone._bins;
             this._binsHashCode= clone._binsHashCode;
+            this.FKBins = clone.FKBins;
 
             this.DefaultWritePolicy = new WritePolicy(clone.DefaultWritePolicy);
             this.DefaultReadPolicy = new Policy(clone.DefaultReadPolicy);
@@ -890,6 +901,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		public byte[] CreateDigest(object value)
 				=> Key.ComputeDigest(this.SetName,
 										Value.Get(value));
+
+        public LPSet.BinType[] FKBins { get; set; }
+
+		protected IEnumerable<LPSet.BinType> DetermineFKBins(Client.Record record)
+		{
+			if(this.FKBins is not null)
+			{
+				foreach(var fkBin in this.FKBins)
+				{
+                    if(fkBin.FKSetNameBin is not null)
+					    yield return new LPSet.BinType(fkBin,
+											            record.GetString(fkBin.FKSetNameBin));
+                    else
+                        yield return fkBin;
+				}
+			}
+		}
+
 		#endregion
 
 		#region Aerospike Client Properties, Policies, Put, Get, Query, etc.
@@ -1291,7 +1320,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     key,
                                     record,
                                     this._bins,
-                                    dumpType: this.DefaultRecordView);
+                                    dumpType: this.DefaultRecordView,
+									fkBins: this.DetermineFKBins(record));
         }
 
         /// <summary>
@@ -1328,7 +1358,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     key,
                                     record,
                                     this._bins,
-                                    dumpType: this.DefaultRecordView);
+                                    dumpType: this.DefaultRecordView,
+									fkBins: this.DetermineFKBins(record));
         }
         #endregion
 
@@ -1369,7 +1400,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             recordset.Record,
                                             this._bins,
                                             setBinsHashCode: this.BinsHashCode,
-                                            dumpType: this.DefaultRecordView);
+                                            dumpType: this.DefaultRecordView,
+											fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
 
@@ -1409,7 +1441,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             recordset.Record,
                                             this._bins,
                                             setBinsHashCode: this.BinsHashCode,
-                                            dumpType: this.DefaultRecordView);
+                                            dumpType: this.DefaultRecordView,
+											fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
 
@@ -1457,7 +1490,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             recordset.Record,
                                             this._bins,
                                             setBinsHashCode: this.BinsHashCode,
-                                            dumpType: this.DefaultRecordView);
+                                            dumpType: this.DefaultRecordView,
+											fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
         
@@ -1513,7 +1547,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             recordset.Record,
                                             this._bins,
                                             setBinsHashCode: this.BinsHashCode,
-                                            dumpType: this.DefaultRecordView);
+                                            dumpType: this.DefaultRecordView,
+											fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
         
@@ -1563,7 +1598,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             recordset.Record,
                                             this._bins,
                                             setBinsHashCode: this.BinsHashCode,
-                                            dumpType: this.DefaultRecordView);
+                                            dumpType: this.DefaultRecordView,
+											fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
 
@@ -1595,7 +1631,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     key,
                                     record,
                                     null,
-                                    dumpType: this.DefaultRecordView);
+                                    dumpType: this.DefaultRecordView,
+									fkBins: this.DetermineFKBins(record));
         }
 
         #endregion
@@ -1916,7 +1953,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                             recordset.Record,
                                             this._bins,
                                             setBinsHashCode: this.BinsHashCode,
-                                            dumpType: this.DefaultRecordView);
+                                            dumpType: this.DefaultRecordView,
+											fkBins: this.DetermineFKBins(recordset.Record));
             }
         }
 
@@ -2030,7 +2068,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                     recordset.Record,
                                                     this._bins,
                                                     setBinsHashCode: this.BinsHashCode,
-                                                    dumpType: this.DefaultRecordView);
+                                                    dumpType: this.DefaultRecordView,
+													fkBins: this.DetermineFKBins(recordset.Record));
                 }
         }
 
@@ -2095,7 +2134,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 																		record,
 																		this._bins,
 																		setBinsHashCode: this.BinsHashCode,
-																		dumpType: this.DefaultRecordView))),
+																		dumpType: this.DefaultRecordView,
+																		fkBins: this.DetermineFKBins(record)))),
 							cancellationToken: CancellationToken.None,
 							creationOptions: TaskCreationOptions.DenyChildAttach
 												| TaskCreationOptions.LongRunning,
@@ -2142,7 +2182,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 												recordset.Record,
 												bins,
                                                 setBinsHashCode: this.BinsHashCode,
-												dumpType: this.DefaultRecordView));
+												dumpType: this.DefaultRecordView,
+												fkBins: this.DetermineFKBins(recordset.Record)));
 				}
 
 			return recordSets.ToArray();
@@ -2688,7 +2729,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 											                            record,
 											                            this._bins,
 											                            setBinsHashCode: this.BinsHashCode,
-											                            dumpType: this.DefaultRecordView))),
+											                            dumpType: this.DefaultRecordView,
+                                                                        fkBins: this.DetermineFKBins(record)))),
                             cancellationToken: CancellationToken.None,
                             creationOptions: TaskCreationOptions.DenyChildAttach
                                                 | TaskCreationOptions.LongRunning,

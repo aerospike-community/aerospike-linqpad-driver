@@ -8,10 +8,6 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using Aerospike.Client;
-using Google.Protobuf.Compiler;
-using System.Dynamic;
-using System.Windows.Controls;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -887,8 +883,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if (obj is Aerospike.Client.Value value) return this.Equals(value);
             if (obj is AValue pValue) return this.Equals(pValue);
             if (obj is byte[] byteArray) return Helpers.Equals(this.Value, byteArray);
-			
-            var invokeEquals = this.GetType().GetMethod("Equals", new Type[] { obj.GetType() });
+			if (obj is string strObj) return Helpers.Equals(this.Value, strObj);
+
+			var invokeEquals = this.GetType().GetMethod("Equals", new Type[] { obj.GetType() });
 
             if (invokeEquals is null || invokeEquals.GetParameters().First().ParameterType == typeof(object))
                 return Helpers.Equals(this.Value, obj);

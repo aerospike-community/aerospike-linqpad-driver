@@ -2174,8 +2174,10 @@ namespace Aerospike.Database.LINQPadDriver
 				key = new Client.Key(nameSpace,
                                         Helpers.StringToByteArray(digestStr[2..]),
                                         setName,
-                                        Value.AsNull);            
-            else
+                                        Value.AsNull); 
+            else if(primaryKey is null)
+				key = new Client.Key(nameSpace, setName, Value.AsNull);
+			else
                 key = new Client.Key(nameSpace, setName, Value.Get(primaryKey));
 
             return key;

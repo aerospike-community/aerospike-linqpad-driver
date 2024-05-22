@@ -355,12 +355,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
              
                         public virtual bool Equals(string value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                                => (this.DigestRequired() && this.CompareDigest(value))
+                                    || Helpers.Equals(this.Value, (object) value);            
+            
             public bool Equals(string v1, string v2) => v1 == v2;
             public int GetHashCode(string value) => value.GetHashCode();
 
@@ -402,12 +399,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public bool Tobool() => (bool) this;
               
                         public bool Equals(bool value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(bool v1, bool v2) => v1 == v2;
             public int GetHashCode(bool value) => value.GetHashCode();
 
@@ -463,12 +457,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public Enum ToEnum() => (Enum) this;
               
                         public bool Equals(Enum value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(Enum v1, Enum v2) => v1 == v2;
             public int GetHashCode(Enum value) => value.GetHashCode();
 
@@ -524,12 +515,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public Guid ToGuid() => (Guid) this;
               
                         public bool Equals(Guid value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(Guid v1, Guid v2) => v1 == v2;
             public int GetHashCode(Guid value) => value.GetHashCode();
 
@@ -570,12 +558,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public short Toshort() => (short) this;
               
                         public bool Equals(short value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(short v1, short v2) => v1 == v2;
             public int GetHashCode(short value) => value.GetHashCode();
 
@@ -631,12 +616,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public int Toint() => (int) this;
               
                         public bool Equals(int value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(int v1, int v2) => v1 == v2;
             public int GetHashCode(int value) => value.GetHashCode();
 
@@ -692,12 +674,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public long Tolong() => (long) this;
               
                         public bool Equals(long value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(long v1, long v2) => v1 == v2;
             public int GetHashCode(long value) => value.GetHashCode();
 
@@ -753,12 +732,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public ushort Toushort() => (ushort) this;
               
                         public bool Equals(ushort value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(ushort v1, ushort v2) => v1 == v2;
             public int GetHashCode(ushort value) => value.GetHashCode();
 
@@ -814,12 +790,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public uint Touint() => (uint) this;
               
                         public bool Equals(uint value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(uint v1, uint v2) => v1 == v2;
             public int GetHashCode(uint value) => value.GetHashCode();
 
@@ -875,12 +848,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public ulong Toulong() => (ulong) this;
               
                         public bool Equals(ulong value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(ulong v1, ulong v2) => v1 == v2;
             public int GetHashCode(ulong value) => value.GetHashCode();
 
@@ -936,12 +906,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public decimal Todecimal() => (decimal) this;
               
                         public bool Equals(decimal value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(decimal v1, decimal v2) => v1 == v2;
             public int GetHashCode(decimal value) => value.GetHashCode();
 
@@ -997,12 +964,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public float Tofloat() => (float) this;
               
                         public bool Equals(float value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(float v1, float v2) => v1 == v2;
             public int GetHashCode(float value) => value.GetHashCode();
 
@@ -1058,12 +1022,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public double Todouble() => (double) this;
               
                         public bool Equals(double value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(double v1, double v2) => v1 == v2;
             public int GetHashCode(double value) => value.GetHashCode();
 
@@ -1119,12 +1080,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public byte Tobyte() => (byte) this;
               
                         public bool Equals(byte value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(byte v1, byte v2) => v1 == v2;
             public int GetHashCode(byte value) => value.GetHashCode();
 
@@ -1180,12 +1138,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public sbyte Tosbyte() => (sbyte) this;
               
                         public bool Equals(sbyte value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(sbyte v1, sbyte v2) => v1 == v2;
             public int GetHashCode(sbyte value) => value.GetHashCode();
 
@@ -1241,12 +1196,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public DateTime ToDateTime() => (DateTime) this;
               
                         public bool Equals(DateTime value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(DateTime v1, DateTime v2) => v1 == v2;
             public int GetHashCode(DateTime value) => value.GetHashCode();
 
@@ -1300,12 +1252,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public DateTimeOffset ToDateTimeOffset() => (DateTimeOffset) this;
               
                         public bool Equals(DateTimeOffset value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(DateTimeOffset v1, DateTimeOffset v2) => v1 == v2;
             public int GetHashCode(DateTimeOffset value) => value.GetHashCode();
 
@@ -1359,12 +1308,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         public TimeSpan ToTimeSpan() => (TimeSpan) this;
               
                         public bool Equals(TimeSpan value)
-                        {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
-
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
+            
             public bool Equals(TimeSpan v1, TimeSpan v2) => v1 == v2;
             public int GetHashCode(TimeSpan value) => value.GetHashCode();
 

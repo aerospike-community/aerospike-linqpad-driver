@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static LINQPad.Util.ActiveDirectory;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -18,25 +19,46 @@ namespace Aerospike.Database.LINQPadDriver
     {        
         public class BinType : ILPExplorer, IEqualityComparer<BinType>
         {            
-            internal BinType(string name, Type type, bool dup, bool allRecs, bool detected = false)
+            public BinType(string name, Type type, bool dup, bool allRecs, 
+                                bool detected = false,
+                                bool isFK = false)
             {
                 this.BinName = name;
                 this.FndAllRecs = allRecs;
                 this.DataType = type;
                 this.Duplicate = dup;
                 this.Detected = detected;
-            }
+                this.IsFK = isFK;
+			}
 
-            public readonly string BinName;
+			internal BinType(BinType binType,
+								string fkSetName)
+			{
+				this.BinName = binType.BinName;
+				this.FndAllRecs = binType.FndAllRecs;
+				this.DataType = binType.DataType;
+				this.Duplicate = binType.Duplicate;
+				this.Detected = binType.Detected;
+				this.IsFK = binType.IsFK;
+                this.FKSetNameBin = binType.FKSetNameBin;
+				this.FKSetname = fkSetName;
+			}
+
+			public readonly string BinName;
             public readonly Type DataType;
             public readonly bool Duplicate;
             public readonly bool FndAllRecs;
+            
             /// <summary>
             /// True if the bin was found after the initial scan of the set.
             /// </summary>            
             public bool Detected { get; set; }
 
-            public string GenerateExplorerName()
+			public bool IsFK { get; internal set; }
+            public string FKSetname { get; set; }
+            public string FKSetNameBin {  get; set; }
+
+			public string GenerateExplorerName()
             {
                 var binName = new StringBuilder(this.BinName);
 
@@ -53,17 +75,17 @@ namespace Aerospike.Database.LINQPadDriver
 
                 return binName.ToString();
             }
-
-            public ExplorerItem CreateExplorerItem()
-            {
-                return new ExplorerItem(this.GenerateExplorerName(),
-                                        ExplorerItemKind.Schema,
-                                        ExplorerIcon.Column)
-                {
-                    IsEnumerable = false,
-                    DragText = this.BinName
-                };
-            }
+            
+			public ExplorerItem CreateExplorerItem()
+                    => new ExplorerItem(this.GenerateExplorerName(),
+                                            ExplorerItemKind.Schema,
+										    this.IsFK
+                                                ? ExplorerIcon.OneToOne
+												: ExplorerIcon.Column)
+                        {
+                            IsEnumerable = false,
+                            DragText = this.BinName
+                        };            
 
             public override string ToString()
                 => $"{this.BinName}({this.DataType.Name})";
@@ -93,6 +115,9 @@ namespace Aerospike.Database.LINQPadDriver
 
             public int GetHashCode([DisallowNull] BinType obj)
                 => obj?.GetHashCode() ?? 0;
+
+            public string GenerateCode()
+                => $"new Aerospike.Database.LINQPadDriver.LPSet.BinType(\"{this.BinName}\",typeof({Helpers.GetRealTypeName(this.DataType)}),{this.Duplicate.ToString().ToLower()},{this.FndAllRecs.ToString().ToLower()},{this.Detected.ToString().ToLower()},{this.IsFK.ToString().ToLower()}){{FKSetname=\"{this.FKSetname}\", FKSetNameBin=\"{this.FKSetNameBin}\"}}";
 
             public sealed class NameEqualityComparer : IEqualityComparer<BinType>
             {
@@ -127,7 +152,8 @@ namespace Aerospike.Database.LINQPadDriver
             this.binTypes = binTypes?.Where(b => b.DataType != null).ToList() ?? new List<BinType>();
             this.IsNullSet = this.Name == NullSetName;
             SetsBag.Add(this);
-        }
+			this.DetermineIsVectorIdx();
+		}
 
         public LPSet(LPNamespace aNamespace)
         {
@@ -153,7 +179,8 @@ namespace Aerospike.Database.LINQPadDriver
             this.binTypes = binTypes.ToList();
             this.SIndexes = sindexes;
             SetsBag.Add(this);
-        }
+		    this.DetermineIsVectorIdx();
+		}
 
         public LPNamespace LPnamespace { get; }
 
@@ -171,7 +198,40 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public bool IsNullSet { get; }
 
-        private List<BinType> binTypes = new List<BinType>(0);
+		#region Vector
+		static readonly internal string VectorFKSetBin = null;
+        static readonly internal string[] VectorFKBins = Array.Empty<string>(); // new string[] { "vectorDigest", "neighbors" };
+		static readonly private string[] VectorBins = new string[] { "vectorDigest", "vector", "neighbors", "indexIdWithTs" };
+        
+        private void DetermineIsVectorIdx()
+        {
+            if(this.IsNullSet)
+            {
+				this.IsVectorIdx = false;
+			}
+            else
+            {
+                this.IsVectorIdx = VectorBins.All(vb => this.binTypes.Any(b => b.BinName == vb));
+                if(this.IsVectorIdx && VectorFKBins.Length > 0)
+                {
+                    foreach(var binType in this.binTypes)
+                    {
+                        binType.IsFK = VectorFKBins.Any(f => f == binType.BinName);                        
+					}
+                }
+            }            
+		}
+
+        public IEnumerable<BinType> GetFKBins() => this.BinTypes.Where(b => b.IsFK);
+
+		public bool IsVectorIdx
+        {
+            get;
+            private set;
+		}
+		#endregion
+
+		private List<BinType> binTypes = new List<BinType>(0);
         public IEnumerable<BinType> BinTypes
         {
             get
@@ -196,8 +256,9 @@ namespace Aerospike.Database.LINQPadDriver
             lock (binTypes)
             {
                 this.binTypes = getBins.Get(this.LPnamespace.Name, this.Name, determineDocType, maxRecords, minRecs);
-                
-                if (updateCntd)
+                this.DetermineIsVectorIdx();
+
+				if (updateCntd)
                 {
                     Interlocked.Increment(ref nbrCodeUpdates);
                     Interlocked.Increment(ref LPnamespace.nbrCodeUpdates);
@@ -215,6 +276,7 @@ namespace Aerospike.Database.LINQPadDriver
                     Interlocked.Increment(ref nbrCodeUpdates);
                     Interlocked.Increment(ref LPnamespace.nbrCodeUpdates);
                 }
+                this.DetermineIsVectorIdx();                
             }
         }
 
@@ -227,7 +289,9 @@ namespace Aerospike.Database.LINQPadDriver
                 dup = binTypes.Any(b => b.BinName == binName && b.DataType == dataType);
 
                 this.binTypes.Add(new BinType(binName, dataType, dup, false, true));
-                Interlocked.Increment(ref nbrCodeUpdates);
+                this.DetermineIsVectorIdx();
+
+				Interlocked.Increment(ref nbrCodeUpdates);
                 if(this.LPnamespace != null)
                     Interlocked.Increment(ref this.LPnamespace.nbrCodeUpdates);
             }
@@ -544,7 +608,26 @@ namespace Aerospike.Database.LINQPadDriver
                 eopComma = setValuesParams.LastIndexOf(",");
                 setValuesParams = setValuesParams[..eopComma];
 			}
-                        
+
+            var fkDefs = new StringBuilder();
+
+            if(this.IsVectorIdx)
+            {
+                var binTypeDefs = new StringBuilder();
+                foreach(var fkBin in this.GetFKBins())
+                {
+					binTypeDefs.Append(fkBin.GenerateCode());
+					binTypeDefs.AppendLine(",");
+				}
+                if(binTypeDefs.Length > 0)
+                {
+                    fkDefs.AppendLine("this.FKBins = new Aerospike.Database.LINQPadDriver.LPSet.BinType[] {");
+                    fkDefs.AppendLine(binTypeDefs.ToString());
+                    fkDefs.AppendLine("};");
+				}
+            }
+
+
             var settClasses = $@"
 	public class {this.SafeName}_SetCls : Aerospike.Database.LINQPadDriver.Extensions.SetRecords<{this.SafeName}_SetCls.RecordCls>
 	{{
@@ -553,7 +636,9 @@ namespace Aerospike.Database.LINQPadDriver
 						setAccess, 
 						""{this.Name}"",
 						bins: new string[] {{ {binsString} }})
-		{{ }}
+		{{
+            {fkDefs}
+        }}
 
 		public {this.SafeName}_SetCls ({this.SafeName}_SetCls clone)
 			: base(clone)
@@ -564,7 +649,9 @@ namespace Aerospike.Database.LINQPadDriver
 														Aerospike.Client.Record record,
 														string[] binNames,
 														int binsHashCode,
-														Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes recordView = global::Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes.Record) => new RecordCls(setAccess, key, record, binNames, binsHashCode, recordView);
+														Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes recordView = global::Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes.Record,
+                                                        IEnumerable<Aerospike.Database.LINQPadDriver.LPSet.BinType> fkBins = null)
+                            => new RecordCls(setAccess, key, record, binNames, binsHashCode, recordView, fkBins: fkBins);
 
         /// <summary>
         /// Puts (Writes) a DB record based on the provided key and bin values.
@@ -613,8 +700,9 @@ namespace Aerospike.Database.LINQPadDriver
 								Aerospike.Client.Record record,
 								string[] binNames,
 								int binsHashCode,
-								Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes recordView = global::Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes.Record)
-				:base(setAccess, key, record, binNames, recordView, binsHashCode)
+								Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes recordView = global::Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes.Record,
+                                IEnumerable<Aerospike.Database.LINQPadDriver.LPSet.BinType> fkBins = null)
+				:base(setAccess, key, record, binNames, recordView, binsHashCode, fkBins: fkBins)
 			{{
 				RefreshFromDBRecord();
 			}}
@@ -723,7 +811,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             return new ExplorerItem(name,
                                         ExplorerItemKind.QueryableObject,
-                                        ExplorerIcon.Schema)
+                                        this.IsVectorIdx ? ExplorerIcon.LinkedDatabase : ExplorerIcon.Schema)
             {
                 IsEnumerable = true,
                 DragText = $"{this.LPnamespace.SafeName}.{this.SafeName}",

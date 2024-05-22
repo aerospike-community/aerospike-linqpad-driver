@@ -12,6 +12,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IO;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -39,8 +40,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             string[] binNames,
                             DumpTypes dumpType = DumpTypes.Record,
                             int setBinsHashCode = 0,
-                            bool? inDoubt = null)
-        {            
+                            bool? inDoubt = null,
+                            IEnumerable<LPSet.BinType> fkBins = null)
+        {
             this.SetAccess = setAccess;
 
             this.Aerospike = new AerospikeAPI(key,
@@ -52,6 +54,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             this.DumpType = dumpType;
             this.SetBinsHashCode = setBinsHashCode;
+            this.FKBins = fkBins;
 
             var recordBins = record?.bins?.Keys.ToArray();
             this.BinsHashCode = Helpers.GetStableHashCode(recordBins);
@@ -94,6 +97,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// For strong consistency, this indicates if this record&apos;s situation is uncertain of a transaction outcome.
         /// <see cref="AerospikeAPI.InDoubt"/>
         /// </param>
+        /// <param name="fkBins">
+        /// This record is associated a collection of FK bins 
+        /// </param>
         public ARecord([NotNull] string ns,
                             [NotNull] string set,
                             [NotNull] dynamic keyValue,
@@ -104,7 +110,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             int? generation = null,
                             DumpTypes dumpType = DumpTypes.Record,
                             int setBinsHashCode = 0,
-                            bool? inDoubt = null)
+                            bool? inDoubt = null,
+							IEnumerable<LPSet.BinType> fkBins = null)
         {
             this.SetAccess = setAccess;
             this.Aerospike = new AerospikeAPI(ns,
@@ -118,6 +125,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
            
             this.DumpType = dumpType;
             this.SetBinsHashCode = setBinsHashCode;
+            this.FKBins = fkBins;
 
             this.BinsHashCode = Helpers.GetStableHashCode(binValues.Keys.ToArray());
             
@@ -143,6 +151,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.BinsHashCode = cloneRecord.BinsHashCode;
             this.HasDifferentSchema = cloneRecord.HasDifferentSchema;
             this.RecordException= cloneRecord.RecordException;
+            this.FKBins = cloneRecord.FKBins;
         }
 
         #endregion
@@ -227,6 +236,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// This is the Record&apos;s Bin Name Hash Code
         /// </summary>
         protected int BinsHashCode { get; }
+
+		/// <summary>
+		/// Gets the collection of this record&apos;s FKeys are associated with...
+		/// </summary>
+		/// <value>The collection of FKs or null.</value>
+		protected IEnumerable<LPSet.BinType> FKBins { get; }
         
         /// <summary>
         /// The Set Access instance that this record is associated with.
@@ -748,7 +763,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     this.Aerospike.Key,
                                     record,
                                     this.Aerospike.BinNames,
-                                    this.DumpType);
+                                    this.DumpType,
+                                    fkBins: this.FKBins);
 		}
 
         /// <summary>
@@ -841,6 +857,74 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public byte[] CreateDigest(object value)
                 => Key.ComputeDigest(this.Aerospike.PrimaryKey.AerospikeKey.setName,
                                         Value.Get(value));
+
+		/// <summary>
+		/// Gets the associated Foreign Key of this Set, if defined. 
+		/// </summary>
+		/// <param name="forFKBinName">Name of for Foreign Key bin.</param>
+		/// <returns>
+        /// A collection of <see cref="ARecord"/> based on the FK 
+        ///     or empty collection if the <paramref name="forFKBinName"/> was not found in this record.
+        /// Note: If the FK&apos;s PK is not found a empty record is returned.
+        /// </returns>
+		public IEnumerable<ARecord> GetFKValues(string forFKBinName)
+        {
+            var fxBin = this.FKBins.FirstOrDefault(f => f.BinName == forFKBinName);
+
+            if(fxBin is not null)
+            {
+                var aValues = this.GetValue(fxBin.BinName);
+
+                if(aValues is not null)
+                {
+                    var nssetNames = fxBin.FKSetname?.Split(':');
+                    string setName = null;
+                    string namespaceName = null;
+
+					if(nssetNames is not null && nssetNames.Length > 0)
+                    {
+						setName = nssetNames.Length == 2 ? nssetNames[1] : nssetNames[0];
+						namespaceName = nssetNames.Length == 2 ? nssetNames[0] : null;
+					}
+
+                    var setAccess = namespaceName is null || namespaceName == this.SetAccess.Namespace
+                                        ? this.SetAccess
+										: ANamespaceAccess.FindNamespace(namespaceName);
+
+					IEnumerable<ARecord> GetRecord(AValue aValue)
+                    {
+                        if(aValue.Value is byte[] digest && digest.Length == 20)
+                        {
+                            yield return setAccess
+											.Get(setName,
+                                                    digest);
+                        }
+                        else if(aValue.IsCDT)
+                        {
+                            var recordList = new List<ARecord>();
+                            foreach(var value in aValue.AsEnumerable())
+                            {
+                                recordList.AddRange(GetRecord(value));
+                            }
+                            foreach(var record in recordList)
+                            {
+                                yield return record;
+                            }
+                        }
+                        else
+                        {
+                            yield return setAccess
+											.Get(setName,
+                                                    aValue.Value);
+                        }
+                    }
+
+                    return GetRecord(aValues);
+                }
+            }
+
+            return Enumerable.Empty<ARecord>();
+        }
 
 		#region JSON
 

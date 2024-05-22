@@ -257,14 +257,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
              <# } #> 
             <# if(datatype == "string") { #>
             public virtual bool Equals(<#= datatype #> value)
+                                => (this.DigestRequired() && this.CompareDigest(value))
+                                    || Helpers.Equals(this.Value, (object) value);            
             <# } else { #>
             public bool Equals(<#= datatype #> value)
+                        => (this.DigestRequired() && this.CompareDigest(value))
+                            || this.CompareTo(value) == 0;
             <# } #>
-            {
-                return this.DigestRequired()
-                            ? this.CompareDigest(value)
-                            : this.CompareTo(value) == 0;
-            }
 
             public bool Equals(<#= datatype #> v1, <#= datatype #> v2) => v1 == v2;
             public int GetHashCode(<#= datatype #> value) => value.GetHashCode();

@@ -40,12 +40,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// </summary>
     public class ANamespaceAccess
     {
-        /// <summary>
-        /// Used for a placeholder.
-        /// </summary>
-        /// <param name="ns">Namespace</param>
-        /// <param name="binNames">A array of bin names associated to this namespace</param>
-        public ANamespaceAccess(string ns, string[] binNames = null)
+		private readonly static List<ANamespaceAccess> ANamespacesList = new List<ANamespaceAccess>();
+
+		/// <summary>
+		/// Used for a placeholder.
+		/// </summary>
+		/// <param name="ns">Namespace</param>
+		/// <param name="binNames">A array of bin names associated to this namespace</param>
+		public ANamespaceAccess(string ns, string[] binNames = null)
         {
             this.Namespace = ns;
             this.BinNames = binNames is null 
@@ -56,7 +58,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultQueryPolicy = new QueryPolicy();
             this.DefaultReadPolicy = new QueryPolicy();
             this.DefaultScanPolicy = new ScanPolicy();
-        }
+			
+            lock(ANamespacesList)
+            {
+				ANamespacesList.RemoveAll(i => i.Namespace == this.Namespace);
+				ANamespacesList.Add(this);
+			}
+		}
 
         public ANamespaceAccess(IDbConnection dbConnection, string ns, string[] binNames)
         {
@@ -69,7 +77,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultQueryPolicy = new QueryPolicy(this.AerospikeConnection.AerospikeClient.QueryPolicyDefault);
             this.DefaultReadPolicy = new QueryPolicy(this.AerospikeConnection.AerospikeClient.QueryPolicyDefault);
             this.DefaultScanPolicy = new ScanPolicy(this.AerospikeConnection.AerospikeClient.ScanPolicyDefault);
-        }
+
+			lock(ANamespacesList)
+			{
+				ANamespacesList.RemoveAll(i => i.Namespace == this.Namespace);
+				ANamespacesList.Add(this);
+			}
+		}
 
         public ANamespaceAccess(IDbConnection dbConnection, LPNamespace lpNamespace, string ns, string[] binNames)
             : this(dbConnection, ns, binNames)
@@ -91,6 +105,19 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             };
             this.DefaultReadPolicy = new QueryPolicy(this.DefaultQueryPolicy);
         }
+
+		/// <summary>
+		/// Finds the namespace.
+		/// </summary>
+		/// <param name="nsName">Name of the namespace.</param>
+		/// <returns>ANamespaceAccess or null</returns>
+		public static ANamespaceAccess FindNamespace(string nsName)
+        {
+			lock(ANamespacesList)
+			{
+				return ANamespacesList.FirstOrDefault(i => i.Namespace == nsName);
+			}
+		}
 
         internal static long ForceExplorerRefresh = 0;
 
