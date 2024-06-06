@@ -747,13 +747,63 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		public new List<T> ToList() => this.AsEnumerable().ToList();
 
 		#endregion
+
+		#region Copy Methods
+
+		/// <inheritdoc cref="LPDHelpers.CopyRecords(IEnumerable{ARecord}, SetRecords, Func{ARecord, dynamic}, WritePolicy, ParallelOptions)"/>
+		public SetRecords<C> CopyRecords<C>([NotNull] SetRecords<C> targetSet,
+										    Func<T, dynamic> newPrimaryKeyValue,
+										    WritePolicy writePolity = null,
+										    ParallelOptions parallelOptions = null)
+            where C : ARecord
+			=> (SetRecords<C>) LPDHelpers.CopyRecords<T>(this.AsEnumerable(),
+                                                            targetSet,
+                                                            newPrimaryKeyValue,
+                                                            writePolity,
+                                                            parallelOptions);
+
+        /// <inheritdoc cref="CopyRecords(ANamespaceAccess, string, Func{T, dynamic}, WritePolicy, ParallelOptions)"/>
+		public SetRecords CopyRecords([NotNull] SetRecords targetSet,
+											Func<T, dynamic> newPrimaryKeyValue,
+											WritePolicy writePolity = null,
+											ParallelOptions parallelOptions = null)			
+			=> LPDHelpers.CopyRecords<T>(this.AsEnumerable(),
+											targetSet,
+											newPrimaryKeyValue,
+											writePolity,
+											parallelOptions);
+
+		/// <inheritdoc cref="LPDHelpers.CopyRecords(IEnumerable{ARecord}, ANamespaceAccess, string, Func{ARecord, dynamic}, WritePolicy, ParallelOptions)"/>
+		public SetRecords CopyRecords([NotNull] ANamespaceAccess targetNamespace,
+												string targetSetName,
+												Func<T, dynamic> newPrimaryKeyValue,
+												WritePolicy writePolity = null,
+												ParallelOptions parallelOptions = null)
+			=> LPDHelpers.CopyRecords<T>(this.AsEnumerable(),
+                                            targetNamespace,
+                                            targetSetName, 
+                                            newPrimaryKeyValue,
+                                            writePolity,
+                                            parallelOptions);
+
+		/// <inheritdoc cref="LPDHelpers.CopyRecords(IEnumerable{ARecord}, SetRecords, WritePolicy, ParallelOptions)"/>
+		public SetRecords<C> CopyRecords<C>([NotNull] SetRecords<C> targetSet,
+												WritePolicy writePolity = null,
+												ParallelOptions parallelOptions = null)
+            where C : ARecord
+        => (SetRecords<C>) LPDHelpers.CopyRecords<T>(this.AsEnumerable(),
+                                                        targetSet,
+                                                        writePolity,
+                                                        parallelOptions);
+
+		#endregion
 	}
 
-    /// <summary>
-    /// Represents information about an Aerospike set within a namespace. 
-    /// It also contains the complete result set of this Aerospike set and is Enumerable returning a collection of <see cref="ARecord"/>s.
-    /// </summary>
-    [DebuggerDisplay("{ToString()}")]
+	/// <summary>
+	/// Represents information about an Aerospike set within a namespace. 
+	/// It also contains the complete result set of this Aerospike set and is Enumerable returning a collection of <see cref="ARecord"/>s.
+	/// </summary>
+	[DebuggerDisplay("{ToString()}")]
     public class SetRecords : IEnumerable<ARecord>, IEquatable<ARecord>, IEquatable<SetRecords>
     {
         #region Constructors
@@ -993,23 +1043,28 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return expirationDate.Subtract(DateTimeOffset.UtcNow);
         }
 
-        #region Put Methods
-        /// <summary>
-        /// Puts (Writes) a DB record based on the provided record including Expiration.
-        /// Note that if the namespace and/or set is different, this instances&apos;s values are used.
-        /// </summary>        
-        /// <param name="record">
-        /// A <see cref="ARecord"/> object used to add or update the associated record.
-        /// </param>
-        /// <param name="writePolicy">
-        /// The write policy. If not provided , the default policy is used.
-        /// <seealso cref="WritePolicy"/>
-        /// </param>
-        /// <param name="ttl">
-        /// Time-to-live of the record. 
-        /// If null (default), the TTL of <paramref name="record"/> is used.
-        /// </param>
-        public void Put([NotNull] ARecord record,
+		#region Put Methods
+		/// <summary>
+		/// Puts (Writes) a DB record based on the provided record including Expiration.
+		/// Note that if the namespace and/or set is different, this instances&apos;s values are used, except 
+		/// in the case where the primary key is a digest. In these cases, an <see cref="InvalidOperationException"/> is thrown.
+		/// </summary>        
+		/// <param name="record">
+		/// A <see cref="ARecord"/> object used to add or update the associated record.
+		/// </param>
+		/// <param name="writePolicy">
+		/// The write policy. If not provided , the default policy is used.
+		/// <seealso cref="WritePolicy"/>
+		/// </param>
+		/// <param name="ttl">
+		/// Time-to-live of the record. 
+		/// If null (default), the TTL of <paramref name="record"/> is used.
+		/// </param>
+		/// <exception cref="InvalidOperationException">
+		/// If the record&apos;s primary key is a digest (not an actual value). This exception will be thrown,
+		/// since a digest has the namespace and set of where this record was retrieved from. 
+		/// </exception>
+		public void Put([NotNull] ARecord record,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
             => this.SetAccess.Put(this.SetName, 

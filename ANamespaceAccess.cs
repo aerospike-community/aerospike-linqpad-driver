@@ -513,28 +513,33 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 setAccess?.BinNames,
                                 dumpType: this.AerospikeConnection.RecordView);
         }
-        #endregion
+		#endregion
 
-        #region Put Methods
-        /// <summary>
-        /// Puts (Writes) a DB record based on the provided record including Expiration.
-        /// Note that if the namespace and/or set is different, this instances&apos;s values are used.
-        /// </summary>        
-        /// <param name="record">
-        /// A <see cref="ARecord"/> object used to add or update the associated record.
-        /// </param>
-        /// <param name="setName">Set name or null to use the set name defined in the record (default)</param>
-        /// <param name="writePolicy">
-        /// The write policy. If not provided , the default policy is used.
-        /// <seealso cref="WritePolicy"/>
-        /// </param>
-        /// <param name="ttl">
-        /// Time-to-live of the record. 
-        /// If null (default), the TTL of <paramref name="record"/> is used.
-        /// </param>
-        /// <seealso cref="Get(string, dynamic, string[])"/>
-        /// <seealso cref="BatchWriteRecord{R}(IEnumerable{R}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
-        public void Put([NotNull] ARecord record,
+		#region Put Methods
+		/// <summary>
+		/// Puts (Writes) a DB record based on the provided record including Expiration.
+		/// Note that if the namespace and/or set is different, this instances&apos;s values are used except 
+		/// in the case where the primary key is a digest. In these cases, an <see cref="InvalidOperationException"/> is thrown.
+		/// </summary>        
+		/// <param name="record">
+		/// A <see cref="ARecord"/> object used to add or update the associated record.
+		/// </param>
+		/// <param name="setName">Set name or null to use the set name defined in the record (default)</param>
+		/// <param name="writePolicy">
+		/// The write policy. If not provided , the default policy is used.
+		/// <seealso cref="WritePolicy"/>
+		/// </param>
+		/// <param name="ttl">
+		/// Time-to-live of the record. 
+		/// If null (default), the TTL of <paramref name="record"/> is used.
+		/// </param>
+		/// <exception cref="InvalidOperationException">
+		/// If the record&apos;s primary key is a digest (not an actual value). This exception will be thrown,
+		/// since a digest has the namespace and set of where this record was retrieved from. 
+		/// </exception>
+		/// <seealso cref="Get(string, dynamic, string[])"/>
+		/// <seealso cref="BatchWriteRecord{R}(IEnumerable{R}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+		public void Put([NotNull] ARecord record,
                             string setName = null,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
@@ -1741,7 +1746,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			if(this.AerospikeConnection.CXInfo.IsProduction)
 				throw new InvalidOperationException("Cannot Import into Cluster marked \"In Production\"");
 
-			var jsonRecsTask = System.IO.File.ReadAllLinesAsync(importJSONFile);
+			var jsonRecsTask = System.IO.File.ReadAllLinesAsync(importJSONFile, cancellationToken);
 			
 			if(maxDegreeOfParallelism == -1
 					&& this.AerospikeConnection.DBPlatform == DBPlatforms.Native)

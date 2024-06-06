@@ -477,8 +477,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return new List<IDictionary<string, object>>(0); ;
         }
 
-        #region IConvertible
-        public TypeCode GetTypeCode()
+		/// <summary>
+		/// Creates an Aerospike <see cref="Aerospike.Client.Bin"/> instance based on <see cref="BinName"/> or <see cref="FldName"/> and <see cref="Value"/>.
+		/// </summary>
+		/// <returns>
+		/// An <see cref="Aerospike.Client.Bin"/> instance.
+		/// </returns>
+		public Aerospike.Client.Bin ToBin() => new Aerospike.Client.Bin(this.BinName ?? this.FldName, 
+                                                                            Helpers.ConvertToAerospikeType(this.Value));
+
+		#region IConvertible
+		public TypeCode GetTypeCode()
         {
             return Type.GetTypeCode(this.UnderlyingType);
         }

@@ -14,6 +14,9 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 using LPEDC = LINQPad.Extensibility.DataContext;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aerospike.Client
 {
@@ -71,19 +74,256 @@ namespace Aerospike.Client
 
     public static class LPDHelpers
     {
+		/// <summary>
+		/// Copies <see cref="ARecord"/>&apos;s from the <paramref name="source"/> to <paramref name="targetSet"/>.
+		/// Note that if the namespace and/or set is different, this instances&apos;s values are used, except 
+		/// in the case where the primary key is a digest. In these cases, an <see cref="InvalidOperationException"/> is thrown but the PK can be changed with <paramref name="newPrimaryKeyValue"/>.
+		/// </summary>
+        /// <param name="source">
+		/// The collection of records that will be copied
+		/// </param>
+		/// <param name="targetSet">
+		/// The targeted Set where the records will be copied too.
+		/// </param>
+		/// <param name="newPrimaryKeyValue">
+		/// Each record is passed as the first argument, and the return is the new primary key for that record.
+		/// Note: it is possible to change any of the record&apos;s bin values via the <see cref="ARecord.SetValue(string, object, bool)"/> method,
+        /// but this would change the original record.
+		/// </param>
+		/// <param name="writePolity">
+		/// The Aerospike Write Policy.
+		/// </param>
+		/// <param name="parallelOptions">
+		/// The <see cref="ParallelOptions"/> used to perform the copy operation.
+		/// </param>
+		/// <returns>
+		/// Returns the Set passed in with <paramref name="targetSet"/>
+		/// </returns>
+		/// <exception cref="InvalidOperationException">
+		/// If the record&apos;s primary key is a digest (not an actual value). This exception will be thrown,
+		/// since a digest has the namespace and set of where this record was retrieved from. 
+		/// </exception>
+		/// <seealso cref="CopyRecords(IEnumerable{ARecord}, ANamespaceAccess, string, WritePolicy, ParallelOptions)"/>
+		/// <seealso cref="CopyRecords(IEnumerable{ARecord}, SetRecords, WritePolicy, ParallelOptions)"/>
+		/// <seealso cref="CopyRecords(IEnumerable{ARecord}, ANamespaceAccess, string, Func{ARecord, dynamic}, WritePolicy, ParallelOptions)"/>
+		public static SetRecords CopyRecords([NotNull] this IEnumerable<ARecord> source,
+                                                    [NotNull] SetRecords targetSet,
+                                                    Func<ARecord, dynamic> newPrimaryKeyValue,
+                                                    WritePolicy writePolity = null,
+                                                    ParallelOptions parallelOptions = null)
+		    => CopyRecords<ARecord>(source, targetSet, newPrimaryKeyValue, writePolity, parallelOptions);
+
+		public static SetRecords CopyRecords<S>([NotNull] IEnumerable<S> source,
+													[NotNull] SetRecords targetSet,
+													Func<S, dynamic> newPrimaryKeyValue,
+													WritePolicy writePolity = null,
+													ParallelOptions parallelOptions = null)
+            where S : ARecord
+		{
+			ArgumentNullException.ThrowIfNull(source);
+			ArgumentNullException.ThrowIfNull(targetSet);
+
+			parallelOptions ??= new ParallelOptions();
+
+			Parallel.ForEach(source, parallelOptions, record =>
+			{
+				var newPK = newPrimaryKeyValue(record);
+				targetSet.Put(newPK,
+								record.ToDictionary(),
+								writePolity,
+								record.Aerospike.TTL);
+			});
+
+			return targetSet;
+		}
+
         /// <summary>
-        /// Returns a collection of <see cref="Aerospike.Client.Record"/> from an <see cref="Aerospike.Client.RecordSet"/>.
+        /// Copies <see cref="ARecord"/>&apos;s from the <paramref name="source"/> to <paramref name="targetSetName"/> in <paramref name="targetNamespace"/>.
+        /// Note that if the namespace and/or set is different, this instances&apos;s values are used, except 
+        /// in the case where the primary key is a digest. In these cases, an <see cref="InvalidOperationException"/> is thrown but the PK can be changed with <paramref name="newPrimaryKeyValue"/>
         /// </summary>
-        /// <param name="recordSet">
-        /// An <see cref="Aerospike.Client.RecordSet"/>
+        /// <param name="source">
+        /// The collection of records that will be copied
+        /// </param>
+        /// <param name="targetNamespace">
+        /// The Namespace that will be the target of the record copy. 
+        /// </param>
+        /// <param name="targetSetName">
+        /// The targeted Set where the records will be copied too.
+        /// This can be a new set within the namespace.
+        /// This can be null, in which case the records are copied to the &apos;null&apos; set.
+        /// </param>
+        /// <param name="newPrimaryKeyValue">
+        /// Each record is passed as the first argument, and the return is the new primary key for that record.
+        /// Note: it is possible to change any of the record&apos;s bin values via the <see cref="ARecord.SetValue(string, object, bool)"/> method,
+        /// but this would change the original record.
+        /// </param>
+        /// <param name="writePolity">
+        /// The Aerospike Write Policy.
+        /// </param>
+        /// <param name="parallelOptions">
+        /// The <see cref="ParallelOptions"/> used to perform the copy operation.
         /// </param>
         /// <returns>
-        /// A collection of <see cref="Aerospike.Client.Record"/>
+        /// Returns the Set instance that was the target set or null to indicated that a <see cref="ANamespaceAccess.RefreshExplorer"/> is required.
         /// </returns>
-        /// <exception cref="NullReferenceException">
-        /// Thrown if <paramref name="recordSet"/> is null.
+        /// <exception cref="InvalidOperationException">
+        /// If the record&apos;s primary key is a digest (not an actual value). This exception will be thrown,
+        /// since a digest has the namespace and set of where this record was retrieved from. 
         /// </exception>
-        public static IEnumerable<Record> AsEnumerable(this RecordSet recordSet)
+        /// <seealso cref="CopyRecords(IEnumerable{ARecord}, SetRecords, WritePolicy, ParallelOptions)"/>
+        /// <seealso cref="CopyRecords(IEnumerable{ARecord}, SetRecords, Func{ARecord, dynamic}, WritePolicy, ParallelOptions)"/>
+        /// <seealso cref="CopyRecords(IEnumerable{ARecord}, ANamespaceAccess, string, WritePolicy, ParallelOptions)"/>
+        public static SetRecords CopyRecords([NotNull] this IEnumerable<ARecord> source,
+                                                [NotNull] ANamespaceAccess targetNamespace,
+                                                string targetSetName,
+                                                Func<ARecord, dynamic> newPrimaryKeyValue,
+                                                WritePolicy writePolity = null,
+                                                ParallelOptions parallelOptions = null)
+            => CopyRecords<ARecord>(source, targetNamespace, targetSetName, newPrimaryKeyValue, writePolity, parallelOptions);
+
+		public static SetRecords CopyRecords<T>([NotNull] IEnumerable<T> source,
+												[NotNull] ANamespaceAccess targetNamespace,
+												string targetSetName,
+												Func<T, dynamic> newPrimaryKeyValue,
+												WritePolicy writePolity = null,
+												ParallelOptions parallelOptions = null)
+			where T : ARecord
+		{
+			ArgumentNullException.ThrowIfNull(source);
+			ArgumentNullException.ThrowIfNull(targetNamespace);
+
+			parallelOptions ??= new ParallelOptions();
+
+			Parallel.ForEach(source, parallelOptions, record =>
+			{
+				var newPK = newPrimaryKeyValue(record);
+				targetNamespace.Put(targetSetName,
+										newPK,
+										record.ToDictionary(),
+										writePolity,
+										record.Aerospike.TTL);
+			});
+
+			return targetNamespace.Sets.FirstOrDefault(s => s.SetName == targetSetName);
+		}
+
+        /// <summary>
+        /// Copies <see cref="ARecord"/>&apos;s from the <paramref name="source"/> to <paramref name="targetSet"/>.
+        /// Note that if the namespace and/or set is different, this instances&apos;s values are used, except 
+        /// in the case where the primary key is a digest. In these cases, an <see cref="InvalidOperationException"/> is thrown.
+        /// </summary>
+        /// <param name="source">
+        /// The collection of records that will be copied
+        /// </param>
+        /// <param name="targetSet">
+        /// The targeted Set where the records will be copied too.
+        /// </param>
+        /// <param name="writePolity">
+        /// The Aerospike Write Policy.
+        /// </param>
+        /// <param name="parallelOptions">
+        /// The <see cref="ParallelOptions"/> used to perform the copy operation.
+        /// </param>
+        /// <returns>
+        /// Returns the Set passed in with <paramref name="targetSet"/>
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// If the record&apos;s primary key is a digest (not an actual value). This exception will be thrown,
+        /// since a digest has the namespace and set of where this record was retrieved from. 
+        /// </exception>
+        /// <seealso cref="CopyRecords(IEnumerable{ARecord}, ANamespaceAccess, string, WritePolicy, ParallelOptions)"/>
+        /// <seealso cref="CopyRecords(IEnumerable{ARecord}, SetRecords, Func{ARecord, dynamic}, WritePolicy, ParallelOptions)"/>
+        public static SetRecords CopyRecords([NotNull] this IEnumerable<ARecord> source,
+                                                [NotNull] SetRecords targetSet,
+                                                WritePolicy writePolity = null,
+                                                ParallelOptions parallelOptions = null)
+            => CopyRecords<ARecord>(source, targetSet, writePolity, parallelOptions);
+
+		public static SetRecords CopyRecords<S>([NotNull] IEnumerable<S> source,
+												        [NotNull] SetRecords targetSet,
+												        WritePolicy writePolity = null,
+												        ParallelOptions parallelOptions = null)
+            where S : ARecord
+		{
+			ArgumentNullException.ThrowIfNull(source);
+			ArgumentNullException.ThrowIfNull(targetSet);
+
+			parallelOptions ??= new ParallelOptions();
+
+			Parallel.ForEach(source, parallelOptions, record =>
+			{
+				targetSet.Put(record, writePolicy: writePolity);
+			});
+
+			return targetSet;
+		}
+
+		/// <summary>
+		/// Copies <see cref="ARecord"/>&apos;s from the <paramref name="source"/> to <paramref name="targetSetName"/> in <paramref name="targetNamespace"/>.
+		/// Note that if the namespace and/or set is different, this instances&apos;s values are used, except 
+		/// in the case where the primary key is a digest. In these cases, an <see cref="InvalidOperationException"/> is thrown.
+		/// </summary>
+		/// <param name="source">
+		/// The collection of records that will be copied
+		/// </param>
+		/// <param name="targetNamespace">
+		/// The Namespace that will be the target of the record copy. 
+		/// </param>
+		/// <param name="targetSetName">
+		/// The targeted Set where the records will be copied too.
+		/// This can be a new set within the namespace.
+		/// This can be null, in which case the records are copied to the &apos;null&apos; set.
+		/// </param>
+		/// <param name="writePolity">
+		/// The Aerospike Write Policy.
+		/// </param>
+		/// <param name="parallelOptions">
+		/// The <see cref="ParallelOptions"/> used to perform the copy operation.
+		/// </param>
+		/// <returns>
+		/// Returns the Set instance that was the target set or null to indicated that a <see cref="ANamespaceAccess.RefreshExplorer"/> is required.
+		/// </returns>
+		/// <exception cref="InvalidOperationException">
+		/// If the record&apos;s primary key is a digest (not an actual value). This exception will be thrown,
+		/// since a digest has the namespace and set of where this record was retrieved from. 
+		/// </exception>
+		/// <seealso cref="CopyRecords(IEnumerable{ARecord}, SetRecords, WritePolicy, ParallelOptions)"/>
+		/// <seealso cref="CopyRecords(IEnumerable{ARecord}, ANamespaceAccess, string, Func{ARecord, dynamic}, WritePolicy, ParallelOptions)"/>
+		public static SetRecords CopyRecords([NotNull] this IEnumerable<ARecord> source,
+                                                [NotNull] ANamespaceAccess targetNamespace,
+                                                string targetSetName,
+                                                WritePolicy writePolity = null,
+                                                ParallelOptions parallelOptions = null)
+		{
+			ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(targetNamespace);
+
+			parallelOptions ??= new ParallelOptions();
+
+		    Parallel.ForEach(source, parallelOptions, record =>
+            {
+                targetNamespace.Put(record,
+                                    setName: targetSetName,
+                                    writePolicy: writePolity);                
+            });
+
+            return targetNamespace.Sets.FirstOrDefault(s => s.SetName == targetSetName);
+		}
+
+		/// <summary>
+		/// Returns a collection of <see cref="Aerospike.Client.Record"/> from an <see cref="Aerospike.Client.RecordSet"/>.
+		/// </summary>
+		/// <param name="recordSet">
+		/// An <see cref="Aerospike.Client.RecordSet"/>
+		/// </param>
+		/// <returns>
+		/// A collection of <see cref="Aerospike.Client.Record"/>
+		/// </returns>
+		/// <exception cref="NullReferenceException">
+		/// Thrown if <paramref name="recordSet"/> is null.
+		/// </exception>
+		public static IEnumerable<Record> AsEnumerable(this RecordSet recordSet)
         {
                 while (recordSet.Next())
                 {

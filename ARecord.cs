@@ -610,6 +610,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 binValue = clientValue.Object;
             else if (value is Client.Bin bValue)
                 binValue = bValue.value?.Object;
+            else if (value is AValue aValue)
+                binValue = aValue.Value;
 
             if (newRec.Aerospike.Record.bins.ContainsKey(binName))
             {
