@@ -626,8 +626,8 @@ namespace Aerospike.Database.LINQPadDriver
                     {
                         throw new ArgumentException("A required parameter is missing (Key, Secret, or Namespace). Update connection properties!");
                     }
-
-                    this.AerospikeClient = new AerospikeClientProxy(policy, this.SeedHosts);
+                    
+                    //this.AerospikeClient = new AerospikeClientProxy(policy, this.SeedHosts);
                 }
                 else
                 {

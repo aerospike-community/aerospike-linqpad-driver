@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Neo.IronLua;
-using Aerospike.Client.KVS;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -317,10 +316,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// </summary>
         /// <param name="propType"></param>
         /// <param name="jToken"></param>
-        /// <param name="existingValue"></param>
+        /// <param name="_"></param>
         /// <param name="serializer"></param>
         /// <returns></returns>
-        private object ReadJsonType(string propType, JToken jToken, object existingValue, JsonSerializer serializer)
+        private object ReadJsonType(string propType, JToken jToken, object _, JsonSerializer serializer)
         {           
             var tToken = jToken.Type;
             object vToken;
