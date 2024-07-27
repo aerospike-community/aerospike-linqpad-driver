@@ -13,7 +13,6 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Threading;
-using static Aerospike.Client.Log;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -24,25 +23,32 @@ namespace Aerospike.Database.LINQPadDriver
 		
         static DynamicDriver()
 		{
-            // Uncomment the following code to attach to Visual Studio's debugger when an exception is thrown:
+			// Uncomment the following code to attach to Visual Studio's debugger when an exception is thrown:
 
-            /*AppDomain.CurrentDomain.FirstChanceException += (sender, args) =>
+			/*AppDomain.CurrentDomain.FirstChanceException += (sender, args) =>
 			{
 				if (args.Exception.StackTrace.Contains ("Aerospike.Database.LINQPadDriver"))
 					Debugger.Launch ();
-			};*/
-
+			};*/			
 #if DEBUG
-            AppDomain.CurrentDomain.FirstChanceException += (sender, args) =>
+			AppDomain.CurrentDomain.FirstChanceException += (sender, args) =>
             {
                 if (args.Exception.StackTrace.Contains(typeof(DynamicDriver).Namespace))
                     Debugger.Launch();
             };
+#else
+            AppDomain.CurrentDomain.FirstChanceException += (sender, args) =>
+            {
+                if(Client.Log.InfoEnabled() && args.Exception.StackTrace.Contains(typeof(DynamicDriver).Namespace)) 
+                {
+                    Client.Log.Error($"First Chance Exception in LinqPad Driver. Exception \"{args.Exception.GetType().Name}\" ({args.Exception.Message}) Stack: {args.Exception.StackTrace}");
+                }
+            };        
 #endif
 
-        }
+		}
 
-        public override string Name => "Aerospike DB";
+		public override string Name => "Aerospike DB";
 
 		public override string Author => "Richard Andersen";
 
@@ -91,23 +97,24 @@ namespace Aerospike.Database.LINQPadDriver
             }
         }
 
-        /// <summary>This virtual method is called after a data context object has been instantiated, in
-        /// preparation for a query. You can use this hook to perform additional initialization work.
-        ///
-        /// In overriding InitializeContext, you can access properties on the QueryExecutionManager object that’s passed in as a parameter. One of these properties is called SqlTranslationWriter (type TextWriter) and it allows you to send data to the SQL translation tab.
-        /// Although this tab is intended primary for SQL translations, you can use it for other things as well.For example, with WCF Data Services, it makes sense to write HTTP requests here:
-        ///
+		/// <summary>This virtual method is called after a data context object has been instantiated, in
+		/// preparation for a query. You can use this hook to perform additional initialization work.
+		///
+		/// In overriding InitializeContext, you can access properties on the QueryExecutionManager object that’s passed in as a parameter. One of these properties is called SqlTranslationWriter (type TextWriter) and it allows you to send data to the SQL translation tab.
+		/// Although this tab is intended primary for SQL translations, you can use it for other things as well.For example, with WCF Data Services, it makes sense to write HTTP requests here:
+		///
 		/// var dsContext = (DataServiceContext)context;
 		///        dsContext.SendingRequest += (sender, e) =>
 		///					executionManager.SqlTranslationWriter.WriteLine(e.Request.RequestUri);
-        /// </summary>
-        public override void InitializeContext(IConnectionInfo cxInfo, object context, QueryExecutionManager executionManager)
+		/// </summary>
+		public override void InitializeContext(IConnectionInfo cxInfo, object context, QueryExecutionManager executionManager)
 		{
             if(Client.Log.InfoEnabled()) 
             {
                 Client.Log.Info("InitializeContext");
             }
 
+			//updates the static field _Connection
 			ObtainConnection(cxInfo, true);
 
             base.InitializeContext (cxInfo, context, executionManager);
@@ -172,25 +179,13 @@ namespace Aerospike.Database.LINQPadDriver
 		 * This is useful in that quite often, the reason for users running a SQL query is to create a new table or perform some other DDL.
 		 */
         /// <summary>Returns the time that the schema was last modified. If unknown, return null.</summary>
-        public override DateTime? GetLastSchemaUpdate(IConnectionInfo cxInfo) 
-		{
-			return null;
-		}
+        public override DateTime? GetLastSchemaUpdate(IConnectionInfo cxInfo) => null;
         
-        public override ParameterDescriptor[] GetContextConstructorParameters(IConnectionInfo cxInfo)
-		{
-			return new[] { new ParameterDescriptor("dbConnection", "IDbConnection") };
-		}
+        public override ParameterDescriptor[] GetContextConstructorParameters(IConnectionInfo cxInfo) => new[] { new ParameterDescriptor("dbConnection", "IDbConnection") };
 
-		public override object[] GetContextConstructorArguments(IConnectionInfo cxInfo)
-		{
-			return new[] { ObtainConnection(cxInfo, true) };
-		}
-
-		public override bool AreRepositoriesEquivalent(IConnectionInfo c1, IConnectionInfo c2)
-		{
-			return AerospikeConnection.CXInfoEquals(c1, c2); 
-		}
+		public override object[] GetContextConstructorArguments(IConnectionInfo cxInfo) => new[] { ObtainConnection(cxInfo, true) };
+		
+		public override bool AreRepositoriesEquivalent(IConnectionInfo c1, IConnectionInfo c2) => AerospikeConnection.CXInfoEquals(c1, c2); 
 		
 		public override List<ExplorerItem> GetSchemaAndBuildAssembly (
 			IConnectionInfo cxInfo, AssemblyName assemblyToBuild, ref string nameSpace, ref string typeName)
@@ -667,16 +662,10 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
             return items;
         }
 
-        public static void WriteToLog(string message)
-        {
-            DataContextDriver.WriteToLog(message, "AerospikeLINQPadDriver.log");
-        }
-
-        public static void WriteToLog(Exception ex, string additionalInfo = "")
-        {
-            DataContextDriver.WriteToLog(ex, "AerospikeLINQPadDriver.log", additionalInfo);
-        }
-
+        public static void WriteToLog(string message) => DataContextDriver.WriteToLog(message, "AerospikeLINQPadDriver.log");
+        
+        public static void WriteToLog(Exception ex, string additionalInfo = "") => DataContextDriver.WriteToLog(ex, "AerospikeLINQPadDriver.log", additionalInfo);
+       
         #region Data Grid
 
         /*

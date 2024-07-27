@@ -9,12 +9,11 @@ using Microsoft.Win32;
 using LINQPad.Extensibility.DataContext;
 using System.Diagnostics;
 using System.Collections;
-using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
 using System.Globalization;
 using System.Windows.Input;
-using LINQPad.Extensibility.DataContext.UI;
 using System.Windows.Media;
 using Aerospike.Database.LINQPadDriver.Extensions;
+using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -228,7 +227,23 @@ namespace Aerospike.Database.LINQPadDriver
             }      
         }
 
-        private void btnTestConnection_Click(object sender, RoutedEventArgs e)
+		private void lbEnsureDuration_Checked(object sender, RoutedEventArgs e)
+		{
+			var rb = (RadioButton) sender;
+			var recViewItems = lbExprctedDuration.ItemsSource.Cast<ExpectedDurationItem>();
+
+			foreach(var item in recViewItems)
+			{
+				if(item.Name == (string) rb.Tag)
+				{
+					item.IsChecked = true;
+				}
+				else
+				{ item.IsChecked = false; }
+			}
+		}
+
+		private void btnTestConnection_Click(object sender, RoutedEventArgs e)
         {
             var localHost = txtSeedNodes.Text;
             string messageBoxText = "Trying to Connect...";
@@ -591,6 +606,8 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 if (newType == DBPlatforms.Native)
                 {
                     this.cbNetworkCompression.Visibility = Visibility.Visible;
+                    this.lblConnPool.Visibility = Visibility.Visible;
+                    this.txtConnPool.Visibility = Visibility.Visible;
                     this.txtSleepRetries.IsEnabled = true;
                     
                     this.btnOK.IsEnabled = true;
@@ -599,7 +616,9 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                 else
                 {                    
                     this.cbNetworkCompression.Visibility = Visibility.Collapsed;
-                    this.txtSleepRetries.IsEnabled = false;
+					this.lblConnPool.Visibility = Visibility.Hidden;
+					this.txtConnPool.Visibility = Visibility.Hidden;
+					this.txtSleepRetries.IsEnabled = false;
                     
                     CloudCheckRequiredFlds();
                 }
@@ -623,17 +642,16 @@ Note: If the DB has Public/NATted/Alternate Addresses,
 
         private void btnKeyFile_Click(object sender, RoutedEventArgs e)
         {
-            var openFileDialog = new OpenFileDialog()
+            var openFileDialog = new OpenFileDialog
             {
                 Filter = "API Key files (*.csv)|*.csv|All files (*.*)|*.*",
                 Title = "Select API Key Exported CSV File",
                 CheckPathExists = true,
                 CheckFileExists = true,
-                AddExtension = true
-            };
+                AddExtension = true,
+				DefaultExt = ".csv"
+		    };
 
-            openFileDialog.DefaultExt = ".csv";
-            
             if (openFileDialog.ShowDialog() == true)
             {
                 try
@@ -644,7 +662,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
                                                     | StringSplitOptions.RemoveEmptyEntries);
                     if(splitLine.Length >= 2)
                     { 
-                        this._cxInfo.DatabaseInfo.UserName = splitLine[splitLine.Length - 2].Trim(' ', '"');
+                        this._cxInfo.DatabaseInfo.UserName = splitLine[^2].Trim(' ', '"');
                         this._cxInfo.DatabaseInfo.Password = splitLine.Last().Trim(' ', '"');
                     }
                     else

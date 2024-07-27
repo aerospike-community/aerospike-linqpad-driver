@@ -12,6 +12,7 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -45,10 +46,12 @@ namespace Aerospike.Database.LINQPadDriver
             this.PasswordManagerName = connectionInfo.PasswordManagerName?.Trim();
             this.Debug = connectionInfo.Debug;
             this.ConnectionTimeout = connectionInfo.ConnectionTimeout;
+            this.ConnectionsPerNode = connectionInfo.ConnectionsPerNode;
+            this.ExpectedDuration = connectionInfo.ExpectedDuration;
             this.TotalTimeout = connectionInfo.TotalTimeout;
             this.SocketTimeout = connectionInfo.SocketTimeout;
             this.SendPK = connectionInfo.SendKey;
-            this.ShortQuery = connectionInfo.ShortQuery;
+            this.ExpectedDuration = connectionInfo.ExpectedDuration;
             this.DriverLogging = connectionInfo.DriverLogging;
             this.RespondAllOps = connectionInfo.RespondAllOps;
             this.RecordView = connectionInfo.RecordView;
@@ -105,7 +108,7 @@ namespace Aerospike.Database.LINQPadDriver
                     }
                 }
 
-                this.ConnectionString = string.Format("hosts={0};user={1};{2}externalIP={3};{4}timeout={5};totaltimeout={6};sockettimeout={7};compression={8};{9}IsProduction={10}{11}",
+                this.ConnectionString = string.Format("hosts={0};user={1};{2}externalIP={3};{4}timeout={5};totaltimeout={6};sockettimeout={7};connpool={8};compression={9};{10}IsProduction={11}{12}",
                                                         string.Join(",", connectionInfo.SeedHosts
                                                                             .Select(s => String.Format("{0}:{1}", s, dbPort))),
                                                         cxInfo.DatabaseInfo.UserName,
@@ -119,6 +122,7 @@ namespace Aerospike.Database.LINQPadDriver
                                                         this.ConnectionTimeout,
                                                         this.TotalTimeout,
                                                         this.SocketTimeout,
+                                                        this.ConnectionsPerNode,
                                                         this.NetworkCompression,
                                                         string.IsNullOrEmpty(this.TLSCertName)
                                                             ? string.Empty
@@ -219,9 +223,9 @@ namespace Aerospike.Database.LINQPadDriver
         public int TotalTimeout { get; }
         public bool NetworkCompression { get; }
         public int SleepBetweenRetries { get; }
-
+        public int ConnectionsPerNode { get; }
         public bool SendPK { get; }
-        public bool ShortQuery { get; }
+        public QueryDuration ExpectedDuration { get; }
 
         public bool DocumentAPI { get; }
         public bool AlwaysUseAValues { get; }
@@ -331,9 +335,14 @@ namespace Aerospike.Database.LINQPadDriver
         public void ObtainMetaDate(bool obtainBinsInSet = true, bool closeUponCompletion = true)
         {
             bool performedOpen = false;
-            
-            //System.Diagnostics.Debugger.Launch();
-            try
+
+			if(Client.Log.InfoEnabled())
+			{
+				Client.Log.Info($"ObtainMetaDate Start {this.ConnectionString}");
+			}
+
+			//System.Diagnostics.Debugger.Launch();
+			try
             {
                 if (this.State != ConnectionState.Open)
                 {
@@ -347,8 +356,8 @@ namespace Aerospike.Database.LINQPadDriver
                     var getBins = new GetSetBins(this.AerospikeClient,
                                                     this.SocketTimeout,
                                                     this.NetworkCompression);
-
-                    foreach (var ns in this.Namespaces)
+					
+					foreach (var ns in this.Namespaces)
                     {
                         Parallel.ForEach(ns.Sets,
                             (set, cancelationToken) =>
@@ -361,11 +370,20 @@ namespace Aerospike.Database.LINQPadDriver
                                                         noInfoRequestBins && this.DBRecordSampleSet <= 0 ? 10 : this.DBRecordSampleSet,
                                                         noInfoRequestBins && this.DBRecordSampleSetMin <= 0 ? 1 : this.DBRecordSampleSetMin,
                                                         false);
-                            });
+								if(Client.Log.DebugEnabled())
+								{
+									Client.Log.Info($"ObtainMetaDate Set {set}");
+								}
+							});
 
                         if (!ns.Bins.Any())
                             ns.DetermineUpdateBinsBasedOnSets();
-                    }
+
+						if(Client.Log.DebugEnabled())
+						{
+							Client.Log.Info($"ObtainMetaDate NS {ns}");
+						}
+					}
 
                 }
                 #endregion
@@ -490,7 +508,12 @@ namespace Aerospike.Database.LINQPadDriver
 
                                             if (aIdx?.Set != null)
                                                 aIdx.Set.SIndexes = setIdxs.ToArray();
-                                        }
+
+											if(Client.Log.DebugEnabled())
+											{
+												Client.Log.Info($"ObtainMetaDate SIdx {setIdxs}");
+											}
+										}
                                     }
                                     #endregion
                                 }
@@ -521,10 +544,72 @@ namespace Aerospike.Database.LINQPadDriver
                     {
                         this.State = ConnectionState.Broken;
                     }
-            }
+				if(Client.Log.InfoEnabled())
+				{
+					Client.Log.Info($"ObtainMetaDate Ended {this.ConnectionString}");
+				}
+			}
         }
 
-        public void Open()
+        static readonly Dictionary<string, IAerospikeClient> Connections = new();
+
+        public IAerospikeClient GetConnectionNative(ClientPolicy policy)
+        {
+			if(Client.Log.InfoEnabled())
+			{
+				Client.Log.Info($"GetConnectionNative Start {this.ConnectionString}");
+			}
+
+			lock(Connections)
+            {
+                if(Connections.TryGetValue(this.ConnectionString, out var conn))
+                {
+					if(Client.Log.InfoEnabled())
+					{
+						Client.Log.Info($"GetConnectionNative Fnd Connection Pool {this.ConnectionString}");
+					}
+					return conn;
+                }
+                
+                var newconn = new AerospikeClient(policy, this.SeedHosts);
+				Connections.Add(this.ConnectionString, newconn);
+				if(Client.Log.InfoEnabled())
+				{
+					Client.Log.Info($"GetConnectionNative Created {this.ConnectionString}");
+				}
+				return newconn;
+			}
+        }
+
+		public IAerospikeClient GetConnectionCloud(ClientPolicy policy)
+		{
+			if(Client.Log.InfoEnabled())
+			{
+				Client.Log.Info($"GetConnectionCloud Start {this.ConnectionString}");
+			}
+
+			lock(Connections)
+			{
+                if(Connections.TryGetValue(this.ConnectionString, out var conn))
+                {
+					if(Client.Log.InfoEnabled())
+					{
+						Client.Log.Info($"GetConnectionCloud Fnd Connection Pool {this.ConnectionString}");
+					}
+					return conn;
+                }
+
+				var newconn = new Aerospike.Client.Proxy.AerospikeClientProxy(policy, this.SeedHosts);
+				Connections.Add(this.ConnectionString, newconn);
+				if(Client.Log.InfoEnabled())
+				{
+					Client.Log.Info($"GetConnectionCloud Created {this.ConnectionString}");
+				}
+				return newconn;
+			}
+		}
+
+		public void Open()
         {            
 #if DEBUG
             if (this.Debug)
@@ -571,6 +656,10 @@ namespace Aerospike.Database.LINQPadDriver
                     tlsPolicy = this.TLS,
                     user = userName,
                     password = password,
+                    connPoolsPerNode = this.ConnectionsPerNode <= 0
+                                        ? (int) Math.Round(Environment.ProcessorCount / 8m, MidpointRounding.AwayFromZero)
+                                        : this.ConnectionsPerNode,
+                    
                     writePolicyDefault = new WritePolicy()
                     {
                         compress = this.NetworkCompression,
@@ -593,7 +682,7 @@ namespace Aerospike.Database.LINQPadDriver
                         sendKey = this.SendPK,
                         failOnClusterChange = false,
                         sleepBetweenRetries = this.SleepBetweenRetries,
-                        shortQuery = this.ShortQuery
+                        expectedDuration = this.ExpectedDuration
                     },
                     readPolicyDefault = new Policy()
                     {
@@ -626,12 +715,12 @@ namespace Aerospike.Database.LINQPadDriver
                     {
                         throw new ArgumentException("A required parameter is missing (Key, Secret, or Namespace). Update connection properties!");
                     }
-                    
-                    //this.AerospikeClient = new AerospikeClientProxy(policy, this.SeedHosts);
+
+                    this.AerospikeClient = this.GetConnectionCloud(policy);
                 }
                 else
                 {
-                    this.AerospikeClient = new AerospikeClient(policy, this.SeedHosts);
+                    this.AerospikeClient = this.GetConnectionNative(policy);
 
                     var connectionNode = this.AerospikeClient.Nodes.FirstOrDefault(n => n.Active);
 
@@ -686,16 +775,18 @@ namespace Aerospike.Database.LINQPadDriver
         private void DriverLogCallback(Client.Log.Context context, Client.Log.Level level, String message)
         {
             // Put log messages to the appropriate place.
-            if (level == Log.Level.ERROR)
-                Console.Write(LINQPad.Util.WithStyle(level.ToString(), "color:black;background-color:red"));
-            else if(level == Log.Level.WARN)
-                Console.Write(LINQPad.Util.WithStyle(level.ToString(), "color:black;background-color:orange"));
-            else
-                Console.Write(LINQPad.Util.WithStyle(level.ToString(), "color:black;background-color:green"));
+            if(!Thread.CurrentThread.IsBackground)
+            {                
+                if(level == Log.Level.ERROR)
+                    Console.Write(LINQPad.Util.WithStyle(level.ToString(), "color:black;background-color:red"));
+                else if(level == Log.Level.WARN)
+                    Console.Write(LINQPad.Util.WithStyle(level.ToString(), "color:black;background-color:orange"));
+                else
+                    Console.Write(LINQPad.Util.WithStyle(level.ToString(), "color:black;background-color:green"));
 
-            Console.Write(": ");
-            Console.WriteLine(LINQPad.Util.WithStyle(message, "color:darkgreen"));
-
+                Console.Write(": ");
+                Console.WriteLine(LINQPad.Util.WithStyle(message, "color:darkgreen"));
+            }
             DynamicDriver.WriteToLog($"{level} - {message}");
         }
 
@@ -889,8 +980,9 @@ namespace Aerospike.Database.LINQPadDriver
                     && this.TotalTimeout == other.TotalTimeout
                     && this.UseExternalIP == other.UseExternalIP
                     && this.SocketTimeout == other.SocketTimeout
+                    && this.ConnectionsPerNode == other.ConnectionsPerNode
                     && this.SleepBetweenRetries == other.SleepBetweenRetries
-                    && this.ShortQuery == other.ShortQuery
+                    && this.ExpectedDuration == other.ExpectedDuration
                     && this.SendPK == other.SendPK
                     && this.RespondAllOps == other.RespondAllOps
                     && this.NetworkCompression == other.NetworkCompression
