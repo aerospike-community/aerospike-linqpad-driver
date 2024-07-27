@@ -7,6 +7,7 @@ using System.Linq;
 using System.Xml.Linq;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using System.Data;
+using Aerospike.Client;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -31,6 +32,7 @@ namespace Aerospike.Database.LINQPadDriver
 
             InitializeTLSProtocols();
             InitializeRecordViews();
+            InitializeExpectedDuration();
 
             ARecord.DefaultASPIKeyName = this.PKName;
 
@@ -336,11 +338,11 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 if (DriverData.IsEmpty)
                 {
-                    DriverData.SetElementValue("SocketTimeout", 30000);
-                    return 30000;
+                    DriverData.SetElementValue("SocketTimeout", 1000);
+                    return 1000;
                 }
 
-                return (int?)DriverData.Element("SocketTimeout") ?? 30000;
+                return (int?)DriverData.Element("SocketTimeout") ?? 1000;
             }
             set
             {
@@ -384,7 +386,25 @@ namespace Aerospike.Database.LINQPadDriver
             }
         }
 
-        public bool SendKey
+        public int ConnectionsPerNode
+        {
+			get
+			{
+				if(DriverData.IsEmpty)
+				{
+					DriverData.SetElementValue("ConnectionsPerNode", 1);
+					return 1;
+				}
+
+				return (int?) DriverData.Element("ConnectionsPerNode") ?? 1;
+			}
+			set
+			{
+				DriverData.SetElementValue("ConnectionsPerNode", value);
+			}
+		}
+
+		public bool SendKey
         {
             get
             {
@@ -402,25 +422,153 @@ namespace Aerospike.Database.LINQPadDriver
             }
         }
 
-        public bool ShortQuery
-        {
-            get
-            {
-                if (DriverData.IsEmpty)
-                {
-                    DriverData.SetElementValue("ShortQuery", true);
-                    return true;
-                }
+		#region QueryDuration Options
 
-                return (bool?)DriverData.Element("ShortQuery") ?? true;
-            }
-            set
-            {
-                DriverData.SetElementValue("ShortQuery", value);
-            }
-        }
+		public QueryDuration ExpectedDuration
+		{
+			get
+			{
+				if(DriverData.IsEmpty)
+				{
+					DriverData.SetElementValue("ExpectedDuration", "Long");
+					return QueryDuration.LONG;
+				}
 
-        public bool DocumentAPI
+				var elementValue = DriverData.Element("ExpectedDuration")?.Value;
+				
+				if(Enum.TryParse<QueryDuration>(elementValue, true, out QueryDuration result))
+				{
+					return result;
+				}
+
+				return QueryDuration.LONG;
+			}
+			set
+			{
+				DriverData.SetElementValue("ExpectedDuration", value.ToString());
+			}
+		}
+
+		public class ExpectedDurationItem : INotifyPropertyChanged
+		{
+
+			internal ExpectedDurationItem(ConnectionProperties connectionProperties)
+			{
+				ConnectionProperties = connectionProperties;
+			}
+
+			private ConnectionProperties ConnectionProperties { get; }
+
+			public string Content { get; set; }
+			public bool UpdateExpectedDuration { get; set; }
+
+			private bool _isChecked;
+			public bool IsChecked
+			{
+				get { return this._isChecked; }
+				set
+				{
+					if(this._isChecked != value)
+					{
+						this._isChecked = value;
+						this.NotifyIsCheckedProperty();
+
+						if(this._isChecked
+								&& this.UpdateExpectedDuration
+								&& Enum.TryParse<QueryDuration>(this.Name, true, out QueryDuration result))
+						{
+							this.ConnectionProperties.ExpectedDuration = result;
+						}
+					}
+				}
+			}
+
+			private bool _isEnabled = true;
+			public bool IsEnabled
+			{
+				get { return this._isEnabled; }
+				set
+				{
+					if(this._isEnabled != value)
+					{
+						this._isEnabled = value;
+						this.NotifyIsEnabledProperty();
+					}
+				}
+			}
+			public string ToolTip { get; set; }
+			public string Name { get; set; }
+
+			public event PropertyChangedEventHandler PropertyChanged;
+
+			private void NotifyPropertyChanged(String info)
+			{
+				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(info));
+			}
+
+			public void NotifyIsCheckedProperty()
+			{
+				this.NotifyPropertyChanged("IsChecked");
+			}
+
+			public void NotifyIsEnabledProperty()
+			{
+				this.NotifyPropertyChanged("IsEnabled");
+			}
+		}
+
+		private List<ExpectedDurationItem> _expectedDurationItemList = null;
+
+		private void InitializeExpectedDuration()
+		{
+			_expectedDurationItemList = new List<ExpectedDurationItem>();
+
+            foreach(var item in Enum.GetValues(typeof(QueryDuration)).Cast<QueryDuration>())
+            {
+                var itemstr = item.ToString();
+
+                _expectedDurationItemList.Add(new ExpectedDurationItem(this)
+                                                {
+                                                    Name = itemstr,
+                                                    Content = itemstr[0].ToString().ToUpper() + itemstr.Substring(1).ToLower(),
+                                                    IsEnabled = true
+                                                });
+            }
+
+			var expectedDuration = this.ExpectedDuration.ToString();
+
+			foreach(var item in _expectedDurationItemList)
+			{
+				item.IsChecked = item.Name == expectedDuration;
+				item.UpdateExpectedDuration = true;
+			}
+		}
+
+		public List<ExpectedDurationItem> ExpectedDurationList
+		{
+			get
+			{
+				return _expectedDurationItemList;
+			}
+
+			set
+			{
+				var selectedItem = value.FirstOrDefault(c => c.IsChecked)?.Name;
+
+				if(string.IsNullOrEmpty(selectedItem))
+				{
+					this.ExpectedDuration = QueryDuration.LONG;
+				}
+				else if(Enum.TryParse<QueryDuration>(selectedItem, true, out QueryDuration result))
+				{
+					this.ExpectedDuration = result;
+				}
+			}
+		}
+
+		#endregion
+
+		public bool DocumentAPI
         {
             get
             {

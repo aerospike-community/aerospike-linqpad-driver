@@ -1,11 +1,4 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Aerospike.Database.LINQPadDriver.Extensions;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows.Data;
-using System.Text.Json.Nodes;
-using System.Linq.Expressions;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 {
