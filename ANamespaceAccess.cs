@@ -107,6 +107,42 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
 
 		/// <summary>
+		/// Initializes a new instance of <see cref="ANamespaceAccess"/> as an Aerospike transactional unit.
+        /// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name="baseNS">Base Namespace instance</param>
+		/// <param name="txn">The Aerospike <see cref="Txn"/> instance</param>
+		/// <exception cref="System.ArgumentNullException">txn</exception>
+		/// <exception cref="System.ArgumentNullException">clone</exception>
+        /// <seealso cref="CreateTransaction"/>
+        /// <seealso cref="Commit"/>
+        /// <seealso cref="Abort"/>
+		public ANamespaceAccess(ANamespaceAccess baseNS, Txn txn)
+		{
+            if(txn is null) throw new ArgumentNullException(nameof(txn));
+			if(baseNS is null) throw new ArgumentNullException(nameof(baseNS));
+
+			this.Namespace = baseNS.Namespace;
+			this.BinNames = baseNS.BinNames;
+			this.AerospikeConnection = baseNS.AerospikeConnection;
+			this._sets = baseNS._sets;
+            this.AerospikeTrn = txn;
+
+            this.DefaultWritePolicy = new(baseNS.DefaultWritePolicy)
+            {
+                Txn = txn
+            };
+            this.DefaultQueryPolicy = new(baseNS.DefaultQueryPolicy)
+            {
+                Txn = txn
+            };
+            this.DefaultReadPolicy = new Policy(baseNS.DefaultReadPolicy)
+            {
+                Txn = txn
+            };
+		}
+
+		/// <summary>
 		/// Finds the namespace.
 		/// </summary>
 		/// <param name="nsName">Name of the namespace.</param>
@@ -378,6 +414,53 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <see href="https://docs.aerospike.com/apidocs/csharp/html/t_aerospike_client_scanpolicy"/>
 		/// </summary>
 		public ScanPolicy DefaultScanPolicy { get; }
+
+		/// <summary>
+		/// Gets the aerospike <see cref="Aerospike.Client.Txn"/> instance or null to indicate that it is not within a transaction.
+		/// </summary>
+		/// <value>The aerospike <see cref="Aerospike.Client.Txn"/> instance or null</value>
+		public Txn AerospikeTrn { get; }
+
+		/// <summary>
+		/// Returns the transaction identifier or null to indicate not a transactional unit.
+		/// </summary>
+		public long? TransactionId => this.AerospikeTrn?.Id;
+
+		/// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// </summary>
+		/// <returns>Transaction Namespace instance</returns>
+        /// <seealso cref="Commit"/>
+        /// <seealso cref="Abort"/>
+		public ANamespaceAccess CreateTransaction() => new(this, new Txn());
+
+		/// <summary>
+		/// Attempt to commit the given multi-record transaction. First, the expected record versions are
+		/// sent to the server nodes for verification.If all nodes return success, the command is
+		/// committed. Otherwise, the transaction is aborted.
+		/// <p>
+		/// Requires server version 8.0+
+		/// </p>
+		/// </summary>
+		/// <seealso cref="CreateTransaction"/>
+        /// <seealso cref="Abort"/>
+		public CommitStatus.CommitStatusType Commit()
+            => this.AerospikeTrn is null
+                ? CommitStatus.CommitStatusType.CLOSE_ABANDONED
+                : this.AerospikeConnection.Commit(this.AerospikeTrn); 
+
+		/// <summary>
+		/// Abort and rollback the given multi-record transaction.
+		/// <p>
+		/// Requires server version 8.0+
+		/// </p>
+		/// </summary>
+		/// <seealso cref="CreateTransaction"/>
+        /// <seealso cref="Commit"/>
+		public AbortStatus.AbortStatusType Abort()
+			 => this.AerospikeTrn is null
+				? AbortStatus.AbortStatusType.ROLL_BACK_ABANDONED
+				: this.AerospikeConnection.Abort(this.AerospikeTrn);
 
 		#region Get Methods
 		/// <summary>

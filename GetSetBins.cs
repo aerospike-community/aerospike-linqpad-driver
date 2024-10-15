@@ -28,7 +28,7 @@ namespace Aerospike.Database.LINQPadDriver
         
         IEnumerable<Aerospike.Client.Record> GetRecords(string nsName, string setName, int maxRecords)
         {
-            this.QueryPolicy.shortQuery = maxRecords <= 100;
+            this.QueryPolicy.expectedDuration = maxRecords <= 100 ? QueryDuration.LONG : QueryDuration.SHORT;
 
             using var recordset = this.Connection
                                    .Query(this.QueryPolicy,

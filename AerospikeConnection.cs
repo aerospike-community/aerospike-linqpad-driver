@@ -771,8 +771,30 @@ namespace Aerospike.Database.LINQPadDriver
                 Client.Log.Info($"Open Exit {this}");
             }
         }
-        
-        private void DriverLogCallback(Client.Log.Context context, Client.Log.Level level, String message)
+
+		/// <summary>
+		/// Attempt to commit the given multi-record transaction. First, the expected record versions are
+		/// sent to the server nodes for verification.If all nodes return success, the command is
+		/// committed. Otherwise, the transaction is aborted.
+		/// <p>
+		/// Requires server version 8.0+
+		/// </p>
+		/// </summary>
+		/// <param name="txn">multi-record transaction</param>
+		public CommitStatus.CommitStatusType Commit(Txn txn)
+            => this.AerospikeClient?.Commit(txn) ?? CommitStatus.CommitStatusType.CLOSE_ABANDONED;
+
+		/// <summary>
+		/// Abort and rollback the given multi-record transaction.
+		/// <p>
+		/// Requires server version 8.0+
+		/// </p>
+		/// </summary>
+		/// <param name="txn">multi-record transaction</param>
+		public AbortStatus.AbortStatusType Abort(Txn txn)
+			=> this.AerospikeClient?.Abort(txn) ?? AbortStatus.AbortStatusType.ROLL_BACK_ABANDONED;
+
+		private void DriverLogCallback(Client.Log.Context context, Client.Log.Level level, String message)
         {
             // Put log messages to the appropriate place.
             if(!Thread.CurrentThread.IsBackground)

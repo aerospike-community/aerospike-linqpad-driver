@@ -343,6 +343,37 @@ namespace Aerospike.Database.LINQPadDriver
 			public {SafeName}_SetCls (Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess setAccess)
 				: base(setAccess, ""{Name}"")
 			{{ }}
+
+            public {this.SafeName}_SetCls ({this.SafeName}_SetCls clone)
+			: base(clone)
+		    {{ }}
+
+            /// <summary>
+		    /// Initializes a new instance of <see cref=""{this.SafeName}_SetCls""/> as an Aerospike transactional unit.
+		    /// If <see cref=""SetRecords.Commit""/> method is not called the server will abort (rollback) this transaction.
+		    /// </summary>
+		    /// <param name=""baseSet"">Base Aerospike Set instance</param>
+		    /// <param name=""txn"">
+		    /// The Aerospike <see cref=""Txn""/> instance or null to create a new transactional unit.
+		    /// </param>
+		    /// <seealso cref=""SetRecords.CreateTransaction""/>
+		    /// <seealso cref=""SetRecords.Commit""/>
+		    /// <seealso cref=""SetRecords.Abort""/>
+		    public {this.SafeName}_SetCls(SetRecords baseSet, Aerospike.Client.Txn txn)
+                : base(baseSet, txn)
+            {{ }}
+
+            /// <summary>
+		    /// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		    /// </summary>
+		    /// <param name=""txn"">
+		    /// If provided, <see cref=""Aerospike.Client.Txn""> instance is used instead of creating a new transaction instance.
+		    /// </param>
+		    /// <returns>Transaction Set instance</returns>
+		    /// <seealso cref=""SetRecords.Commit""/>
+		    /// <seealso cref=""SetRecords.Abort""/>
+		    public new {this.SafeName}_SetCls CreateTransaction(Aerospike.Client.Txn txn = null)
+                => new (this, txn);
 			
 {idxProps}
 		}}", //End of Class string
@@ -643,6 +674,33 @@ namespace Aerospike.Database.LINQPadDriver
 		public {this.SafeName}_SetCls ({this.SafeName}_SetCls clone)
 			: base(clone)
 		{{ }}
+
+        /// <summary>
+		/// Initializes a new instance of <see cref=""{this.SafeName}_SetCls""/> as an Aerospike transactional unit.
+		/// If <see cref=""SetRecords.Commit""/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name=""baseSet"">Base Aerospike Set instance</param>
+		/// <param name=""txn"">
+		/// The Aerospike <see cref=""Txn""/> instance or null to create a new transactional unit.
+		/// </param>
+		/// <seealso cref=""SetRecords.CreateTransaction""/>
+		/// <seealso cref=""SetRecords.Commit""/>
+		/// <seealso cref=""SetRecords.Abort""/>
+		public {this.SafeName}_SetCls([NotNull] SetRecords baseSet, [AllowNull] Aerospike.Client.Txn txn)
+            : base(baseSet, txn)
+        {{ }}
+
+        /// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// </summary>
+		/// <param name=""txn"">
+		/// If provided, <see cref=""Aerospike.Client.Txn""> instance is used instead of creating a new transaction instance.
+		/// </param>
+		/// <returns>Transaction Set instance</returns>
+		/// <seealso cref=""SetRecords.Commit""/>
+		/// <seealso cref=""SetRecords.Abort""/>
+		public new {this.SafeName}_SetCls CreateTransaction(Aerospike.Client.Txn txn = null)
+            => new (this, txn);
 
 		protected override Aerospike.Database.LINQPadDriver.Extensions.ARecord CreateRecord(Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess setAccess,
 														Aerospike.Client.Key key,

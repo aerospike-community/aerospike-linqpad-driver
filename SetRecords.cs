@@ -40,36 +40,51 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
            : base(clone)
         { }
 
-        #endregion
+		/// <summary>
+		/// Initializes a new instance of <see cref="SetRecords{T}"/> as an Aerospike transactional unit.
+		/// If <see cref="SetRecords.Commit"/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name="baseSet">Base Aerospike Set instance</param>
+		/// <param name="txn">
+		/// The Aerospike <see cref="Txn"/> instance or null to create a new transactional unit.
+		/// </param>
+		/// <seealso cref="SetRecords.CreateTransaction"/>
+		/// <seealso cref="SetRecords.Commit"/>
+		/// <seealso cref="SetRecords.Abort"/>
+		public SetRecords([NotNull] SetRecords baseSet, [AllowNull] Txn txn)
+            : base(baseSet, txn)
+        { }
 
-        /// <summary>
-        /// Changes how records are displayed using the LinqPad <see cref="LINQPad.Extensions.Dump{T}(T)"/> method.        
-        /// </summary>
-        /// <param name="newRecordView">See <see cref="ARecord.DumpTypes"/> for more information.</param>
-        /// <returns>This instance</returns>
-        /// <seealso cref="ARecord.DumpTypes"/>
-        /// <seealso cref="SetRecords.DefaultRecordView"/>
-        public new SetRecords<T> ChangeRecordView(ARecord.DumpTypes newRecordView)
+		#endregion
+
+		/// <summary>
+		/// Changes how records are displayed using the LinqPad <see cref="LINQPad.Extensions.Dump{T}(T)"/> method.        
+		/// </summary>
+		/// <param name="newRecordView">See <see cref="ARecord.DumpTypes"/> for more information.</param>
+		/// <returns>This instance</returns>
+		/// <seealso cref="ARecord.DumpTypes"/>
+		/// <seealso cref="SetRecords.DefaultRecordView"/>
+		public new SetRecords<T> ChangeRecordView(ARecord.DumpTypes newRecordView)
         {
             this.DefaultRecordView = newRecordView;
             return this;
-        }       
+        }
 
-        #region Get Methods
-        /// <summary>
-        /// Returns the record based on the primary key
-        /// </summary>
-        /// <param name="primaryKey">
-        /// The primary key can be a <see cref="Aerospike.Client.Key"/>, <see cref="Aerospike.Client.Value"/>, digest (byte[]), or a .net type.
-        /// </param>
-        /// <param name="bins">
-        /// An optional arguments, if provided only those bins are returned.
-        /// </param>
-        /// <returns>
-        /// A record if the primary key is found otherwise null.
-        /// </returns>
-        /// <seealso cref="Get(dynamic, Expression, string[])"/>
-        public new T Get([NotNull] dynamic primaryKey, params string[] bins)
+		#region Get Methods
+		/// <summary>
+		/// Returns the record based on the primary key
+		/// </summary>
+		/// <param name="primaryKey">
+		/// The primary key can be a <see cref="Aerospike.Client.Key"/>, <see cref="Aerospike.Client.Value"/>, digest (byte[]), or a .net type.
+		/// </param>
+		/// <param name="bins">
+		/// An optional arguments, if provided only those bins are returned.
+		/// </param>
+		/// <returns>
+		/// A record if the primary key is found otherwise null.
+		/// </returns>
+		/// <seealso cref="Get(dynamic, Expression, string[])"/>
+		public new T Get([NotNull] dynamic primaryKey, params string[] bins)
         {            
             Client.Key key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
 
@@ -831,26 +846,66 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultRecordView = this.SetAccess.AerospikeConnection.RecordView;
         }
 
-        public SetRecords([NotNull] SetRecords clone)
+        public SetRecords([NotNull] SetRecords baseSet)
         {
-            this.LPset = clone.LPset;
-            this.SetName = clone.SetName;
-            this.SetAccess = clone.SetAccess;
-            this._bins = clone._bins;
-            this._binsHashCode= clone._binsHashCode;
-            this.FKBins = clone.FKBins;
+            this.LPset = baseSet.LPset;
+            this.SetName = baseSet.SetName;
+            this.SetAccess = baseSet.SetAccess;
+            this._bins = baseSet._bins;
+            this._binsHashCode= baseSet._binsHashCode;
+            this.FKBins = baseSet.FKBins;
 
-            this.DefaultWritePolicy = new WritePolicy(clone.DefaultWritePolicy);
-            this.DefaultReadPolicy = new Policy(clone.DefaultReadPolicy);
-            this.DefaultQueryPolicy = new QueryPolicy(clone.DefaultQueryPolicy);
-            this.DefaultScanPolicy = new ScanPolicy(clone.DefaultScanPolicy);
-            this.DefaultRecordView = clone.DefaultRecordView;
+            this.DefaultWritePolicy = new WritePolicy(baseSet.DefaultWritePolicy);
+            this.DefaultReadPolicy = new Policy(baseSet.DefaultReadPolicy);
+            this.DefaultQueryPolicy = new QueryPolicy(baseSet.DefaultQueryPolicy);
+            this.DefaultScanPolicy = new ScanPolicy(baseSet.DefaultScanPolicy);
+            this.DefaultRecordView = baseSet.DefaultRecordView;
         }
-        #endregion
 
-        #region Settings, Record State, etc.
+		/// <summary>
+		/// Initializes a new instance of <see cref="SetRecords"/> as an Aerospike transactional unit.
+		/// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name="baseSet">Base Aerospike Set instance</param>
+		/// <param name="txn">
+        /// The Aerospike <see cref="Txn"/> instance or null to create a new transactional unit.
+        /// </param>
+		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public SetRecords([NotNull] SetRecords baseSet, [AllowNull] Txn txn)
+		{
+			this.LPset = baseSet.LPset;
+			this.SetName = baseSet.SetName;
+			this.SetAccess = new ANamespaceAccess(baseSet.SetAccess, txn ?? new Txn());
+			this._bins = baseSet._bins;
+			this._binsHashCode = baseSet._binsHashCode;
+			this.FKBins = baseSet.FKBins;
+			this.DefaultRecordView = baseSet.DefaultRecordView;
 
-        public LPSet LPset { get; }
+            this.DefaultWritePolicy = new WritePolicy(baseSet.DefaultWritePolicy)
+            {
+                Txn = this.SetAccess.AerospikeTrn
+            };
+			this.DefaultReadPolicy = new Policy(baseSet.DefaultReadPolicy)
+			{
+				Txn = this.SetAccess.AerospikeTrn
+			};
+			this.DefaultQueryPolicy = new QueryPolicy(baseSet.DefaultQueryPolicy)
+			{
+				Txn = this.SetAccess.AerospikeTrn
+			};
+			this.DefaultScanPolicy = new ScanPolicy(baseSet.DefaultScanPolicy)
+			{
+				Txn = this.SetAccess.AerospikeTrn
+			};
+
+		}
+		#endregion
+
+		#region Settings, Record State, etc.
+
+		public LPSet LPset { get; }
 
         internal bool TryAddBin(string binName, Type dataType, bool updateNamespace)
         {
@@ -1007,7 +1062,58 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// </summary>
 		public ScanPolicy DefaultScanPolicy { get; set; }
 
-        protected string[] _bins = Array.Empty<string>();
+		/// <summary>
+		/// Gets the aerospike <see cref="Aerospike.Client.Txn"/> instance or null to indicate that it is not within a transaction.
+		/// </summary>
+		/// <value>The aerospike <see cref="Aerospike.Client.Txn"/> instance or null</value>
+		public Txn AerospikeTrn => this.SetAccess.AerospikeTrn;
+
+		/// <summary>
+		/// Returns the transaction identifier or null to indicate not a transactional unit.
+		/// </summary>
+		public long? TransactionId => this.AerospikeTrn?.Id;
+
+		/// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// </summary>
+        /// <param name="txn">
+        /// If provided, this Aerospike Transaction is used instead of creating a new transaction instance.
+        /// </param>
+		/// <returns>Transaction Set instance</returns>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public SetRecords CreateTransaction(Txn txn = null) => new SetRecords(this, txn);
+
+		/// <summary>
+		/// Attempt to commit the given multi-record transaction. First, the expected record versions are
+		/// sent to the server nodes for verification.If all nodes return success, the command is
+		/// committed. Otherwise, the transaction is aborted.
+		/// <p>
+		/// Requires server version 8.0+
+		/// </p>
+		/// </summary>
+		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="Abort"/>
+		public CommitStatus.CommitStatusType Commit()
+			=> this.AerospikeTrn is null
+				? CommitStatus.CommitStatusType.CLOSE_ABANDONED
+				: this.SetAccess.Commit();
+
+		/// <summary>
+		/// Abort and rollback the given multi-record transaction.
+		/// <p>
+		/// Requires server version 8.0+
+		/// </p>
+		/// </summary>
+		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="Commit"/>
+		public AbortStatus.AbortStatusType Abort()
+			 => this.AerospikeTrn is null
+				? AbortStatus.AbortStatusType.ROLL_BACK_ABANDONED
+				: this.SetAccess.Abort();
+
+
+		protected string[] _bins = Array.Empty<string>();
         /// <summary>
         /// Returns all the bin names possible for this set.
         /// </summary>

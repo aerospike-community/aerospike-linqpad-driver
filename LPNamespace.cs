@@ -351,6 +351,21 @@ namespace Aerospike.Database.LINQPadDriver
 			: base(clone, expression)
 		{{ }}
 
+        /// <summary>
+		/// Initializes a new instance of <see cref=""{this.SafeName}_NamespaceCls""/> as an Aerospike transactional unit.
+        /// If <see cref=""Commit""/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name=""baseNS"">Base Namespace instance</param>
+		/// <param name=""txn"">The Aerospike <see cref=""Aerospike.Client.Txn""/> instance</param>
+		/// <exception cref=""System.ArgumentNullException"">txn</exception>
+		/// <exception cref=""System.ArgumentNullException"">clone</exception>
+        /// <seealso cref=""CreateTransaction""/>
+        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Commit""/>
+        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Abort""/>
+		public {this.SafeName}_NamespaceCls({this.SafeName}_NamespaceCls baseNS, Aerospike.Client.Txn txn)
+            : base(baseNS, txn)
+		{{ }}
+
 		public {this.SafeName}_NamespaceCls FilterExpression(Aerospike.Client.Expression expression)
         {{
             return new {this.SafeName}_NamespaceCls(this, expression);
@@ -360,6 +375,14 @@ namespace Aerospike.Database.LINQPadDriver
         {{
             return new {this.SafeName}_NamespaceCls(this, Aerospike.Client.Exp.Build(exp));
         }}
+
+        /// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// </summary>
+		/// <returns>Transaction Namespace instance</returns>
+        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Commit""/>
+        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Abort""/>
+		new public {this.SafeName}_NamespaceCls CreateTransaction() => new(this, new Aerospike.Client.Txn());
 
 		public IAerospikeClient ASClient() => this.AerospikeConnection.AerospikeClient;
 		        

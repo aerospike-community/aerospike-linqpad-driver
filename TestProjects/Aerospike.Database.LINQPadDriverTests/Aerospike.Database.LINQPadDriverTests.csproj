@@ -27,4 +27,14 @@
     <ProjectReference Include="..\..\Aerospike.Database.LINQPadDriver.csproj" />   
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="AerospikeClient">
+      <HintPath>E:\repro\GitHub\aerospike-client-csharp\AerospikeClient\bin\Release\net6.0\AerospikeClient.dll</HintPath>
+    </Reference>
+    <Reference Include="AerospikeClientProxy">
+      <HintPath>E:\repro\GitHub\aerospike-client-csharp\AerospikeClientProxy\bin\Release\net6.0\AerospikeClientProxy.dll</HintPath>
+    </Reference>
+    <PackageReference Include="NeoLua" Version="1.3.14" />
+  </ItemGroup>
+
 </Project>
