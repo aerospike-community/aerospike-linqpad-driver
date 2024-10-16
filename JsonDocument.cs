@@ -3,7 +3,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Neo.IronLua;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -115,7 +114,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     public class CDTConverter : JsonConverter
     {
         private long _oid = 0;
-		bool _emptyStrIsNull = true;
+		readonly bool _emptyStrIsNull = true;
 
 		public CDTConverter(bool treatEmptyStrAsNull = true)
         {

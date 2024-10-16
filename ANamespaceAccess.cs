@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using Aerospike.Client;
@@ -42,23 +43,39 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     {
 		private readonly static List<ANamespaceAccess> ANamespacesList = new List<ANamespaceAccess>();
 
+		#region Constructors
+		private ANamespaceAccess(string ns,
+                                    string[] binNames,
+                                    AerospikeConnection dbConnection,
+									Policy readPolicy,
+									WritePolicy writePolicy,
+									QueryPolicy queryPolicy,
+									ScanPolicy scanPolicy,
+                                    List<SetRecords> sets = null)
+        {
+			this.AerospikeConnection = dbConnection;
+			this.Namespace = ns;
+			this.BinNames = binNames is null
+								? Array.Empty<string>()
+								: Helpers.RemoveDups(binNames);
+
+			this.DefaultWritePolicy = writePolicy ?? new WritePolicy();
+			this.DefaultQueryPolicy = queryPolicy ?? new QueryPolicy();
+			this.DefaultReadPolicy = readPolicy ?? new QueryPolicy();
+			this.DefaultScanPolicy = scanPolicy ?? new ScanPolicy();
+
+            if(sets is not null)
+                this._sets = sets;
+		}
+
 		/// <summary>
 		/// Used for a placeholder.
 		/// </summary>
 		/// <param name="ns">Namespace</param>
 		/// <param name="binNames">A array of bin names associated to this namespace</param>
 		public ANamespaceAccess(string ns, string[] binNames = null)
-        {
-            this.Namespace = ns;
-            this.BinNames = binNames is null 
-                                ? Array.Empty<string>()
-                                : Helpers.RemoveDups(binNames);
-
-            this.DefaultWritePolicy = new WritePolicy();
-            this.DefaultQueryPolicy = new QueryPolicy();
-            this.DefaultReadPolicy = new QueryPolicy();
-            this.DefaultScanPolicy = new ScanPolicy();
-			
+            : this(ns, binNames, null, null, null, null, null)
+        {            
             lock(ANamespacesList)
             {
 				ANamespacesList.RemoveAll(i => i.Namespace == this.Namespace);
@@ -66,18 +83,21 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			}
 		}
 
-        public ANamespaceAccess(IDbConnection dbConnection, string ns, string[] binNames)
-        {
-            this.AerospikeConnection = dbConnection as AerospikeConnection;
-            this.Namespace = ns;
-            //this.Name = setName;
-            this.BinNames = Helpers.RemoveDups(binNames);
+		public ANamespaceAccess(IDbConnection dbConnection, string ns, string[] binNames)
+			: this(dbConnection as AerospikeConnection,
+                    ns,
+					binNames)
+		{ }
 
-            this.DefaultWritePolicy = new WritePolicy(this.AerospikeConnection.AerospikeClient.WritePolicyDefault);
-            this.DefaultQueryPolicy = new QueryPolicy(this.AerospikeConnection.AerospikeClient.QueryPolicyDefault);
-            this.DefaultReadPolicy = new QueryPolicy(this.AerospikeConnection.AerospikeClient.QueryPolicyDefault);
-            this.DefaultScanPolicy = new ScanPolicy(this.AerospikeConnection.AerospikeClient.ScanPolicyDefault);
-
+		public ANamespaceAccess(AerospikeConnection dbConnection, string ns, string[] binNames)
+			: this(ns,
+                    binNames,
+                    dbConnection,
+					new QueryPolicy(dbConnection.AerospikeClient.QueryPolicyDefault),
+					new WritePolicy(dbConnection.AerospikeClient.WritePolicyDefault),
+					new QueryPolicy(dbConnection.AerospikeClient.QueryPolicyDefault),
+					new ScanPolicy(dbConnection.AerospikeClient.ScanPolicyDefault))
+		{            
 			lock(ANamespacesList)
 			{
 				ANamespacesList.RemoveAll(i => i.Namespace == this.Namespace);
@@ -85,26 +105,78 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			}
 		}
 
-        public ANamespaceAccess(IDbConnection dbConnection, LPNamespace lpNamespace, string ns, string[] binNames)
-            : this(dbConnection, ns, binNames)
-        {
+        public ANamespaceAccess(IDbConnection dbConnection,
+                                LPNamespace lpNamespace,
+                                string ns,
+                                string[] binNames)
+            : this(dbConnection as AerospikeConnection,
+					ns,
+                    binNames)
+		{
             this.LPnamespace = lpNamespace;
         }
 
-        public ANamespaceAccess(ANamespaceAccess clone, Expression expression)
-        {
-            this.Namespace = clone.Namespace;
-            this.BinNames = clone.BinNames;
-            this.AerospikeConnection = clone.AerospikeConnection;
-            this._sets = clone._sets;
-
-            this.DefaultWritePolicy = clone.DefaultWritePolicy;
-            this.DefaultQueryPolicy = new QueryPolicy(clone.DefaultQueryPolicy)
-            {
-                filterExp = expression
-            };
-            this.DefaultReadPolicy = new QueryPolicy(this.DefaultQueryPolicy);
+		public ANamespaceAccess(ANamespaceAccess clone, Expression expression)
+            : this(clone.Namespace,
+                    clone.BinNames,
+                    clone.AerospikeConnection,
+					new(clone.DefaultReadPolicy)
+					{
+						filterExp = expression
+					},
+                    new(clone.DefaultWritePolicy),
+					new(clone.DefaultQueryPolicy)
+					{
+						filterExp = expression
+					},
+					new(clone.DefaultScanPolicy),
+                    clone._sets)
+		{
+            this.LPnamespace = clone.LPnamespace;
         }
+
+		public ANamespaceAccess(ANamespaceAccess clone,
+                                    Policy readPolicy = null,
+								    WritePolicy writePolicy = null,
+								    QueryPolicy queryPolicy = null,
+								    ScanPolicy scanPolicy = null)
+			: this(clone.Namespace,
+					clone.BinNames,
+					clone.AerospikeConnection,
+					readPolicy ?? new(clone.DefaultReadPolicy),
+					writePolicy ?? new(clone.DefaultWritePolicy),
+					queryPolicy ?? new(clone.DefaultQueryPolicy),
+					scanPolicy ?? new(clone.DefaultScanPolicy),
+					clone._sets)
+		{
+			this.LPnamespace = clone.LPnamespace;
+		}
+
+		/// <summary>
+		/// Clones the specified instance providing new policies, if provided.
+		/// </summary>
+		/// <param name="newReadPolicy">The new read policy.</param>
+		/// <param name="newWritePolicy">The new write policy.</param>
+		/// <param name="newQueryPolicy">The new query policy.</param>
+		/// <param name="newScanPolicy">The new scan policy.</param>
+		/// <returns>New clone of <see cref="ANamespaceAccess"/> instance.</returns>
+		public ANamespaceAccess Clone(Policy newReadPolicy = null,
+                                        WritePolicy newWritePolicy = null,
+                                        QueryPolicy newQueryPolicy = null,
+                                        ScanPolicy newScanPolicy = null)
+            => new ANamespaceAccess(this,
+                                    newReadPolicy,
+                                    newWritePolicy,
+                                    newQueryPolicy,
+                                    newScanPolicy);
+		#endregion
+
+		#region methods and properties
+
+		/// <summary>
+		/// The Aerospike Platform this namespace is associated. <see cref="DBPlatforms"/>
+		/// </summary>
+		public DBPlatforms DBPlatform { get => this.AerospikeConnection.DBPlatform; }
 
 		/// <summary>
 		/// Finds the namespace.
@@ -322,6 +394,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
         }
 
+		/// <summary>
+		/// Gets the names of th sets associate with this namespace.
+		/// </summary>
+		/// <value>A collection of name of sets.</value>
+		public IEnumerable<string> SetNames => this.Sets.Select(s => s.SetName);
+
         /// <summary>
         /// Returns the Set instance or null indicating the set doesn't exists in this namespace.
         /// </summary>
@@ -332,24 +410,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             get => this.Sets.FirstOrDefault(s => s.SetName == setName);
         }
+		#endregion
 
-        /// <summary>
-        /// Determines if a set exists within this namespace.
-        /// </summary>
-        /// <param name="setName">set name</param>
-        /// <returns>
-        /// True if the sets exists, otherwise false.
-        /// </returns>
-        /// <seealso cref="this[string]"/>
-        public bool Exists(string setName) => this.Sets.Any(s => s.SetName == setName);
+		#region Aerospike API items
+		/// <summary>
+		/// Determines if a set exists within this namespace.
+		/// </summary>
+		/// <param name="setName">set name</param>
+		/// <returns>
+		/// True if the sets exists, otherwise false.
+		/// </returns>
+		/// <seealso cref="this[string]"/>
+		public bool Exists(string setName) => this.Sets.Any(s => s.SetName == setName);
 
         /// <summary>
         /// Returns the Aerospike Null Set for this namespace.
         /// The Null Set will contain all the records with a namespace.
         /// </summary>
         public SetRecords NullSet { get => this[LPSet.NullSetName]; }
-
-        #region Aerospike API items
 
         public string Namespace { get; }
         //public string Name { get; }
@@ -1444,6 +1522,62 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 		#endregion
 
+		/// <summary>
+		/// Truncates all the Sets in this namespace
+		/// </summary>
+		/// <param name="infoPolicy">
+		/// The <see cref="InfoPolicy"/> used for the truncate. If not provided, the default is used.
+		/// </param>
+		/// <param name="before">
+		/// A Date/time used to truncate the set. Records before this time will be truncated. 
+		/// The default is everything up to when this was executed (DateTime.Now).
+		/// </param>
+		/// <seealso cref="SetRecords.Truncate(InfoPolicy, DateTime?)"/>
+		/// <seealso cref="Truncate(string, InfoPolicy, DateTime?)"/>
+		/// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
+		public void Truncate(InfoPolicy infoPolicy = null, DateTime? before = null)
+		{
+			if(this.AerospikeConnection.CXInfo.IsProduction)
+				throw new InvalidOperationException("Cannot Truncate a Cluster marked \"In Production\"");
+
+			foreach(var set in this.Sets)
+			{
+				set.Truncate(infoPolicy, before);
+			}
+		}
+
+		/// <summary>
+		/// Truncates the Set
+		/// </summary>
+		/// <param name="setName">
+		/// The name of the set to be truncated. 
+		/// </param>
+		/// <param name="infoPolicy">
+		/// The <see cref="InfoPolicy"/> used for the truncate. If not provided, the default is used.
+		/// </param>
+		/// <param name="before">
+		/// A Date/time used to truncate the set. Records before this time will be truncated. 
+		/// The default is everything up to when this was executed (DateTime.Now).
+		/// </param>
+		/// <returns>
+		/// True if the set was truncated or false to indicate the set did not exist in the namespace.
+		/// </returns>
+		/// <seealso cref="Truncate(InfoPolicy, DateTime?)"/>
+		/// <seealso cref="this[string]"/>
+		/// <seealso cref="SetRecords.Truncate(InfoPolicy, DateTime?)"/>
+		/// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
+		public bool Truncate(string setName, InfoPolicy infoPolicy = null, DateTime? before = null)
+		{
+			var set = this.Sets.FirstOrDefault(s => s.SetName == setName);
+			if(set != null)
+			{
+				set.Truncate(infoPolicy, before);
+				return true;
+			}
+
+			return false;
+		}
+
 		#endregion
 
 		#region Import/Export/Json
@@ -1771,6 +1905,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     jsonBinName: jsonBinName,
                                     writePolicy: writePolicy,
                                     ttl: ttl,
+                                    treatEmptyStrAsNull: treatEmptyStrAsNull,
                                     writePKPropertyName: writePKPropertyName);
 				 });
 			}
@@ -2221,70 +2356,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         #endregion
 
-        /// <summary>
-        /// Truncates all the Sets in this namespace
-        /// </summary>
-        /// <param name="infoPolicy">
-        /// The <see cref="InfoPolicy"/> used for the truncate. If not provided, the default is used.
-        /// </param>
-        /// <param name="before">
-        /// A Date/time used to truncate the set. Records before this time will be truncated. 
-        /// The default is everything up to when this was executed (DateTime.Now).
-        /// </param>
-        /// <seealso cref="SetRecords.Truncate(InfoPolicy, DateTime?)"/>
-        /// <seealso cref="Truncate(string, InfoPolicy, DateTime?)"/>
-        /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
-        public void Truncate(InfoPolicy infoPolicy = null, DateTime? before = null)
-        {
-            if (this.AerospikeConnection.CXInfo.IsProduction)
-                throw new InvalidOperationException("Cannot Truncate a Cluster marked \"In Production\"");
-
-            foreach(var set in this.Sets)
-            {
-                set.Truncate(infoPolicy, before);
-            }
-        }
-
-        /// <summary>
-        /// Truncates the Set
-        /// </summary>
-        /// <param name="setName">
-        /// The name of the set to be truncated. 
-        /// </param>
-        /// <param name="infoPolicy">
-        /// The <see cref="InfoPolicy"/> used for the truncate. If not provided, the default is used.
-        /// </param>
-        /// <param name="before">
-        /// A Date/time used to truncate the set. Records before this time will be truncated. 
-        /// The default is everything up to when this was executed (DateTime.Now).
-        /// </param>
-        /// <returns>
-        /// True if the set was truncated or false to indicate the set did not exist in the namespace.
-        /// </returns>
-        /// <seealso cref="Truncate(InfoPolicy, DateTime?)"/>
-        /// <seealso cref="this[string]"/>
-        /// <seealso cref="SetRecords.Truncate(InfoPolicy, DateTime?)"/>
-        /// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
-        public bool Truncate(string setName, InfoPolicy infoPolicy = null, DateTime? before = null)
-        {
-            var set = this.Sets.FirstOrDefault(s => s.SetName == setName);
-            if (set != null)
-            {
-                set.Truncate(infoPolicy, before);
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// The Aerospike Platform this namespace is associated. <see cref="DBPlatforms"/>
-        /// </summary>
-        public DBPlatforms DBPlatform { get => this.AerospikeConnection.DBPlatform; }
-
         protected object ToDump()
         {
-            return LPU.ToExpando(this, include: "Namespace, BinNames, AerospikeConnection, DefaultQueryPolicy, DefaultWritePolicy");            
+            return LPU.ToExpando(this, include: "Namespace, DBPlatform, SetNames, BinNames, AerospikeConnection, DefaultReadPolicy, DefaultQueryPolicy, DefaultScanPolicy, DefaultWritePolicy");            
         }
     }
 }
