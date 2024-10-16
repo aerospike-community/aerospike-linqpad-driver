@@ -54,10 +54,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 ? Array.Empty<string>()
                                 : Helpers.RemoveDups(binNames);
 
-            this.DefaultWritePolicy = new WritePolicy();
-            this.DefaultQueryPolicy = new QueryPolicy();
-            this.DefaultReadPolicy = new QueryPolicy();
-            this.DefaultScanPolicy = new ScanPolicy();
+            this.DefaultWritePolicy = new ();
+            this.DefaultQueryPolicy = new ();
+            this.DefaultReadPolicy = new ();
+            this.DefaultScanPolicy = new ();
 			
             lock(ANamespacesList)
             {
@@ -73,10 +73,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             //this.Name = setName;
             this.BinNames = Helpers.RemoveDups(binNames);
 
-            this.DefaultWritePolicy = new WritePolicy(this.AerospikeConnection.AerospikeClient.WritePolicyDefault);
+            this.DefaultWritePolicy = new (this.AerospikeConnection.AerospikeClient.WritePolicyDefault);
             this.DefaultQueryPolicy = new QueryPolicy(this.AerospikeConnection.AerospikeClient.QueryPolicyDefault);
             this.DefaultReadPolicy = new QueryPolicy(this.AerospikeConnection.AerospikeClient.QueryPolicyDefault);
-            this.DefaultScanPolicy = new ScanPolicy(this.AerospikeConnection.AerospikeClient.ScanPolicyDefault);
+            this.DefaultScanPolicy = new (this.AerospikeConnection.AerospikeClient.ScanPolicyDefault);
 
 			lock(ANamespacesList)
 			{
@@ -97,26 +97,29 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.BinNames = clone.BinNames;
             this.AerospikeConnection = clone.AerospikeConnection;
             this._sets = clone._sets;
+            this.AerospikeTrn = clone.AerospikeTrn;
 
             this.DefaultWritePolicy = clone.DefaultWritePolicy;
-            this.DefaultQueryPolicy = new QueryPolicy(clone.DefaultQueryPolicy)
+            this.DefaultQueryPolicy = new (clone.DefaultQueryPolicy)
             {
                 filterExp = expression
             };
             this.DefaultReadPolicy = new QueryPolicy(this.DefaultQueryPolicy);
-        }
+			this.DefaultScanPolicy = new (clone.DefaultScanPolicy);
+
+		}
 
 		/// <summary>
 		/// Initializes a new instance of <see cref="ANamespaceAccess"/> as an Aerospike transactional unit.
-        /// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
+		/// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
 		/// </summary>
 		/// <param name="baseNS">Base Namespace instance</param>
 		/// <param name="txn">The Aerospike <see cref="Txn"/> instance</param>
 		/// <exception cref="System.ArgumentNullException">txn</exception>
 		/// <exception cref="System.ArgumentNullException">clone</exception>
-        /// <seealso cref="CreateTransaction"/>
-        /// <seealso cref="Commit"/>
-        /// <seealso cref="Abort"/>
+		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
 		public ANamespaceAccess(ANamespaceAccess baseNS, Txn txn)
 		{
             if(txn is null) throw new ArgumentNullException(nameof(txn));
@@ -136,10 +139,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 Txn = txn
             };
-            this.DefaultReadPolicy = new Policy(baseNS.DefaultReadPolicy)
+            this.DefaultReadPolicy = new(baseNS.DefaultReadPolicy)
             {
                 Txn = txn
             };
+			this.DefaultScanPolicy = new(baseNS.DefaultScanPolicy)
+			{
+				Txn = txn
+			};
 		}
 
 		/// <summary>

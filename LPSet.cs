@@ -140,6 +140,8 @@ namespace Aerospike.Database.LINQPadDriver
             this.LPnamespace = aNamespace;
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Set");
+            if(this.SafeName == "NullSet" || this.SafeName == "Null")
+                this.SafeName += "_User"; 
             this.IsNullSet = this.Name == NullSetName;
             SetsBag.Add(this);
         }
@@ -686,7 +688,7 @@ namespace Aerospike.Database.LINQPadDriver
 		/// <seealso cref=""SetRecords.CreateTransaction""/>
 		/// <seealso cref=""SetRecords.Commit""/>
 		/// <seealso cref=""SetRecords.Abort""/>
-		public {this.SafeName}_SetCls([NotNull] SetRecords baseSet, [AllowNull] Aerospike.Client.Txn txn)
+		public {this.SafeName}_SetCls(SetRecords baseSet, Aerospike.Client.Txn txn)
             : base(baseSet, txn)
         {{ }}
 
