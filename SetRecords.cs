@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Pset
+// Ignore Spelling: Pset
 
 using System;
 using System.Collections;
@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using System.CodeDom;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -36,10 +37,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
            : base(setAccess, setName, bins)
         { }
 
-        public SetRecords([NotNull] SetRecords<T> clone)
-           : base(clone)
+        public SetRecords([NotNull] SetRecords<T> clone,
+							Policy readPolicy = null,
+							WritePolicy writePolicy = null,
+							QueryPolicy queryPolicy = null,
+							ScanPolicy scanPolicy = null)
+           : base(clone, readPolicy, writePolicy, queryPolicy, scanPolicy)
         { }
 
+		#endregion
 		/// <summary>
 		/// Initializes a new instance of <see cref="SetRecords{T}"/> as an Aerospike transactional unit.
 		/// If <see cref="SetRecords.Commit"/> method is not called the server will abort (rollback) this transaction.
@@ -54,8 +60,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		public SetRecords([NotNull] SetRecords baseSet, [AllowNull] Txn txn)
             : base(baseSet, txn)
         { }
-
-		#endregion
 
 		/// <summary>
 		/// Changes how records are displayed using the LinqPad <see cref="LINQPad.Extensions.Dump{T}(T)"/> method.        
@@ -846,7 +850,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultRecordView = this.SetAccess.AerospikeConnection.RecordView;
         }
 
-        public SetRecords([NotNull] SetRecords baseSet)
+        public SetRecords([NotNull] SetRecords clone,
+                                    Policy readPolicy = null,
+									WritePolicy writePolicy = null,
+									QueryPolicy queryPolicy = null,
+									ScanPolicy scanPolicy = null)
         {
             this.LPset = baseSet.LPset;
             this.SetName = baseSet.SetName;
@@ -855,13 +863,30 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this._binsHashCode= baseSet._binsHashCode;
             this.FKBins = baseSet.FKBins;
 
-            this.DefaultWritePolicy = new WritePolicy(baseSet.DefaultWritePolicy);
-            this.DefaultReadPolicy = new Policy(baseSet.DefaultReadPolicy);
-            this.DefaultQueryPolicy = new QueryPolicy(baseSet.DefaultQueryPolicy);
-            this.DefaultScanPolicy = new ScanPolicy(baseSet.DefaultScanPolicy);
-            this.DefaultRecordView = baseSet.DefaultRecordView;
+            this.DefaultWritePolicy = writePolicy ?? new WritePolicy(clone.DefaultWritePolicy);
+            this.DefaultReadPolicy = readPolicy ?? new Policy(clone.DefaultReadPolicy);
+            this.DefaultQueryPolicy = queryPolicy ?? new QueryPolicy(clone.DefaultQueryPolicy);
+            this.DefaultScanPolicy = scanPolicy ?? new ScanPolicy(clone.DefaultScanPolicy);
+            this.DefaultRecordView = clone.DefaultRecordView;
         }
 
+		/// <summary>
+		/// Clones the specified instance providing new policies, if provided.
+		/// </summary>
+		/// <param name="newReadPolicy">The new read policy.</param>
+		/// <param name="newWritePolicy">The new write policy.</param>
+		/// <param name="newQueryPolicy">The new query policy.</param>
+		/// <param name="newScanPolicy">The new scan policy.</param>
+		/// <returns>New clone of <see cref="SetRecords"/> instance.</returns>
+		public SetRecords Clone(Policy newReadPolicy = null,
+								WritePolicy newWritePolicy = null,
+								QueryPolicy newQueryPolicy = null,
+								ScanPolicy newScanPolicy = null)
+			=> new SetRecords(this,
+								newReadPolicy,
+								newWritePolicy,
+								newQueryPolicy,
+								newScanPolicy);
 		/// <summary>
 		/// Initializes a new instance of <see cref="SetRecords"/> as an Aerospike transactional unit.
 		/// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
@@ -883,24 +908,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			this.FKBins = baseSet.FKBins;
 			this.DefaultRecordView = baseSet.DefaultRecordView;
 
-            this.DefaultWritePolicy = new WritePolicy(baseSet.DefaultWritePolicy)
-            {
-                Txn = this.SetAccess.AerospikeTrn
-            };
-			this.DefaultReadPolicy = new Policy(baseSet.DefaultReadPolicy)
-			{
-				Txn = this.SetAccess.AerospikeTrn
-			};
-			this.DefaultQueryPolicy = new QueryPolicy(baseSet.DefaultQueryPolicy)
-			{
-				Txn = this.SetAccess.AerospikeTrn
-			};
-			this.DefaultScanPolicy = new ScanPolicy(baseSet.DefaultScanPolicy)
-			{
-				Txn = this.SetAccess.AerospikeTrn
-			};
-
-		}
 		#endregion
 
 		#region Settings, Record State, etc.
@@ -1446,9 +1453,30 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if (this.SetAccess.AerospikeConnection.CXInfo.IsProduction)
                 throw new InvalidOperationException("Cannot Truncate a Cluster marked \"In Production\"");
 
-            this.SetAccess
-                    .AerospikeConnection
-                    .AerospikeClient.Truncate(infoPolicy, this.Namespace, this.SetName, before ?? DateTime.Now);
+            var useTime = before ?? DateTime.Now;
+
+            try
+            {
+                this.SetAccess
+                        .AerospikeConnection
+                        .AerospikeClient.Truncate(infoPolicy, this.Namespace, this.SetName, useTime);
+            }
+            catch(AerospikeException e)
+            {
+				if(Client.Log.InfoEnabled())
+				{
+					Client.Log.Info($"Trying truncation to {this.SetFullName} but an exception of '{e}' occurred using Time {useTime:yyyyMMdd-HHmmss.FFFF}.");
+				}
+
+				if(before.HasValue || e.Message != "Error -1: Truncate failed: ERROR:4:would truncate in the future") throw;
+				//Try again
+				if(Client.Log.WarnEnabled())
+				{
+					Client.Log.Warn($"Retrying truncation due to future error for {this.SetFullName} with time {useTime:yyyyMMdd-HHmmss.FFFF}.");
+				}
+                Thread.Sleep(500);
+				this.Truncate(infoPolicy, useTime);
+            }
         }
         #endregion
 
@@ -1868,217 +1896,217 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             return this;
         }
-        #endregion
+		#endregion
 
-        #endregion
+		#region Batch Methods
 
-        #region Batch Methods
-
-        #region Batch Write
-        /// <summary>
-        /// Writes a collection of <see cref="ARecord"/> as a <seealso cref="Aerospike.Client.BatchPolicy"/> operation.
-        /// </summary>
-        /// <param name="writeRecords">
-        /// A collection of <see cref="ARecord"/>.
-        /// </param>
-        /// <param name="batchPolicy">
-        /// <seealso cref="BatchPolicy"/>
-        /// </param>
-        /// <param name="batchWritePolicy">
-        /// <seealso cref="BatchWritePolicy"/>
-        /// </param>
-        /// <param name="parallelOptions">
-        /// <seealso cref="ParallelOptions"/>
-        /// </param>
-        /// <returns>True if successful</returns>
-        /// <seealso cref="ANamespaceAccess.BatchWriteRecord{R}(IEnumerable{R}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
-        public bool BatchWrite([NotNull] IEnumerable<ARecord> writeRecords,
-                                    BatchPolicy batchPolicy = null,
-                                    BatchWritePolicy batchWritePolicy = null,
-                                    ParallelOptions parallelOptions = null)
-            => this.SetAccess.BatchWriteRecord(writeRecords, batchPolicy, batchWritePolicy, parallelOptions);
+		#region Batch Write
+		/// <summary>
+		/// Writes a collection of <see cref="ARecord"/> as a <seealso cref="Aerospike.Client.BatchPolicy"/> operation.
+		/// </summary>
+		/// <param name="writeRecords">
+		/// A collection of <see cref="ARecord"/>.
+		/// </param>
+		/// <param name="batchPolicy">
+		/// <seealso cref="BatchPolicy"/>
+		/// </param>
+		/// <param name="batchWritePolicy">
+		/// <seealso cref="BatchWritePolicy"/>
+		/// </param>
+		/// <param name="parallelOptions">
+		/// <seealso cref="ParallelOptions"/>
+		/// </param>
+		/// <returns>True if successful</returns>
+		/// <seealso cref="ANamespaceAccess.BatchWriteRecord{R}(IEnumerable{R}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+		public bool BatchWrite([NotNull] IEnumerable<ARecord> writeRecords,
+									BatchPolicy batchPolicy = null,
+									BatchWritePolicy batchWritePolicy = null,
+									ParallelOptions parallelOptions = null)
+			=> this.SetAccess.BatchWriteRecord(writeRecords, batchPolicy, batchWritePolicy, parallelOptions);
 
 
-        /// <summary>
-        /// Writes a collection of items to this set.
-        /// </summary>
-        /// <typeparam name="P">The Primary Key Type</typeparam>
-        /// <param name="binRecords">
-        /// A collection where each item is the following:
-        ///     The Primary Key
-        ///     A collection of <see cref="Bin"/>s
-        /// </param>
-        /// <param name="batchPolicy">
-        /// <seealso cref="BatchPolicy"/>
-        /// </param>
-        /// <param name="batchWritePolicy">
-        /// <seealso cref="BatchWritePolicy"/>
-        /// </param>
-        /// <param name="parallelOptions">
-        /// <seealso cref="ParallelOptions"/>
-        /// </param>
-        /// <returns>True if successful</returns>
-        /// <seealso cref="ANamespaceAccess.BatchWrite{P}(string, IEnumerable{ValueTuple{P, IEnumerable{Bin}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
-        public bool BatchWrite<P>([NotNull] IEnumerable<(P pk, IEnumerable<Bin> bins)> binRecords,
-                                    BatchPolicy batchPolicy = null,
-                                    BatchWritePolicy batchWritePolicy = null,
-                                    ParallelOptions parallelOptions = null)
-            => this.SetAccess.BatchWrite(this.SetName, binRecords, batchPolicy, batchWritePolicy, parallelOptions);
+		/// <summary>
+		/// Writes a collection of items to this set.
+		/// </summary>
+		/// <typeparam name="P">The Primary Key Type</typeparam>
+		/// <param name="binRecords">
+		/// A collection where each item is the following:
+		///     The Primary Key
+		///     A collection of <see cref="Bin"/>s
+		/// </param>
+		/// <param name="batchPolicy">
+		/// <seealso cref="BatchPolicy"/>
+		/// </param>
+		/// <param name="batchWritePolicy">
+		/// <seealso cref="BatchWritePolicy"/>
+		/// </param>
+		/// <param name="parallelOptions">
+		/// <seealso cref="ParallelOptions"/>
+		/// </param>
+		/// <returns>True if successful</returns>
+		/// <seealso cref="ANamespaceAccess.BatchWrite{P}(string, IEnumerable{ValueTuple{P, IEnumerable{Bin}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+		public bool BatchWrite<P>([NotNull] IEnumerable<(P pk, IEnumerable<Bin> bins)> binRecords,
+									BatchPolicy batchPolicy = null,
+									BatchWritePolicy batchWritePolicy = null,
+									ParallelOptions parallelOptions = null)
+			=> this.SetAccess.BatchWrite(this.SetName, binRecords, batchPolicy, batchWritePolicy, parallelOptions);
 
-        /// <summary>
-        /// Writes a collection of items to this set.
-        /// </summary>
-        /// <typeparam name="P">The Primary Key Type</typeparam>
-        /// <typeparam name="V">Bin&apos;s value type</typeparam>
-        /// <param name="binRecords">
-        /// A collection where each item is the following:
-        ///     The Primary Key
-        ///     A dictionary where the key is the bin name and the value is the bin&apos;s value.
-        /// </param>
-        /// <param name="batchPolicy">
-        /// <seealso cref="BatchPolicy"/>
-        /// </param>
-        /// <param name="batchWritePolicy">
-        /// <seealso cref="BatchWritePolicy"/>
-        /// </param>
-        /// <param name="parallelOptions">
-        /// <seealso cref="ParallelOptions"/>
-        /// </param>
-        /// <returns>True if successful</returns>
-        /// <seealso cref="BatchWrite{P, V}(IEnumerable{ValueTuple{P, IDictionary{string, V}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
-        /// <seealso cref="ANamespaceAccess.BatchWrite{P, V}(string, IEnumerable{ValueTuple{P, IEnumerable{ValueTuple{string, V}}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
-        public bool BatchWrite<P, V>([NotNull] IEnumerable<(P pk, IEnumerable<(string binName, V value)> bins)> binRecords,
-                                    BatchPolicy batchPolicy = null,
-                                    BatchWritePolicy batchWritePolicy = null,
-                                    ParallelOptions parallelOptions = null)
-            => this.SetAccess.BatchWrite(this.SetName, binRecords, batchPolicy, batchWritePolicy, parallelOptions);
+		/// <summary>
+		/// Writes a collection of items to this set.
+		/// </summary>
+		/// <typeparam name="P">The Primary Key Type</typeparam>
+		/// <typeparam name="V">Bin&apos;s value type</typeparam>
+		/// <param name="binRecords">
+		/// A collection where each item is the following:
+		///     The Primary Key
+		///     A dictionary where the key is the bin name and the value is the bin&apos;s value.
+		/// </param>
+		/// <param name="batchPolicy">
+		/// <seealso cref="BatchPolicy"/>
+		/// </param>
+		/// <param name="batchWritePolicy">
+		/// <seealso cref="BatchWritePolicy"/>
+		/// </param>
+		/// <param name="parallelOptions">
+		/// <seealso cref="ParallelOptions"/>
+		/// </param>
+		/// <returns>True if successful</returns>
+		/// <seealso cref="BatchWrite{P, V}(IEnumerable{ValueTuple{P, IDictionary{string, V}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+		/// <seealso cref="ANamespaceAccess.BatchWrite{P, V}(string, IEnumerable{ValueTuple{P, IEnumerable{ValueTuple{string, V}}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+		public bool BatchWrite<P, V>([NotNull] IEnumerable<(P pk, IEnumerable<(string binName, V value)> bins)> binRecords,
+									BatchPolicy batchPolicy = null,
+									BatchWritePolicy batchWritePolicy = null,
+									ParallelOptions parallelOptions = null)
+			=> this.SetAccess.BatchWrite(this.SetName, binRecords, batchPolicy, batchWritePolicy, parallelOptions);
 
-        /// <summary>
-        /// Writes a collection of items to this set.
-        /// </summary>
-        /// <typeparam name="P">The Primary Key Type</typeparam>
-        /// <typeparam name="V">Bin&apos;s value type</typeparam>
-        /// <param name="binRecords">
-        /// A collection where each item is the following:
-        ///     The Primary Key
-        ///     A dictionary where the key is the bin name and the value is the bin&apos;s value.
-        /// </param>
-        /// <param name="batchPolicy">
-        /// <seealso cref="BatchPolicy"/>
-        /// </param>
-        /// <param name="batchWritePolicy">
-        /// <seealso cref="BatchWritePolicy"/>
-        /// </param>
-        /// <param name="parallelOptions">
-        /// <seealso cref="ParallelOptions"/>
-        /// </param>
-        /// <returns>True if successful</returns>
-        /// <seealso cref="BatchWrite{P, V}(IEnumerable{ValueTuple{P, IEnumerable{ValueTuple{string, V}}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
-        /// <seealso cref="ANamespaceAccess.BatchWrite{P,V}(string, IEnumerable{ValueTuple{P, IDictionary{string, V}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
-        public bool BatchWrite<P,V>([NotNull] IEnumerable<(P pk, IDictionary<string, V> bins)> binRecords,
-                                    BatchPolicy batchPolicy = null,
-                                    BatchWritePolicy batchWritePolicy = null,
-                                    ParallelOptions parallelOptions = null)
-            => this.SetAccess.BatchWrite(this.SetName, binRecords, batchPolicy, batchWritePolicy, parallelOptions);
+		/// <summary>
+		/// Writes a collection of items to this set.
+		/// </summary>
+		/// <typeparam name="P">The Primary Key Type</typeparam>
+		/// <typeparam name="V">Bin&apos;s value type</typeparam>
+		/// <param name="binRecords">
+		/// A collection where each item is the following:
+		///     The Primary Key
+		///     A dictionary where the key is the bin name and the value is the bin&apos;s value.
+		/// </param>
+		/// <param name="batchPolicy">
+		/// <seealso cref="BatchPolicy"/>
+		/// </param>
+		/// <param name="batchWritePolicy">
+		/// <seealso cref="BatchWritePolicy"/>
+		/// </param>
+		/// <param name="parallelOptions">
+		/// <seealso cref="ParallelOptions"/>
+		/// </param>
+		/// <returns>True if successful</returns>
+		/// <seealso cref="BatchWrite{P, V}(IEnumerable{ValueTuple{P, IEnumerable{ValueTuple{string, V}}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+		/// <seealso cref="ANamespaceAccess.BatchWrite{P,V}(string, IEnumerable{ValueTuple{P, IDictionary{string, V}}}, BatchPolicy, BatchWritePolicy, ParallelOptions)"/>
+		public bool BatchWrite<P, V>([NotNull] IEnumerable<(P pk, IDictionary<string, V> bins)> binRecords,
+									BatchPolicy batchPolicy = null,
+									BatchWritePolicy batchWritePolicy = null,
+									ParallelOptions parallelOptions = null)
+			=> this.SetAccess.BatchWrite(this.SetName, binRecords, batchPolicy, batchWritePolicy, parallelOptions);
 
-        /// <summary>
-        /// Writes a collection of <typeparamref name="T"/> objects to this set.
-        /// </summary>
-        /// <typeparam name="P">The Primary Key Type</typeparam>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="objRecords"></param>
-        /// <param name="batchPolicy">
-        /// <seealso cref="BatchPolicy"/>
-        /// </param>
-        /// <param name="batchWritePolicy">
-        /// <seealso cref="BatchWritePolicy"/>
-        /// </param>
-        /// <param name="parallelOptions">
-        /// <seealso cref="ParallelOptions"/>
-        /// </param>
-        /// <param name="transform">
-        /// A action that is called to perform customized transformation. 
-        /// First argument -- the name of the property/field within the instance/class
-        /// Second argument -- the name of the bin (can be different from property/field name if <see cref="BinNameAttribute"/> is defined)
-        /// Third argument -- the instance being transformed
-        /// Fourth argument -- if true the instance is within another object.
-        /// Returns the new transformed object or null to indicate that this instance should be skipped.
-        /// </param>
-        /// <param name="documentBinName">
-        /// If provided the record is created as a document and this will be the name of the bin. 
-        /// </param>
-        /// <returns>True if successful</returns>
-        /// <exception cref="TypeAccessException">Thrown if cannot write <paramref name="objRecords"/></exception>
-        /// <seealso cref="ANamespaceAccess.BatchWriteObject{P,T}(string, IEnumerable{ValueTuple{P, T}}, BatchPolicy, BatchWritePolicy, ParallelOptions, Func{string, string, object, bool, object}, string)"/>
-        public bool BatchWriteObject<P,T>([NotNull] IEnumerable<(P pk, T instance)> objRecords,
-                                        BatchPolicy batchPolicy = null,
-                                        BatchWritePolicy batchWritePolicy = null,
-                                        ParallelOptions parallelOptions = null,
-                                        Func<string, string, object, bool, object> transform = null,
-                                        string documentBinName = null)
-            => this.SetAccess.BatchWriteObject<P,T> (this.SetName, objRecords, batchPolicy, batchWritePolicy, parallelOptions, transform, documentBinName);
+		/// <summary>
+		/// Writes a collection of <typeparamref name="T"/> objects to this set.
+		/// </summary>
+		/// <typeparam name="P">The Primary Key Type</typeparam>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="objRecords"></param>
+		/// <param name="batchPolicy">
+		/// <seealso cref="BatchPolicy"/>
+		/// </param>
+		/// <param name="batchWritePolicy">
+		/// <seealso cref="BatchWritePolicy"/>
+		/// </param>
+		/// <param name="parallelOptions">
+		/// <seealso cref="ParallelOptions"/>
+		/// </param>
+		/// <param name="transform">
+		/// A action that is called to perform customized transformation. 
+		/// First argument -- the name of the property/field within the instance/class
+		/// Second argument -- the name of the bin (can be different from property/field name if <see cref="BinNameAttribute"/> is defined)
+		/// Third argument -- the instance being transformed
+		/// Fourth argument -- if true the instance is within another object.
+		/// Returns the new transformed object or null to indicate that this instance should be skipped.
+		/// </param>
+		/// <param name="documentBinName">
+		/// If provided the record is created as a document and this will be the name of the bin. 
+		/// </param>
+		/// <returns>True if successful</returns>
+		/// <exception cref="TypeAccessException">Thrown if cannot write <paramref name="objRecords"/></exception>
+		/// <seealso cref="ANamespaceAccess.BatchWriteObject{P,T}(string, IEnumerable{ValueTuple{P, T}}, BatchPolicy, BatchWritePolicy, ParallelOptions, Func{string, string, object, bool, object}, string)"/>
+		public bool BatchWriteObject<P, T>([NotNull] IEnumerable<(P pk, T instance)> objRecords,
+										BatchPolicy batchPolicy = null,
+										BatchWritePolicy batchWritePolicy = null,
+										ParallelOptions parallelOptions = null,
+										Func<string, string, object, bool, object> transform = null,
+										string documentBinName = null)
+			=> this.SetAccess.BatchWriteObject<P, T>(this.SetName, objRecords, batchPolicy, batchWritePolicy, parallelOptions, transform, documentBinName);
 
-        /// <summary>
-        /// Deletes records defined in <paramref name="primaryKeys"/>.
-        /// </summary>
-        /// <typeparam name="R">Primary Key Type</typeparam>
-        /// <param name="primaryKeys">
-        /// A collection of primary keys that will be deleted.
-        /// </param>
-        /// <param name="batchPolicy">
-        /// <see cref="BatchPolicy"/>
-        /// </param>
-        /// <param name="deletePolicy">
-        /// <seealso cref="BatchDeletePolicy"/>
-        /// </param>
-        /// <param name="filterExpression">The expression that will be applied to the result set. Can be null.</param>
-        /// <returns>Returns true if all records deleted or false if one or more wasn't found</returns>
-        /// <seealso cref="ANamespaceAccess.BatchDelete{R}(string, IEnumerable{R}, BatchPolicy, BatchDeletePolicy, Expression)"/>
-        public bool BatchDelete<R>([NotNull] IEnumerable<R> primaryKeys,
-                                    BatchPolicy batchPolicy = null,
-                                    BatchDeletePolicy deletePolicy = null,
-                                    Expression filterExpression = null)
-            => this.SetAccess.BatchDelete(this.SetName, primaryKeys, batchPolicy, deletePolicy, filterExpression);
+		/// <summary>
+		/// Deletes records defined in <paramref name="primaryKeys"/>.
+		/// </summary>
+		/// <typeparam name="R">Primary Key Type</typeparam>
+		/// <param name="primaryKeys">
+		/// A collection of primary keys that will be deleted.
+		/// </param>
+		/// <param name="batchPolicy">
+		/// <see cref="BatchPolicy"/>
+		/// </param>
+		/// <param name="deletePolicy">
+		/// <seealso cref="BatchDeletePolicy"/>
+		/// </param>
+		/// <param name="filterExpression">The expression that will be applied to the result set. Can be null.</param>
+		/// <returns>Returns true if all records deleted or false if one or more wasn't found</returns>
+		/// <seealso cref="ANamespaceAccess.BatchDelete{R}(string, IEnumerable{R}, BatchPolicy, BatchDeletePolicy, Expression)"/>
+		public bool BatchDelete<R>([NotNull] IEnumerable<R> primaryKeys,
+									BatchPolicy batchPolicy = null,
+									BatchDeletePolicy deletePolicy = null,
+									Expression filterExpression = null)
+			=> this.SetAccess.BatchDelete(this.SetName, primaryKeys, batchPolicy, deletePolicy, filterExpression);
 
-        #endregion
+		#endregion
 
-        #region Batch Read
+		#region Batch Read
 
-        /// <summary>
-        /// Return a collection of <see cref="ARecord"/> based on <paramref name="primaryKeys"/>
-        /// </summary>
-        /// <typeparam name="P">Primary Key Type</typeparam>
-        /// <param name="primaryKeys">A collection of Primarily Keys that will be part of the collection</param>
-        /// <param name="batchPolicy">
-        /// <seealso cref="BatchPolicy"/>
-        /// </param>
-        /// <param name="batchReadPolicy">
-        /// <seealso cref="BatchReadPolicy"/>
-        /// </param>
-        /// <param name="filterExpression">The expression that will be applied to the result set. Can be null.</param>
-        /// <param name="returnBins">A collection of bins that are returned</param>
-        /// <returns>A collection of records based on <paramref name="primaryKeys"/> or an empty collection</returns>
-        public IEnumerable<ARecord> BatchRead<P>([NotNull] IEnumerable<P> primaryKeys,
-                                                    BatchPolicy batchPolicy = null,
-                                                    BatchReadPolicy batchReadPolicy = null,
-                                                    Expression filterExpression = null,
-                                                    string[] returnBins = null)
-            => this.SetAccess.BatchRead(this.SetName,
-                                        primaryKeys,
-                                        batchPolicy: batchPolicy,
-                                        batchReadPolicy: batchReadPolicy,
-                                        filterExpression: filterExpression,
-                                        returnBins: returnBins,
-                                        definedBins: this._bins,
-                                        dumpType: this.DefaultRecordView);
+		/// <summary>
+		/// Return a collection of <see cref="ARecord"/> based on <paramref name="primaryKeys"/>
+		/// </summary>
+		/// <typeparam name="P">Primary Key Type</typeparam>
+		/// <param name="primaryKeys">A collection of Primarily Keys that will be part of the collection</param>
+		/// <param name="batchPolicy">
+		/// <seealso cref="BatchPolicy"/>
+		/// </param>
+		/// <param name="batchReadPolicy">
+		/// <seealso cref="BatchReadPolicy"/>
+		/// </param>
+		/// <param name="filterExpression">The expression that will be applied to the result set. Can be null.</param>
+		/// <param name="returnBins">A collection of bins that are returned</param>
+		/// <returns>A collection of records based on <paramref name="primaryKeys"/> or an empty collection</returns>
+		public IEnumerable<ARecord> BatchRead<P>([NotNull] IEnumerable<P> primaryKeys,
+													BatchPolicy batchPolicy = null,
+													BatchReadPolicy batchReadPolicy = null,
+													Expression filterExpression = null,
+													string[] returnBins = null)
+			=> this.SetAccess.BatchRead(this.SetName,
+										primaryKeys,
+										batchPolicy: batchPolicy,
+										batchReadPolicy: batchReadPolicy,
+										filterExpression: filterExpression,
+										returnBins: returnBins,
+										definedBins: this._bins,
+										dumpType: this.DefaultRecordView);
 
-        #endregion
+		#endregion
 
-        #endregion
+		#endregion
 
-        #region Linq Type Methods
+		#endregion
 
-        public SetRecords Clone() => new SetRecords(this);
+		#region Linq Type Methods
+
+		public SetRecords Clone() => new SetRecords(this);
 
         /// <summary>
         /// Returns the top number of records from the set based on <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.

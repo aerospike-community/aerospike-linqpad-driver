@@ -1,4 +1,4 @@
-﻿using Aerospike.Database.LINQPadDriver.Extensions;
+using Aerospike.Database.LINQPadDriver.Extensions;
 using GeoJSON.Net;
 using LINQPad.Extensibility.DataContext;
 using Newtonsoft.Json.Linq;
@@ -140,9 +140,9 @@ namespace Aerospike.Database.LINQPadDriver
             this.LPnamespace = aNamespace;
             this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Set");
-            if(this.SafeName == "NullSet" || this.SafeName == "Null")
-                this.SafeName += "_User"; 
-            this.IsNullSet = this.Name == NullSetName;
+			if(this.SafeName == NullSetName)
+				this.SafeName += "_User";
+			this.IsNullSet = this.Name == NullSetName;
             SetsBag.Add(this);
         }
 
@@ -345,6 +345,32 @@ namespace Aerospike.Database.LINQPadDriver
 			public {SafeName}_SetCls (Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess setAccess)
 				: base(setAccess, ""{Name}"")
 			{{ }}
+
+            public {SafeName}_SetCls({SafeName}_SetCls clone,
+							            Aerospike.Client.Policy readPolicy = null,
+							            Aerospike.Client.WritePolicy writePolicy = null,
+							            Aerospike.Client.QueryPolicy queryPolicy = null,
+							            Aerospike.Client.ScanPolicy scanPolicy = null)
+                : base(clone, readPolicy, writePolicy, queryPolicy, scanPolicy)
+            {{ }}
+
+		    /// <summary>
+		    /// Clones the specified instance providing new policies, if provided.
+		    /// </summary>
+		    /// <param name=""newReadPolicy"">The new read policy.</param>
+		    /// <param name=""newWritePolicy"">The new write policy.</param>
+		    /// <param name=""newQueryPolicy"">The new query policy.</param>
+		    /// <param name=""newScanPolicy"">The new scan policy.</param>
+		    /// <returns>New clone of <see cref=""{SafeName}_SetCls""/> instance.</returns>
+		    new public {SafeName}_SetCls Clone(Aerospike.Client.Policy newReadPolicy = null,
+								                Aerospike.Client.WritePolicy newWritePolicy = null,
+								                Aerospike.Client.QueryPolicy newQueryPolicy = null,
+								                Aerospike.Client.ScanPolicy newScanPolicy = null)
+			    => new {SafeName}_SetCls(this,
+								            newReadPolicy,
+								            newWritePolicy,
+								            newQueryPolicy,
+								            newScanPolicy);
 
             public {this.SafeName}_SetCls ({this.SafeName}_SetCls clone)
 			: base(clone)
@@ -673,9 +699,31 @@ namespace Aerospike.Database.LINQPadDriver
             {fkDefs}
         }}
 
-		public {this.SafeName}_SetCls ({this.SafeName}_SetCls clone)
-			: base(clone)
-		{{ }}
+		public {SafeName}_SetCls({SafeName}_SetCls clone,
+							        Aerospike.Client.Policy readPolicy = null,
+							        Aerospike.Client.WritePolicy writePolicy = null,
+							        Aerospike.Client.QueryPolicy queryPolicy = null,
+							        Aerospike.Client.ScanPolicy scanPolicy = null)
+                : base(clone, readPolicy, writePolicy, queryPolicy, scanPolicy)
+        {{ }}
+
+		/// <summary>
+		/// Clones the specified instance providing new policies, if provided.
+		/// </summary>
+		/// <param name=""newReadPolicy"">The new read policy.</param>
+		/// <param name=""newWritePolicy"">The new write policy.</param>
+		/// <param name=""newQueryPolicy"">The new query policy.</param>
+		/// <param name=""newScanPolicy"">The new scan policy.</param>
+		/// <returns>New clone of <see cref=""{SafeName}_SetCls""/> instance.</returns>
+		new public {SafeName}_SetCls Clone(Aerospike.Client.Policy newReadPolicy = null,
+								            Aerospike.Client.WritePolicy newWritePolicy = null,
+								            Aerospike.Client.QueryPolicy newQueryPolicy = null,
+								            Aerospike.Client.ScanPolicy newScanPolicy = null)
+			=> new {SafeName}_SetCls(this,
+								        newReadPolicy,
+								        newWritePolicy,
+								        newQueryPolicy,
+								        newScanPolicy);
 
         /// <summary>
 		/// Initializes a new instance of <see cref=""{this.SafeName}_SetCls""/> as an Aerospike transactional unit.

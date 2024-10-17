@@ -1,4 +1,4 @@
-﻿using Aerospike.Client;
+using Aerospike.Client;
 using LINQPad.Extensibility.DataContext;
 using System;
 using System.Collections;
@@ -350,6 +350,36 @@ namespace Aerospike.Database.LINQPadDriver
 		public {this.SafeName}_NamespaceCls(Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess clone, Aerospike.Client.Expression expression)
 			: base(clone, expression)
 		{{ }}
+
+        public {this.SafeName}_NamespaceCls(Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess clone,
+                                            Aerospike.Client.Policy readPolicy = null,
+								            Aerospike.Client.WritePolicy writePolicy = null,
+								            Aerospike.Client.QueryPolicy queryPolicy = null,
+								            Aerospike.Client.ScanPolicy scanPolicy = null)
+			: base(clone,
+                    readPolicy,
+					writePolicy,
+					queryPolicy,
+					scanPolicy)
+		{{ }}
+
+		/// <summary>
+		/// Clones the specified instance providing new policies, if provided.
+		/// </summary>
+		/// <param name=""newReadPolicy"">The new read policy.</param>
+		/// <param name=""newWritePolicy"">The new write policy.</param>
+		/// <param name=""newQueryPolicy"">The new query policy.</param>
+		/// <param name=""newScanPolicy"">The new scan policy.</param>
+		/// <returns>New clone of <see cref=""{this.SafeName}_NamespaceCls""/> instance.</returns>
+		new public ANamespaceAccess Clone(Aerospike.Client.Policy newReadPolicy = null,
+                                        Aerospike.Client.WritePolicy newWritePolicy = null,
+                                        Aerospike.Client.QueryPolicy newQueryPolicy = null,
+                                        Aerospike.Client.ScanPolicy newScanPolicy = null)
+            => new {this.SafeName}_NamespaceCls(this,
+                                                newReadPolicy,
+                                                newWritePolicy,
+                                                newQueryPolicy,
+                                                newScanPolicy);
 
         /// <summary>
 		/// Initializes a new instance of <see cref=""{this.SafeName}_NamespaceCls""/> as an Aerospike transactional unit.

@@ -114,7 +114,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     public class CDTConverter : JsonConverter
     {
         private long _oid = 0;
-		bool _emptyStrIsNull = true;
+		readonly bool _emptyStrIsNull = true;
 
 		public CDTConverter(bool treatEmptyStrAsNull = true)
         {

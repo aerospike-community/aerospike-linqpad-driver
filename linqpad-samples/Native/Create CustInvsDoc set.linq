@@ -62,4 +62,5 @@ void Main()
 		Demo.Put(setName, ciRecords.Customer.PK, customerDict);		
 	}
 	
+	Demo[setName].Dump(setName);
 }

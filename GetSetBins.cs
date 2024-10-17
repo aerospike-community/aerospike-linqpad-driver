@@ -1,4 +1,4 @@
-﻿using Aerospike.Client;
+using Aerospike.Client;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -29,8 +29,7 @@ namespace Aerospike.Database.LINQPadDriver
         IEnumerable<Aerospike.Client.Record> GetRecords(string nsName, string setName, int maxRecords)
         {
             this.QueryPolicy.expectedDuration = maxRecords <= 100 ? QueryDuration.LONG : QueryDuration.SHORT;
-
-            using var recordset = this.Connection
+			using var recordset = this.Connection
                                    .Query(this.QueryPolicy,
                                            new Statement() { Namespace = nsName, SetName = setName, MaxRecords = maxRecords });
 
