@@ -386,7 +386,7 @@ namespace Aerospike.Database.LINQPadDriver
 		/// <param name=""newQueryPolicy"">The new query policy.</param>
 		/// <param name=""newScanPolicy"">The new scan policy.</param>
 		/// <returns>New clone of <see cref=""{this.SafeName}_NamespaceCls""/> instance.</returns>
-		new public  {this.SafeName}_NamespaceCls Clone(Aerospike.Client.Policy newReadPolicy = null,
+		new public {this.SafeName}_NamespaceCls Clone(Aerospike.Client.Policy newReadPolicy = null,
                                                         Aerospike.Client.WritePolicy newWritePolicy = null,
                                                         Aerospike.Client.QueryPolicy newQueryPolicy = null,
                                                         Aerospike.Client.ScanPolicy newScanPolicy = null)
