@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using System.CodeDom;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -1367,9 +1368,30 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             if (this.SetAccess.AerospikeConnection.CXInfo.IsProduction)
                 throw new InvalidOperationException("Cannot Truncate a Cluster marked \"In Production\"");
 
-            this.SetAccess
-                    .AerospikeConnection
-                    .AerospikeClient.Truncate(infoPolicy, this.Namespace, this.SetName, before ?? DateTime.Now);
+            var useTime = before ?? DateTime.Now;
+
+            try
+            {
+                this.SetAccess
+                        .AerospikeConnection
+                        .AerospikeClient.Truncate(infoPolicy, this.Namespace, this.SetName, useTime);
+            }
+            catch(AerospikeException e)
+            {
+				if(Client.Log.InfoEnabled())
+				{
+					Client.Log.Info($"Trying truncation to {this.SetFullName} but an exception of '{e}' occurred using Time {useTime:yyyyMMdd-HHmmss.FFFF}.");
+				}
+
+				if(before.HasValue || e.Message != "Error -1: Truncate failed: ERROR:4:would truncate in the future") throw;
+				//Try again
+				if(Client.Log.WarnEnabled())
+				{
+					Client.Log.Warn($"Retrying truncation due to future error for {this.SetFullName} with time {useTime:yyyyMMdd-HHmmss.FFFF}.");
+				}
+                Thread.Sleep(500);
+				this.Truncate(infoPolicy, useTime);
+            }
         }
         #endregion
 

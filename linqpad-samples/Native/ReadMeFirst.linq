@@ -12,7 +12,7 @@
       <DocumentAPI>true</DocumentAPI>
     </DriverData>
   </Connection>
-  <Reference Relative="..\DemoDBJson\aerospike.json">&lt;MyDocuments&gt;\LINQPad Queries\Aerospike linqpad-samples\DemoDBJson\aerospike.json</Reference>
+  <Reference Relative="..\DemoDBJson\aerospike.json">E:\repro\GitHub\aerospike-linqpad-driver\linqpad-samples\DemoDBJson\aerospike.json</Reference>
 </Query>
 
 /* 
@@ -40,6 +40,7 @@ Below is a list of sample scripts:
 •	POCO.linq – Show the use of the ORM between complete class structures and the Aerospike DB
 •	Put-Aerospike.linq – Show the use of how to insert or update a record within a set using a primary key
 •	CDT-Json-Docs.linq – Show the use of CDTs (Collection Data Types), Json, and documents by means of Linq and Aerospike Expressions
+•	Create CustInvDoc set.linq -- Joins the Customer set and Invoice set, grouped by customer id. Onced joined, it creates a new set (e.g., CustInvsDoc) where each customer has a list of their invoices (documents).
 
 */
 void Main()
