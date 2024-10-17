@@ -833,7 +833,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultReadPolicy = new Policy(this.SetAccess.DefaultReadPolicy);
             this.DefaultQueryPolicy = new QueryPolicy(this.SetAccess.DefaultQueryPolicy);
             this.DefaultScanPolicy = new ScanPolicy(this.SetAccess.DefaultScanPolicy);
-            this.DefaultRecordView = this.SetAccess.AerospikeConnection.RecordView;
+            this.DefaultRecordView = this.SetAccess.AerospikeConnection?.RecordView ?? ARecord.DumpTypes.Dynamic;
         }
 
         public SetRecords([NotNull] SetRecords clone,
@@ -848,6 +848,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this._bins = clone._bins;
             this._binsHashCode= clone._binsHashCode;
             this.FKBins = clone.FKBins;
+            this.SetFullName= clone.SetFullName;
 
             this.DefaultWritePolicy = writePolicy ?? new WritePolicy(clone.DefaultWritePolicy);
             this.DefaultReadPolicy = readPolicy ?? new Policy(clone.DefaultReadPolicy);
@@ -2037,7 +2038,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="DefaultQueryPolicy"/>
         public IEnumerable<ARecord> Take(int numberRecords, Client.Exp filterExpression = null)
         {
-            if (numberRecords <= 0) yield break;
+            if (numberRecords <= 0 || this.SetAccess.AerospikeConnection is null) yield break;
 
             var queryPolicy = filterExpression == null
                                     ? this.DefaultQueryPolicy
@@ -2076,9 +2077,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Operate(dynamic, Operation[])"/>
         /// <seealso cref="DefaultQueryPolicy"/>
         public ARecord First(Client.Exp filterExpression = null)
-        {
-            return this.Take(1, filterExpression).First();
-        }
+                => this.Take(1, filterExpression).First();
 
         /// <summary>
         /// Returns the first record or null from the set based on <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
@@ -2094,9 +2093,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Operate(dynamic, Operation[])"/>
         /// <seealso cref="DefaultQueryPolicy"/>
         public ARecord FirstOrDefault(Client.Exp filterExpression = null)
-        {
-            return this.Take(1, filterExpression).FirstOrDefault();
-        }
+                    => this.Take(1, filterExpression).FirstOrDefault();        
 
 		/// <summary>
 		/// Returns the first record from the set based on <see cref="DefaultScanPolicy"/> or <paramref name="filterExpression"/>.
@@ -2152,7 +2149,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <seealso cref="DefaultQueryPolicy"/>
 		public IEnumerable<ARecord> Skip(int numberRecords, Client.Exp filterExpression = null)
         {
-            int currentIdx = 0;
+			if(this.SetAccess.AerospikeConnection is null) yield break;
+
+			int currentIdx = 0;
             var queryPolicy = filterExpression == null
                                     ? this.DefaultQueryPolicy
                                     : new QueryPolicy(this.DefaultQueryPolicy) { filterExp = Exp.Build(filterExpression) };
@@ -2216,10 +2215,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <seealso cref="DefaultScanPolicy"/>        
 		public IEnumerable<ARecord> AsEnumerable(Client.Exp filterExpression = null)
         {
+			if(this.SetAccess.AerospikeConnection is null) yield break;
+
 			var scanPolicy = filterExpression == null
 									? this.DefaultScanPolicy
 									: new ScanPolicy(this.DefaultScanPolicy)
-                                            { filterExp = Exp.Build(filterExpression) };
+                                            { filterExp = Exp.Build(filterExpression) };            
 
 			var allRecords = new ConcurrentQueue<ARecord>();
 
@@ -2271,6 +2272,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="DefaultQueryPolicy"/>
 		public ARecord[] GetRecords(params string[] bins)
 		{
+			if(this.SetAccess.AerospikeConnection is null)Array.Empty<ARecord>();
+
 			var recordSets = new List<ARecord>();
 
 			using(var recordset = this.SetAccess.AerospikeConnection
@@ -2309,7 +2312,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <seealso cref="Query(Exp, string[])"/>
 		public bool Exists([NotNull] dynamic primaryKey, Expression filterExpression)
         {
-            var key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
+			if(this.SetAccess.AerospikeConnection is null) return false;
+
+			var key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
 
             var policy = new Client.Policy(this.DefaultReadPolicy) { filterExp = filterExpression };
 

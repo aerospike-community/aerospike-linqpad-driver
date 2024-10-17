@@ -176,7 +176,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <summary>
 		/// The Aerospike Platform this namespace is associated. <see cref="DBPlatforms"/>
 		/// </summary>
-		public DBPlatforms DBPlatform { get => this.AerospikeConnection.DBPlatform; }
+		public DBPlatforms DBPlatform { get => this.AerospikeConnection?.DBPlatform ?? DBPlatforms.None; }
 
 		/// <summary>
 		/// Finds the namespace.
