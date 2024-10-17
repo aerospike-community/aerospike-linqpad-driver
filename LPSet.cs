@@ -372,10 +372,6 @@ namespace Aerospike.Database.LINQPadDriver
 								            newQueryPolicy,
 								            newScanPolicy);
 
-            public {this.SafeName}_SetCls ({this.SafeName}_SetCls clone)
-			: base(clone)
-		    {{ }}
-
             /// <summary>
 		    /// Initializes a new instance of <see cref=""{this.SafeName}_SetCls""/> as an Aerospike transactional unit.
 		    /// If <see cref=""SetRecords.Commit""/> method is not called the server will abort (rollback) this transaction.

@@ -856,12 +856,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 									QueryPolicy queryPolicy = null,
 									ScanPolicy scanPolicy = null)
         {
-            this.LPset = baseSet.LPset;
-            this.SetName = baseSet.SetName;
-            this.SetAccess = baseSet.SetAccess;
-            this._bins = baseSet._bins;
-            this._binsHashCode= baseSet._binsHashCode;
-            this.FKBins = baseSet.FKBins;
+            this.LPset = clone.LPset;
+            this.SetName = clone.SetName;
+            this.SetAccess = clone.SetAccess;
+            this._bins = clone._bins;
+            this._binsHashCode= clone._binsHashCode;
+            this.FKBins = clone.FKBins;
 
             this.DefaultWritePolicy = writePolicy ?? new WritePolicy(clone.DefaultWritePolicy);
             this.DefaultReadPolicy = readPolicy ?? new Policy(clone.DefaultReadPolicy);
@@ -870,15 +870,37 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultRecordView = clone.DefaultRecordView;
         }
 
-		/// <summary>
-		/// Clones the specified instance providing new policies, if provided.
-		/// </summary>
-		/// <param name="newReadPolicy">The new read policy.</param>
-		/// <param name="newWritePolicy">The new write policy.</param>
-		/// <param name="newQueryPolicy">The new query policy.</param>
-		/// <param name="newScanPolicy">The new scan policy.</param>
-		/// <returns>New clone of <see cref="SetRecords"/> instance.</returns>
-		public SetRecords Clone(Policy newReadPolicy = null,
+        /// <summary>
+        /// Initializes a new instance of <see cref="SetRecords"/> as an Aerospike transactional unit.
+        /// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
+        /// </summary>
+        /// <param name="baseSet">Base Aerospike Set instance</param>
+        /// <param name="txn">
+        /// The Aerospike <see cref="Txn"/> instance or null to create a new transactional unit.
+        /// </param>
+        /// <seealso cref="CreateTransaction"/>
+        /// <seealso cref="Commit"/>
+        /// <seealso cref="Abort"/>
+        public SetRecords([NotNull] SetRecords baseSet, [AllowNull] Txn txn)
+        {
+            this.LPset = baseSet.LPset;
+            this.SetName = baseSet.SetName;
+            this.SetAccess = new ANamespaceAccess(baseSet.SetAccess, txn ?? new Txn());
+            this._bins = baseSet._bins;
+            this._binsHashCode = baseSet._binsHashCode;
+            this.FKBins = baseSet.FKBins;
+            this.DefaultRecordView = baseSet.DefaultRecordView;
+        }
+
+			/// <summary>
+			/// Clones the specified instance providing new policies, if provided.
+			/// </summary>
+			/// <param name="newReadPolicy">The new read policy.</param>
+			/// <param name="newWritePolicy">The new write policy.</param>
+			/// <param name="newQueryPolicy">The new query policy.</param>
+			/// <param name="newScanPolicy">The new scan policy.</param>
+			/// <returns>New clone of <see cref="SetRecords"/> instance.</returns>
+			public SetRecords Clone(Policy newReadPolicy = null,
 								WritePolicy newWritePolicy = null,
 								QueryPolicy newQueryPolicy = null,
 								ScanPolicy newScanPolicy = null)
@@ -887,26 +909,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 								newWritePolicy,
 								newQueryPolicy,
 								newScanPolicy);
-		/// <summary>
-		/// Initializes a new instance of <see cref="SetRecords"/> as an Aerospike transactional unit.
-		/// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
-		/// </summary>
-		/// <param name="baseSet">Base Aerospike Set instance</param>
-		/// <param name="txn">
-        /// The Aerospike <see cref="Txn"/> instance or null to create a new transactional unit.
-        /// </param>
-		/// <seealso cref="CreateTransaction"/>
-		/// <seealso cref="Commit"/>
-		/// <seealso cref="Abort"/>
-		public SetRecords([NotNull] SetRecords baseSet, [AllowNull] Txn txn)
-		{
-			this.LPset = baseSet.LPset;
-			this.SetName = baseSet.SetName;
-			this.SetAccess = new ANamespaceAccess(baseSet.SetAccess, txn ?? new Txn());
-			this._bins = baseSet._bins;
-			this._binsHashCode = baseSet._binsHashCode;
-			this.FKBins = baseSet.FKBins;
-			this.DefaultRecordView = baseSet.DefaultRecordView;
 
 		#endregion
 

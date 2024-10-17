@@ -363,24 +363,6 @@ namespace Aerospike.Database.LINQPadDriver
 					scanPolicy)
 		{{ }}
 
-		/// <summary>
-		/// Clones the specified instance providing new policies, if provided.
-		/// </summary>
-		/// <param name=""newReadPolicy"">The new read policy.</param>
-		/// <param name=""newWritePolicy"">The new write policy.</param>
-		/// <param name=""newQueryPolicy"">The new query policy.</param>
-		/// <param name=""newScanPolicy"">The new scan policy.</param>
-		/// <returns>New clone of <see cref=""{this.SafeName}_NamespaceCls""/> instance.</returns>
-		new public ANamespaceAccess Clone(Aerospike.Client.Policy newReadPolicy = null,
-                                        Aerospike.Client.WritePolicy newWritePolicy = null,
-                                        Aerospike.Client.QueryPolicy newQueryPolicy = null,
-                                        Aerospike.Client.ScanPolicy newScanPolicy = null)
-            => new {this.SafeName}_NamespaceCls(this,
-                                                newReadPolicy,
-                                                newWritePolicy,
-                                                newQueryPolicy,
-                                                newScanPolicy);
-
         /// <summary>
 		/// Initializes a new instance of <see cref=""{this.SafeName}_NamespaceCls""/> as an Aerospike transactional unit.
         /// If <see cref=""Commit""/> method is not called the server will abort (rollback) this transaction.
@@ -395,6 +377,24 @@ namespace Aerospike.Database.LINQPadDriver
 		public {this.SafeName}_NamespaceCls({this.SafeName}_NamespaceCls baseNS, Aerospike.Client.Txn txn)
             : base(baseNS, txn)
 		{{ }}
+
+		/// <summary>
+		/// Clones the specified instance providing new policies, if provided.
+		/// </summary>
+		/// <param name=""newReadPolicy"">The new read policy.</param>
+		/// <param name=""newWritePolicy"">The new write policy.</param>
+		/// <param name=""newQueryPolicy"">The new query policy.</param>
+		/// <param name=""newScanPolicy"">The new scan policy.</param>
+		/// <returns>New clone of <see cref=""{this.SafeName}_NamespaceCls""/> instance.</returns>
+		new public  {this.SafeName}_NamespaceCls Clone(Aerospike.Client.Policy newReadPolicy = null,
+                                                        Aerospike.Client.WritePolicy newWritePolicy = null,
+                                                        Aerospike.Client.QueryPolicy newQueryPolicy = null,
+                                                        Aerospike.Client.ScanPolicy newScanPolicy = null)
+            => new {this.SafeName}_NamespaceCls(this,
+                                                newReadPolicy,
+                                                newWritePolicy,
+                                                newQueryPolicy,
+                                                newScanPolicy);
 
 		public {this.SafeName}_NamespaceCls FilterExpression(Aerospike.Client.Expression expression)
         {{

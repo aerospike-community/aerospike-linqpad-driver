@@ -133,7 +133,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     clone._sets)
 		{
             this.LPnamespace = clone.LPnamespace;
-        }
+			this.AerospikeTrn = clone.AerospikeTrn;
+		}
 
 		public ANamespaceAccess(ANamespaceAccess clone,
                                     Policy readPolicy = null,
@@ -150,6 +151,42 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					clone._sets)
 		{
 			this.LPnamespace = clone.LPnamespace;
+			this.AerospikeTrn = clone.AerospikeTrn;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of <see cref="ANamespaceAccess"/> as an Aerospike transactional unit.
+		/// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name="baseNS">Base Namespace instance</param>
+		/// <param name="txn">The Aerospike <see cref="Txn"/> instance</param>
+		/// <exception cref="System.ArgumentNullException">txn</exception>
+		/// <exception cref="System.ArgumentNullException">clone</exception>
+		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public ANamespaceAccess(ANamespaceAccess baseNS, Txn txn)
+            : this(baseNS,
+					new(baseNS.DefaultReadPolicy)
+					{
+						Txn = txn
+					},
+					new(baseNS.DefaultWritePolicy)
+					{
+						Txn = txn
+					},
+					new(baseNS.DefaultQueryPolicy)
+					{
+						Txn = txn
+					},
+					new(baseNS.DefaultScanPolicy)
+					{
+						Txn = txn
+					})
+		{
+			if(txn is null) throw new ArgumentNullException(nameof(txn));
+			
+			this.AerospikeTrn = txn;
 		}
 
 		/// <summary>
@@ -177,46 +214,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// The Aerospike Platform this namespace is associated. <see cref="DBPlatforms"/>
 		/// </summary>
 		public DBPlatforms DBPlatform { get => this.AerospikeConnection.DBPlatform; }
-
-		/// <summary>
-		/// Initializes a new instance of <see cref="ANamespaceAccess"/> as an Aerospike transactional unit.
-		/// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
-		/// </summary>
-		/// <param name="baseNS">Base Namespace instance</param>
-		/// <param name="txn">The Aerospike <see cref="Txn"/> instance</param>
-		/// <exception cref="System.ArgumentNullException">txn</exception>
-		/// <exception cref="System.ArgumentNullException">clone</exception>
-		/// <seealso cref="CreateTransaction"/>
-		/// <seealso cref="Commit"/>
-		/// <seealso cref="Abort"/>
-		public ANamespaceAccess(ANamespaceAccess baseNS, Txn txn)
-		{
-            if(txn is null) throw new ArgumentNullException(nameof(txn));
-			if(baseNS is null) throw new ArgumentNullException(nameof(baseNS));
-
-			this.Namespace = baseNS.Namespace;
-			this.BinNames = baseNS.BinNames;
-			this.AerospikeConnection = baseNS.AerospikeConnection;
-			this._sets = baseNS._sets;
-            this.AerospikeTrn = txn;
-
-            this.DefaultWritePolicy = new(baseNS.DefaultWritePolicy)
-            {
-                Txn = txn
-            };
-            this.DefaultQueryPolicy = new(baseNS.DefaultQueryPolicy)
-            {
-                Txn = txn
-            };
-            this.DefaultReadPolicy = new(baseNS.DefaultReadPolicy)
-            {
-                Txn = txn
-            };
-			this.DefaultScanPolicy = new(baseNS.DefaultScanPolicy)
-			{
-				Txn = txn
-			};
-		}
 
 		/// <summary>
 		/// Finds the namespace.
