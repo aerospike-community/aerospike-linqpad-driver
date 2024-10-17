@@ -2385,7 +2385,10 @@ namespace Aerospike.Database.LINQPadDriver
         {
             Client.Key key;
 
-            if (primaryKey is APrimaryKey aPrimaryKey)
+			if(setName == LPSet.NullSetName)
+                setName = null;
+
+			if (primaryKey is APrimaryKey aPrimaryKey)
                 primaryKey = aPrimaryKey.AerospikeKey;
 
             if(primaryKey is Client.Key valueKey)
