@@ -23,7 +23,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         }
                                 
 		public static AValue ToAValue(this object value, string bin = null, string fld = null)
-                                => new AValue(value, bin ?? "Object", fld ??"Value");
+                                => value is AValue aValue
+                                        ? aValue
+                                        : new AValue(value, bin ?? "Object", fld ??"Value");
 
         /// <summary>
         /// Converts a collection of <see cref="AValue"/>s into a dictionary where the key is the AValue&apos;s Bin Name and the value is the AValue.
