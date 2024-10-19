@@ -14,7 +14,6 @@ using Newtonsoft.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
-using System.CodeDom;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -54,11 +53,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <param name="txn">
 		/// The Aerospike <see cref="Txn"/> instance or null to create a new transactional unit.
 		/// </param>
+		/// <param name="newNSAccess">
+		/// An new <see cref="ANamespaceAccess"/> instance to use with the transaction. 
+		/// </param>
 		/// <seealso cref="SetRecords.CreateTransaction"/>
 		/// <seealso cref="SetRecords.Commit"/>
 		/// <seealso cref="SetRecords.Abort"/>
-		public SetRecords([NotNull] SetRecords baseSet, [AllowNull] Txn txn)
-            : base(baseSet, txn)
+		public SetRecords([NotNull] SetRecords baseSet,
+                            [AllowNull] Txn txn,
+							[AllowNull] ANamespaceAccess newNSAccess = null)
+            : base(baseSet, txn, newNSAccess)
         { }
 
 		/// <summary>
@@ -376,8 +380,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 maxRetries = 2,
                 maxConcurrentThreads = 1,
-                filterExp = filterExpression
-            };
+                filterExp = filterExpression,
+				Txn = this.AerospikeTxn
+			};
 
             batchReadPolicy ??= new BatchReadPolicy()
             {
@@ -842,8 +847,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.SetName = setName;
             this.SetAccess = setAccess;
             this.SetFullName = $"{this.Namespace}.{this.SetName}";
-            this._bins = Helpers.RemoveDups(bins);            
-            this.DefaultWritePolicy = new WritePolicy(this.SetAccess.DefaultWritePolicy);
+            this._bins = Helpers.RemoveDups(bins);
+            this.IsNullSet = this.SetName == LPSet.NullSetName;
+            this.AerospikeTxn = this.SetAccess.AerospikeTxn;
+			this.DefaultWritePolicy = new WritePolicy(this.SetAccess.DefaultWritePolicy);
             this.DefaultReadPolicy = new Policy(this.SetAccess.DefaultReadPolicy);
             this.DefaultQueryPolicy = new QueryPolicy(this.SetAccess.DefaultQueryPolicy);
             this.DefaultScanPolicy = new ScanPolicy(this.SetAccess.DefaultScanPolicy);
@@ -863,12 +870,20 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this._binsHashCode= clone._binsHashCode;
             this.FKBins = clone.FKBins;
             this.SetFullName= clone.SetFullName;
+			this.DefaultRecordView = clone.DefaultRecordView;
+			this.IsNullSet = clone.IsNullSet;
 
-            this.DefaultWritePolicy = writePolicy ?? new WritePolicy(clone.DefaultWritePolicy);
+            if(writePolicy?.Txn is not null)
+                this.AerospikeTxn = writePolicy.Txn;
+            else if(readPolicy?.Txn is not null)
+				this.AerospikeTxn = readPolicy.Txn;
+            else
+                this.AerospikeTxn = clone.AerospikeTxn;
+
+			this.DefaultWritePolicy = writePolicy ?? new WritePolicy(clone.DefaultWritePolicy);
             this.DefaultReadPolicy = readPolicy ?? new Policy(clone.DefaultReadPolicy);
             this.DefaultQueryPolicy = queryPolicy ?? new QueryPolicy(clone.DefaultQueryPolicy);
-            this.DefaultScanPolicy = scanPolicy ?? new ScanPolicy(clone.DefaultScanPolicy);
-            this.DefaultRecordView = clone.DefaultRecordView;
+            this.DefaultScanPolicy = scanPolicy ?? new ScanPolicy(clone.DefaultScanPolicy);            
         }
 
         /// <summary>
@@ -879,29 +894,57 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <param name="txn">
         /// The Aerospike <see cref="Txn"/> instance or null to create a new transactional unit.
         /// </param>
+        /// <param name="newNSAccess">
+        /// An new <see cref="ANamespaceAccess"/> instance to use with the transaction. 
+        /// </param>
         /// <seealso cref="CreateTransaction"/>
         /// <seealso cref="Commit"/>
         /// <seealso cref="Abort"/>
-        public SetRecords([NotNull] SetRecords baseSet, [AllowNull] Txn txn)
+        public SetRecords([NotNull] SetRecords baseSet, 
+                            [AllowNull] Txn txn,
+                            [AllowNull] ANamespaceAccess newNSAccess = null)
         {
             this.LPset = baseSet.LPset;
             this.SetName = baseSet.SetName;
-            this.SetAccess = new ANamespaceAccess(baseSet.SetAccess, txn ?? new Txn());
+            this.SetAccess = newNSAccess ?? baseSet.SetAccess;
             this._bins = baseSet._bins;
             this._binsHashCode = baseSet._binsHashCode;
             this.FKBins = baseSet.FKBins;
-            this.DefaultRecordView = baseSet.DefaultRecordView;
-        }
+			this.SetFullName = baseSet.SetFullName;
+			this.DefaultRecordView = baseSet.DefaultRecordView;
+            this.IsNullSet = baseSet.IsNullSet;
 
-			/// <summary>
-			/// Clones the specified instance providing new policies, if provided.
-			/// </summary>
-			/// <param name="newReadPolicy">The new read policy.</param>
-			/// <param name="newWritePolicy">The new write policy.</param>
-			/// <param name="newQueryPolicy">The new query policy.</param>
-			/// <param name="newScanPolicy">The new scan policy.</param>
-			/// <returns>New clone of <see cref="SetRecords"/> instance.</returns>
-			public SetRecords Clone(Policy newReadPolicy = null,
+            txn ??= new Txn();
+
+            this.AerospikeTxn = txn;
+            this.DefaultWritePolicy = new(baseSet.DefaultWritePolicy)
+            {
+                Txn = txn
+            };
+			this.DefaultReadPolicy = new(baseSet.DefaultReadPolicy)
+            {
+                Txn = txn
+            };
+			this.DefaultQueryPolicy = new(baseSet.DefaultQueryPolicy)
+            {
+                Txn= txn
+            };
+			this.DefaultScanPolicy = new(baseSet.DefaultScanPolicy)
+            {
+                Txn= txn
+            };
+
+		}
+
+		/// <summary>
+		/// Clones the specified instance providing new policies, if provided.
+		/// </summary>
+		/// <param name="newReadPolicy">The new read policy.</param>
+		/// <param name="newWritePolicy">The new write policy.</param>
+		/// <param name="newQueryPolicy">The new query policy.</param>
+		/// <param name="newScanPolicy">The new scan policy.</param>
+		/// <returns>New clone of <see cref="SetRecords"/> instance.</returns>
+		public SetRecords Clone(Policy newReadPolicy = null,
 								WritePolicy newWritePolicy = null,
 								QueryPolicy newQueryPolicy = null,
 								ScanPolicy newScanPolicy = null)
@@ -981,6 +1024,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return this;
         }
 
+        public bool IsNullSet { get; }
+
         public ANamespaceAccess SetAccess { get; }
 
         private int _binsHashCode = 0;
@@ -1034,6 +1079,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			}
 		}
 
+        public virtual SetRecords TurnIntoTrx([NotNull] ANamespaceAccess txnNS)
+             => new SetRecords(this, txnNS.AerospikeTxn, txnNS);
 		#endregion
 
 		#region Aerospike Client Properties, Policies, Put, Get, Query, etc.
@@ -1076,15 +1123,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Gets the aerospike <see cref="Aerospike.Client.Txn"/> instance or null to indicate that it is not within a transaction.
 		/// </summary>
 		/// <value>The aerospike <see cref="Aerospike.Client.Txn"/> instance or null</value>
-		public Txn AerospikeTrn => this.SetAccess.AerospikeTrn;
+		public Txn AerospikeTxn { get; }
 
 		/// <summary>
 		/// Returns the transaction identifier or null to indicate not a transactional unit.
 		/// </summary>
-		public long? TransactionId => this.AerospikeTrn?.Id;
+		public long? TransactionId => this.AerospikeTxn?.Id;
 
 		/// <summary>
 		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+        /// Note: This will copy the current policies for this Set!
 		/// </summary>
         /// <param name="txn">
         /// If provided, this Aerospike Transaction is used instead of creating a new transaction instance.
@@ -1105,9 +1153,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <seealso cref="CreateTransaction"/>
 		/// <seealso cref="Abort"/>
 		public CommitStatus.CommitStatusType Commit()
-			=> this.AerospikeTrn is null
+			=> this.AerospikeTxn is null
 				? CommitStatus.CommitStatusType.CLOSE_ABANDONED
-				: this.SetAccess.Commit();
+				: this.SetAccess.Commit(this.AerospikeTxn);
 
 		/// <summary>
 		/// Abort and rollback the given multi-record transaction.
@@ -1118,9 +1166,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <seealso cref="CreateTransaction"/>
 		/// <seealso cref="Commit"/>
 		public AbortStatus.AbortStatusType Abort()
-			 => this.AerospikeTrn is null
+			 => this.AerospikeTxn is null
 				? AbortStatus.AbortStatusType.ROLL_BACK_ABANDONED
-				: this.SetAccess.Abort();
+				: this.SetAccess.Abort(this.AerospikeTxn);
 
 
 		protected string[] _bins = Array.Empty<string>();
@@ -2129,7 +2177,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             var queryPolicy = filterExpression == null
                                     ? this.DefaultQueryPolicy
-                                    : new QueryPolicy(this.DefaultQueryPolicy) { filterExp = Exp.Build(filterExpression) };
+                                    : new QueryPolicy(this.DefaultQueryPolicy)
+                                        {
+                                            filterExp = Exp.Build(filterExpression),
+                                            Txn = this.AerospikeTxn
+                                        };
 
             using var recordset = this.SetAccess.AerospikeConnection
                                    .AerospikeClient
@@ -2876,10 +2928,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public override string ToString()
         {
-            if(this._bins == null || this._bins.Length == 0)
-                return $"{this.Namespace}.{this.SetName}";
+            string txn = string.Empty;
+            if(this.TransactionId.HasValue)
+                txn = " TXN";
 
-            return $"{this.Namespace}.{this.SetName}{{{string.Join(',',this._bins)}}}";
+            if(this._bins == null || this._bins.Length == 0)
+                return $"{this.Namespace}.{this.SetName}{txn}";
+
+            return $"{this.Namespace}.{this.SetName}{{{string.Join(',',this._bins)}}} {txn}";
         }
 
         #endregion

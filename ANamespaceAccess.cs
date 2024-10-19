@@ -9,7 +9,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using Aerospike.Client;
@@ -36,10 +35,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         Cloud = 1
     }
 
-    /// <summary>
-    /// A class used to define Aerospike Namespaces.
-    /// </summary>
-    public class ANamespaceAccess
+	/// <summary>
+	/// A class used to define Aerospike Namespaces.
+	/// </summary>
+	[DebuggerDisplay("{ToString()}")]
+	public class ANamespaceAccess
     {
 		private readonly static List<ANamespaceAccess> ANamespacesList = new List<ANamespaceAccess>();
 
@@ -133,7 +133,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     clone._sets)
 		{
             this.LPnamespace = clone.LPnamespace;
-			this.AerospikeTrn = clone.AerospikeTrn;
+			this.AerospikeTxn = clone.AerospikeTxn;
 		}
 
 		public ANamespaceAccess(ANamespaceAccess clone,
@@ -151,7 +151,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					clone._sets)
 		{
 			this.LPnamespace = clone.LPnamespace;
-			this.AerospikeTrn = clone.AerospikeTrn;
+			this.AerospikeTxn = clone.AerospikeTxn;
 		}
 
 		/// <summary>
@@ -183,10 +183,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					{
 						Txn = txn
 					})
-		{
+		{            
 			if(txn is null) throw new ArgumentNullException(nameof(txn));
 			
-			this.AerospikeTrn = txn;
+			this.AerospikeTxn = txn;
+
+            this._sets = this._sets.Select(s => s.TurnIntoTrx(this)).ToList();            
 		}
 
 		/// <summary>
@@ -447,6 +449,19 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             get => this.Sets.FirstOrDefault(s => s.SetName == setName);
         }
+
+		public override string ToString()
+		{
+			string txn = string.Empty;
+			if(this.TransactionId.HasValue)
+				txn = " TXN";
+
+			if(this.BinNames.Length == 0)
+				return $"{this.Namespace}{txn}";
+
+			return $"{this.Namespace}{{{string.Join(',', this.BinNames)}}} {txn}";
+		}
+
 		#endregion
 
 		#region Aerospike API items
@@ -498,12 +513,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Gets the aerospike <see cref="Aerospike.Client.Txn"/> instance or null to indicate that it is not within a transaction.
 		/// </summary>
 		/// <value>The aerospike <see cref="Aerospike.Client.Txn"/> instance or null</value>
-		public Txn AerospikeTrn { get; }
+		public Txn AerospikeTxn { get; }
 
 		/// <summary>
 		/// Returns the transaction identifier or null to indicate not a transactional unit.
 		/// </summary>
-		public long? TransactionId => this.AerospikeTrn?.Id;
+		public long? TransactionId => this.AerospikeTxn?.Id;
 
 		/// <summary>
 		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
@@ -521,12 +536,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Requires server version 8.0+
 		/// </p>
 		/// </summary>
+        /// <param name="useTxn">
+        /// If provide, this <see cref="Txn"/> is used, instead of the namespace&apos;s Txn (if thee is one).
+        /// </param>
 		/// <seealso cref="CreateTransaction"/>
         /// <seealso cref="Abort"/>
-		public CommitStatus.CommitStatusType Commit()
-            => this.AerospikeTrn is null
-                ? CommitStatus.CommitStatusType.CLOSE_ABANDONED
-                : this.AerospikeConnection.Commit(this.AerospikeTrn); 
+		public CommitStatus.CommitStatusType Commit(Txn useTxn = null)
+            => this.AerospikeTxn is null && useTxn is null
+				? CommitStatus.CommitStatusType.CLOSE_ABANDONED
+                : this.AerospikeConnection.Commit(useTxn ?? this.AerospikeTxn);
 
 		/// <summary>
 		/// Abort and rollback the given multi-record transaction.
@@ -534,12 +552,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Requires server version 8.0+
 		/// </p>
 		/// </summary>
+		/// <param name="useTxn">
+		/// If provide, this <see cref="Txn"/> is used, instead of the namespace&apos;s Txn (if thee is one).
+		/// </param>
 		/// <seealso cref="CreateTransaction"/>
-        /// <seealso cref="Commit"/>
-		public AbortStatus.AbortStatusType Abort()
-			 => this.AerospikeTrn is null
+		/// <seealso cref="Commit"/>
+		public AbortStatus.AbortStatusType Abort(Txn useTxn = null)
+			 => this.AerospikeTxn is null && useTxn is null
 				? AbortStatus.AbortStatusType.ROLL_BACK_ABANDONED
-				: this.AerospikeConnection.Abort(this.AerospikeTrn);
+				: this.AerospikeConnection.Abort(useTxn ?? this.AerospikeTxn);
 
 		#region Get Methods
 		/// <summary>
@@ -1114,13 +1135,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 maxRetries = 1,
                                 sendKey = true,
                                 maxConcurrentThreads = 2,
-                                sleepBetweenRetries = 5
+                                sleepBetweenRetries = 5,
+                                Txn = this.AerospikeTxn
                             };                
             
             batchWritePolicy ??= new BatchWritePolicy()
                                     {                    
                                         sendKey = true,
-                                        recordExistsAction = RecordExistsAction.REPLACE
+                                        recordExistsAction = RecordExistsAction.REPLACE                                        
                                     };
 
             parallelOptions ??= new ParallelOptions();
@@ -1181,8 +1203,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 maxRetries = 1,
                 sendKey = true,
                 maxConcurrentThreads = 2,
-                sleepBetweenRetries = 5
-            };
+                sleepBetweenRetries = 5,
+				Txn = this.AerospikeTxn
+			};
 
             batchWritePolicy ??= new BatchWritePolicy()
             {
@@ -1254,12 +1277,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     ParallelOptions parallelOptions = null)
         {
            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
-                            {
-                                maxRetries = 1,
-                                sendKey = true,
-                                maxConcurrentThreads = 2,
-                                sleepBetweenRetries = 5
-                            };
+            {
+                maxRetries = 1,
+                sendKey = true,
+                maxConcurrentThreads = 2,
+                sleepBetweenRetries = 5,
+			    Txn = this.AerospikeTxn
+		   };
 
             batchWritePolicy ??= new BatchWritePolicy()
                                     {
@@ -1335,8 +1359,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 maxRetries = 1,
                 sendKey = true,
                 maxConcurrentThreads = 2,
-                sleepBetweenRetries = 5
-            };
+                sleepBetweenRetries = 5,
+				Txn = this.AerospikeTxn
+			};
 
             batchWritePolicy ??= new BatchWritePolicy()
             {
@@ -1420,8 +1445,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 maxRetries = 1,
                 sendKey = true,
                 maxConcurrentThreads = 2,
-                sleepBetweenRetries = 5
-            };
+                sleepBetweenRetries = 5,
+				Txn = this.AerospikeTxn
+			};
 
             batchWritePolicy ??= new BatchWritePolicy()
             {
@@ -1512,8 +1538,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 maxRetries = 1,
                 maxConcurrentThreads = 2,
                 sleepBetweenRetries = 5,
-                filterExp = filterExpression
-            };
+                filterExp = filterExpression,
+				Txn = this.AerospikeTxn
+			};
 
             if (filterExpression is not null && batchPolicy.filterExp is null)
                 batchPolicy.filterExp = filterExpression;
@@ -1567,8 +1594,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 maxRetries = 2,
                 maxConcurrentThreads = 1,
-                filterExp = filterExpression
-            };
+                filterExp = filterExpression,
+				Txn = this.AerospikeTxn
+			};
 
             batchReadPolicy ??= new BatchReadPolicy()
             {
@@ -1781,13 +1809,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					maxRetries = this.DefaultWritePolicy.maxRetries,
 					sendKey = this.DefaultWritePolicy.sendKey,
 					maxConcurrentThreads = 5,
-					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries
+					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries,
+                    Txn = this.AerospikeTxn
 				};
 
 				batchWritePolicy ??= new BatchWritePolicy()
 				{
 					sendKey = this.DefaultWritePolicy.sendKey,
-					recordExistsAction = this.DefaultWritePolicy.recordExistsAction
+					recordExistsAction = this.DefaultWritePolicy.recordExistsAction,
+                    commitLevel = this.DefaultWritePolicy.commitLevel
 				};
 
 				var batchArray = new BatchRecord[jsonStructs.Length];
@@ -2014,7 +2044,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					maxRetries = this.DefaultWritePolicy.maxRetries,
 					sendKey = this.DefaultWritePolicy.sendKey,
 					maxConcurrentThreads = 5,
-					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries
+					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries,
+                    Txn = this.AerospikeTxn
 				};
 
 				batchWritePolicy ??= new BatchWritePolicy()
@@ -2442,7 +2473,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         protected object ToDump()
         {
-            return LPU.ToExpando(this, include: "Namespace, DBPlatform, SetNames, BinNames, AerospikeConnection, DefaultReadPolicy, DefaultQueryPolicy, DefaultScanPolicy, DefaultWritePolicy");            
+            return LPU.ToExpando(this, include: "Namespace, DBPlatform, SetNames, BinNames, TransactionId, AerospikeConnection, DefaultReadPolicy, DefaultQueryPolicy, DefaultScanPolicy, DefaultWritePolicy");            
         }
     }
 }
