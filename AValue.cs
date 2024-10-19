@@ -106,7 +106,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             try
             {
-                return (JToken)Newtonsoft.Json.JsonConvert.SerializeObject(this.Value);
+                return (JToken) new JObject(this.Value);
             } catch
             {
                 return new JObject();

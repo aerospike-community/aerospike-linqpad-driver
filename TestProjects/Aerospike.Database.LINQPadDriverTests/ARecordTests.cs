@@ -5,10 +5,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
     [TestClass()]
     public class ARecordTests
     {
-        [TestMethod()]
-        public void FromJsonTest()
-        {
-            var json = @"
+		public static readonly string jsonRecords = @"
     {
 	""_id"": {""$oid"":""0080a245fabe57999707dc41ced60edc4ac7ac40""},	
     ""account_id"": 794875,
@@ -68,7 +65,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
     ]
   }
 ";
-            var aRecord = ARecord.FromJson("tns", "tset", json);
+		
+        [TestMethod()]
+        public void FromJsonTest()
+        {
+            var json = jsonRecords;
+			var aRecord = ARecord.FromJson("tns", "tset", json);
 
             Assert.AreEqual(5, aRecord.Aerospike.Count);
             Assert.IsFalse(aRecord.Aerospike.HasKeyValue);

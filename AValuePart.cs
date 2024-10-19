@@ -713,8 +713,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             return new AValue(lsto.Select(v => NewAValue(v, idx++)),
                                                 binName,
                                                 fldName);
-                        }
-                    case JsonDocument jDoc:
+                        }					
+					case byte[] digest:
+						{
+							int idx = 0;
+							return new AValue(digest.Select(v => NewAValue(v, idx++)).ToArray(),
+												binName,
+												fldName);
+						}					
+					case JsonDocument jDoc:
                         {
                             int idx = 0;
                             return new AValue(jDoc.ToDictionary()
@@ -783,7 +790,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         int idx = 0;
                         return lstJProp.Select(v => NewAValue(v, idx++));
                     }
-                case JProperty jProp:
+				case byte[] digest:
+					{
+						int idx = 0;
+						return digest.Select(v => NewAValue(v, idx++)).ToArray();
+					}                
+				case JProperty jProp:
                     {
                         int idx = 0;
                         return CDTConverter.ConvertToDictionary(jProp)
