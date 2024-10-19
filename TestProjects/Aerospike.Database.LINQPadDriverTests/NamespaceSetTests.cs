@@ -290,6 +290,27 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 
 			Assert.IsTrue(mrtSet1.TransactionId.HasValue);
 			Assert.IsNotNull(mrtSet1.AerospikeTxn);
+
+			var mrtSet2 = new SetRecords(mrtSet1);
+
+			Assert.IsTrue(mrtSet2.TransactionId.HasValue);
+			Assert.IsNotNull(mrtSet2.AerospikeTxn);
+
+			mrtSet2 = mrtSet1.Clone();
+
+			Assert.IsTrue(mrtSet2.TransactionId.HasValue);
+			Assert.IsNotNull(mrtSet2.AerospikeTxn);
+
+			mrtSet1 = new SetRecords(ns, "mySet1", "Bina", "Binb", "Binc", "Bine", "Bind", "Bina");
+
+			Assert.IsFalse(mrtSet1.TransactionId.HasValue);
+			Assert.IsNull(mrtSet1.AerospikeTxn);
+
+			mrtSet2 = mrtSet1.Clone();
+
+			Assert.IsFalse(mrtSet2.TransactionId.HasValue);
+			Assert.IsNull(mrtSet2.AerospikeTxn);
+
 		}
 	}
 }
