@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using System;
 using System.Collections.Generic;
@@ -38,9 +38,9 @@ new Dictionary<string,object>() {{""account_id"", 794875L},
 			Assert.AreEqual(2, codeBlocks.Count);
 
 			codeBlock1 = @"ASClient.Get(null,
-		new Key(""tns"",""tset"",new Byte[] { (byte) 0,(byte) 128,(byte) 162,(byte) 69,(byte) 250,(byte) 190,(byte) 87,(byte) 153,(byte) 151,(byte) 7,(byte) 220,(byte) 65,(byte) 206,(byte) 214,(byte) 14,(byte) 220,(byte) 74,(byte) 199,(byte) 172,(byte) 64 }))";
+new Key(""tns"", ""tset"", new Byte[] { (byte) 0,(byte) 128,(byte) 162,(byte) 69,(byte) 250,(byte) 190,(byte) 87,(byte) 153,(byte) 151,(byte) 7,(byte) 220,(byte) 65,(byte) 206,(byte) 214,(byte) 14,(byte) 220,(byte) 74,(byte) 199,(byte) 172,(byte) 64 }))";
 			codeBlock2 = @"ASClient.Put(null,
-		new Key(""tns"",""tset"",new Byte[] { (byte) 0,(byte) 128,(byte) 162,(byte) 69,(byte) 250,(byte) 190,(byte) 87,(byte) 153,(byte) 151,(byte) 7,(byte) 220,(byte) 65,(byte) 206,(byte) 214,(byte) 14,(byte) 220,(byte) 74,(byte) 199,(byte) 172,(byte) 64 }), 
+new Key(""tns"", ""tset"", new Byte[] { (byte) 0,(byte) 128,(byte) 162,(byte) 69,(byte) 250,(byte) 190,(byte) 87,(byte) 153,(byte) 151,(byte) 7,(byte) 220,(byte) 65,(byte) 206,(byte) 214,(byte) 14,(byte) 220,(byte) 74,(byte) 199,(byte) 172,(byte) 64 }), 
 new Bin(""account_id"", Value.Get(794875L)),
 new Bin(""transaction_count"", Value.Get(6L)),
 new Bin(""bucket_start_date"", Value.Get(""2018-12-27T05:00:00.0000"")),

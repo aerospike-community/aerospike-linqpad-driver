@@ -1,51 +1,3 @@
-[Aerospike Database for LINQPad 7+](#_Toc160111413)
-
-[Description](#_Toc160111414)
-
-[Aerospike Namespace, Set, Records, Bins, and Secondary Indexes](#_Toc160111415)
-
-[User-Defined Functions (UDFs)](#_Toc160111416)
-
-[Aerospike API](#_Toc160111417)
-
-[Serialization/Object-Mapper](#_Toc160111418)
-
-[Json Support](#_Toc160111419)
-
-[Document API](#_Toc160111420)
-
-[Importing/Exporting](#_Toc160111421)
-
-[Encryption and Authentication](#_Toc160111422)
-
-[Connection Dialog](#_Toc160111423)
-
-[Self-Managed Tab](#_Toc160111424)
-
-[TLS Panel (only Self-Managed Clusters)](#_Toc160111425)
-
-[Cloud Tab](#_Toc160111426)
-
-[Display/Conversion Options Panel](#_Toc160111427)
-
-[Auto-Values](#_Toc160111428)
-
-[Working with the “null” Set](#_Toc160111429)
-
-[Examples](#_Toc160111430)
-
-[Prerequisites](#_Toc160111431)
-
-[Installation of LINQPad Driver](#_Toc160111432)
-
-[LINQPad NuGet Manager](#_Toc160111433)
-
-[Manual](#_Toc160111434)
-
-[Installation of the Aerospike Database](#_Toc160111435)
-
-[Other Resources](#_Toc160111436)
-
 # Aerospike Database for LINQPad 7+
 
 ## Description
@@ -356,11 +308,11 @@ Below is the output from LINQPad:
 
 ## Importing/Exporting
 
-The driver can import a valid JSON file into an Aerospike namespace or set from many different external databases via the “ImportJsonFile” method. Each JSON property will be mapped to an Aerospike bin, JSON collection types will be transformed into the corresponding Aerospike CDT, nested JSON objects will be treated as Aerospike JSON documents, etc. This behavior can be controlled via the methods arguments and connection dialog properties. Aerospike supports the following common in-line JSON types:
+The driver can import a valid JSON file into an Aerospike namespace or set from many different external databases via the “ImportJsonFile” method. Each JSON property will be mapped to an Aerospike bin, JSON collection types will be transformed into the corresponding Aerospike CDT, nested JSON objects will be treated as Aerospike JSON documents, etc. This behavior can be controlled via the method’s arguments and connection dialog properties. Aerospike supports the following common in-line JSON types:
 
--   \$date, \$datetime -- This can include an optional sub–Json Type. Example:   
+-   \$date, \$datetime -- This can include an optional sub–Json Type. Example:  
     bucket_start_date: { \$date: { \$numberLong: 1545886800000}}
--   \$datetimeoffset -- This can include an optional sub–Json Type. Example:   
+-   \$datetimeoffset -- This can include an optional sub–Json Type. Example:  
     bucket_start_datetimeoffset: { \$datetimeoffset: { \$numberLong: 1545886800000}}
 -   \$timespan -- This can include an optional sub-Json Type. Example:  
     bucket_start_time: { \$timespan: { \$numberLong: 1545886800000}}
@@ -552,6 +504,54 @@ Below is the output:
 
 ![A screenshot of a computer Description automatically generated](media/91e25c7d71d4591891fb9834201f509b.png)
 
+## Code Generation
+
+The driver can generate Get, Put, and Batch statements from a result set. The code generated can be the Aerospike native API or the LINQPad extended API. Below are some examples of generating native API for batch statements:
+
+```
+testsc.Track.Take(3).ToAPICodeBatch(useAerospikeAPI: true)
+
+ASClient.Get(null, new List<BatchRead>(){
+                   new BatchRead(null, new Key("testsc", "Track", 2984L), true),
+                  new BatchRead(null, new Key("testsc", "Track", 782L), true),
+                  new BatchRead(null, new Key("testsc", "Track", 3192L), true)})
+
+ASClient.Operate(null, 
+                    new List<BatchRecord>(){
+                        new BatchWrite(null,
+                            new Key("testsc", "Track", 2984L),
+                            new Operation[] {
+                                Operation.Put(new Bin("AlbumId", Value.Get(236L))),
+                                Operation.Put(new Bin("Bytes", Value.Get(10227333L))),
+                                Operation.Put(new Bin("Composer", Value.Get("Bono, The Edge, Adam Clayton, and Larry Mullen"))),
+                                Operation.Put(new Bin("GenreId", Value.Get(1L))),
+                                Operation.Put(new Bin("MediaTypeId", Value.Get(1L))),
+                                Operation.Put(new Bin("Milliseconds", Value.Get(315167L))),
+                                Operation.Put(new Bin("Name", Value.Get("If You Wear That Velvet Dress"))),
+                                Operation.Put(new Bin("UnitPrice", Value.Get(0.99D)))}),
+                        new BatchWrite(null,
+                            new Key("testsc", "Track", 3192L),
+                            new Operation[] {
+                                Operation.Put(new Bin("AlbumId", Value.Get(250L))),
+                                Operation.Put(new Bin("Bytes", Value.Get(255245729L))),
+                                Operation.Put(new Bin("GenreId", Value.Get(19L))),
+                                Operation.Put(new Bin("MediaTypeId", Value.Get(3L))),
+                                Operation.Put(new Bin("Milliseconds", Value.Get(1278333L))),
+                                Operation.Put(new Bin("Name", Value.Get("Boys and Girls"))),
+                                Operation.Put(new Bin("UnitPrice", Value.Get(1.99D)))}),
+                        new BatchWrite(null,
+                            new Key("testsc", "Track", 782L),
+                            new Operation[] {
+                                Operation.Put(new Bin("AlbumId", Value.Get(62L))),
+                                Operation.Put(new Bin("Bytes", Value.Get(7832790L))),
+                                Operation.Put(new Bin("Composer", Value.Get("Ian Gillan/Ian Paice/Jon Lord/Ritchie Blckmore/Roger Glover"))),
+                                Operation.Put(new Bin("GenreId", Value.Get(1L))),
+                                Operation.Put(new Bin("MediaTypeId", Value.Get(1L))),
+                                Operation.Put(new Bin("Milliseconds", Value.Get(239830L))),
+                                Operation.Put(new Bin("Name", Value.Get("Never Before"))),
+                                Operation.Put(new Bin("UnitPrice", Value.Get(0.99D)))})})
+```
+
 ## Examples
 
 Sample scripts can be found in the [LINQPad Sample tree view tab](https://www.linqpad.net/nugetsamples.aspx) under “nuget” or in the “linqpad-samples” [folder](https://github.com/aerospike-community/aerospike-linqpad-driver/tree/main/linqpad-samples) in GitHub.
@@ -569,6 +569,7 @@ The sample scripts are:
 -   Put-Aerospike.linq – Shows the use of the how to insert or update a record within a set using a primary key.
 -   CDT-Json-Docs.linq – Show the use of CDTs (Collection Data Types), Json, and documents by means of Linq and Aerospike [Expressions](https://docs.aerospike.com/server/guide/expressions).
 -   Using NullSet.linq – This shows the use of the [Null Set](https://aerospike.com/docs/server/architecture/data-model).
+-   Generate Code.linq – This shows how to generate API code from record collections.
 
 ## Prerequisites
 

@@ -1,4 +1,4 @@
-﻿using Aerospike.Client;
+using Aerospike.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -224,7 +224,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 						if(useAerospikeAPI)
 						{
 							strCode.AppendLine("ASClient.Put(null,");
-							strCode.Append($"{CreateKey(record)}, ");
+							strCode.AppendLine($"{CreateKey(record)}, ");
 						}
 						else
 						{
