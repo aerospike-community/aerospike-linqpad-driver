@@ -50,5 +50,121 @@ new Bin(""transactions"", Value.Get(new List<Object>() { new Dictionary<Object,O
 			Assert.AreEqual(codeBlock1, codeBlocks[0]);
 			Assert.AreEqual(codeBlock2, codeBlocks[1]);
 		}
+
+		[TestMethod()]
+		public void ToAPIBatchCodeTest()
+		{
+			var jsonRec0 = @"{
+  ""_id"": 229,
+  ""AlbumId"": 23,
+  ""Bytes"": 5431854,
+  ""GenreId"": 7,
+  ""MediaTypeId"": 1,
+  ""Milliseconds"": 162429,
+  ""Name"": ""Samba De Orly"",
+  ""UnitPrice"": 0.99
+}";
+			var jsonRec1 = @"{
+  ""_id"": 1611,
+  ""AlbumId"": 131,
+  ""Bytes"": 7142127,
+  ""Composer"": ""Jimmy Page, Robert Plant, John Paul Jones, John Bonham"",
+  ""GenreId"": 1,
+  ""MediaTypeId"": 1,
+  ""Milliseconds"": 220917,
+  ""Name"": ""Rock & Roll"",
+  ""UnitPrice"": 0.99
+}";
+			var jsonRec2 = @"{
+  ""_id"": 465,
+  ""AlbumId"": 38,
+  ""Bytes"": 9863942,
+  ""GenreId"": 2,
+  ""MediaTypeId"": 1,
+  ""Milliseconds"": 298135,
+  ""Name"": ""When Evening Falls"",
+  ""UnitPrice"": 0.99
+}";
+			var aRec0 = ARecord.FromJson("testsc", "Track", jsonRec0);
+			var aRec1 = ARecord.FromJson("testsc", "Track", jsonRec1);
+			var aRec2 = ARecord.FromJson("testsc", "Track", jsonRec2);
+
+			var aRecords = new ARecord[] {  aRec0, aRec1, aRec2 };
+
+			var batchCodes = aRecords.ToAPICodeBatch();
+
+			Assert.AreEqual(2, batchCodes.Count());
+			Assert.AreEqual(@"testsc.Track.BatchRead(new object[] {
+229L,
+1611L,
+465L})", batchCodes.ElementAt(0));
+
+			Assert.AreEqual(@"testsc.Track.BatchWrite(new (object key,IDictionary<string,object> binvaluePair)[] {
+new (229L, 
+new Dictionary<string,object>() {{""AlbumId"", 23L},
+{""Bytes"", 5431854L},
+{""GenreId"", 7L},
+{""MediaTypeId"", 1L},
+{""Milliseconds"", 162429L},
+{""Name"", ""Samba De Orly""},
+{""UnitPrice"", 0.99D}}),
+new (1611L, 
+new Dictionary<string,object>() {{""AlbumId"", 131L},
+{""Bytes"", 7142127L},
+{""Composer"", ""Jimmy Page, Robert Plant, John Paul Jones, John Bonham""},
+{""GenreId"", 1L},
+{""MediaTypeId"", 1L},
+{""Milliseconds"", 220917L},
+{""Name"", ""Rock & Roll""},
+{""UnitPrice"", 0.99D}}),
+new (465L, 
+new Dictionary<string,object>() {{""AlbumId"", 38L},
+{""Bytes"", 9863942L},
+{""GenreId"", 2L},
+{""MediaTypeId"", 1L},
+{""Milliseconds"", 298135L},
+{""Name"", ""When Evening Falls""},
+{""UnitPrice"", 0.99D}})})", batchCodes.ElementAt(1));
+
+			batchCodes = aRecords.ToAPICodeBatch(useAerospikeAPI: true);
+
+			Assert.AreEqual(2, batchCodes.Count());
+			Assert.AreEqual(@"ASClient.Get(null, new List<BatchRead>(){
+new BatchRead(null, new Key(""testsc"", ""Track"", 229L), true),
+new BatchRead(null, new Key(""testsc"", ""Track"", 1611L), true),
+new BatchRead(null, new Key(""testsc"", ""Track"", 465L), true)})", batchCodes.ElementAt(0));
+			Assert.AreEqual(@"ASClient.Operate(null, new List<BatchRecord>(){
+new BatchWrite(null,
+new Key(""testsc"", ""Track"", 229L),
+new Operation[] {
+Operation.Put(new Bin(""AlbumId"", Value.Get(23L))),
+Operation.Put(new Bin(""Bytes"", Value.Get(5431854L))),
+Operation.Put(new Bin(""GenreId"", Value.Get(7L))),
+Operation.Put(new Bin(""MediaTypeId"", Value.Get(1L))),
+Operation.Put(new Bin(""Milliseconds"", Value.Get(162429L))),
+Operation.Put(new Bin(""Name"", Value.Get(""Samba De Orly""))),
+Operation.Put(new Bin(""UnitPrice"", Value.Get(0.99D)))}),
+new BatchWrite(null,
+new Key(""testsc"", ""Track"", 1611L),
+new Operation[] {
+Operation.Put(new Bin(""AlbumId"", Value.Get(131L))),
+Operation.Put(new Bin(""Bytes"", Value.Get(7142127L))),
+Operation.Put(new Bin(""Composer"", Value.Get(""Jimmy Page, Robert Plant, John Paul Jones, John Bonham""))),
+Operation.Put(new Bin(""GenreId"", Value.Get(1L))),
+Operation.Put(new Bin(""MediaTypeId"", Value.Get(1L))),
+Operation.Put(new Bin(""Milliseconds"", Value.Get(220917L))),
+Operation.Put(new Bin(""Name"", Value.Get(""Rock & Roll""))),
+Operation.Put(new Bin(""UnitPrice"", Value.Get(0.99D)))}),
+new BatchWrite(null,
+new Key(""testsc"", ""Track"", 465L),
+new Operation[] {
+Operation.Put(new Bin(""AlbumId"", Value.Get(38L))),
+Operation.Put(new Bin(""Bytes"", Value.Get(9863942L))),
+Operation.Put(new Bin(""GenreId"", Value.Get(2L))),
+Operation.Put(new Bin(""MediaTypeId"", Value.Get(1L))),
+Operation.Put(new Bin(""Milliseconds"", Value.Get(298135L))),
+Operation.Put(new Bin(""Name"", Value.Get(""When Evening Falls""))),
+Operation.Put(new Bin(""UnitPrice"", Value.Get(0.99D)))})})", batchCodes.ElementAt(1));
+		}
 	}
 }
