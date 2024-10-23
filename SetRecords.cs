@@ -844,11 +844,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] string setName,
                             params string[] bins)
         {            
-            this.SetName = setName;
+            this.SetName =  setName == LPSet.NullSetName ? null : setName;
             this.SetAccess = setAccess;
-            this.SetFullName = $"{this.Namespace}.{this.SetName}";
+            this.SetFullName = $"{this.Namespace}.{this.SetName ?? LPSet.NullSetName}";
             this._bins = Helpers.RemoveDups(bins);
-            this.IsNullSet = this.SetName == LPSet.NullSetName;
+            this.IsNullSet = setName == LPSet.NullSetName;
             this.AerospikeTxn = this.SetAccess.AerospikeTxn;
 			this.DefaultWritePolicy = new WritePolicy(this.SetAccess.DefaultWritePolicy);
             this.DefaultReadPolicy = new Policy(this.SetAccess.DefaultReadPolicy);

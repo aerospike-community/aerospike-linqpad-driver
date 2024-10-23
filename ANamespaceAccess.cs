@@ -437,7 +437,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Gets the names of th sets associate with this namespace.
 		/// </summary>
 		/// <value>A collection of name of sets.</value>
-		public IEnumerable<string> SetNames => this.Sets.Select(s => s.SetName);
+		public IEnumerable<string> SetNames => this.Sets.Select(s => s.SetName ?? LPSet.NullSetName);
 
         /// <summary>
         /// Returns the Set instance or null indicating the set doesn't exists in this namespace.
@@ -447,7 +447,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="Exists(string)"/>
         public SetRecords this[string setName]
         {
-            get => this.Sets.FirstOrDefault(s => s.SetName == setName);
+            get => setName == LPSet.NullSetName 
+                        ? this.Sets.FirstOrDefault(s => s.SetName is null)
+						: this.Sets.FirstOrDefault(s => s.SetName == setName);
         }
 
 		public override string ToString()
@@ -473,7 +475,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// True if the sets exists, otherwise false.
 		/// </returns>
 		/// <seealso cref="this[string]"/>
-		public bool Exists(string setName) => this.Sets.Any(s => s.SetName == setName);
+		public bool Exists(string setName) => setName == LPSet.NullSetName
+                                                ? true
+                                                : this.Sets.Any(s => s.SetName == setName);
 
         /// <summary>
         /// Returns the Aerospike Null Set for this namespace.
@@ -1680,7 +1684,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
 		public bool Truncate(string setName, InfoPolicy infoPolicy = null, DateTime? before = null)
 		{
-			var set = this.Sets.FirstOrDefault(s => s.SetName == setName);
+			var set = this[setName];
 			if(set != null)
 			{
 				set.Truncate(infoPolicy, before);

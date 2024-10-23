@@ -256,7 +256,7 @@ namespace Aerospike.Database.LINQPadDriver
         {
             lock (binTypes)
             {
-                this.binTypes = getBins.Get(this.LPnamespace.Name, this.Name, determineDocType, maxRecords, minRecs);
+                this.binTypes = getBins.Get(this.LPnamespace.Name, this.IsNullSet ? null : this.Name, determineDocType, maxRecords, minRecs);
                 this.DetermineIsVectorIdx();
 
 				if (updateCntd)

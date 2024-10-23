@@ -205,7 +205,7 @@ namespace Aerospike.Client
 										record.Aerospike.TTL);
 			});
 
-			return targetNamespace.Sets.FirstOrDefault(s => s.SetName == targetSetName);
+			return targetNamespace[targetSetName];
 		}
 
         /// <summary>
@@ -308,7 +308,7 @@ namespace Aerospike.Client
                                     writePolicy: writePolity);                
             });
 
-            return targetNamespace.Sets.FirstOrDefault(s => s.SetName == targetSetName);
+            return targetNamespace[targetSetName];
 		}
 
 		/// <summary>
