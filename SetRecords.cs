@@ -15,7 +15,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
-using System.Runtime.CompilerServices;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
