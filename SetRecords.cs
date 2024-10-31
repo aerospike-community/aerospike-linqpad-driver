@@ -14,7 +14,7 @@ using Newtonsoft.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
-using System.CodeDom;
+using System.Text.RegularExpressions;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
