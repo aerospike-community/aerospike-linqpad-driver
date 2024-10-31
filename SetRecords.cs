@@ -1,4 +1,4 @@
-﻿// Ignore Spelling: Pset
+// Ignore Spelling: Pset
 
 using System;
 using System.Collections;
@@ -2258,9 +2258,37 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			}
 
             if(allTask.IsFaulted && allTask.Exception is not null)
-                throw allTask.Exception.InnerExceptions.Count == 1
-                        ? allTask.Exception.InnerExceptions[0]
-                        : allTask.Exception;
+            {
+                if(allTask.Exception.InnerExceptions.Count == 1)
+                {
+                    bool NodeNotFoundPartition(AerospikeException ex)
+                    {
+                        if(ex.Result != -3) return false;
+                        var match = new Regex(@"^Node\s+not\s+found\s+for\s+partition\s+(?<ns>[^:]+):\s*0");
+                        if(match.IsMatch(ex.Message))
+                        {
+							if(Client.Log.InfoEnabled())
+							{
+								Client.Log.Info($"SetRecords.AsEnumerable() Node not found for partition exception will be IGNORED. Namespace: {this.SetFullName} Filter: '{filterExpression}' Exception: '{ex}'");
+							}
+							return true;
+                        }
+                        return false;
+                    }
+
+					var ex = allTask.Exception.InnerExceptions[0];
+                    if(ex is AerospikeException aex
+                        && NodeNotFoundPartition(aex))
+                    {
+                        yield break;
+                    }
+                    throw ex;
+				}
+                else
+                {
+                    throw allTask.Exception;
+                }
+            }
         }
 
 		/// <summary>
