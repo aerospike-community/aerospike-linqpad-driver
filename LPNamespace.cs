@@ -22,8 +22,8 @@ namespace Aerospike.Database.LINQPadDriver
         private readonly static ConcurrentBag<LPNamespace> LPNamespacesBag = new ConcurrentBag<LPNamespace>();
 
         public LPNamespace(string name)
-        {
-            this.Name = name;
+        {			
+			this.Name = name;
             this.SafeName = Helpers.CheckName(name, "Namespace");
             LPNamespacesBag.Add(this);            
         }
@@ -43,11 +43,11 @@ namespace Aerospike.Database.LINQPadDriver
 
         public LPNamespace(string name, IEnumerable<string> setAttribs)
             : this(name)
-        {
-            /*
+        {			
+			/*
              * ns=test:set=demo:objects=4:tombstones=0:memory_data_bytes=0:device_data_bytes=368:truncate_lut=0:sindexes=0:index_populating=false:disable-eviction=false:enable-index=false:stop-writes-count=0
              */
-            if (Client.Log.DebugEnabled())
+			if(Client.Log.DebugEnabled())
             {
                 if (setAttribs is null)
                     Client.Log.Debug($"NS {name} Set Attributes is null");
@@ -79,10 +79,10 @@ namespace Aerospike.Database.LINQPadDriver
         public LPNamespace(string name, IEnumerable<string> setAttribs, string binNames)
             : this(name, setAttribs ?? Enumerable.Empty<string>())
         {
-            /*
+			/*
              * bin_names=62,bin_names_quota=65535,addbin,appendbin,prependbin,bbin,lbin,lbin2,lbin3,bbin3,bbin2,putgetbin,asqbin,name,age,B5,audfbin1,bin5,A,listmapbin,bin1,bin2,expirebin,D,B,C,H,E,genbin,hllbin_1,hllbin_2,hllbin_3,testbin,listbin2,listbin1,mapbin2,mapbin1,optintbin,optstringbin,optintbin1,optintbin2,opbbin,ophbin,ophbinother,ophbino,oplistbin,otherbin,opmapbin,bin3,bin4,l2,l1,map_bin,list,tqebin1,tqebin2,foo,password,fltint,listbin,mapbin,blob_data_1,catalog,diffbin
              */
-            if (Client.Log.DebugEnabled())
+			if(Client.Log.DebugEnabled())
             {
                 if (binNames is null)
                     Client.Log.Debug($"NS {name} Bins is null");
@@ -107,7 +107,9 @@ namespace Aerospike.Database.LINQPadDriver
                             IEnumerable<LPSet> sets,
                             IEnumerable<LPSecondaryIndex> sindexes)
         {
-            this.Name = name;
+			System.Diagnostics.Debugger.Break();
+
+			this.Name = name;
             this.SafeName = safename;
             this.bins = bins.ToList();
             this.safeBins = safebins.ToList();
@@ -187,7 +189,7 @@ namespace Aerospike.Database.LINQPadDriver
                 foreach(var ns in namespaces)
                 {
                     if(!asNamespaces.Any(ans => ans.Name == ns))
-                        asNamespaces.Add(new LPNamespace(ns));
+                        asNamespaces.Add(new LPNamespace(ns, Enumerable.Empty<string>()));
                 }
             }
 
@@ -303,7 +305,7 @@ namespace Aerospike.Database.LINQPadDriver
         /// </returns>
         public (string classCode, string definePropCode, string createInstanceCode)
             CodeGeneration(bool alwaysUseAValues, bool forceGeneration = false)
-        {
+        {           
             if (!this.CodeNeedsUpdating && !forceGeneration && this.CodeCache.classCode != null)
                 return this.CodeCache;
 
