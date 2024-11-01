@@ -411,10 +411,16 @@ namespace Aerospike.Database.LINQPadDriver
         /// <summary>
 		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
 		/// </summary>
+        /// <param name=""timeout"">
+		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
+		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
+		/// a commit or abort is called, the server will expire and rollback the MRT.
+        /// Defaults to 10 seconds.
+		/// </param>
 		/// <returns>Transaction Namespace instance</returns>
         /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Commit""/>
         /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Abort""/>
-		new public {this.SafeName}_NamespaceCls CreateTransaction() => new(this, new Aerospike.Client.Txn());
+		new public {this.SafeName}_NamespaceCls CreateTransaction(int timeout = 10) => new(this, new Aerospike.Client.Txn() {{ Timeout = timeout }});
 
 		public IAerospikeClient ASClient() => this.AerospikeConnection.AerospikeClient;
 		        

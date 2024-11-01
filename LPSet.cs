@@ -402,7 +402,24 @@ namespace Aerospike.Database.LINQPadDriver
 		    /// <seealso cref=""SetRecords.Commit""/>
 		    /// <seealso cref=""SetRecords.Abort""/>
 		    public new {this.SafeName}_SetCls CreateTransaction(Aerospike.Client.Txn txn = null)
-                => new (this, txn);
+                    => new (this, txn);
+
+            /// <summary>
+		    /// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		    /// Note: This will copy the current policies for this Set!
+		    /// </summary>
+		    /// <param name=""timeout"">
+		    /// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
+		    /// This occurs when the first command in the MRT is executed. If the timeout is reached before
+		    /// a commit or abort is called, the server will expire and rollback the MRT.
+		    /// Defaults to 10 seconds.
+		    /// </param>
+		    /// <returns>Transaction Set instance</returns>
+		    /// <seealso cref=""Commit""/>
+		    /// <seealso cref=""Abort""/>
+		    public new {this.SafeName}_SetCls CreateTransaction(int timeout)
+                    => new (this, new Txn() {{  Timeout = timeout }});
+
 
             public override Aerospike.Database.LINQPadDriver.Extensions.SetRecords TurnIntoTrx(Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess txnNS)
                 => (Aerospike.Database.LINQPadDriver.Extensions.SetRecords) new {this.SafeName}_SetCls(this, txnNS.AerospikeTxn, txnNS);

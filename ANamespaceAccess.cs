@@ -475,9 +475,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// True if the sets exists, otherwise false.
 		/// </returns>
 		/// <seealso cref="this[string]"/>
-		public bool Exists(string setName) => setName == LPSet.NullSetName
-                                                ? true
-                                                : this.Sets.Any(s => s.SetName == setName);
+		public bool Exists(string setName) => setName == LPSet.NullSetName || this.Sets.Any(s => s.SetName == setName);
 
         /// <summary>
         /// Returns the Aerospike Null Set for this namespace.
@@ -527,10 +525,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <summary>
 		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
 		/// </summary>
+		/// <param name="timeout">
+		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
+		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
+		/// a commit or abort is called, the server will expire and rollback the MRT.
+        /// Defaults to 10 seconds.
+		/// </param>
 		/// <returns>Transaction Namespace instance</returns>
-        /// <seealso cref="Commit"/>
-        /// <seealso cref="Abort"/>
-		public ANamespaceAccess CreateTransaction() => new(this, new Txn());
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public ANamespaceAccess CreateTransaction(int timeout = 10) => new(this, new Txn() { Timeout = timeout });
 
 		/// <summary>
 		/// Attempt to commit the given multi-record transaction. First, the expected record versions are
@@ -1585,6 +1589,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If a key is not found, there will be no bins associated with the record.
         /// </returns>
         /// <param name="definedBins">internal use</param>
+        /// <seealso cref="BatchRead(IEnumerable{ARecord}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])"/>
+        /// <seealso cref="BatchRead(IEnumerable{Key}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])"/>
         public IEnumerable<ARecord> BatchRead<P>([NotNull] string setName,
                                                     [NotNull] IEnumerable<P> primaryKeys,
                                                     BatchPolicy batchPolicy = null,
@@ -1593,7 +1599,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                     string[] returnBins = null,
                                                     ARecord.DumpTypes dumpType = ARecord.DumpTypes.Record,
                                                     string[] definedBins = null)
-        {            
+        {
             batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
             {
                 maxRetries = 2,
@@ -1634,24 +1640,123 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
         }
 
-		#endregion
+		/// <summary>
+		/// Return a collection of <see cref="ARecord"/> based on <paramref name="primaryKeys"/>
+		/// </summary>
+		/// <param name="primaryKeys">A collection of <seealso cref="Key"/> that will be part of the collection</param>
+		/// <param name="batchPolicy">
+		/// <seealso cref="BatchPolicy"/>
+		/// </param>
+		/// <param name="batchReadPolicy">
+		/// <seealso cref="BatchReadPolicy"/>
+		/// </param>        
+		/// <param name="filterExpression">The expression that will be applied to the result set. Can be null.</param>
+		/// <param name="returnBins">
+		/// Only return these bins
+		/// </param>
+		/// <param name="dumpType"></param> 
+		/// <returns>
+		/// A collection of records based on <paramref name="primaryKeys"/> or an empty collection.
+		/// If a key is not found, there will be no bins associated with the record.
+		/// </returns>
+		/// <param name="definedBins">internal use</param>
+        /// <seealso cref="BatchRead(IEnumerable{ARecord}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])"/>
+        /// <seealso cref="BatchRead{P}(string, IEnumerable{P}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])"/>
+		public IEnumerable<ARecord> BatchRead([NotNull] IEnumerable<Key> primaryKeys,
+													BatchPolicy batchPolicy = null,
+													BatchReadPolicy batchReadPolicy = null,
+													Expression filterExpression = null,
+													string[] returnBins = null,
+													ARecord.DumpTypes dumpType = ARecord.DumpTypes.Record,
+													string[] definedBins = null)
+		{
+			batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+			{
+				maxRetries = 2,
+				maxConcurrentThreads = 1,
+				filterExp = filterExpression,
+				Txn = this.AerospikeTxn
+			};
 
-		#endregion
+			batchReadPolicy ??= new BatchReadPolicy()
+			{
+				filterExp = filterExpression
+			};
+
+			var batchList = new List<BatchRead>(primaryKeys.Count());
+
+			foreach(var pk in primaryKeys)
+			{
+				if(returnBins is null)
+					batchList.Add(new BatchRead(batchReadPolicy,
+													pk,
+													true));
+				else
+					batchList.Add(new BatchRead(batchReadPolicy,
+													pk,
+													returnBins));
+			};
+
+			this.AerospikeConnection.AerospikeClient.Get(batchPolicy, batchList);
+
+			foreach(var batch in batchList)
+			{
+				yield return new ARecord(this,
+											batch.key,
+											batch.record,
+											binNames: definedBins ?? returnBins,
+											dumpType: dumpType,
+											inDoubt: batch.inDoubt);
+			}
+		}
 
 		/// <summary>
-		/// Truncates all the Sets in this namespace
+		/// Return a collection of <see cref="ARecord" /> based on <paramref name="records" />
 		/// </summary>
-		/// <param name="infoPolicy">
-		/// The <see cref="InfoPolicy"/> used for the truncate. If not provided, the default is used.
-		/// </param>
-		/// <param name="before">
-		/// A Date/time used to truncate the set. Records before this time will be truncated. 
-		/// The default is everything up to when this was executed (DateTime.Now).
-		/// </param>
-		/// <seealso cref="SetRecords.Truncate(InfoPolicy, DateTime?)"/>
-		/// <seealso cref="Truncate(string, InfoPolicy, DateTime?)"/>
-		/// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
-		public void Truncate(InfoPolicy infoPolicy = null, DateTime? before = null)
+		/// <param name="records">A collection of <seealso cref="ARecord"/> that will be part of the collection</param>
+		/// <param name="batchPolicy"><seealso cref="BatchPolicy" /></param>
+		/// <param name="batchReadPolicy"><seealso cref="BatchReadPolicy" /></param>
+		/// <param name="filterExpression">The expression that will be applied to the result set. Can be null.</param>
+		/// <param name="returnBins">Only return these bins</param>
+		/// <param name="dumpType">Type of the dump.</param>
+		/// <param name="definedBins">internal use</param>
+		/// <returns>A collection of records based on <paramref name="records" /> or an empty collection.
+		/// If a key is not found, there will be no bins associated with the record.</returns>
+		/// <seealso cref="BatchRead{P}(string, IEnumerable{P}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])" />
+		/// <seealso cref="BatchRead(IEnumerable{Key}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])"/>
+		public IEnumerable<ARecord> BatchRead([NotNull] IEnumerable<ARecord> records,
+                                                    BatchPolicy batchPolicy = null,
+                                                    BatchReadPolicy batchReadPolicy = null,
+                                                    Expression filterExpression = null,
+                                                    string[] returnBins = null,
+                                                    ARecord.DumpTypes dumpType = ARecord.DumpTypes.Record,
+                                                    string[] definedBins = null)
+            => this.BatchRead(records.Select(r => r.Aerospike.Key),
+                                batchPolicy,
+                                batchReadPolicy,
+                                filterExpression,
+                                returnBins,
+                                dumpType,
+                                definedBins);
+
+			#endregion
+
+		#endregion
+
+			/// <summary>
+			/// Truncates all the Sets in this namespace
+			/// </summary>
+			/// <param name="infoPolicy">
+			/// The <see cref="InfoPolicy"/> used for the truncate. If not provided, the default is used.
+			/// </param>
+			/// <param name="before">
+			/// A Date/time used to truncate the set. Records before this time will be truncated. 
+			/// The default is everything up to when this was executed (DateTime.Now).
+			/// </param>
+			/// <seealso cref="SetRecords.Truncate(InfoPolicy, DateTime?)"/>
+			/// <seealso cref="Truncate(string, InfoPolicy, DateTime?)"/>
+			/// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
+			public void Truncate(InfoPolicy infoPolicy = null, DateTime? before = null)
 		{
 			if(this.AerospikeConnection.CXInfo.IsProduction)
 				throw new InvalidOperationException("Cannot Truncate a Cluster marked \"In Production\"");

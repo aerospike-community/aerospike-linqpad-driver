@@ -45,7 +45,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
            : base(clone, readPolicy, writePolicy, queryPolicy, scanPolicy)
         { }
 
-		#endregion
 		/// <summary>
 		/// Initializes a new instance of <see cref="SetRecords{T}"/> as an Aerospike transactional unit.
 		/// If <see cref="SetRecords.Commit"/> method is not called the server will abort (rollback) this transaction.
@@ -62,7 +61,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <seealso cref="SetRecords.Abort"/>
 		public SetRecords([NotNull] SetRecords baseSet,
                             [AllowNull] Txn txn,
-							[AllowNull] ANamespaceAccess newNSAccess = null)
+                            [AllowNull] ANamespaceAccess newNSAccess = null)
             : base(baseSet, txn, newNSAccess)
         { }
 
@@ -78,6 +77,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultRecordView = newRecordView;
             return this;
         }
+		#endregion
 
 		#region Get Methods
 		/// <summary>
@@ -887,21 +887,21 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this.DefaultScanPolicy = scanPolicy ?? new ScanPolicy(clone.DefaultScanPolicy);            
         }
 
-        /// <summary>
-        /// Initializes a new instance of <see cref="SetRecords"/> as an Aerospike transactional unit.
-        /// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
-        /// </summary>
-        /// <param name="baseSet">Base Aerospike Set instance</param>
-        /// <param name="txn">
-        /// The Aerospike <see cref="Txn"/> instance or null to create a new transactional unit.
-        /// </param>
-        /// <param name="newNSAccess">
-        /// An new <see cref="ANamespaceAccess"/> instance to use with the transaction. 
-        /// </param>
-        /// <seealso cref="CreateTransaction"/>
-        /// <seealso cref="Commit"/>
-        /// <seealso cref="Abort"/>
-        public SetRecords([NotNull] SetRecords baseSet, 
+		/// <summary>
+		/// Initializes a new instance of <see cref="SetRecords"/> as an Aerospike transactional unit.
+		/// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name="baseSet">Base Aerospike Set instance</param>
+		/// <param name="txn">
+		/// The Aerospike <see cref="Txn"/> instance or null to create a new transactional unit.
+		/// </param>
+		/// <param name="newNSAccess">
+		/// An new <see cref="ANamespaceAccess"/> instance to use with the transaction. 
+		/// </param>
+		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public SetRecords([NotNull] SetRecords baseSet, 
                             [AllowNull] Txn txn,
                             [AllowNull] ANamespaceAccess newNSAccess = null)
         {
@@ -1133,15 +1133,30 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 		/// <summary>
 		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
-        /// Note: This will copy the current policies for this Set!
+		/// Note: This will copy the current policies for this Set!
 		/// </summary>
-        /// <param name="txn">
-        /// If provided, this Aerospike Transaction is used instead of creating a new transaction instance.
-        /// </param>
+		/// <param name="txn">
+		/// If provided, this Aerospike Transaction is used instead of creating a new transaction instance.
+		/// </param>
 		/// <returns>Transaction Set instance</returns>
 		/// <seealso cref="Commit"/>
 		/// <seealso cref="Abort"/>
 		public SetRecords CreateTransaction(Txn txn = null) => new SetRecords(this, txn);
+
+		/// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// Note: This will copy the current policies for this Set!
+		/// </summary>
+		/// <param name="timeout">
+		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
+		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
+		/// a commit or abort is called, the server will expire and rollback the MRT.
+		/// Defaults to 10 seconds.
+		/// </param>
+		/// <returns>Transaction Set instance</returns>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public SetRecords CreateTransaction(int timeout) => new SetRecords(this, new Txn() {  Timeout = timeout });
 
 		/// <summary>
 		/// Attempt to commit the given multi-record transaction. First, the expected record versions are
