@@ -23,8 +23,10 @@ namespace Aerospike.Database.LINQPadDriver
     public sealed partial class AerospikeConnection : IDbConnection, IEquatable<AerospikeConnection>
     {
         public static readonly Version NoNSBinsRequest = new Version(7, 0, 0, 0);
+		public static readonly Version NoRosterRequest = new Version(4, 0, 0, 0);
+		public static readonly Version NoConfigRequest = new Version(3, 3, 0, 0);
 
-        private bool disposedValue = false;
+		private bool disposedValue = false;
 
         public AerospikeConnection(IConnectionInfo cxInfo)
         {
@@ -516,8 +518,31 @@ namespace Aerospike.Database.LINQPadDriver
 										}
                                     }
                                     #endregion
-                                }
-                            }
+
+                                    #region Features
+                                    {
+                                        var features = Info.Request(this.Connection, "features");
+                                        if(string.IsNullOrEmpty(features))
+                                            this.DBFeatures = Enumerable.Empty<string>();
+                                        else
+                                            this.DBFeatures = features.Split(';')
+																.OrderBy(c => c.Split('=')[0])
+                                                                .ToArray();
+                                    }
+									#endregion
+									#region Configuration
+									{
+										var configs = Info.Request(this.Connection, "get-config");
+										if(string.IsNullOrEmpty(configs))
+                                            this.DBConfig = Enumerable.Empty<string>();
+                                        else
+                                            this.DBConfig = configs.Split(';')
+																.OrderBy(c => c.Split('=')[0])
+                                                                .ToArray();
+									}
+									#endregion
+								}
+							}
                             else
                             {
                                 var nodes = string.Join(',', this.AerospikeClient.Nodes.Select(n => n.Name));
@@ -789,6 +814,25 @@ namespace Aerospike.Database.LINQPadDriver
             }
             DynamicDriver.WriteToLog($"{level} - {message}");
         }
+
+		/// <summary>
+		/// Returns the Aerospike features that are enabled or null.
+		/// </summary>
+		public IEnumerable<string> DBFeatures
+        {
+            get;
+            private set;
+        }
+
+		/// <summary>
+		/// Returns running configuration for this cluster or null.
+		/// </summary>
+		public IEnumerable<string> DBConfig
+        {
+            get;
+            private set;
+		}
+
 
         private void Dispose(bool disposing)
         {
