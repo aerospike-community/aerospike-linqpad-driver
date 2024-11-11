@@ -122,22 +122,22 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			this.LPnamespace = lpNamespace;
         }
 
-		public ANamespaceAccess(ANamespaceAccess clone, Expression expression)
+        public ANamespaceAccess(ANamespaceAccess clone, Expression expression)
             : this(clone.Namespace,
                     clone.BinNames,
                     clone.AerospikeConnection,
-					new(clone.DefaultReadPolicy)
-					{
-						filterExp = expression
-					},
+                    new(clone.DefaultReadPolicy)
+                    {
+                        filterExp = expression
+                    },
                     new(clone.DefaultWritePolicy),
-					new(clone.DefaultQueryPolicy)
-					{
-						filterExp = expression
-					},
-					new(clone.DefaultScanPolicy),
+                    new(clone.DefaultQueryPolicy)
+                    {
+                        filterExp = expression
+                    },
+                    new(clone.DefaultScanPolicy),
                     clone._sets)
-		{
+        {
             this.LPnamespace = clone.LPnamespace;
 			this.IsStrongConsistencyMode = clone.IsStrongConsistencyMode;
 			this.AerospikeTxn = clone.AerospikeTxn;
