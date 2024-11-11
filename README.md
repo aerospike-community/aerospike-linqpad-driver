@@ -29,6 +29,16 @@ Each component can be dragged-and-dropped onto the LINQPad Query pane to be exec
 
 ![A screenshot of a computer Description automatically generated](media/7b6d6cfdfe43159fb1c6dedfc6ef5cc0.png)
 
+## Cluster and Namespace Configuration Information
+
+Information about the cluster and namespaces can be obtained in the LINQPad connection pane. Below is an example showing cluster level information which includes the enabled features, configuration, nodes, version, total namespaces and sets, etc.
+
+![A screenshot of a computer Description automatically generated](media/c100b5179b34c9b7b2d4b9fb78279881.png)
+
+Below is an example of the namespace configuration information that is presented under the namespace icon.
+
+![A screenshot of a computer](media/bad9e8cd598df83271c56f32a7c3fcdc.png)
+
 ## Aerospike Namespace, Set, Records, Bins, and Secondary Indexes
 
 Aerospike Sets and records are very easy to use. The detected bins in a record are integrated into LINQPad and are treated as C\# properties. As such, features like Intellisense and Autocompletion just work. You can also access bins within a record by using the bin name.

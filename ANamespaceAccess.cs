@@ -15,8 +15,6 @@ using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using static System.Net.WebRequestMethods;
-using static Aerospike.Client.Log;
 using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
@@ -121,24 +119,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			this.LPnamespace = lpNamespace;
         }
 
-		public ANamespaceAccess(ANamespaceAccess clone, Expression expression)
+        public ANamespaceAccess(ANamespaceAccess clone, Expression expression)
             : this(clone.Namespace,
                     clone.BinNames,
                     clone.AerospikeConnection,
-					new(clone.DefaultReadPolicy)
-					{
-						filterExp = expression
-					},
+                    new(clone.DefaultReadPolicy)
+                    {
+                        filterExp = expression
+                    },
                     new(clone.DefaultWritePolicy),
-					new(clone.DefaultQueryPolicy)
-					{
-						filterExp = expression
-					},
-					new(clone.DefaultScanPolicy),
+                    new(clone.DefaultQueryPolicy)
+                    {
+                        filterExp = expression
+                    },
+                    new(clone.DefaultScanPolicy),
                     clone._sets)
-		{
+        {
             this.LPnamespace = clone.LPnamespace;
-			this.IsStrongConsistencyMode = clone.IsStrongConsistencyMode;
+            this.IsStrongConsistencyMode = clone.IsStrongConsistencyMode;
+        }
 
 		public ANamespaceAccess(ANamespaceAccess clone,
                                     Policy readPolicy = null,
@@ -435,9 +434,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// True if the sets exists, otherwise false.
 		/// </returns>
 		/// <seealso cref="this[string]"/>
-		public bool Exists(string setName) => setName == LPSet.NullSetName
-                                                ? true
-                                                : this.Sets.Any(s => s.SetName == setName);
+		public bool Exists(string setName) => setName == LPSet.NullSetName || this.Sets.Any(s => s.SetName == setName);
 
         /// <summary>
         /// Returns the Aerospike Null Set for this namespace.
