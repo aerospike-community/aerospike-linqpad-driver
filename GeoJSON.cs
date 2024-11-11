@@ -8,7 +8,6 @@ using GeoJSON.Net.Geometry;
 using Aerospike.Client;
 using System.CodeDom;
 using Newtonsoft.Json;
-using GeoJSON.Net.Feature;
 using System.Collections;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions

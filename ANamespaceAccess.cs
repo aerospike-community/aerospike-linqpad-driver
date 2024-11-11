@@ -15,8 +15,6 @@ using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using static System.Net.WebRequestMethods;
-using static Aerospike.Client.Log;
 using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions

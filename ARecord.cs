@@ -12,7 +12,6 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IO;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
