@@ -246,12 +246,12 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 {moduleClasses}
 }}";
 
+#pragma warning disable SYSLIB0044 // Type or member is obsolete
 			Compile(source,
-#pragma warning disable SYSLIB0044
 					assemblyToBuild.CodeBase,
-#pragma warning restore SYSLIB0044
 					cxInfo,
 					debug: connection.Debug);
+#pragma warning restore SYSLIB0044 // Type or member is obsolete
 
 			List<ExplorerItem> items = new List<ExplorerItem>();
 
@@ -618,8 +618,28 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
                                                                                 ExplorerItemKind.Parameter,
                                                                                 ExplorerIcon.ScalarFunction)
                                                         }
-                                                    }
-                                };
+                                                    },
+                                    new ExplorerItem("Features",
+									                    ExplorerItemKind.Category,
+														ExplorerIcon.Box)
+                                    {
+										IsEnumerable = false,
+										DragText = null,
+										Children = connection.DBFeatures
+                                                    .Select(f => new ExplorerItem(f, ExplorerItemKind.Parameter, ExplorerIcon.ScalarFunction))
+                                                    .ToList()
+									},
+									new ExplorerItem("Configuration",
+														ExplorerItemKind.Category,
+														ExplorerIcon.Box)
+									{
+										IsEnumerable = false,
+										DragText = null,
+										Children = connection.DBConfig
+													.Select(f => new ExplorerItem(f, ExplorerItemKind.Parameter, ExplorerIcon.ScalarFunction))
+													.ToList()
+									}
+								};
 
             }
 

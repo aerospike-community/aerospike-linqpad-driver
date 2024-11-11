@@ -56,7 +56,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <param name="newNSAccess">
 		/// An new <see cref="ANamespaceAccess"/> instance to use with the transaction. 
 		/// </param>
-		/// <seealso cref="SetRecords.CreateTransaction"/>
+		/// <seealso cref="SetRecords.CreateTransaction(int)"/>
+        /// <seealso cref="SetRecords.CreateTransaction(Txn)"/>
 		/// <seealso cref="SetRecords.Commit"/>
 		/// <seealso cref="SetRecords.Abort"/>
 		public SetRecords([NotNull] SetRecords baseSet,
@@ -898,7 +899,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <param name="newNSAccess">
 		/// An new <see cref="ANamespaceAccess"/> instance to use with the transaction. 
 		/// </param>
-		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="CreateTransaction(int)"/>
+        /// <seealso cref="CreateTransaction(Txn)"/>
 		/// <seealso cref="Commit"/>
 		/// <seealso cref="Abort"/>
 		public SetRecords([NotNull] SetRecords baseSet, 
@@ -934,6 +936,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             {
                 Txn= txn
             };
+
+			if(!this.SetAccess?.IsStrongConsistencyMode ?? true)
+			{
+				Console.Write(LINQPad.Util.WithStyle("Warning", "color:black;background-color:orange"));
+				Console.Write(": ");
+                var setName = this.IsNullSet || this.SetName is null ? LPSet.NullSetName : this.SetName;
+				Console.WriteLine(LINQPad.Util.WithStyle($"MRTs should be used within a Strong Consistency namespace. '{this.Namespace}' is an AP namespace for set '{setName}'.", "color:darkgreen"));
+			}
 
 		}
 
@@ -1166,7 +1176,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Requires server version 8.0+
 		/// </p>
 		/// </summary>
-		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="CreateTransaction(Txn)"/>
+        /// <seealso cref="CreateTransaction(int)"/>
 		/// <seealso cref="Abort"/>
 		public CommitStatus.CommitStatusType Commit()
 			=> this.AerospikeTxn is null
@@ -1179,7 +1190,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Requires server version 8.0+
 		/// </p>
 		/// </summary>
-		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="CreateTransaction(int)"/>
+        /// <seealso cref="CreateTransaction(Txn)"/>
 		/// <seealso cref="Commit"/>
 		public AbortStatus.AbortStatusType Abort()
 			 => this.AerospikeTxn is null

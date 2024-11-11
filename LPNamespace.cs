@@ -5,10 +5,12 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using static Aerospike.Client.AerospikeException;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -33,15 +35,19 @@ namespace Aerospike.Database.LINQPadDriver
         static private partial Regex SetNameRegEx();
         [GeneratedRegex("ns=(?<namespace>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
         static private partial Regex NameSpaceRegEx();
+        [GeneratedRegex(@"^roster=(?<roster>\d+|(?:null)):pending_roster=(?<pending>\d+|(?:null)):observed_nodes=(?<observed>\d+|(?:null))", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+		static private partial Regex NameSpaceRosterRegEx();
 #else
         static private readonly Regex setNameRegEx = new Regex("set=(?<setname>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         static private readonly Regex nameSpaceRegEx = new Regex("ns=(?<namespace>[^:;]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        static private readonly Regex nameSpaceRosterRegEx = new Regex(@"^roster=(?<roster>\d+|(?:null)):pending_roster=(?<pending>\d+|(?:null)):observed_nodes=(?<observed>\d+|(?:null))", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        
         static private Regex SetNameRegEx() => setNameRegEx;
         static private Regex NameSpaceRegEx() => nameSpaceRegEx;
-
+        static private Regex NameSpaceRosterRegEx() => nameSpaceRosterRegEx;
 #endif
 
-        public LPNamespace(string name, IEnumerable<string> setAttribs)
+		public LPNamespace(string name, IEnumerable<string> setAttribs)
             : this(name)
         {			
 			/*
@@ -76,7 +82,11 @@ namespace Aerospike.Database.LINQPadDriver
             this.aSets = nsSets.ToList();
         }
 
-        public LPNamespace(string name, IEnumerable<string> setAttribs, string binNames)
+        public LPNamespace(string name, 
+                                IEnumerable<string> setAttribs,
+                                string binNames,
+                                string rosterInfo,
+                                string nsConfig)
             : this(name, setAttribs ?? Enumerable.Empty<string>())
         {
 			/*
@@ -98,7 +108,54 @@ namespace Aerospike.Database.LINQPadDriver
 
             this.bins = binNameSplit.Where(s => !s.Contains('=')).ToList();
             this.safeBins = this.Bins.Select(s => Helpers.CheckName(s, "Bin")).ToList();
-        }
+
+			//roster=2887538337:pending_roster=2887538337:observed_nodes=2887538337
+			//roster=null:pending_roster=null:observed_nodes=null
+			if(Client.Log.DebugEnabled())
+			{
+				if(rosterInfo is null)
+					Client.Log.Debug($"NS {name} Roster Info is null");
+				else if(rosterInfo == string.Empty)
+					Client.Log.Debug($"NS {name} Roster Info is Empty");
+				else
+				{
+					Client.Log.Debug($"NS Roster {name}: {rosterInfo}");
+				}
+			}
+            if(!string.IsNullOrEmpty(rosterInfo))
+            {
+                var rosterMatches = NameSpaceRosterRegEx().Match(rosterInfo);
+
+                this.IsStrongConsistencyMode = rosterMatches.Success
+                                                && rosterMatches.Groups.ContainsKey("roster")
+                                                && !rosterMatches.Groups["roster"].Value.Equals("null");
+            }
+
+			if(Client.Log.DebugEnabled())
+			{
+				if(nsConfig is null)
+					Client.Log.Debug($"NS {name} Config is null");
+				else if(nsConfig == string.Empty)
+					Client.Log.Debug($"NS {name} Config is Empty");
+				else
+				{
+					Client.Log.Debug($"NS Config {name}: {nsConfig}");
+				}
+			}
+			if(!string.IsNullOrEmpty(nsConfig))
+			{
+				var nsConfigLU = nsConfig.Split(';')
+                                    .Select(c => c.Split('='))
+                                    .OrderBy(ca => ca[0])
+                                    .ToLookup(ca => ca[0]?.Trim(), ca => ca[1].Trim());
+
+                if(nsConfigLU.Contains("strong-consistency"))
+                {
+                    this.IsStrongConsistencyMode = nsConfigLU["strong-consistency"].Contains("true");
+                }
+                this.ConfigParams = nsConfigLU;
+			}
+		}
        
         public LPNamespace(string name,
                             string safename,
@@ -122,12 +179,24 @@ namespace Aerospike.Database.LINQPadDriver
         /// The name of the namespace
         /// </summary>
         public string Name { get; }
-        /// <summary>
-        /// The namespace name that is safe to use as a C# class name or property
-        /// </summary>
-        public string SafeName { get; }
+		/// <summary>
+		/// The namespace name that is safe to use as a C# class name or property
+		/// </summary>
+		public string SafeName { get; }
 
-        private readonly List<string> bins = new List<string>();
+		/// <summary>
+		/// Gets a value indicating whether this namespace is in strong consistency mode.
+		/// </summary>
+		/// <value><c>true</c> if this instance is strong consistency mode; otherwise, <c>false</c>.</value>
+		public bool IsStrongConsistencyMode { get; }
+
+		/// <summary>
+		/// Gets the configuration parameters for this namespace.
+		/// </summary>
+		/// <value>The configuration parameters or null.</value>
+		public ILookup<string,string> ConfigParams {  get; }
+
+		private readonly List<string> bins = new List<string>();
         /// <summary>
         /// The Actual DB Bin Names
         /// </summary>
@@ -176,11 +245,32 @@ namespace Aerospike.Database.LINQPadDriver
                 return string.Empty;
             }
 
-            var asNamespaces = (from nsSets in setsAttrib.Split(';', StringSplitOptions.RemoveEmptyEntries)
+			string GetNSRoster(string nsName)
+			{
+				//roster=2887538337:pending_roster=2887538337:observed_nodes=2887538337
+				//roster=null:pending_roster=null:observed_nodes=null
+				if(dbVersion >= AerospikeConnection.NoRosterRequest)
+					return Info.Request(asConnection, $"roster:namespace={nsName}");
+
+				return string.Empty;
+			}
+
+			string GetNSConfig(string nsName)
+			{
+				//active-rack=0;allow-ttl-without-nsup=false;auto-revive=false;background-query-max-rps=10000;conflict-resolution-policy=undefined;conflict-resolve-writes=false;default-read-touch-ttl-pct=0;default-ttl=0;disable-cold-start-eviction=false;disable-write-dup-res=false;disallow-expunge=false;disallow-null-setname=false;enable-benchmarks-batch-sub=false;enable-benchmarks-ops-sub=false;enable-benchmarks-read=false;enable-benchmarks-udf=false;enable-benchmarks-udf-sub=false;enable-benchmarks-write=false;enable-hist-proxy=false;evict-hist-buckets=10000;evict-indexes-memory-pct=0;evict-tenths-pct=5;force-long-queries=false;ignore-migrate-fill-d
+				if(dbVersion >= AerospikeConnection.NoConfigRequest)
+					return Info.Request(asConnection, $"get-config:context=namespace;namespace={nsName}");
+
+				return string.Empty;
+			}
+
+			var asNamespaces = (from nsSets in setsAttrib.Split(';', StringSplitOptions.RemoveEmptyEntries)
                                 let ns = NameSpaceRegEx().Match(nsSets).Groups["namespace"].Value
                                 group nsSets by ns into nsGrp
                                 let nsBins = GetNSBins(nsGrp.Key)
-                                select new LPNamespace(nsGrp.Key, nsGrp.ToList(), nsBins)).ToList();
+                                let nsRoster = GetNSRoster(nsGrp.Key)
+                                let nsConfig = GetNSConfig(nsGrp.Key)
+                                select new LPNamespace(nsGrp.Key, nsGrp.ToList(), nsBins, nsRoster, nsConfig)).ToList();
 
             var namespaces = Info.Request(asConnection, "namespaces")?.Split(';');
 
@@ -337,6 +427,7 @@ namespace Aerospike.Database.LINQPadDriver
             Task.WaitAll(generateSetsTask, generateBinsTask);
 
             Interlocked.Exchange(ref nbrCodeUpdates, 0);
+            var sc = this.IsStrongConsistencyMode ? "true" : "false";
 
             return this.CodeCache = ($@"
 	public class {this.SafeName}_NamespaceCls : Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess
@@ -346,7 +437,8 @@ namespace Aerospike.Database.LINQPadDriver
 			: base(dbConnection,
                     Aerospike.Database.LINQPadDriver.LPNamespace.GetNamepsace(""{this.Name}""), 
                     ""{this.Name}"", 
-                    new string[] {{{binNames}}})
+                    new string[] {{{binNames}}},
+                    {sc})
 		{{ }}
 
 		public {this.SafeName}_NamespaceCls(Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess clone, Aerospike.Client.Expression expression)
@@ -444,14 +536,33 @@ namespace Aerospike.Database.LINQPadDriver
 
         public ExplorerItem CreateExplorerItem()
         {
-            return new ExplorerItem($"{this.Name} ({this.Sets.Count()})",
+            var isSC = this.IsStrongConsistencyMode ? "-SC" : string.Empty;
+            var sc = this.IsStrongConsistencyMode ? " Strong Consistency " : string.Empty;
+            var children = this.Sets.Select(s => s.CreateExplorerItem()).ToList();
+
+            if(this.ConfigParams is not null && this.ConfigParams.Any())
+            {
+                children.Add(new ExplorerItem("Configuration",
+                                                ExplorerItemKind.Category,
+                                                ExplorerIcon.Box)
+                {
+                    IsEnumerable = false,
+                    DragText = null,
+                    Children = this.ConfigParams
+                                .Select(c => c.Key + '=' + string.Join(",", c))
+                                .Select(s => new ExplorerItem(s, ExplorerItemKind.Parameter, ExplorerIcon.ScalarFunction))
+                                .ToList()
+                });
+			}
+
+			return new ExplorerItem($"{this.Name} ({this.Sets.Count()}{isSC})",
                                     ExplorerItemKind.Property,
                                     ExplorerIcon.Table)
             {
                 IsEnumerable = false,
                 DragText = this.SafeName,
-                Children = this.Sets.Select(s => s.CreateExplorerItem()).ToList(),
-                ToolTipText = $"Sets associated with namespace \"{this.Name}\""
+                Children = children,
+                ToolTipText = $"Sets associated with{sc}namespace \"{this.Name}\""
             };
         }
 
@@ -464,7 +575,7 @@ namespace Aerospike.Database.LINQPadDriver
 
         public static LPNamespace GetNamepsace(string namespaceName) => LPNamespacesBag.FirstOrDefault(n => n.Name == namespaceName);
 
-        private string DebuggerDisplay => $"{Name} {Sets.Count()} {Bins.Count()}";
+        private string DebuggerDisplay => $"{Name} {Sets.Count()} {Bins.Count()} {this.IsStrongConsistencyMode}";
 
     }
 }

@@ -15,6 +15,8 @@ using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using static System.Net.WebRequestMethods;
+using static Aerospike.Client.Log;
 using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
@@ -83,13 +85,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			}
 		}
 
-		public ANamespaceAccess(IDbConnection dbConnection, string ns, string[] binNames)
+		public ANamespaceAccess(IDbConnection dbConnection, string ns, string[] binNames, bool sc)
 			: this(dbConnection as AerospikeConnection,
                     ns,
-					binNames)
+					binNames,
+                    sc)
 		{ }
 
-		public ANamespaceAccess(AerospikeConnection dbConnection, string ns, string[] binNames)
+		public ANamespaceAccess(AerospikeConnection dbConnection, string ns, string[] binNames, bool sc)
 			: this(ns,
                     binNames,
                     dbConnection,
@@ -103,17 +106,20 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				ANamespacesList.RemoveAll(i => i.Namespace == this.Namespace);
 				ANamespacesList.Add(this);
 			}
+            this.IsStrongConsistencyMode = sc;
 		}
 
         public ANamespaceAccess(IDbConnection dbConnection,
                                 LPNamespace lpNamespace,
                                 string ns,
-                                string[] binNames)
+                                string[] binNames,
+                                bool sc)
             : this(dbConnection as AerospikeConnection,
 					ns,
-                    binNames)
+                    binNames,
+                    sc)
 		{
-            this.LPnamespace = lpNamespace;
+			this.LPnamespace = lpNamespace;
         }
 
 		public ANamespaceAccess(ANamespaceAccess clone, Expression expression)
@@ -133,6 +139,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     clone._sets)
 		{
             this.LPnamespace = clone.LPnamespace;
+			this.IsStrongConsistencyMode = clone.IsStrongConsistencyMode;
 			this.AerospikeTxn = clone.AerospikeTxn;
 		}
 
@@ -151,6 +158,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					clone._sets)
 		{
 			this.LPnamespace = clone.LPnamespace;
+            this.IsStrongConsistencyMode = clone.IsStrongConsistencyMode;
 			this.AerospikeTxn = clone.AerospikeTxn;
 		}
 
@@ -188,7 +196,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			
 			this.AerospikeTxn = txn;
 
-            this._sets = this._sets.Select(s => s.TurnIntoTrx(this)).ToList();            
+            this._sets = this._sets.Select(s => s.TurnIntoTrx(this)).ToList(); 
+            
+            if(!this.IsStrongConsistencyMode)
+            {
+				Console.Write(LINQPad.Util.WithStyle("Warning", "color:black;background-color:orange"));
+				Console.Write(": ");
+				Console.WriteLine(LINQPad.Util.WithStyle($"MRTs should be used within a Strong Consistency namespace. {this.Namespace} is an AP namespace.", "color:darkgreen"));
+			}
 		}
 
 		/// <summary>
@@ -451,6 +466,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         ? this.Sets.FirstOrDefault(s => s.SetName is null)
 						: this.Sets.FirstOrDefault(s => s.SetName == setName);
         }
+
+		/// <summary>
+		/// Gets a value indicating whether this namespace is in strong consistency mode.
+		/// </summary>
+		/// <value><c>true</c> if this instance is strong consistency mode; otherwise, <c>false</c>.</value>
+		/// <seealso href="https://aerospike.com/docs/server/guide/consistency"/>
+		public bool IsStrongConsistencyMode { get; }
 
 		public override string ToString()
 		{
