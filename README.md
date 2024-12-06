@@ -500,7 +500,7 @@ They provide a rich set of functions to work with conversions from or to DB and 
 
 -   Implicit Casting – don’t have to worry about check and cast. Just use the standard .Net operators.
 -   Convert functions – Will try to convert a DB or .Net value with or without any explicit reference.
--   Contains, TryGetValue, FindAll, etc. functions – Search/Match functions used to find a value within a CDT or match a single non-CDT value.
+-   Contains, TryGetValue, FindAll, ElementAt, etc. functions – Search/Match/Access functions used to find a value within a CDT or match a single non-CDT value.
 
 For more information, see the [Auto-Values blog](https://aerospike.com/developer/blog/how-to-use-auto-values-in-nosql-linqpad-driver).
 

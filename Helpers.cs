@@ -14,7 +14,6 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 using LPEDC = LINQPad.Extensibility.DataContext;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
 
@@ -368,14 +367,47 @@ namespace Aerospike.Client
         public static JArray ToJArray(this IEnumerable<JsonDocument> documents) => new JArray(documents.Cast<JObject>());
         public static JsonDocument ToJsonDocument(this IDictionary<string,object> document) => new JsonDocument(document);
 
-        /// <summary>
-        /// This will convert a list of <see cref="JObject"/> to a list of dictionary items.
-        /// </summary>
-        /// <param name="documentLst">A list of JSON documents/JObjects</param>
-        /// <returns>
-        /// a list of dictionary items.
-        /// </returns>
-        public static IEnumerable<IDictionary<string,object>> ToCDT(this IEnumerable<JObject> documentLst)
+		/// <summary>
+		/// Creates a <see cref="JArray"/> based on the collection of <see cref="ARecord"/>.
+		/// </summary>
+        /// <param name="records">
+        /// A collection of <see cref="ARecord"/>
+        /// </param>
+		/// <param name="pkPropertyName">
+		/// The property name used for the primary key. The default is &apos;_id&apos;.
+		/// If the primary key value is not present, the digest is used. In these cases the property value will be a sub property where that name will be &apos;$oid&apos; and the value is a byte string.
+		/// If this is null, no PK property is written. 
+		/// </param>
+		/// <param name="useDigest">
+		/// If true, always use the PK digest as the primary key.
+		/// If false, use the PK value is present, otherwise use the digest. 
+		/// Default is false.
+		/// </param>
+		/// <returns>Json Array of the records in the collection.</returns>
+		/// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
+		/// <seealso cref="ARecord.FromJson(string, string, dynamic, string, string, string, ANamespaceAccess)"/>
+		/// <seealso cref="ARecord.ToJson(string, bool)"/>
+        /// <seealso cref="SetRecords.ToJson(Exp, string, bool)"/>
+        /// <seealso cref="SetRecords.FromJson(string, dynamic, string, string, WritePolicy, TimeSpan?, bool)"/>
+        /// <seealso cref="SetRecords.FromJson(string, string, string, WritePolicy, TimeSpan?, bool)"/>
+		public static JArray ToJson(this IEnumerable<ARecord> records, [AllowNull] string pkPropertyName = "_id", bool useDigest = false)
+        {
+			var jsonArray = new JArray();
+            foreach(var record in records)
+            {
+                jsonArray.Add(record.ToJson(pkPropertyName, useDigest));
+            }
+            return jsonArray;
+        }
+
+		/// <summary>
+		/// This will convert a list of <see cref="JObject"/> to a list of dictionary items.
+		/// </summary>
+		/// <param name="documentLst">A list of JSON documents/JObjects</param>
+		/// <returns>
+		/// a list of dictionary items.
+		/// </returns>
+		public static IEnumerable<IDictionary<string,object>> ToCDT(this IEnumerable<JObject> documentLst)
         {
             foreach(var document in documentLst)
             {
