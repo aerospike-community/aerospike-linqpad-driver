@@ -612,7 +612,9 @@ namespace Aerospike.Database.LINQPadDriver
 			{
 				Client.Log.Info($"GetConnectionCloud Start {this.ConnectionString}");
 			}
+            throw new NotImplementedException("Cloud connection not available");
 
+            /*
 			lock(Connections)
 			{
                 if(Connections.TryGetValue(this.ConnectionString, out var conn))
@@ -632,6 +634,7 @@ namespace Aerospike.Database.LINQPadDriver
 				}
 				return newconn;
 			}
+            */
 		}
 
 		public void Open()

@@ -823,7 +823,7 @@ namespace Aerospike.Database.LINQPadDriver
             this.SetAccess.Put(this.SetName, 
                                 {ARecord.DefaultASPIKeyName}, 
                                 dictRec,                                
-                                writePolicy: writePolicy,
+                                writePolicy: writePolicy ?? this.DefaultWritePolicy,
                                 ttl: ttl);                                                               
         }}
 

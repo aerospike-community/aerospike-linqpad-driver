@@ -168,7 +168,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <param name="txn">The Aerospike <see cref="Txn"/> instance</param>
 		/// <exception cref="System.ArgumentNullException">txn</exception>
 		/// <exception cref="System.ArgumentNullException">clone</exception>
-		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="CreateTransaction(int)"/>
 		/// <seealso cref="Commit"/>
 		/// <seealso cref="Abort"/>
 		public ANamespaceAccess(ANamespaceAccess baseNS, Txn txn)
@@ -552,9 +552,38 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// Defaults to 10 seconds.
 		/// </param>
 		/// <returns>Transaction Namespace instance</returns>
+        /// <seealso cref="CreateTransaction(string, int)"/>
 		/// <seealso cref="Commit"/>
 		/// <seealso cref="Abort"/>
 		public ANamespaceAccess CreateTransaction(int timeout = 10) => new(this, new Txn() { Timeout = timeout });
+
+		/// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// </summary>
+		/// <param name="setName">
+        /// Name of the set to create the transaction on.
+        /// If the set does not exists, it will be dynamically created.
+        /// </param>
+		/// <param name="timeout">
+		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
+		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
+		/// a commit or abort is called, the server will expire and rollback the MRT.
+		/// Defaults to 10 seconds.
+		/// </param>
+		/// <returns>Transaction Set instance</returns>
+		/// <seealso cref="CreateTransaction(int)"/>
+		public SetRecords CreateTransaction(string setName, int timeout = 10)
+        {
+            var set = this[setName];
+
+            if(set is null)
+            {
+                this.AddDynamicSet(setName, Enumerable.Empty<LPSet.BinType>());
+				set = this[setName];
+			}
+
+            return set.CreateTransaction(timeout);
+        }
 
 		/// <summary>
 		/// Attempt to commit the given multi-record transaction. First, the expected record versions are
@@ -564,11 +593,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Requires server version 8.0+
 		/// </p>
 		/// </summary>
-        /// <param name="useTxn">
-        /// If provide, this <see cref="Txn"/> is used, instead of the namespace&apos;s Txn (if thee is one).
-        /// </param>
-		/// <seealso cref="CreateTransaction"/>
-        /// <seealso cref="Abort"/>
+		/// <param name="useTxn">
+		/// If provide, this <see cref="Txn"/> is used, instead of the namespace&apos;s Txn (if thee is one).
+		/// </param>
+		/// <seealso cref="CreateTransaction(int)"/>
+		/// <seealso cref="Abort"/>
 		public CommitStatus.CommitStatusType Commit(Txn useTxn = null)
             => this.AerospikeTxn is null && useTxn is null
 				? CommitStatus.CommitStatusType.CLOSE_ABANDONED
@@ -583,7 +612,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <param name="useTxn">
 		/// If provide, this <see cref="Txn"/> is used, instead of the namespace&apos;s Txn (if thee is one).
 		/// </param>
-		/// <seealso cref="CreateTransaction"/>
+		/// <seealso cref="CreateTransaction(int)"/>
 		/// <seealso cref="Commit"/>
 		public AbortStatus.AbortStatusType Abort(Txn useTxn = null)
 			 => this.AerospikeTxn is null && useTxn is null
@@ -1620,7 +1649,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                     ARecord.DumpTypes dumpType = ARecord.DumpTypes.Record,
                                                     string[] definedBins = null)
         {
-            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+            batchPolicy ??= new BatchPolicy(this.DefaultReadPolicy)
             {
                 maxRetries = 2,
                 maxConcurrentThreads = 1,
@@ -1690,7 +1719,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 													ARecord.DumpTypes dumpType = ARecord.DumpTypes.Record,
 													string[] definedBins = null)
 		{
-			batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+			batchPolicy ??= new BatchPolicy(this.DefaultReadPolicy)
 			{
 				maxRetries = 2,
 				maxConcurrentThreads = 1,
@@ -1763,20 +1792,20 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 		#endregion
 
-			/// <summary>
-			/// Truncates all the Sets in this namespace
-			/// </summary>
-			/// <param name="infoPolicy">
-			/// The <see cref="InfoPolicy"/> used for the truncate. If not provided, the default is used.
-			/// </param>
-			/// <param name="before">
-			/// A Date/time used to truncate the set. Records before this time will be truncated. 
-			/// The default is everything up to when this was executed (DateTime.Now).
-			/// </param>
-			/// <seealso cref="SetRecords.Truncate(InfoPolicy, DateTime?)"/>
-			/// <seealso cref="Truncate(string, InfoPolicy, DateTime?)"/>
-			/// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
-			public void Truncate(InfoPolicy infoPolicy = null, DateTime? before = null)
+		/// <summary>
+		/// Truncates all the Sets in this namespace
+		/// </summary>
+		/// <param name="infoPolicy">
+		/// The <see cref="InfoPolicy"/> used for the truncate. If not provided, the default is used.
+		/// </param>
+		/// <param name="before">
+		/// A Date/time used to truncate the set. Records before this time will be truncated. 
+		/// The default is everything up to when this was executed (DateTime.Now).
+		/// </param>
+		/// <seealso cref="SetRecords.Truncate(InfoPolicy, DateTime?)"/>
+		/// <seealso cref="Truncate(string, InfoPolicy, DateTime?)"/>
+		/// <exception cref="InvalidOperationException">Thrown if the cluster is a production cluster. Can disable this by going into the connection properties.</exception>
+		public void Truncate(InfoPolicy infoPolicy = null, DateTime? before = null)
 		{
 			if(this.AerospikeConnection.CXInfo.IsProduction)
 				throw new InvalidOperationException("Cannot Truncate a Cluster marked \"In Production\"");
