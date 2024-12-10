@@ -19,8 +19,8 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2024</Copyright>
-    <Version>3.4.6.0</Version>
-    <FileVersion>3.4.6.0</FileVersion>
+    <Version>4.0.0.0</Version>
+    <FileVersion>4.0.0.0</FileVersion>
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -67,6 +67,7 @@
     <none Remove="linqpad-samples\Native\Put-Aerospike.linq" />
 	  <None Remove="linqpad-samples\Native\ReadMeFirst.linq" />
 	  <None Remove="linqpad-samples\Native\Record Display View.linq" />
+    <None Remove="linqpad-samples\Native\MRT.linq" />
 	</ItemGroup>
 
   <ItemGroup>
@@ -114,22 +115,10 @@
 	  <Content Include="linqpad-samples\Native\LinqWhere-AerospikeExpressions.linq" />
 	  <Content Include="linqpad-samples\Native\LinqWhere-AerospikePK.linq" />
 	  <Content Include="linqpad-samples\Native\POCO.linq" />
+    <Content Include="linqpad-samples\Native\MRT.linq" />
     <Content Include="linqpad-samples\Native\Put-Aerospike.linq" />
 	  <Content Include="linqpad-samples\Native\ReadMeFirst.linq" />
 	  <Content Include="linqpad-samples\Native\Record Display View.linq" />
-    
-    <Content Include="linqpad-samples\Cloud\Basic Data Types.linq" />
-    <Content Include="linqpad-samples\Cloud\Basic Data Types 2.linq" />
-    <Content Include="linqpad-samples\Cloud\CDT-Json-Docs.linq" />
-    <Content Include="linqpad-samples\Cloud\Create CustInvsDoc set.linq" />
-    <Content Include="linqpad-samples\Cloud\Linq Join Customer and Invoice.linq" />
-    <Content Include="linqpad-samples\Cloud\LinqWhere-AerospikeExpressions.linq" />
-    <Content Include="linqpad-samples\Cloud\LinqWhere-AerospikePK.linq" />
-    <Content Include="linqpad-samples\Cloud\POCO.linq" />
-    <Content Include="linqpad-samples\Cloud\Put-Aerospike.linq" />
-    <Content Include="linqpad-samples\Cloud\ReadMeFirst.linq" />
-    <Content Include="linqpad-samples\Cloud\Record Display View.linq" />
-    <Content Include="linqpad-samples\Cloud\Using NullSet.linq" />
     
     <Content Include="README.md">
       <Pack>true</Pack>
@@ -139,8 +128,7 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Aerospike.Client" Version="7.4.0" />
-    <PackageReference Include="Aerospike.Client.Proxy" Version="7.4.0" />
+		<PackageReference Include="Aerospike.Client" Version="8.0.0" />
     <PackageReference Include="LINQPad.Reference" Version="1.4.0-preview.1" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
@@ -153,6 +141,10 @@
 
 	<ItemGroup>
 	  <Folder Include="Driver\" />
+	</ItemGroup>
+
+	<ItemGroup>
+    <PackageReference Include="NeoLua" Version="1.3.15-beta.4" />
 	</ItemGroup>
 
 	<ItemGroup>

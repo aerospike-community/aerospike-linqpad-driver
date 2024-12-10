@@ -430,30 +430,7 @@ Fields are:
 
 ### Cloud Tab
 
-![A screenshot of a computer Description automatically generated](media/d8355895f7c79bd986bb852354a05c3f.png)
-
-This tab is used to connect to an [Aerospike Cloud (DBaaS) cluster](https://aerospike.com/products/aerospike-cloud/).
-
-The fields are:
-
-1.  The hostname provided in the Cloud dashboard. The hyperlink will take you to the Aerospike Login screen or if you are already logged in to the dashboard.
-2.  The Cloud client connection port.
-3.  If a [VPC (AWS private link)](https://aerospike.com/docs/cloud/connect/private-link) is defined, this would be the hostname displayed on the dashboard. The hostname filed would be the VPC endpoint.
-4.  The API key created in the dashboard.
-5.  If the API key and secret was exported from the dashboard to your local machine, this button will allow you to import that API Key CSV file.
-6.  If enabled, the built-in LINQPad password manager is used. When enabled, a dropdown will be displayed to select your Password Name you defined in the manager. The Password Manager can be found on the File menu of LINQPad.
-7.  The associated API Key’s secret.
-8.  If checked, it will show the API secret in plain text.
-9.  The associated cloud namespace.
-10. If provided, a list of [set](https://aerospike.com/docs/server/architecture/data-model) names separated by comma or space. The set names will be used to populate the sets under the namespace in the LINQPad connection tree (see below image). Also, “set bin detection” will be performed to obtain the bins and data types. Regardless if this field is provided or not, you can always obtain this information from the “[Null Set](https://aerospike.com/docs/server/architecture/data-model)”. See “Using NullSet.linq” example in the “Cloud” sample folder for examples.
-11. Hyperlinks to additional topics
-12. The timeout values that will be used when obtaining the connection or performing an operation. Note that the “Sleep” field is ignored for cloud connections.
-
-Below shows the relationship between the Cloud’s Set Name connection property (point 10 above) and what is displayed in the Connection Pane:
-
-![A screenshot of a computer Description automatically generated](media/dbd20f8ea4df82beb1380b0a04afddc0.png)
-
-For more information, see [Aerospike Cloud Blog](https://aerospike.com/developer/blog/connecting-linqpad-to-aerospike-cloud).
+Aerospike Cloud Not support in this release.
 
 ### Display/Conversion Options Panel
 
@@ -500,7 +477,7 @@ They provide a rich set of functions to work with conversions from or to DB and 
 
 -   Implicit Casting – don’t have to worry about check and cast. Just use the standard .Net operators.
 -   Convert functions – Will try to convert a DB or .Net value with or without any explicit reference.
--   Contains, TryGetValue, FindAll, etc. functions – Search/Match functions used to find a value within a CDT or match a single non-CDT value.
+-   Contains, TryGetValue, FindAll, ElementAt, etc. functions – Search/Match/Access functions used to find a value within a CDT or match a single non-CDT value.
 
 For more information, see the [Auto-Values blog](https://aerospike.com/developer/blog/how-to-use-auto-values-in-nosql-linqpad-driver).
 
@@ -562,6 +539,24 @@ ASClient.Operate(null,
                                 Operation.Put(new Bin("UnitPrice", Value.Get(0.99D)))})})
 ```
 
+## Multi-Record Transactions (MRT)
+
+The LINQPad driver supports Aerospike MRTs using the Aerospike native API and the extension API.
+
+The extension API manages the associated policies for easy use. Below are the extension API functions:
+
+-   CreateTransaction – Creates the MRT (i.e., Begin Transaction)
+-   Commit – Commits the associated MRT
+-   Abort – Aborts the associated MRT (i.e., rollback)
+-   AerospikeTxn – A property that returns the Aerospike MRT instance
+-   TransactionId – A property that returns the MRT Transaction Id
+
+The Extension MRT API supports creating MRTs at the namespace and set levels. You call “CreateTransaction” which will return the associated namespace or set and you just use the extension APIs (e.g., Get, Put, CopyRecods, Import, etc.) like normal. When your MRT actions are done call ‘Commit’ or ‘Abort’ as required. No messing with policies!
+
+Like always if you wish to use the Aerospike native API you can at any time. The default policies for the Extension MRT “set” or “namespace” will be properly enabled to support native MRTs.
+
+For more information about Aerospike MRTs [see this page](https://aerospike.com/blog/multi-record-transactions-for-aerospike/).
+
 ## Examples
 
 Sample scripts can be found in the [LINQPad Sample tree view tab](https://www.linqpad.net/nugetsamples.aspx) under “nuget” or in the “linqpad-samples” [folder](https://github.com/aerospike-community/aerospike-linqpad-driver/tree/main/linqpad-samples) in GitHub.
@@ -580,6 +575,7 @@ The sample scripts are:
 -   CDT-Json-Docs.linq – Show the use of CDTs (Collection Data Types), Json, and documents by means of Linq and Aerospike [Expressions](https://docs.aerospike.com/server/guide/expressions).
 -   Using NullSet.linq – This shows the use of the [Null Set](https://aerospike.com/docs/server/architecture/data-model).
 -   Generate Code.linq – This shows how to generate API code from record collections.
+-   MRT.linq – This shows how to use MRTs
 
 ## Prerequisites
 
@@ -610,7 +606,7 @@ Obtain the latest driver from the `Driver` folder and [download](https://github.
 
 There are multiple ways to install Aerospike DB.
 
--   [Aerospike Cloud (DBaaS)](https://aerospike.com/products/aerospike-cloud/)
+-   [Aerospike Cloud (DBaaS)](https://aerospike.com/products/aerospike-cloud/) (this release does not supported Cloud)
 -   [Docker, Cloud, and Linux](https://docs.aerospike.com/server/operations/install)
 -   [AeroLab](https://github.com/aerospike/aerolab)
 

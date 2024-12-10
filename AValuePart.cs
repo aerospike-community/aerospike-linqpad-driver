@@ -1940,8 +1940,50 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     => TryGetValue<AValue>(matchValue, out AValue matchedValue) 
                             ? matchedValue
                             : (returnEmptyAValue ? Empty : null);
-       
-        #endregion
-    }
+
+		/// <summary>
+		/// Returns the <see cref="AValue"/> element at a specified index in a sequence.
+		/// </summary>
+		/// <param name="index">
+		/// The zero-based index of the element to retrieve.
+		/// </param>
+		/// <returns>AValue.</returns>
+		/// <exception cref="ArgumentOutOfRangeException">
+		/// index is less than 0 or greater than or equal to the number of elements in source.
+		/// </exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// AValue is not a CDT
+		/// </exception>
+		public AValue ElementAt(int index)
+        {
+            if(this.IsCDT)
+            {
+                return this.ToList().ElementAt(index).ToAValue();
+			}
+
+            throw new InvalidOperationException($"AValue is not a CDT but of type {this.UnderlyingType}");
+        }
+
+		/// <summary>
+		/// Returns the element at a specified index in a sequence or an <see cref="AValue.Empty"/> if the index is out of range or not a CDT.
+		/// </summary>
+		/// <param name="index">
+		/// The index of the element to retrieve, which is either from the beginning or the end of the sequence.
+		/// </param>
+		/// <returns>
+		/// An <see cref="AValue"/> or an <see cref="AValue.Empty"/>
+		/// </returns>
+		public AValue ElementAtOrDefault(int index)
+        {
+			if(this.IsCDT)
+			{                
+				return this.ToList().ElementAtOrDefault(index)?.ToAValue() ?? AValue.Empty;
+			}
+
+            return AValue.Empty;
+		}
+
+		#endregion
+	}
 }
 

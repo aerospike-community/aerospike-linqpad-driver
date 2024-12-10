@@ -45,7 +45,26 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
            : base(clone, readPolicy, writePolicy, queryPolicy, scanPolicy)
         { }
 
-		#endregion
+		/// <summary>
+		/// Initializes a new instance of <see cref="SetRecords{T}"/> as an Aerospike transactional unit.
+		/// If <see cref="SetRecords.Commit"/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name="baseSet">Base Aerospike Set instance</param>
+		/// <param name="txn">
+		/// The Aerospike <see cref="Txn"/> instance or null to create a new transactional unit.
+		/// </param>
+		/// <param name="newNSAccess">
+		/// An new <see cref="ANamespaceAccess"/> instance to use with the transaction. 
+		/// </param>
+		/// <seealso cref="SetRecords.CreateTransaction(int)"/>
+        /// <seealso cref="SetRecords.CreateTransaction(Txn)"/>
+		/// <seealso cref="SetRecords.Commit"/>
+		/// <seealso cref="SetRecords.Abort"/>
+		public SetRecords([NotNull] SetRecords baseSet,
+                            [AllowNull] Txn txn,
+                            [AllowNull] ANamespaceAccess newNSAccess = null)
+            : base(baseSet, txn, newNSAccess)
+        { }
 
 		/// <summary>
 		/// Changes how records are displayed using the LinqPad <see cref="LINQPad.Extensions.Dump{T}(T)"/> method.        
@@ -58,23 +77,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             this.DefaultRecordView = newRecordView;
             return this;
-        }       
+        }
+		#endregion
 
-        #region Get Methods
-        /// <summary>
-        /// Returns the record based on the primary key
-        /// </summary>
-        /// <param name="primaryKey">
-        /// The primary key can be a <see cref="Aerospike.Client.Key"/>, <see cref="Aerospike.Client.Value"/>, digest (byte[]), or a .net type.
-        /// </param>
-        /// <param name="bins">
-        /// An optional arguments, if provided only those bins are returned.
-        /// </param>
-        /// <returns>
-        /// A record if the primary key is found otherwise null.
-        /// </returns>
-        /// <seealso cref="Get(dynamic, Expression, string[])"/>
-        public new T Get([NotNull] dynamic primaryKey, params string[] bins)
+		#region Get Methods
+		/// <summary>
+		/// Returns the record based on the primary key
+		/// </summary>
+		/// <param name="primaryKey">
+		/// The primary key can be a <see cref="Aerospike.Client.Key"/>, <see cref="Aerospike.Client.Value"/>, digest (byte[]), or a .net type.
+		/// </param>
+		/// <param name="bins">
+		/// An optional arguments, if provided only those bins are returned.
+		/// </param>
+		/// <returns>
+		/// A record if the primary key is found otherwise null.
+		/// </returns>
+		/// <seealso cref="Get(dynamic, Expression, string[])"/>
+		public new T Get([NotNull] dynamic primaryKey, params string[] bins)
         {            
             Client.Key key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
 
@@ -336,7 +356,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     BatchPolicy batchPolicy = null,
                                     BatchWritePolicy batchWritePolicy = null,
                                     ParallelOptions parallelOptions = null)
-            => this.SetAccess.BatchWriteRecord(writeRecords, batchPolicy, batchWritePolicy, parallelOptions);
+            => this.SetAccess.BatchWriteRecord(writeRecords,
+                                                batchPolicy ?? new BatchPolicy(this.DefaultWritePolicy),
+                                                batchWritePolicy,
+                                                parallelOptions);
 
         /// <summary>
         /// Return a collection of <see cref="ARecord"/> based on <paramref name="primaryKeys"/>
@@ -358,12 +381,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 Expression filterExpression = null,
                                                 string[] returnBins = null)
         {
-            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+            batchPolicy ??= new BatchPolicy(this.DefaultReadPolicy)
             {
                 maxRetries = 2,
                 maxConcurrentThreads = 1,
-                filterExp = filterExpression
-            };
+                filterExp = filterExpression,
+				Txn = this.AerospikeTxn
+			};
 
             batchReadPolicy ??= new BatchReadPolicy()
             {
@@ -827,9 +851,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {            
             this.SetName =  setName == LPSet.NullSetName ? null : setName;
             this.SetAccess = setAccess;
-            this.SetFullName = $"{this.Namespace}.{this.SetName ?? "null"}";
-            this._bins = Helpers.RemoveDups(bins);            
-            this.DefaultWritePolicy = new WritePolicy(this.SetAccess.DefaultWritePolicy);
+            this.SetFullName = $"{this.Namespace}.{this.SetName ?? LPSet.NullSetName}";
+            this._bins = Helpers.RemoveDups(bins);
+            this.IsNullSet = setName == LPSet.NullSetName;
+            this.AerospikeTxn = this.SetAccess.AerospikeTxn;
+			this.DefaultWritePolicy = new WritePolicy(this.SetAccess.DefaultWritePolicy);
             this.DefaultReadPolicy = new Policy(this.SetAccess.DefaultReadPolicy);
             this.DefaultQueryPolicy = new QueryPolicy(this.SetAccess.DefaultQueryPolicy);
             this.DefaultScanPolicy = new ScanPolicy(this.SetAccess.DefaultScanPolicy);
@@ -849,13 +875,80 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             this._binsHashCode= clone._binsHashCode;
             this.FKBins = clone.FKBins;
             this.SetFullName= clone.SetFullName;
+			this.DefaultRecordView = clone.DefaultRecordView;
+			this.IsNullSet = clone.IsNullSet;
 
-            this.DefaultWritePolicy = writePolicy ?? new WritePolicy(clone.DefaultWritePolicy);
+            if(writePolicy?.Txn is not null)
+                this.AerospikeTxn = writePolicy.Txn;
+            else if(readPolicy?.Txn is not null)
+				this.AerospikeTxn = readPolicy.Txn;
+            else
+                this.AerospikeTxn = clone.AerospikeTxn;
+
+			this.DefaultWritePolicy = writePolicy ?? new WritePolicy(clone.DefaultWritePolicy);
             this.DefaultReadPolicy = readPolicy ?? new Policy(clone.DefaultReadPolicy);
             this.DefaultQueryPolicy = queryPolicy ?? new QueryPolicy(clone.DefaultQueryPolicy);
-            this.DefaultScanPolicy = scanPolicy ?? new ScanPolicy(clone.DefaultScanPolicy);
-            this.DefaultRecordView = clone.DefaultRecordView;
+            this.DefaultScanPolicy = scanPolicy ?? new ScanPolicy(clone.DefaultScanPolicy);            
         }
+
+		/// <summary>
+		/// Initializes a new instance of <see cref="SetRecords"/> as an Aerospike transactional unit.
+		/// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name="baseSet">Base Aerospike Set instance</param>
+		/// <param name="txn">
+		/// The Aerospike <see cref="Txn"/> instance or null to create a new transactional unit.
+		/// </param>
+		/// <param name="newNSAccess">
+		/// An new <see cref="ANamespaceAccess"/> instance to use with the transaction. 
+		/// </param>
+		/// <seealso cref="CreateTransaction(int)"/>
+        /// <seealso cref="CreateTransaction(Txn)"/>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public SetRecords([NotNull] SetRecords baseSet, 
+                            [AllowNull] Txn txn,
+                            [AllowNull] ANamespaceAccess newNSAccess = null)
+        {
+            this.LPset = baseSet.LPset;
+            this.SetName = baseSet.SetName;
+            this.SetAccess = newNSAccess ?? baseSet.SetAccess;
+            this._bins = baseSet._bins;
+            this._binsHashCode = baseSet._binsHashCode;
+            this.FKBins = baseSet.FKBins;
+			this.SetFullName = baseSet.SetFullName;
+			this.DefaultRecordView = baseSet.DefaultRecordView;
+            this.IsNullSet = baseSet.IsNullSet;
+
+            txn ??= new Txn();
+
+            this.AerospikeTxn = txn;
+            this.DefaultWritePolicy = new(baseSet.DefaultWritePolicy)
+            {
+                Txn = txn
+            };
+			this.DefaultReadPolicy = new(baseSet.DefaultReadPolicy)
+            {
+                Txn = txn
+            };
+			this.DefaultQueryPolicy = new(baseSet.DefaultQueryPolicy)
+            {
+                Txn= txn
+            };
+			this.DefaultScanPolicy = new(baseSet.DefaultScanPolicy)
+            {
+                Txn= txn
+            };
+
+			if(!this.SetAccess?.IsStrongConsistencyMode ?? true)
+			{
+				Console.Write(LINQPad.Util.WithStyle("Warning", "color:black;background-color:orange"));
+				Console.Write(": ");
+                var setName = this.IsNullSet || this.SetName is null ? LPSet.NullSetName : this.SetName;
+				Console.WriteLine(LINQPad.Util.WithStyle($"MRTs should be used within a Strong Consistency namespace. '{this.Namespace}' is an AP namespace for set '{setName}'.", "color:darkgreen"));
+			}
+
+		}
 
 		/// <summary>
 		/// Clones the specified instance providing new policies, if provided.
@@ -945,6 +1038,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return this;
         }
 
+        public bool IsNullSet { get; }
+
         public ANamespaceAccess SetAccess { get; }
 
         private int _binsHashCode = 0;
@@ -998,6 +1093,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			}
 		}
 
+        public virtual SetRecords TurnIntoTrx([NotNull] ANamespaceAccess txnNS)
+             => new SetRecords(this, txnNS.AerospikeTxn, txnNS);
 		#endregion
 
 		#region Aerospike Client Properties, Policies, Put, Get, Query, etc.
@@ -1036,7 +1133,76 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// </summary>
 		public ScanPolicy DefaultScanPolicy { get; set; }
 
-        protected string[] _bins = Array.Empty<string>();
+		/// <summary>
+		/// Gets the aerospike <see cref="Aerospike.Client.Txn"/> instance or null to indicate that it is not within a transaction.
+		/// </summary>
+		/// <value>The aerospike <see cref="Aerospike.Client.Txn"/> instance or null</value>
+		public Txn AerospikeTxn { get; }
+
+		/// <summary>
+		/// Returns the transaction identifier or null to indicate not a transactional unit.
+		/// </summary>
+		public long? TransactionId => this.AerospikeTxn?.Id;
+
+		/// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// Note: This will copy the current policies for this Set!
+		/// </summary>
+		/// <param name="txn">
+		/// If provided, this Aerospike Transaction is used instead of creating a new transaction instance.
+		/// </param>
+		/// <returns>Transaction Set instance</returns>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public SetRecords CreateTransaction(Txn txn = null) => new SetRecords(this, txn);
+
+		/// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// Note: This will copy the current policies for this Set!
+		/// </summary>
+		/// <param name="timeout">
+		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
+		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
+		/// a commit or abort is called, the server will expire and rollback the MRT.
+		/// Defaults to 10 seconds.
+		/// </param>
+		/// <returns>Transaction Set instance</returns>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public SetRecords CreateTransaction(int timeout) => new SetRecords(this, new Txn() {  Timeout = timeout });
+
+		/// <summary>
+		/// Attempt to commit the given multi-record transaction. First, the expected record versions are
+		/// sent to the server nodes for verification.If all nodes return success, the command is
+		/// committed. Otherwise, the transaction is aborted.
+		/// <p>
+		/// Requires server version 8.0+
+		/// </p>
+		/// </summary>
+		/// <seealso cref="CreateTransaction(Txn)"/>
+        /// <seealso cref="CreateTransaction(int)"/>
+		/// <seealso cref="Abort"/>
+		public CommitStatus.CommitStatusType Commit()
+			=> this.AerospikeTxn is null
+				? CommitStatus.CommitStatusType.CLOSE_ABANDONED
+				: this.SetAccess.Commit(this.AerospikeTxn);
+
+		/// <summary>
+		/// Abort and rollback the given multi-record transaction.
+		/// <p>
+		/// Requires server version 8.0+
+		/// </p>
+		/// </summary>
+		/// <seealso cref="CreateTransaction(int)"/>
+        /// <seealso cref="CreateTransaction(Txn)"/>
+		/// <seealso cref="Commit"/>
+		public AbortStatus.AbortStatusType Abort()
+			 => this.AerospikeTxn is null
+				? AbortStatus.AbortStatusType.ROLL_BACK_ABANDONED
+				: this.SetAccess.Abort(this.AerospikeTxn);
+
+
+		protected string[] _bins = Array.Empty<string>();
         /// <summary>
         /// Returns all the bin names possible for this set.
         /// </summary>
@@ -1099,7 +1265,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             => this.SetAccess.Put(this.SetName, 
                                     record.Aerospike.Key, 
                                     record.Aerospike.GetValues(), 
-                                    writePolicy: writePolicy, 
+                                    writePolicy: writePolicy ?? this.DefaultWritePolicy, 
                                     ttl: ttl ?? record.Aerospike.TTL);        
 
         /// <summary>
@@ -1123,7 +1289,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
             => this.SetAccess.Put(this.SetName, primaryKey, binValues, 
-                                     writePolicy: writePolicy, ttl: ttl);        
+                                     writePolicy: writePolicy ?? this.DefaultWritePolicy,
+                                     ttl: ttl);        
 
         /// <summary>
         /// Puts (writes) a bin to the DB record.
@@ -1148,7 +1315,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] object binValue,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-            => this.SetAccess.Put(this.SetName, primaryKey, bin, binValue, writePolicy: writePolicy, ttl: ttl);
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, binValue,
+                                    writePolicy: writePolicy ?? this.DefaultWritePolicy,
+                                    ttl: ttl);
 
         /// <summary>
         /// Puts (writes) a bin to the DB record.
@@ -1173,7 +1342,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] string binValue,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-            => this.SetAccess.Put(this.SetName, primaryKey, bin, binValue, writePolicy: writePolicy, ttl: ttl);
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, binValue,
+                                    writePolicy: writePolicy ?? this.DefaultWritePolicy,
+                                    ttl: ttl);
 
 
         /// <summary>
@@ -1199,7 +1370,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] IList<T> listValue,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-            => this.SetAccess.Put(this.SetName, primaryKey, bin, listValue, writePolicy: writePolicy, ttl: ttl);
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, listValue,
+                                    writePolicy: writePolicy ?? this.DefaultWritePolicy,
+                                    ttl: ttl);
 
         /// <summary>
         /// Puts (writes) a bin to the DB record.
@@ -1224,7 +1397,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 [NotNull] IDictionary<K,V> collectionValue,
                                 WritePolicy writePolicy = null,
                                 TimeSpan? ttl = null)
-            => this.SetAccess.Put(this.SetName, primaryKey, bin, collectionValue, writePolicy: writePolicy, ttl: ttl);
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, collectionValue,
+                                    writePolicy: writePolicy ?? this.DefaultWritePolicy,
+                                    ttl: ttl);
 
 
         /// <summary>
@@ -1250,7 +1425,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] IEnumerable<T> collectionValue,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-            => this.SetAccess.Put(this.SetName, primaryKey, bin, collectionValue, writePolicy: writePolicy, ttl: ttl);        
+            => this.SetAccess.Put(this.SetName, primaryKey, bin, collectionValue, 
+                                    writePolicy: writePolicy ?? this.DefaultWritePolicy,
+                                    ttl: ttl);        
 
         /// <summary>
         /// Put (Writes) a DB record based on the provided key and bin values.
@@ -1272,7 +1449,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                             [NotNull] IEnumerable<Bin> binsToWrite,
                             WritePolicy writePolicy = null,
                             TimeSpan? ttl = null)
-            => this.SetAccess.Put(this.SetName, primaryKey, binsToWrite, writePolicy: writePolicy, ttl: ttl);
+            => this.SetAccess.Put(this.SetName,
+                                    primaryKey,
+                                    binsToWrite,
+                                    writePolicy: writePolicy ?? this.DefaultWritePolicy,
+                                    ttl: ttl);
         
         #endregion
 
@@ -1306,7 +1487,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     WritePolicy writePolicy = null,
                                     TimeSpan? ttl = null)
             => this.SetAccess.WriteObject<T>(this.SetName, primaryKey, instance, 
-                                                transform: transform, documentBinName: documentBinName, writePolicy: writePolicy, ttl: ttl);        
+                                                transform: transform,
+                                                documentBinName: documentBinName, 
+                                                writePolicy: writePolicy ?? this.DefaultWritePolicy,
+                                                ttl: ttl);        
 
         #region Delete/Trunc Methods
         /// <summary>
@@ -1838,7 +2022,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 									BatchPolicy batchPolicy = null,
 									BatchWritePolicy batchWritePolicy = null,
 									ParallelOptions parallelOptions = null)
-			=> this.SetAccess.BatchWriteRecord(writeRecords, batchPolicy, batchWritePolicy, parallelOptions);
+			=> this.SetAccess.BatchWriteRecord(writeRecords,
+                                                batchPolicy ?? new BatchPolicy(this.DefaultWritePolicy),
+                                                batchWritePolicy,
+                                                parallelOptions);
 
 
 		/// <summary>
@@ -1865,7 +2052,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 									BatchPolicy batchPolicy = null,
 									BatchWritePolicy batchWritePolicy = null,
 									ParallelOptions parallelOptions = null)
-			=> this.SetAccess.BatchWrite(this.SetName, binRecords, batchPolicy, batchWritePolicy, parallelOptions);
+			=> this.SetAccess.BatchWrite(this.SetName, 
+                                            binRecords,
+                                            batchPolicy ?? new BatchPolicy(this.DefaultWritePolicy),
+                                            batchWritePolicy,
+                                            parallelOptions);
 
 		/// <summary>
 		/// Writes a collection of items to this set.
@@ -1893,7 +2084,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 									BatchPolicy batchPolicy = null,
 									BatchWritePolicy batchWritePolicy = null,
 									ParallelOptions parallelOptions = null)
-			=> this.SetAccess.BatchWrite(this.SetName, binRecords, batchPolicy, batchWritePolicy, parallelOptions);
+			=> this.SetAccess.BatchWrite(this.SetName,
+                                            binRecords,
+                                            batchPolicy ?? new BatchPolicy(this.DefaultWritePolicy),
+                                            batchWritePolicy,
+                                            parallelOptions);
 
 		/// <summary>
 		/// Writes a collection of items to this set.
@@ -1921,7 +2116,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 									BatchPolicy batchPolicy = null,
 									BatchWritePolicy batchWritePolicy = null,
 									ParallelOptions parallelOptions = null)
-			=> this.SetAccess.BatchWrite(this.SetName, binRecords, batchPolicy, batchWritePolicy, parallelOptions);
+			=> this.SetAccess.BatchWrite(this.SetName,
+                                            binRecords,
+                                            batchPolicy ?? new BatchPolicy(this.DefaultWritePolicy),
+                                            batchWritePolicy,
+                                            parallelOptions);
 
 		/// <summary>
 		/// Writes a collection of <typeparamref name="T"/> objects to this set.
@@ -1958,7 +2157,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 										ParallelOptions parallelOptions = null,
 										Func<string, string, object, bool, object> transform = null,
 										string documentBinName = null)
-			=> this.SetAccess.BatchWriteObject<P, T>(this.SetName, objRecords, batchPolicy, batchWritePolicy, parallelOptions, transform, documentBinName);
+			=> this.SetAccess.BatchWriteObject<P, T>(this.SetName,
+                                                        objRecords,
+                                                        batchPolicy ?? new BatchPolicy(this.DefaultWritePolicy),
+                                                        batchWritePolicy,
+                                                        parallelOptions,
+                                                        transform,
+                                                        documentBinName);
 
 		/// <summary>
 		/// Deletes records defined in <paramref name="primaryKeys"/>.
@@ -1980,7 +2185,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 									BatchPolicy batchPolicy = null,
 									BatchDeletePolicy deletePolicy = null,
 									Expression filterExpression = null)
-			=> this.SetAccess.BatchDelete(this.SetName, primaryKeys, batchPolicy, deletePolicy, filterExpression);
+			=> this.SetAccess.BatchDelete(this.SetName,
+                                            primaryKeys,
+                                            batchPolicy ?? new BatchPolicy(this.DefaultWritePolicy),
+                                            deletePolicy,
+                                            filterExpression);
 
 		#endregion
 
@@ -2007,7 +2216,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 													string[] returnBins = null)
 			=> this.SetAccess.BatchRead(this.SetName,
 										primaryKeys,
-										batchPolicy: batchPolicy,
+										batchPolicy: batchPolicy ?? new BatchPolicy(this.DefaultReadPolicy),
 										batchReadPolicy: batchReadPolicy,
 										filterExpression: filterExpression,
 										returnBins: returnBins,
@@ -2042,7 +2251,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             var queryPolicy = filterExpression == null
                                     ? this.DefaultQueryPolicy
-                                    : new QueryPolicy(this.DefaultQueryPolicy) { filterExp = Exp.Build(filterExpression) };
+                                    : new QueryPolicy(this.DefaultQueryPolicy)
+                                        {
+                                            filterExp = Exp.Build(filterExpression),
+                                            Txn = this.AerospikeTxn
+                                        };
 
             using var recordset = this.SetAccess.AerospikeConnection
                                    .AerospikeClient
@@ -2817,10 +3030,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public override string ToString()
         {
-            if(this._bins == null || this._bins.Length == 0)
-                return $"{this.Namespace}.{this.SetName}";
+            string txn = string.Empty;
+            if(this.TransactionId.HasValue)
+                txn = " TXN";
 
-            return $"{this.Namespace}.{this.SetName}{{{string.Join(',',this._bins)}}}";
+            if(this._bins == null || this._bins.Length == 0)
+                return $"{this.Namespace}.{this.SetName}{txn}";
+
+            return $"{this.Namespace}.{this.SetName}{{{string.Join(',',this._bins)}}} {txn}";
         }
 
         #endregion

@@ -1,4 +1,4 @@
-﻿using Aerospike.Client;
+using Aerospike.Client;
 using LINQPad.Extensibility.DataContext;
 using System;
 using System.Collections;
@@ -455,6 +455,21 @@ namespace Aerospike.Database.LINQPadDriver
 					scanPolicy)
 		{{ }}
 
+        /// <summary>
+		/// Initializes a new instance of <see cref=""{this.SafeName}_NamespaceCls""/> as an Aerospike transactional unit.
+        /// If <see cref=""Commit""/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name=""baseNS"">Base Namespace instance</param>
+		/// <param name=""txn"">The Aerospike <see cref=""Aerospike.Client.Txn""/> instance</param>
+		/// <exception cref=""System.ArgumentNullException"">txn</exception>
+		/// <exception cref=""System.ArgumentNullException"">clone</exception>
+        /// <seealso cref=""CreateTransaction""/>
+        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Commit""/>
+        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Abort""/>
+		public {this.SafeName}_NamespaceCls({this.SafeName}_NamespaceCls baseNS, Aerospike.Client.Txn txn)
+            : base(baseNS, txn)
+		{{ }}
+
 		/// <summary>
 		/// Clones the specified instance providing new policies, if provided.
 		/// </summary>
@@ -482,6 +497,20 @@ namespace Aerospike.Database.LINQPadDriver
         {{
             return new {this.SafeName}_NamespaceCls(this, Aerospike.Client.Exp.Build(exp));
         }}
+
+        /// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// </summary>
+        /// <param name=""timeout"">
+		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
+		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
+		/// a commit or abort is called, the server will expire and rollback the MRT.
+        /// Defaults to 10 seconds.
+		/// </param>
+		/// <returns>Transaction Namespace instance</returns>
+        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Commit""/>
+        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Abort""/>
+		new public {this.SafeName}_NamespaceCls CreateTransaction(int timeout = 10) => new(this, new Aerospike.Client.Txn() {{ Timeout = timeout }});
 
 		public IAerospikeClient ASClient() => this.AerospikeConnection.AerospikeClient;
 		        

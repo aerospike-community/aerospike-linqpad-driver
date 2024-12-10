@@ -72,6 +72,8 @@ namespace Aerospike.Database.LINQPadDriver
             DBTypeCache.Save(this._connectionProps);
             DBTypeCache.Update(this._connectionProps.DBType, this, this._connectionProps);
             priorTab = _connectionProps.DBType;
+
+            this.Cloud.IsEnabled = false;
         }
 
         void btnOK_Click (object sender, RoutedEventArgs e)

@@ -1,4 +1,4 @@
-﻿using Aerospike.Client;
+using Aerospike.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -35,10 +35,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         Cloud = 1
     }
 
-    /// <summary>
-    /// A class used to define Aerospike Namespaces.
-    /// </summary>
-    public class ANamespaceAccess
+	/// <summary>
+	/// A class used to define Aerospike Namespaces.
+	/// </summary>
+	[DebuggerDisplay("{ToString()}")]
+	public class ANamespaceAccess
     {
 		private readonly static List<ANamespaceAccess> ANamespacesList = new List<ANamespaceAccess>();
 
@@ -136,8 +137,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                     clone._sets)
         {
             this.LPnamespace = clone.LPnamespace;
-            this.IsStrongConsistencyMode = clone.IsStrongConsistencyMode;
-        }
+			this.IsStrongConsistencyMode = clone.IsStrongConsistencyMode;
+			this.AerospikeTxn = clone.AerospikeTxn;
+		}
 
 		public ANamespaceAccess(ANamespaceAccess clone,
                                     Policy readPolicy = null,
@@ -155,6 +157,51 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		{
 			this.LPnamespace = clone.LPnamespace;
             this.IsStrongConsistencyMode = clone.IsStrongConsistencyMode;
+			this.AerospikeTxn = clone.AerospikeTxn;
+		}
+
+		/// <summary>
+		/// Initializes a new instance of <see cref="ANamespaceAccess"/> as an Aerospike transactional unit.
+		/// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
+		/// </summary>
+		/// <param name="baseNS">Base Namespace instance</param>
+		/// <param name="txn">The Aerospike <see cref="Txn"/> instance</param>
+		/// <exception cref="System.ArgumentNullException">txn</exception>
+		/// <exception cref="System.ArgumentNullException">clone</exception>
+		/// <seealso cref="CreateTransaction(int)"/>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public ANamespaceAccess(ANamespaceAccess baseNS, Txn txn)
+            : this(baseNS,
+					new(baseNS.DefaultReadPolicy)
+					{
+						Txn = txn
+					},
+					new(baseNS.DefaultWritePolicy)
+					{
+						Txn = txn
+					},
+					new(baseNS.DefaultQueryPolicy)
+					{
+						Txn = txn
+					},
+					new(baseNS.DefaultScanPolicy)
+					{
+						Txn = txn
+					})
+		{            
+			if(txn is null) throw new ArgumentNullException(nameof(txn));
+			
+			this.AerospikeTxn = txn;
+
+            this._sets = this._sets.Select(s => s.TurnIntoTrx(this)).ToList(); 
+            
+            if(!this.IsStrongConsistencyMode)
+            {
+				Console.Write(LINQPad.Util.WithStyle("Warning", "color:black;background-color:orange"));
+				Console.Write(": ");
+				Console.WriteLine(LINQPad.Util.WithStyle($"MRTs should be used within a Strong Consistency namespace. {this.Namespace} is an AP namespace.", "color:darkgreen"));
+			}
 		}
 
 		/// <summary>
@@ -417,12 +464,26 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         ? this.Sets.FirstOrDefault(s => s.SetName is null)
 						: this.Sets.FirstOrDefault(s => s.SetName == setName);
         }
+
 		/// <summary>
 		/// Gets a value indicating whether this namespace is in strong consistency mode.
 		/// </summary>
-		/// <seealso href="https://aerospike.com/docs/server/guide/consistency"/>
 		/// <value><c>true</c> if this instance is strong consistency mode; otherwise, <c>false</c>.</value>
+		/// <seealso href="https://aerospike.com/docs/server/guide/consistency"/>
 		public bool IsStrongConsistencyMode { get; }
+
+		public override string ToString()
+		{
+			string txn = string.Empty;
+			if(this.TransactionId.HasValue)
+				txn = " TXN";
+
+			if(this.BinNames.Length == 0)
+				return $"{this.Namespace}{txn}";
+
+			return $"{this.Namespace}{{{string.Join(',', this.BinNames)}}} {txn}";
+		}
+
 		#endregion
 
 		#region Aerospike API items
@@ -469,6 +530,94 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <see href="https://docs.aerospike.com/apidocs/csharp/html/t_aerospike_client_scanpolicy"/>
 		/// </summary>
 		public ScanPolicy DefaultScanPolicy { get; }
+
+		/// <summary>
+		/// Gets the aerospike <see cref="Aerospike.Client.Txn"/> instance or null to indicate that it is not within a transaction.
+		/// </summary>
+		/// <value>The aerospike <see cref="Aerospike.Client.Txn"/> instance or null</value>
+		public Txn AerospikeTxn { get; }
+
+		/// <summary>
+		/// Returns the transaction identifier or null to indicate not a transactional unit.
+		/// </summary>
+		public long? TransactionId => this.AerospikeTxn?.Id;
+
+		/// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// </summary>
+		/// <param name="timeout">
+		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
+		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
+		/// a commit or abort is called, the server will expire and rollback the MRT.
+        /// Defaults to 10 seconds.
+		/// </param>
+		/// <returns>Transaction Namespace instance</returns>
+        /// <seealso cref="CreateTransaction(string, int)"/>
+		/// <seealso cref="Commit"/>
+		/// <seealso cref="Abort"/>
+		public ANamespaceAccess CreateTransaction(int timeout = 10) => new(this, new Txn() { Timeout = timeout });
+
+		/// <summary>
+		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// </summary>
+		/// <param name="setName">
+        /// Name of the set to create the transaction on.
+        /// If the set does not exists, it will be dynamically created.
+        /// </param>
+		/// <param name="timeout">
+		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
+		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
+		/// a commit or abort is called, the server will expire and rollback the MRT.
+		/// Defaults to 10 seconds.
+		/// </param>
+		/// <returns>Transaction Set instance</returns>
+		/// <seealso cref="CreateTransaction(int)"/>
+		public SetRecords CreateTransaction(string setName, int timeout = 10)
+        {
+            var set = this[setName];
+
+            if(set is null)
+            {
+                this.AddDynamicSet(setName, Enumerable.Empty<LPSet.BinType>());
+				set = this[setName];
+			}
+
+            return set.CreateTransaction(timeout);
+        }
+
+		/// <summary>
+		/// Attempt to commit the given multi-record transaction. First, the expected record versions are
+		/// sent to the server nodes for verification.If all nodes return success, the command is
+		/// committed. Otherwise, the transaction is aborted.
+		/// <p>
+		/// Requires server version 8.0+
+		/// </p>
+		/// </summary>
+		/// <param name="useTxn">
+		/// If provide, this <see cref="Txn"/> is used, instead of the namespace&apos;s Txn (if thee is one).
+		/// </param>
+		/// <seealso cref="CreateTransaction(int)"/>
+		/// <seealso cref="Abort"/>
+		public CommitStatus.CommitStatusType Commit(Txn useTxn = null)
+            => this.AerospikeTxn is null && useTxn is null
+				? CommitStatus.CommitStatusType.CLOSE_ABANDONED
+                : this.AerospikeConnection.Commit(useTxn ?? this.AerospikeTxn);
+
+		/// <summary>
+		/// Abort and rollback the given multi-record transaction.
+		/// <p>
+		/// Requires server version 8.0+
+		/// </p>
+		/// </summary>
+		/// <param name="useTxn">
+		/// If provide, this <see cref="Txn"/> is used, instead of the namespace&apos;s Txn (if thee is one).
+		/// </param>
+		/// <seealso cref="CreateTransaction(int)"/>
+		/// <seealso cref="Commit"/>
+		public AbortStatus.AbortStatusType Abort(Txn useTxn = null)
+			 => this.AerospikeTxn is null && useTxn is null
+				? AbortStatus.AbortStatusType.ROLL_BACK_ABANDONED
+				: this.AerospikeConnection.Abort(useTxn ?? this.AerospikeTxn);
 
 		#region Get Methods
 		/// <summary>
@@ -1043,13 +1192,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 maxRetries = 1,
                                 sendKey = true,
                                 maxConcurrentThreads = 2,
-                                sleepBetweenRetries = 5
+                                sleepBetweenRetries = 5,
+                                Txn = this.AerospikeTxn
                             };                
             
             batchWritePolicy ??= new BatchWritePolicy()
                                     {                    
                                         sendKey = true,
-                                        recordExistsAction = RecordExistsAction.REPLACE
+                                        recordExistsAction = RecordExistsAction.REPLACE                                        
                                     };
 
             parallelOptions ??= new ParallelOptions();
@@ -1110,8 +1260,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 maxRetries = 1,
                 sendKey = true,
                 maxConcurrentThreads = 2,
-                sleepBetweenRetries = 5
-            };
+                sleepBetweenRetries = 5,
+				Txn = this.AerospikeTxn
+			};
 
             batchWritePolicy ??= new BatchWritePolicy()
             {
@@ -1183,12 +1334,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     ParallelOptions parallelOptions = null)
         {
            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
-                            {
-                                maxRetries = 1,
-                                sendKey = true,
-                                maxConcurrentThreads = 2,
-                                sleepBetweenRetries = 5
-                            };
+            {
+                maxRetries = 1,
+                sendKey = true,
+                maxConcurrentThreads = 2,
+                sleepBetweenRetries = 5,
+			    Txn = this.AerospikeTxn
+		   };
 
             batchWritePolicy ??= new BatchWritePolicy()
                                     {
@@ -1264,8 +1416,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 maxRetries = 1,
                 sendKey = true,
                 maxConcurrentThreads = 2,
-                sleepBetweenRetries = 5
-            };
+                sleepBetweenRetries = 5,
+				Txn = this.AerospikeTxn
+			};
 
             batchWritePolicy ??= new BatchWritePolicy()
             {
@@ -1349,8 +1502,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 maxRetries = 1,
                 sendKey = true,
                 maxConcurrentThreads = 2,
-                sleepBetweenRetries = 5
-            };
+                sleepBetweenRetries = 5,
+				Txn = this.AerospikeTxn
+			};
 
             batchWritePolicy ??= new BatchWritePolicy()
             {
@@ -1441,8 +1595,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 maxRetries = 1,
                 maxConcurrentThreads = 2,
                 sleepBetweenRetries = 5,
-                filterExp = filterExpression
-            };
+                filterExp = filterExpression,
+				Txn = this.AerospikeTxn
+			};
 
             if (filterExpression is not null && batchPolicy.filterExp is null)
                 batchPolicy.filterExp = filterExpression;
@@ -1483,6 +1638,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// If a key is not found, there will be no bins associated with the record.
         /// </returns>
         /// <param name="definedBins">internal use</param>
+        /// <seealso cref="BatchRead(IEnumerable{ARecord}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])"/>
+        /// <seealso cref="BatchRead(IEnumerable{Key}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])"/>
         public IEnumerable<ARecord> BatchRead<P>([NotNull] string setName,
                                                     [NotNull] IEnumerable<P> primaryKeys,
                                                     BatchPolicy batchPolicy = null,
@@ -1491,13 +1648,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                     string[] returnBins = null,
                                                     ARecord.DumpTypes dumpType = ARecord.DumpTypes.Record,
                                                     string[] definedBins = null)
-        {            
-            batchPolicy ??= new BatchPolicy(this.DefaultWritePolicy)
+        {
+            batchPolicy ??= new BatchPolicy(this.DefaultReadPolicy)
             {
                 maxRetries = 2,
                 maxConcurrentThreads = 1,
-                filterExp = filterExpression
-            };
+                filterExp = filterExpression,
+				Txn = this.AerospikeTxn
+			};
 
             batchReadPolicy ??= new BatchReadPolicy()
             {
@@ -1531,7 +1689,106 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
         }
 
-		#endregion
+		/// <summary>
+		/// Return a collection of <see cref="ARecord"/> based on <paramref name="primaryKeys"/>
+		/// </summary>
+		/// <param name="primaryKeys">A collection of <seealso cref="Key"/> that will be part of the collection</param>
+		/// <param name="batchPolicy">
+		/// <seealso cref="BatchPolicy"/>
+		/// </param>
+		/// <param name="batchReadPolicy">
+		/// <seealso cref="BatchReadPolicy"/>
+		/// </param>        
+		/// <param name="filterExpression">The expression that will be applied to the result set. Can be null.</param>
+		/// <param name="returnBins">
+		/// Only return these bins
+		/// </param>
+		/// <param name="dumpType"></param> 
+		/// <returns>
+		/// A collection of records based on <paramref name="primaryKeys"/> or an empty collection.
+		/// If a key is not found, there will be no bins associated with the record.
+		/// </returns>
+		/// <param name="definedBins">internal use</param>
+        /// <seealso cref="BatchRead(IEnumerable{ARecord}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])"/>
+        /// <seealso cref="BatchRead{P}(string, IEnumerable{P}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])"/>
+		public IEnumerable<ARecord> BatchRead([NotNull] IEnumerable<Key> primaryKeys,
+													BatchPolicy batchPolicy = null,
+													BatchReadPolicy batchReadPolicy = null,
+													Expression filterExpression = null,
+													string[] returnBins = null,
+													ARecord.DumpTypes dumpType = ARecord.DumpTypes.Record,
+													string[] definedBins = null)
+		{
+			batchPolicy ??= new BatchPolicy(this.DefaultReadPolicy)
+			{
+				maxRetries = 2,
+				maxConcurrentThreads = 1,
+				filterExp = filterExpression,
+				Txn = this.AerospikeTxn
+			};
+
+			batchReadPolicy ??= new BatchReadPolicy()
+			{
+				filterExp = filterExpression
+			};
+
+			var batchList = new List<BatchRead>(primaryKeys.Count());
+
+			foreach(var pk in primaryKeys)
+			{
+				if(returnBins is null)
+					batchList.Add(new BatchRead(batchReadPolicy,
+													pk,
+													true));
+				else
+					batchList.Add(new BatchRead(batchReadPolicy,
+													pk,
+													returnBins));
+			};
+
+			this.AerospikeConnection.AerospikeClient.Get(batchPolicy, batchList);
+
+			foreach(var batch in batchList)
+			{
+				yield return new ARecord(this,
+											batch.key,
+											batch.record,
+											binNames: definedBins ?? returnBins,
+											dumpType: dumpType,
+											inDoubt: batch.inDoubt);
+			}
+		}
+
+		/// <summary>
+		/// Return a collection of <see cref="ARecord" /> based on <paramref name="records" />
+		/// </summary>
+		/// <param name="records">A collection of <seealso cref="ARecord"/> that will be part of the collection</param>
+		/// <param name="batchPolicy"><seealso cref="BatchPolicy" /></param>
+		/// <param name="batchReadPolicy"><seealso cref="BatchReadPolicy" /></param>
+		/// <param name="filterExpression">The expression that will be applied to the result set. Can be null.</param>
+		/// <param name="returnBins">Only return these bins</param>
+		/// <param name="dumpType">Type of the dump.</param>
+		/// <param name="definedBins">internal use</param>
+		/// <returns>A collection of records based on <paramref name="records" /> or an empty collection.
+		/// If a key is not found, there will be no bins associated with the record.</returns>
+		/// <seealso cref="BatchRead{P}(string, IEnumerable{P}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])" />
+		/// <seealso cref="BatchRead(IEnumerable{Key}, BatchPolicy, BatchReadPolicy, Expression, string[], ARecord.DumpTypes, string[])"/>
+		public IEnumerable<ARecord> BatchRead([NotNull] IEnumerable<ARecord> records,
+                                                    BatchPolicy batchPolicy = null,
+                                                    BatchReadPolicy batchReadPolicy = null,
+                                                    Expression filterExpression = null,
+                                                    string[] returnBins = null,
+                                                    ARecord.DumpTypes dumpType = ARecord.DumpTypes.Record,
+                                                    string[] definedBins = null)
+            => this.BatchRead(records.Select(r => r.Aerospike.Key),
+                                batchPolicy,
+                                batchReadPolicy,
+                                filterExpression,
+                                returnBins,
+                                dumpType,
+                                definedBins);
+
+			#endregion
 
 		#endregion
 
@@ -1710,13 +1967,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					maxRetries = this.DefaultWritePolicy.maxRetries,
 					sendKey = this.DefaultWritePolicy.sendKey,
 					maxConcurrentThreads = 5,
-					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries
+					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries,
+                    Txn = this.AerospikeTxn
 				};
 
 				batchWritePolicy ??= new BatchWritePolicy()
 				{
 					sendKey = this.DefaultWritePolicy.sendKey,
-					recordExistsAction = this.DefaultWritePolicy.recordExistsAction
+					recordExistsAction = this.DefaultWritePolicy.recordExistsAction,
+                    commitLevel = this.DefaultWritePolicy.commitLevel
 				};
 
 				var batchArray = new BatchRecord[jsonStructs.Length];
@@ -1943,7 +2202,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					maxRetries = this.DefaultWritePolicy.maxRetries,
 					sendKey = this.DefaultWritePolicy.sendKey,
 					maxConcurrentThreads = 5,
-					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries
+					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries,
+                    Txn = this.AerospikeTxn
 				};
 
 				batchWritePolicy ??= new BatchWritePolicy()
@@ -2371,7 +2631,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         protected object ToDump()
         {
-            return LPU.ToExpando(this, include: "Namespace, DBPlatform, SetNames, BinNames, AerospikeConnection, DefaultReadPolicy, DefaultQueryPolicy, DefaultScanPolicy, DefaultWritePolicy");            
+            return LPU.ToExpando(this, include: "Namespace, DBPlatform, SetNames, BinNames, TransactionId, AerospikeConnection, DefaultReadPolicy, DefaultQueryPolicy, DefaultScanPolicy, DefaultWritePolicy");            
         }
     }
 }

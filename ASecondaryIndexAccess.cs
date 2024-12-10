@@ -1,5 +1,4 @@
 ﻿using Aerospike.Client;
-using LINQPad.Internal;
 using System;
 using System.Collections;
 using System.Collections.Generic;

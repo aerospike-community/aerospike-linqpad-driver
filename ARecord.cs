@@ -12,7 +12,6 @@ using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IO;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -142,7 +141,82 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             }
         }
 
-        public ARecord([NotNull] ARecord cloneRecord)
+		/// <summary>
+		/// Creates an AS AerospikeRecord based on <paramref name="baseRecord"/>.
+		/// </summary>
+        /// <param name="baseRecord">
+        /// The record that will be used as the bases of this record. 
+        /// </param>
+		/// <param name="keyValue">
+        /// If provided, this record will have a new PK, otherwise the PK of the <paramref name="baseRecord"/> is uded.
+        /// </param>
+		/// <param name="binValues">
+        /// A dictionary where the key is the bin name and the value is the bin&apos;s value.
+        /// If provided, this will be merged/replaced with the <paramref name="baseRecord"/> bin values.
+        /// </param>
+		/// <param name="expirationDate">
+		/// Expiration Date of the record.
+        /// If not provided, the value of <paramref name="baseRecord"/> is used.
+		/// Note: If <paramref name="expiration"/> is not null that value is used.
+		/// </param>
+		/// <param name="expiration">
+		/// TTL Epoch in seconds from Jan 01 2010 00:00:00 GMT
+		/// Note: if this value is null, <paramref name="expirationDate"/> is used.
+		/// <see cref="AerospikeAPI.Expiration"/>
+		/// </param>
+		/// <param name="generation">record generation</param>
+		/// <param name="dumpType"><see cref="DumpTypes"/></param>
+		/// <param name="inDoubt">
+		/// For strong consistency, this indicates if this record&apos;s situation is uncertain of a transaction outcome.
+		/// <see cref="AerospikeAPI.InDoubt"/>
+		/// </param>
+		public ARecord([NotNull] ARecord baseRecord,
+							dynamic keyValue = null,
+							IDictionary<string, object> binValues = null,
+							int? expiration = null,
+							DateTimeOffset? expirationDate = null,
+							int? generation = null,
+							DumpTypes? dumpType = null,
+							bool? inDoubt = null)
+		{
+            if(binValues is null)
+                binValues = baseRecord.ToDictionary();
+            else
+				binValues = baseRecord.ToDictionary()
+                                .Concat(binValues)
+                                .GroupBy(p => p.Key)
+                                .ToDictionary(g => g.Key, g => g.Last().Value);
+
+			this.SetAccess = baseRecord.SetAccess;
+			this.Aerospike = new AerospikeAPI(baseRecord.Aerospike.Namespace,
+												baseRecord.Aerospike.SetName,
+												keyValue ?? baseRecord.Aerospike.PrimaryKey,
+												binValues,
+												expiration ?? baseRecord.Aerospike.Expiration,
+												expirationDate,
+												generation ?? baseRecord.Aerospike.Generation,
+												inDoubt ?? baseRecord.Aerospike.InDoubt);
+
+			this.DumpType = dumpType ?? baseRecord.DumpType;
+			this.SetBinsHashCode = baseRecord.SetBinsHashCode;
+			this.FKBins = baseRecord.FKBins;
+
+			this.BinsHashCode = Helpers.GetStableHashCode(binValues.Keys.ToArray());
+
+			if(this.BinsHashCode != this.SetBinsHashCode && this.DumpType == DumpTypes.Record)
+			{
+				if(binValues.Count <= this.Aerospike.BinNames?.Length
+						&& binValues.All(n => this.Aerospike.BinNames.Contains(n.Key)))
+				{ }
+				else
+				{
+					this.DumpType = DumpTypes.Dynamic;
+					this.HasDifferentSchema = true;
+				}
+			}
+		}
+
+		public ARecord([NotNull] ARecord cloneRecord)
         {
             this.SetAccess = cloneRecord.SetAccess;
             this.Aerospike = new AerospikeAPI(cloneRecord.Aerospike);

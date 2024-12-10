@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Aerospike.Client;
 using System.Data;
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics;
 using System.Linq;
 using LPU = LINQPad.Util;
