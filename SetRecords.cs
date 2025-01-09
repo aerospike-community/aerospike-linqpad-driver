@@ -97,11 +97,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		public new T Get([NotNull] dynamic primaryKey, params string[] bins)
         {            
             Client.Key key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
+			var policy = this.DefaultReadPolicy;
 
-            var record = this.SetAccess
+			if(key.userKey.IsNull && policy.sendKey)
+			{
+				policy = policy.Clone();
+				policy.sendKey = false;
+			}
+			var record = this.SetAccess
                                 .AerospikeConnection
                                 .AerospikeClient
-                                .Get(this.DefaultReadPolicy, key, bins.Length == 0 ? null : bins);
+                                .Get(policy, key, bins.Length == 0 ? null : bins);
 
             if (record == null) return null;
 
@@ -136,7 +142,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             var policy = new Client.Policy(this.DefaultReadPolicy) { filterExp = filterExpression };
 
-            var record = this.SetAccess
+			if(key.userKey.IsNull && policy.sendKey)
+			{
+				policy.sendKey = false;
+			}
+
+			var record = this.SetAccess
                                 .AerospikeConnection
                                 .AerospikeClient
                                 .Get(policy, key, bins.Length == 0 ? null : bins);
@@ -1597,11 +1608,18 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public ARecord Get([NotNull] dynamic primaryKey, params string[] bins)
         {            
             var key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
+			var policy = this.DefaultReadPolicy;
 
-            var record = this.SetAccess
+			if(key.userKey.IsNull && policy.sendKey)
+			{
+				policy = policy.Clone();
+				policy.sendKey = false;
+			}
+
+			var record = this.SetAccess
                                 .AerospikeConnection
                                 .AerospikeClient
-                                .Get(this.DefaultReadPolicy, key, bins.Length == 0 ? null : bins);
+                                .Get(policy, key, bins.Length == 0 ? null : bins);
 
             if (record == null) return null;
 
@@ -1635,8 +1653,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             var key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, this.SetName);
 
             var policy = new Client.Policy(this.DefaultReadPolicy) {  filterExp = filterExpression };
+			
+			if(key.userKey.IsNull && policy.sendKey)
+			{
+				policy.sendKey = false;
+			}
 
-            var record = this.SetAccess
+			var record = this.SetAccess
                                 .AerospikeConnection
                                 .AerospikeClient
                                 .Get(policy, key, bins.Length == 0 ? null : bins);

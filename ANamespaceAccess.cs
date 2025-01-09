@@ -740,11 +740,18 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <seealso cref="WriteObject{T}(string, dynamic, T, Func{string, string, object, bool, object}, string, WritePolicy, TimeSpan?)"/>
 		public ARecord Get(string setName, dynamic primaryKey, params string[] bins)
         {
-            var pk = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName);
+            Client.Key pk = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName);
+            var policy = this.DefaultReadPolicy;
+
+            if(pk.userKey.IsNull && policy.sendKey)
+            {
+                policy = policy.Clone();
+                policy.sendKey = false;
+            }
 
             var record = this.AerospikeConnection
                                 .AerospikeClient
-                                .Get(this.DefaultReadPolicy, pk, bins);
+                                .Get(policy, pk, bins);
             var setAccess = this[setName];
 
             return new ARecord(this,
