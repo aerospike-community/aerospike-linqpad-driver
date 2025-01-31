@@ -5,7 +5,7 @@
 	Title="Aerospike Connection Details"
 	Background="{x:Static SystemColors.ControlBrush}"
 	SizeToContent="Height" 
-	WindowStartupLocation="CenterScreen" Icon="/Aerospike.Database.LINQPadDriver;component/Connection.png" Width="550" Height="668">
+	WindowStartupLocation="CenterScreen" Icon="/Aerospike.Database.LINQPadDriver;component/Connection.png" Width="662" Height="713">
 
     <Window.Resources>
         <Style x:Key="DisableOnError" TargetType="Button">

@@ -151,7 +151,8 @@ namespace Aerospike.Database.LINQPadDriver
                                                 connectionInfo.TLSRevokeCerts,
                                                 connectionInfo.TLSClientCertFile,
                                                 connectionInfo.TLSOnlyLogin);
-                }
+                    this.TLSClientCertFile = connectionInfo.TLSClientCertFile;
+				}
                 catch (Exception ex)
                 {
                     throw new AerospikeException($"Exception Occurred while creating the TLS Policy. Error is \"{ex.Message}\"");
@@ -270,8 +271,11 @@ namespace Aerospike.Database.LINQPadDriver
         public TlsPolicy TLS { get; }
 
         public string TLSCertName {  get; }
+        public string TLSClientCertFile { get; }
+        public bool TLSCertFailed { get; private set; }
 
-        public ClientPolicy ClientPolicy { get; private set; }
+
+		public ClientPolicy ClientPolicy { get; private set; }
 
         /// <summary>
         /// Cluster Name
@@ -578,7 +582,7 @@ namespace Aerospike.Database.LINQPadDriver
 
         static readonly Dictionary<string, IAerospikeClient> Connections = new();
 
-        public IAerospikeClient GetConnectionNative(ClientPolicy policy)
+		public IAerospikeClient GetConnectionNative(ClientPolicy policy)
         {
 			if(Client.Log.InfoEnabled())
 			{
@@ -595,8 +599,23 @@ namespace Aerospike.Database.LINQPadDriver
 					}
 					return conn;
                 }
-                
-                var newconn = new AerospikeClient(policy, this.SeedHosts);
+
+                if(this.TLS is not null)
+                {
+					if(Client.Log.InfoEnabled())
+					{
+						Client.Log.Info($"GetConnectionNative Testing Cert Connection Pool {this.ConnectionString}");
+					}
+					this.TLSCertFailed = !CertHelpers.Validate(this.TLS.clientCertificates);
+
+					if(Client.Log.InfoEnabled())
+					{
+						Client.Log.Info($"GetConnectionNative Testing Cert Verified {!this.TLSCertFailed} Connection Pool {this.ConnectionString}");
+					}
+
+				}
+
+				var newconn = new AerospikeClient(policy, this.SeedHosts);
 				Connections.Add(this.ConnectionString, newconn);
 				if(Client.Log.InfoEnabled())
 				{

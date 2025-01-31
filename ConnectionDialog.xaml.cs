@@ -14,6 +14,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
+using LINQPad.Internal;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -38,7 +39,9 @@ namespace Aerospike.Database.LINQPadDriver
                 txtCertFile.IsEnabled = true;
                 txtRejectCerts.IsEnabled = true;
                 btnCertFile.IsEnabled = true;
-            }
+                txtTLSCertName.IsEnabled = true;
+                TLSGrpBox.IsExpanded = true;
+			}
 
             {
                 var nameFnd = false;
@@ -158,7 +161,9 @@ namespace Aerospike.Database.LINQPadDriver
                     txtCertFile.IsEnabled = false;
                     txtRejectCerts.IsEnabled = false;
                     btnCertFile.IsEnabled = false;
-                }
+					txtTLSCertName.IsEnabled = false;
+
+				}
             }
             else if ((string)cb.Tag == "None")
             {
@@ -175,14 +180,16 @@ namespace Aerospike.Database.LINQPadDriver
                         txtCertFile.IsEnabled = true;
                         txtRejectCerts.IsEnabled = true;
                         btnCertFile.IsEnabled = true;
-                    }
+                        txtTLSCertName.IsEnabled = true;
+					}
                     else if (protocolItems.All(c => !c.IsChecked))
                     {
                         cbTLSOnlyLogin.IsEnabled = false;
                         txtCertFile.IsEnabled = false;
                         txtRejectCerts.IsEnabled = false;
                         btnCertFile.IsEnabled = false;
-                        cbDisabled.IsChecked = true;
+						txtTLSCertName.IsEnabled = false;
+						cbDisabled.IsChecked = true;
                     }
                 }
             }
@@ -198,14 +205,16 @@ namespace Aerospike.Database.LINQPadDriver
                         txtCertFile.IsEnabled = true;
                         txtRejectCerts.IsEnabled = true;
                         btnCertFile.IsEnabled = true;
-                    }
+                        txtTLSCertName.IsEnabled = true;
+					}
                     else if (protocolItems.All(c => !c.IsChecked))
                     {
                         cbTLSOnlyLogin.IsEnabled = false;
                         txtCertFile.IsEnabled = false;
                         txtRejectCerts.IsEnabled = false;
                         btnCertFile.IsEnabled = false;
-                        cbDisabled.IsChecked = true;
+						txtTLSCertName.IsEnabled = false;
+						cbDisabled.IsChecked = true;
                     }
                 }                
             }
@@ -247,7 +256,7 @@ namespace Aerospike.Database.LINQPadDriver
 
 		private void btnTestConnection_Click(object sender, RoutedEventArgs e)
         {
-            var localHost = txtSeedNodes.Text;
+			var localHost = txtSeedNodes.Text;
             string messageBoxText = "Trying to Connect...";
             string caption = $"Testing Connection to \"{localHost}\"";
             MessageBoxButton button = MessageBoxButton.OK;
@@ -278,17 +287,32 @@ Cloud Database Id ""{_cxInfo.DatabaseInfo.Database}"" Successfully Connected!";
 Cluster Name: ""{_cxInfo.DatabaseInfo.Database}""
 DB Version: {_cxInfo.DatabaseInfo.DbVersion}
 Nodes: {connection.Nodes.Length}
-Namespaces: {connection.Namespaces.Count()}
-Sets: {connection.Namespaces.Sum(n => n.Sets.Count())}
-Bins: {connection.Namespaces.Sum(n => n.Bins.Count())}
-Secondary Indexes: {connection.Namespaces.Sum(n => n.SIndexes.Count())}
-UDFs: {connection.UDFModules.Count()}";
+Namespaces: {connection.Namespaces?.Count() ?? 0}
+Sets: {connection.Namespaces?.Sum(n => n.Sets.Count()) ?? 0}
+Bins: {connection.Namespaces?.Sum(n => n.Bins.Count()) ?? 0}
+Secondary Indexes: {connection.Namespaces?.Sum(n => n.SIndexes.Count()) ?? 0}
+UDFs: {connection.UDFModules?.Count() ?? 0}";
                     }
                 }
                 catch(Exception ex)
                 {
                     icon = MessageBoxImage.Error;
-                    messageBoxText = $@"
+					if(connection.TLSCertFailed)
+					{
+						messageBoxText = $@"
+
+WARNING: TLS Certificate Failed Chain Validation!
+    Is this certification's CA Trusted?
+    See https://learn.microsoft.com/en-us/skype-sdk/sdn/articles/installing-the-trusted-root-certificate
+        or https://learn.microsoft.com/en-us/windows-hardware/drivers/install/viewing-test-certificates
+    PowerShell Cmd: Import-Certificate –FilePath  '.\{{CA File}}' –CertStoreLocation 'Cert:\CurrentUser\Root'
+
+";
+					}
+                    else
+                        messageBoxText = string.Empty;
+
+					messageBoxText += $@"
 An Exception ""{ex.GetType().Name}"" occurred.
 {ex.Message}
 Source: ""{ex.Source}"" Help Link: ""{ex.HelpLink}"" HResult: ""{ex.HResult}"" TargetSite: ""{ex.TargetSite}""
@@ -323,7 +347,7 @@ Note: The DB seems to be on a private network
 Note: If the DB has Public/NATted/Alternate Addresses,
       you may need to enable ""Public Address"" option!
 ";
-                            }
+                            }                            
                         }
                     }
                 }
@@ -335,6 +359,7 @@ Note: If the DB has Public/NATted/Alternate Addresses,
             finally
             {                
                 waitCursor?.Dispose();
+                connection?.Dispose();
             }
         }
 
