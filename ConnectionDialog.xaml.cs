@@ -15,6 +15,7 @@ using System.Windows.Media;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
 using LINQPad.Internal;
+using Aerospike.Client;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -256,9 +257,11 @@ namespace Aerospike.Database.LINQPadDriver
 
 		private void btnTestConnection_Click(object sender, RoutedEventArgs e)
         {
+            //System.Diagnostics.Debugger.Launch();
 			var localHost = txtSeedNodes.Text;
             string messageBoxText = "Trying to Connect...";
-            string caption = $"Testing Connection to \"{localHost}\"";
+			string additionalInfo = string.Empty;
+			string caption = $"Testing Connection to \"{localHost}\"";
             MessageBoxButton button = MessageBoxButton.OK;
             MessageBoxImage icon = MessageBoxImage.Information;
             AerospikeConnection connection = null;
@@ -269,6 +272,8 @@ namespace Aerospike.Database.LINQPadDriver
             {                
                 try
                 {
+                    var orgCertName = txtTLSCertName.Text;
+
                     var testTask = System.Threading.Tasks.Task.Run(() =>
                     {
                         connection = new AerospikeConnection(_cxInfo);
@@ -282,7 +287,24 @@ namespace Aerospike.Database.LINQPadDriver
 Cloud Database Id ""{_cxInfo.DatabaseInfo.Database}"" Successfully Connected!";
                     }
                     else
-                    {
+                    {                        
+                        if(_cxInfo.DatabaseInfo.EncryptTraffic)
+                        {
+							additionalInfo += $@"
+TLS Certification Verification Status: {connection.TLSCertVerification}
+";
+
+							if(connection.TLSCertName != orgCertName)
+                            {                                
+                                txtTLSCertName.Text = connection.TLSCertName;
+                                additionalInfo += $@"
+
+Warning: TLS Common Name was Missing. 
+    Using TLS Common Name '{connection.TLSCertName}' from within the Certification.
+";
+                            }
+                        }
+
                         messageBoxText = $@"
 Cluster Name: ""{_cxInfo.DatabaseInfo.Database}""
 DB Version: {_cxInfo.DatabaseInfo.DbVersion}
@@ -291,23 +313,48 @@ Namespaces: {connection.Namespaces?.Count() ?? 0}
 Sets: {connection.Namespaces?.Sum(n => n.Sets.Count()) ?? 0}
 Bins: {connection.Namespaces?.Sum(n => n.Bins.Count()) ?? 0}
 Secondary Indexes: {connection.Namespaces?.Sum(n => n.SIndexes.Count()) ?? 0}
-UDFs: {connection.UDFModules?.Count() ?? 0}";
+UDFs: {connection.UDFModules?.Count() ?? 0}{additionalInfo}";
                     }
                 }
                 catch(Exception ex)
                 {
-                    icon = MessageBoxImage.Error;
-					if(connection.TLSCertFailed)
-					{
-						messageBoxText = $@"
+                    messageBoxText = "\n";
 
-WARNING: TLS Certificate Failed Chain Validation!
-    Is this certification's CA Trusted?
+                    icon = MessageBoxImage.Error;
+					if(connection is not null
+                            && connection.TLSCertVerification != CertHelpers.ResultCodes.Success
+                            && connection.TLSCertVerification != CertHelpers.ResultCodes.Unknown)
+					{
+						messageBoxText += $@"
+WARNING: TLS Certificate Validation Failed with {connection.TLSCertVerification}!";
+						switch(connection.TLSCertVerification)
+                        {
+                            case CertHelpers.ResultCodes.WrongTLSCommonName:
+								messageBoxText += $@"
+    Is the TLS Common Name Correct?
+        Try without a TLS Name and Re-Test to obtain the name from the cert...
+    Do you have the correct Certificate File?";
+                                break;
+							case CertHelpers.ResultCodes.Premature:
+								messageBoxText += $@"
+    This Certificate is Premature... Do you have the correct cert file?";
+                                break;
+							case CertHelpers.ResultCodes.Expired:
+								messageBoxText += $@"
+    This Certificate is Expired... Do you have the correct cert file?";
+                                break;
+                            case CertHelpers.ResultCodes.InvalidChain:
+								messageBoxText += $@"
+    Is this the correct Certificate?
+    Does this Certificate's Root CA trusted and in the proper Cert Store?
     See https://learn.microsoft.com/en-us/skype-sdk/sdn/articles/installing-the-trusted-root-certificate
         or https://learn.microsoft.com/en-us/windows-hardware/drivers/install/viewing-test-certificates
-    PowerShell Cmd: Import-Certificate –FilePath  '.\{{CA File}}' –CertStoreLocation 'Cert:\CurrentUser\Root'
-
-";
+    PowerShell Cmd to Import the Root CA: Import-Certificate –FilePath  '.\{{CA File}}' –CertStoreLocation 'Cert:\CurrentUser\Root'";
+								break;
+                            default:
+                                break;
+                        }
+                        messageBoxText += "\n";
 					}
                     else
                         messageBoxText = string.Empty;
@@ -336,7 +383,7 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
                                     messageBoxText += $@"
 
 Note: The DB seems to be on a private network
-      and ""Public Address"" option is enabled! Should this be disabled?
+      and ""Public Address"" option for this connection is enabled! Should this be disabled?
 ";
                                 }
                             }
@@ -345,7 +392,7 @@ Note: The DB seems to be on a private network
                                 messageBoxText += $@"
 
 Note: If the DB has Public/NATted/Alternate Addresses,
-      you may need to enable ""Public Address"" option!
+      you may need to enable ""Public Address"" option for this connection!
 ";
                             }                            
                         }

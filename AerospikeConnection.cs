@@ -87,6 +87,13 @@ namespace Aerospike.Database.LINQPadDriver
             {
                 this.UseExternalIP = connectionInfo.UseExternalIP;                
                 this.NetworkCompression = connectionInfo.NetworkCompression;
+
+                if(encryptTraffic)
+                {
+					this.TLSClientCertFile = connectionInfo.TLSClientCertFile;
+					(this.TLSCertVerification, this.TLSCertName)
+                        = AerospikeConnection.ValidateCert(this.TLSClientCertFile, this.TLSCertName);
+				}
             }            
 
             this.DBVersion = new Version();
@@ -150,8 +157,7 @@ namespace Aerospike.Database.LINQPadDriver
                     this.TLS = new TlsPolicy(connectionInfo.TLSProtocols,
                                                 connectionInfo.TLSRevokeCerts,
                                                 connectionInfo.TLSClientCertFile,
-                                                connectionInfo.TLSOnlyLogin);
-                    this.TLSClientCertFile = connectionInfo.TLSClientCertFile;
+                                                connectionInfo.TLSOnlyLogin);                    
 				}
                 catch (Exception ex)
                 {
@@ -175,6 +181,8 @@ namespace Aerospike.Database.LINQPadDriver
             }
 
         }
+
+
 
         public IConnectionInfo CXInfo { get; }
 
@@ -270,10 +278,9 @@ namespace Aerospike.Database.LINQPadDriver
 
         public TlsPolicy TLS { get; }
 
-        public string TLSCertName {  get; }
+        public string TLSCertName { get; }
         public string TLSClientCertFile { get; }
-        public bool TLSCertFailed { get; private set; }
-
+        public CertHelpers.ResultCodes TLSCertVerification { get; }
 
 		public ClientPolicy ClientPolicy { get; private set; }
 
@@ -598,22 +605,7 @@ namespace Aerospike.Database.LINQPadDriver
 						Client.Log.Info($"GetConnectionNative Fnd Connection Pool {this.ConnectionString}");
 					}
 					return conn;
-                }
-
-                if(this.TLS is not null)
-                {
-					if(Client.Log.InfoEnabled())
-					{
-						Client.Log.Info($"GetConnectionNative Testing Cert Connection Pool {this.ConnectionString}");
-					}
-					this.TLSCertFailed = !CertHelpers.Validate(this.TLS.clientCertificates);
-
-					if(Client.Log.InfoEnabled())
-					{
-						Client.Log.Info($"GetConnectionNative Testing Cert Verified {!this.TLSCertFailed} Connection Pool {this.ConnectionString}");
-					}
-
-				}
+                }                
 
 				var newconn = new AerospikeClient(policy, this.SeedHosts);
 				Connections.Add(this.ConnectionString, newconn);
@@ -625,7 +617,7 @@ namespace Aerospike.Database.LINQPadDriver
 			}
         }
 
-		public IAerospikeClient GetConnectionCloud(ClientPolicy policy)
+		public IAerospikeClient GetConnectionCloud(ClientPolicy _)
 		{
 			if(Client.Log.InfoEnabled())
 			{
@@ -830,6 +822,45 @@ namespace Aerospike.Database.LINQPadDriver
 		/// <param name="txn">multi-record transaction</param>
 		public CommitStatus.CommitStatusType Commit(Txn txn)
             => this.AerospikeClient?.Commit(txn) ?? CommitStatus.CommitStatusType.CLOSE_ABANDONED;
+
+        private static (CertHelpers.ResultCodes, string) ValidateCert(string certFilePath, string certName)
+        {
+			if(Client.Log.InfoEnabled())
+			{
+				Client.Log.Info($"ValidateCert Testing Cert from path '{certFilePath}' issue to {certName}");
+			}
+				
+            var certResult = CertHelpers.Validate(certFilePath);
+            var issueto = CertHelpers.ToIssuer(certResult.Item2);
+            var result = certResult.Item1;
+            
+			if(string.IsNullOrEmpty(certName))
+			{
+				if(Client.Log.InfoEnabled())
+				{
+					Client.Log.Info($"ValidateCert Cert Using CN {issueto} from path '{certFilePath}' issue to {certName}");
+				}
+				certName = issueto;
+			}
+			else if(!string.IsNullOrEmpty(issueto) && certName != issueto)
+			{
+				if(result == CertHelpers.ResultCodes.Success
+                        || result == CertHelpers.ResultCodes.Unknown)
+					result = CertHelpers.ResultCodes.WrongTLSCommonName;
+
+				if(Client.Log.InfoEnabled())
+				{
+					Client.Log.Info($"ValidateCert Cert CN Provided {certName} but found CN {issueto} from path '{certFilePath}' issue to {certName}");
+				}
+			}
+
+			if(Client.Log.InfoEnabled())
+			{
+				Client.Log.Info($"ValidateCert Testing Cert Verified {result} Subject '{certResult.Item2}' from path '{certFilePath}' issue to {certName}");
+			}
+
+            return (result, certName);
+		}
 
 		/// <summary>
 		/// Abort and rollback the given multi-record transaction.

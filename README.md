@@ -265,7 +265,7 @@ public class InvoiceLine
 
 Below is the output from LINQPad:
 
-![A screenshot of a computer Description automatically generated](media/ae6910dfe7fed97988b59ca7946cc3ff.png)
+![A screenshot of a computer Description automatically generated](media/e9ae881760dd2e88e11093a880e7b3c3.png)
 
 ## Json Support
 
@@ -376,7 +376,7 @@ The dialog is divided into multiple sections.
 
 The sections are:
 
-1.  Self-Managed/Cloud tabs. Each tab provides the parameters needed to connect to an Aerospike cluster based on the targeted platform.
+1.  Self-Managed. Each tab provides the parameters needed to connect to an Aerospike cluster based on the targeted platform.
 2.  This section provides the general policies and features used by the [Aerospike C\# driver](https://github.com/aerospike/aerospike-client-csharp) or LINQPad feature.
 3.  Display/Conversion Options expansion panel, provides the options needed for auto-set bin discovery, serialization/deserialization options, use of [auto-values](#auto-values), record display views, etc.
 4.  Buttons are used to determine if the options are saved, canceled, or to test the connection.
@@ -409,7 +409,8 @@ The properties are:
 18. The Display/Conversion Options expansion panel (see below).
 19. If enabled, the connection properties and features are persisted so that the connection can be used between LINQPad sessions.
 20. If enabled, this connection is considered “production only” and certain operations like “truncate” are not allowed.
-21. If pressed, the connection properties are used to establish a test connection to the cluster.
+21. If pressed, the connection properties are used to establish a test connection to the cluster.  
+    **Note**: If you enabled TLS the provided certificate is validated.
 22. Closes the dialog and makes the connection available to LINQPad.
 23. Closes the dialog and none of the changes are saved/persisted.
 
@@ -422,9 +423,13 @@ The options needed to establish a [TLS connection to an Aerospike cluster](https
 Fields are:
 
 1.  The [TLS protocols](https://aerospike.com/docs/server/guide/security/tls) that can be used. Multiple protocols can be selected.
-2.  The common name that was used in the certificate. For more information [click here](https://aerospike.com/docs/apidocs/csharp/html/f_aerospike_client_host_tlsname).
-3.  The client certificate file as a path. You can select the file by pressing the “Select a File” button on the far right.
-4.  Selects the client certificate file.
+2.  The common name (i.e., Issue To) that was used in the certificate. For more information [click here](https://aerospike.com/docs/apidocs/csharp/html/f_aerospike_client_host_tlsname).
+
+    **Note**: If you leave this blank and press the “Test” button, the certificate is validated, and this field is filled on the value found in the certificate.
+
+3.  The client certificate file as a path. You can select the file by pressing the “Select a File” button on the far right.  
+    **Note**: If you press the “**Test**” button, the certificate is validated ensuing that the chaining and TLS Common Name are correct. It ensures that the certificate is not expired.
+4.  Select the client certificate file.
 5.  Reject server certificates whose serial numbers match.
 6.  If enabled, TLS is only used for authentication (login).
 

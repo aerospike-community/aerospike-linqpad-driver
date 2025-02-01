@@ -5,22 +5,25 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Text;
 using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Aerospike.Database.LINQPadDriver
 {
-	internal static class CertHelpers
+	public static partial class CertHelpers
 	{
-		private static byte[] ConvertPEMtoDER(byte[] pemData)
+		public enum ResultCodes
 		{
-			// strips ---HEADERS--- then base64-decodes the PEM body to arrive at the
-			// DER-encoded certificate data
-			string b64String = Encoding.UTF8.GetString(pemData);
-			b64String = Regex.Replace(b64String, "-+BEGIN CERTIFICATE-+", "");
-			b64String = Regex.Replace(b64String, "-+END CERTIFICATE-+", "");
-			return Convert.FromBase64String(b64String.Trim());
+			Unknown = 0,
+			Success,
+			NotFound,
+			Expired,
+			Premature,
+			NoTLSCommonName,
+			WrongTLSCommonName,
+			InvalidChain
 		}
 
-		internal static X509Certificate2 LoadCertificateFromFile(string certificatePath)
+		public static X509Certificate2 LoadCertificateFromFile(string certificatePath)
 		{
 			byte[] derData;
 
@@ -37,26 +40,35 @@ namespace Aerospike.Database.LINQPadDriver
 			return new X509Certificate2(derData);
 		}
 
-		internal static bool Validate(string certificatePath, IEnumerable<string> caAndChainPaths = null)
+		public static (ResultCodes, string) Validate(string certificatePath, IEnumerable<string> caAndChainPaths = null)
 		{
+			if(string.IsNullOrEmpty(certificatePath)
+				|| !File.Exists(certificatePath))
+			{
+				return (ResultCodes.NotFound, null);
+			}
 
 			using var certificateUnderValidation = LoadCertificateFromFile(certificatePath);
 			return Validate(certificateUnderValidation, caAndChainPaths);
 		}
 
-		internal static bool Validate(X509Certificate2 certificateUnderValidation, IEnumerable<string> caAndChainPaths = null)
+		public static (ResultCodes, string) Validate(X509Certificate2 certificateUnderValidation, IEnumerable<string> caAndChainPaths = null)
 		{
-
-			X509Certificate2Collection caAndChain = null;
-
-			if(caAndChainPaths is not null && caAndChainPaths.Any())
+			if(certificateUnderValidation is null)
 			{
-				caAndChain = new X509Certificate2Collection(caAndChainPaths.Select(file => LoadCertificateFromFile(file)).ToArray());
+				return (ResultCodes.NotFound, null);
 			}
 
+			var subject = certificateUnderValidation.Subject;
+
+			if(string.IsNullOrEmpty(subject))
+			{
+				return (ResultCodes.NoTLSCommonName, null);
+			}
+			
 			using var chain = new X509Chain();
 
-			if(caAndChain is not null)
+			if(caAndChainPaths is not null && caAndChainPaths.Any())
 			{
 				// .NET 5+ has a new 'CustomTrustStore' mode that permits ignoring the OS trust
 				// and ExtraTrust stores, and explicitly verify against an expected root CA (and
@@ -64,23 +76,76 @@ namespace Aerospike.Database.LINQPadDriver
 				// the use of AllowUnknownCertificateAuthority, and allows us to trust the
 				// X509Chain.Build() verification result without extra steps.
 				chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
-				chain.ChainPolicy.CustomTrustStore.AddRange(caAndChain);
+				chain.ChainPolicy
+						.CustomTrustStore
+						.AddRange(new X509Certificate2Collection(caAndChainPaths
+																	.Select(file =>
+																			LoadCertificateFromFile(file))
+																				.ToArray()));
 			}
 			chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-			return chain.Build(certificateUnderValidation);
+
+			if(DateTime.Now <= certificateUnderValidation.NotBefore)
+			{
+				return (ResultCodes.Premature, subject);
+			}
+			if(certificateUnderValidation.NotAfter < DateTime.Now)
+			{
+				return (ResultCodes.Expired, subject);
+			}
+			
+			return chain.Build(certificateUnderValidation)
+					? (ResultCodes.Success, subject)
+					: (ResultCodes.InvalidChain, subject);
 		}
 
-		internal static bool Validate(X509CertificateCollection certificates, IEnumerable<string> caAndChainPaths = null)
+		public static (ResultCodes, string) Validate(X509CertificateCollection certificates, IEnumerable<string> caAndChainPaths = null)
 		{
-			foreach(X509Certificate2 cert in certificates)
+			if(certificates is null)
 			{
-				if(!Validate(cert, caAndChainPaths))
-				{
-					return false;					
-				}
+				return (ResultCodes.NotFound, null);
 			}
 
-			return true;
+			string lastSubject = null;
+
+			foreach(var cert in certificates.Cast<X509Certificate2>())
+			{
+				var result = Validate(cert, caAndChainPaths);
+				if(result.Item1 != ResultCodes.Success)
+				{
+					return result;
+				}
+				lastSubject = result.Item2;
+			}
+
+			return (ResultCodes.Success, lastSubject);
 		}
+
+		const string CertSubjectStr = @"CN=(?<issueto>[^, ]+),?\s*";
+
+#if NET7_0_OR_GREATER
+		//CN=tls1, O=Aerolab, S=CA, C=US
+		[GeneratedRegex(CertSubjectStr,
+							RegexOptions.IgnoreCase | RegexOptions.Compiled)]
+		private static partial Regex CertSubjectRegEx();
+#else
+        readonly static Regex CertSubjectRegExVar = new Regex(CertSubjectStr,
+																RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static Regex CertSubjectRegEx() => CertSubjectRegExVar;
+#endif
+
+		public static string ToIssuer(string subject)
+		{
+			if(string.IsNullOrEmpty(subject))
+				return null;
+
+			var match = CertSubjectRegEx().Match(subject);
+
+			if(match.Success)
+				return match.Groups["issueto"].Value;
+
+			return null;
+		}
+
 	}
 }
