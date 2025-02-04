@@ -100,7 +100,7 @@ namespace Aerospike.Database.LINQPadDriver
         {
             OpenFileDialog openFileDialog = new OpenFileDialog()
             {
-                Filter = "Cert files (*.cer;*.crt;*.cert)|*.cer;*.crt;*.cert|All files (*.*)|*.*",
+                Filter = "Cert files (*.cer;*.crt;*.cert;*.pem)|*.cer;*.crt;*.cert;*.pem|All files (*.*)|*.*",
                 Title = "Select Certificate File",
                 CheckPathExists = true,
                 CheckFileExists = true,
@@ -117,8 +117,10 @@ namespace Aerospike.Database.LINQPadDriver
 				openFileDialog.FileName = txtCertFile.Text;
                 openFileDialog.DefaultExt = System.IO.Path.GetExtension(txtCertFile.Text);                
             }
-            if (openFileDialog.ShowDialog() == true)
+            if(openFileDialog.ShowDialog() == true)
+            {
                 txtCertFile.Text = openFileDialog.FileName;
+            }
         }
         
         private void cbAllDTNumeric_Checked(object sender, RoutedEventArgs e)

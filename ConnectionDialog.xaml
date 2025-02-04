@@ -102,13 +102,13 @@
                                                     TLS Certificate Common Name:
                                                 </Hyperlink>
                                             </Label>
-                                            <TextBox Name="txtTLSCertName" Padding="2" ToolTip="TLS certificate common name used for secure connections. The certificate must exist in your Trusted Root Certification repository." MaxLines="1" MinLines="1" Text="{Binding TLSCertName}" Margin="0,0,5,5" IsEnabled="False"/>
+                                            <TextBox Name="txtTLSCertName" Padding="2" ToolTip="TLS certificate common name used for secure connections. The certificate must exist in your Trusted Root Certification repository." MaxLines="1" MinLines="1" Text="{Binding TLSCertName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,5,5" IsEnabled="False"/>
                                         </StackPanel>
                                         <StackPanel>
                                             <Label Padding="0,0,0,2">Client Certificate File:</Label>
                                             <DockPanel HorizontalAlignment="Stretch" LastChildFill="True">
                                                 <Button Name="btnCertFile" Click="btnCertFile_Click" DockPanel.Dock="Right"  Margin="5,0,5,5" FontSize="8" ToolTip="Select Certificate File" IsEnabled="False">Select File</Button>
-                                                <TextBox Name="txtCertFile" Padding="2" ToolTip="File containing the client certs" MaxLines="1" MinLines="1" Text="{Binding TLSClientCertFile}" Margin="0,0,0,5" HorizontalContentAlignment="Stretch" IsEnabled="False"/>
+                                                <TextBox Name="txtCertFile" Padding="2" ToolTip="File containing the client certs" MaxLines="1" MinLines="1" Text="{Binding TLSClientCertFile, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,5" HorizontalContentAlignment="Stretch" IsEnabled="False"/>
                                             </DockPanel>
                                         </StackPanel>
                                         <StackPanel>
@@ -152,7 +152,7 @@
                                 <TextBox Name="txtCldVPCServerName" Padding="2" ToolTip="The original cloud host name. Host Name field should be the VPC End Point." TextWrapping="WrapWithOverflow" Text="{Binding TLSCertName}" Margin="1,0,0,5" />
                                 <StackPanel Orientation="Horizontal">
                                     <Label Padding="0,0,0,2" VerticalAlignment="Center">API Key:</Label>
-                                    <TextBox Name="txtAPIKey" Padding="2" ToolTip="API Key" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.UserName}" Width="250" HorizontalAlignment="Left" Margin="5,0,0,5" TextChanged="txtCloudField_TextChanged"/>
+                                    <TextBox Name="txtAPIKey" Padding="2" ToolTip="API Key" MaxLines="1" MinLines="1" Text="{Binding ConnectionInfo.DatabaseInfo.UserName, UpdateSourceTrigger=PropertyChanged}" Width="250" HorizontalAlignment="Left" Margin="5,0,0,5" TextChanged="txtCloudField_TextChanged"/>
                                     <Button Name="btnKeyFile" Click="btnKeyFile_Click" Margin="5,0,5,5" FontSize="8" ToolTip="Use the API Key CSV File to populate Key and Secret">Use API Key File</Button>
                                 </StackPanel>
                                 <CheckBox IsChecked="{Binding UsePasswordManager}" Name="cbCldUsePassMgr" Click="cbCldUsePassMgr_Click" ToolTip="Use the LINQPad Password Manager is available via the File menu" HorizontalAlignment="Left" Margin="12,0,0,5">
