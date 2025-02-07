@@ -454,22 +454,7 @@ namespace Aerospike.Database.LINQPadDriver
 					queryPolicy,
 					scanPolicy)
 		{{ }}
-
-        /// <summary>
-		/// Initializes a new instance of <see cref=""{this.SafeName}_NamespaceCls""/> as an Aerospike transactional unit.
-        /// If <see cref=""Commit""/> method is not called the server will abort (rollback) this transaction.
-		/// </summary>
-		/// <param name=""baseNS"">Base Namespace instance</param>
-		/// <param name=""txn"">The Aerospike <see cref=""Aerospike.Client.Txn""/> instance</param>
-		/// <exception cref=""System.ArgumentNullException"">txn</exception>
-		/// <exception cref=""System.ArgumentNullException"">clone</exception>
-        /// <seealso cref=""CreateTransaction""/>
-        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Commit""/>
-        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Abort""/>
-		public {this.SafeName}_NamespaceCls({this.SafeName}_NamespaceCls baseNS, Aerospike.Client.Txn txn)
-            : base(baseNS, txn)
-		{{ }}
-
+        
 		/// <summary>
 		/// Clones the specified instance providing new policies, if provided.
 		/// </summary>
@@ -498,24 +483,90 @@ namespace Aerospike.Database.LINQPadDriver
             return new {this.SafeName}_NamespaceCls(this, Aerospike.Client.Exp.Build(exp));
         }}
 
-        /// <summary>
-		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
-		/// </summary>
-        /// <param name=""timeout"">
-		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
-		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
-		/// a commit or abort is called, the server will expire and rollback the MRT.
-        /// Defaults to 10 seconds.
-		/// </param>
-		/// <returns>Transaction Namespace instance</returns>
-        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Commit""/>
-        /// <seealso cref=""Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Abort""/>
-		new public {this.SafeName}_NamespaceCls CreateTransaction(int timeout = 10) => new(this, new Aerospike.Client.Txn() {{ Timeout = timeout }});
-
 		public IAerospikeClient ASClient() => this.AerospikeConnection.AerospikeClient;
 		        
 		{setClasses}
 		{setProps}
+
+        /// <summary>
+	    /// Used to create an Aerospike Multi-Record Transaction. 
+	    /// It wraps an <see cref=""ANamespaceAccess""/> object which creates a set of new set of <see cref=""Policy""/> that use <see cref=""Txn""/> object.
+	    /// </summary>
+        /// <seealso cref=""ATransaction""/>
+        public class Transaction : {this.SafeName}_NamespaceCls, Aerospike.Database.LINQPadDriver.Extensions.IATransaction
+        {{
+            internal Transaction({this.SafeName}_NamespaceCls baseNS,
+                                    int mrtTimeout = 10,
+									int commitRetries = 1,
+									int retrySleepMS = 1000)
+                : base(baseNS)
+            {{
+                this.Trans = new(baseNS,
+									new Aerospike.Client.Txn() {{Timeout = mrtTimeout}},
+									commitRetries,
+									retrySleepMS);          
+            }}
+
+            private readonly Aerospike.Database.LINQPadDriver.Extensions.ATransaction Trans;
+
+            /// <inheritdoc cref=""IATransaction.Txn"" />
+            public Aerospike.Client.Txn Txn => this.Trans.Txn;
+            /// <inheritdoc cref=""IATransaction.CommitRetries"" />
+            public int CommitRetries {{ get => this.Trans.CommitRetries;
+                                        set {{ this.Trans.CommitRetries = value;  }}
+                                     }}
+            /// <inheritdoc cref=""IATransaction.RetrySleepMS"" />
+            public int RetrySleepMS {{ get => this.Trans.RetrySleepMS;
+                                        set {{ this.Trans.RetrySleepMS = value; }}
+                                    }}
+            /// <inheritdoc cref=""IATransaction.MRTTimeoutSecs"" />
+            public int MRTTimeoutSecs => this.Trans.MRTTimeoutSecs;
+            /// <inheritdoc cref=""IATransaction.TransactionId"" />
+            public long TransactionId => this.Trans.TransactionId;
+            /// <inheritdoc cref=""IATransaction.Parent"" />
+            public Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess
+                            Parent => this.Trans.Parent;
+            /// <inheritdoc cref=""IATransaction.State"" />
+            public Aerospike.Database.LINQPadDriver.Extensions.TransactionStates
+                            State => this.Trans.State;
+            /// <inheritdoc cref=""IATransaction.CommitStatus"" />
+            public Aerospike.Database.LINQPadDriver.Extensions.CommitResults
+                            CommitStatus => this.Trans.CommitStatus;
+            /// <inheritdoc cref=""iATransaction.AbortStatus"" />
+            public Aerospike.Database.LINQPadDriver.Extensions.AbortResults
+                            AbortStatus => this.Trans.AbortStatus;
+            /// <inheritdoc cref=""IATransaction.Commit()"" />
+            public Aerospike.Database.LINQPadDriver.Extensions.CommitResults
+                            Commit() => this.Trans.Commit();
+            /// <inheritdoc cref=""IATransaction.Abort()"" />
+            public Aerospike.Database.LINQPadDriver.Extensions.AbortResults
+                            Abort() => this.Trans.Abort();
+            /// <summary>
+		    /// Creates an new Aerospike transaction.
+		    /// </summary>
+            /// <inheritdoc cref=""ATransaction.CreateTransaction(int,int,int)""/>
+            public new Transaction CreateTransaction(int mrtTimeout = 10,
+													    int commitRetries = 1,
+														int retrySleepMS = 1000) 
+                            => new(this,
+                                    mrtTimeout,
+									commitRetries,
+									retrySleepMS);
+
+            public object ToDump() => this.Trans.ToDump();
+        }}
+
+        /// <summary>
+		/// Creates an new Aerospike transaction.
+		/// </summary>
+        /// <inheritdoc cref=""ANamespaceAccess.CreateTransaction(int,int,int)""/>
+        public new Transaction CreateTransaction(int mrtTimeout = 10,
+													    int commitRetries = 1,
+														int retrySleepMS = 1000) 
+                            => new(this,
+                                    mrtTimeout,
+									commitRetries,
+									retrySleepMS);
 	}}",
 
             //Code to access namespace properties. 

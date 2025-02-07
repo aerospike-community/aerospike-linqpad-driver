@@ -193,9 +193,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsNull(ns.DefaultReadPolicy.Txn);
 			Assert.IsNull(ns.DefaultScanPolicy.Txn);
 
-			Assert.IsFalse(ns.TransactionId.HasValue);
-			Assert.IsNull(ns.AerospikeTxn);
-
 			var txnNS = ns.CreateTransaction();
 
 			Assert.IsNull(ns.DefaultQueryPolicy.Txn);
@@ -203,16 +200,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsNull(ns.DefaultReadPolicy.Txn);
 			Assert.IsNull(ns.DefaultScanPolicy.Txn);
 
-			Assert.IsFalse(ns.TransactionId.HasValue);
-			Assert.IsNull(ns.AerospikeTxn);
-
 			Assert.IsNotNull(txnNS.DefaultQueryPolicy.Txn);
 			Assert.IsNotNull(txnNS.DefaultWritePolicy.Txn);
 			Assert.IsNotNull(txnNS.DefaultReadPolicy.Txn);
 			Assert.IsNotNull(txnNS.DefaultScanPolicy.Txn);
-
-			Assert.IsTrue(txnNS.TransactionId.HasValue);
-			Assert.IsNotNull(txnNS.AerospikeTxn);
 
 		}
 
@@ -226,18 +217,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsNull(ns.DefaultReadPolicy.Txn);
 			Assert.IsNull(ns.DefaultScanPolicy.Txn);
 
-			Assert.IsFalse(ns.TransactionId.HasValue);
-			Assert.IsNull(ns.AerospikeTxn);
-
 			var nsSet = new SetRecords(ns, "mySet1", "Bina", "Binb", "Binc", "Bine", "Bind", "Bina");
 
 			Assert.IsNull(nsSet.DefaultQueryPolicy.Txn);
 			Assert.IsNull(nsSet.DefaultWritePolicy.Txn);
 			Assert.IsNull(nsSet.DefaultReadPolicy.Txn);
 			Assert.IsNull(nsSet.DefaultScanPolicy.Txn);
-
-			Assert.IsFalse(nsSet.TransactionId.HasValue);
-			Assert.IsNull(nsSet.AerospikeTxn);
 
 			var mrtSet = nsSet.CreateTransaction();
 
@@ -246,29 +231,19 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsNull(ns.DefaultReadPolicy.Txn);
 			Assert.IsNull(ns.DefaultScanPolicy.Txn);
 
-			Assert.IsFalse(ns.TransactionId.HasValue);
-			Assert.IsNull(ns.AerospikeTxn);
-
 			Assert.IsNull(nsSet.DefaultQueryPolicy.Txn);
 			Assert.IsNull(nsSet.DefaultWritePolicy.Txn);
 			Assert.IsNull(nsSet.DefaultReadPolicy.Txn);
 			Assert.IsNull(nsSet.DefaultScanPolicy.Txn);
-
-			Assert.IsFalse(nsSet.TransactionId.HasValue);
-			Assert.IsNull(nsSet.AerospikeTxn);
 
 			Assert.IsNotNull(mrtSet.DefaultQueryPolicy.Txn);
 			Assert.IsNotNull(mrtSet.DefaultWritePolicy.Txn);
 			Assert.IsNotNull(mrtSet.DefaultReadPolicy.Txn);
 			Assert.IsNotNull(mrtSet.DefaultScanPolicy.Txn);
 
-			Assert.IsTrue(mrtSet.TransactionId.HasValue);
-			Assert.IsNotNull(mrtSet.AerospikeTxn);
-
 			var mrtSet2 = mrtSet.CreateTransaction();
 
-			Assert.IsTrue(mrtSet2.TransactionId.HasValue);
-			Assert.IsNotNull(mrtSet2.AerospikeTxn);
+			Assert.IsNotNull(mrtSet2.Txn);
 			Assert.AreNotEqual(mrtSet.TransactionId, mrtSet2.TransactionId);
 
 		}
@@ -278,38 +253,29 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 		{
 			var ns = new ANamespaceAccess("myNamespace", new[] { "Bina", "Binb", "Binc", "Bina", "Binc", "Bine", "Bind", "Bind" });
 
-			Assert.IsFalse(ns.TransactionId.HasValue);
-			Assert.IsNull(ns.AerospikeTxn);
-
 			var mrtNS = ns.CreateTransaction();
 
-			Assert.IsTrue(mrtNS.TransactionId.HasValue);
-			Assert.IsNotNull(mrtNS.AerospikeTxn);
+			Assert.IsNotNull(mrtNS.DefaultWritePolicy.Txn);
 
 			var mrtSet1 = new SetRecords(mrtNS, "mySet1", "Bina", "Binb", "Binc", "Bine", "Bind", "Bina");
 
-			Assert.IsTrue(mrtSet1.TransactionId.HasValue);
-			Assert.IsNotNull(mrtSet1.AerospikeTxn);
+			Assert.IsNotNull(mrtSet1.DefaultWritePolicy.Txn);
 
 			var mrtSet2 = new SetRecords(mrtSet1);
 
-			Assert.IsTrue(mrtSet2.TransactionId.HasValue);
-			Assert.IsNotNull(mrtSet2.AerospikeTxn);
+			Assert.IsNotNull(mrtSet2.DefaultWritePolicy.Txn);
 
 			mrtSet2 = mrtSet1.Clone();
 
-			Assert.IsTrue(mrtSet2.TransactionId.HasValue);
-			Assert.IsNotNull(mrtSet2.AerospikeTxn);
+			Assert.IsNotNull(mrtSet2.DefaultWritePolicy.Txn);
 
 			mrtSet1 = new SetRecords(ns, "mySet1", "Bina", "Binb", "Binc", "Bine", "Bind", "Bina");
 
-			Assert.IsFalse(mrtSet1.TransactionId.HasValue);
-			Assert.IsNull(mrtSet1.AerospikeTxn);
+			Assert.IsNull(mrtSet1.DefaultWritePolicy.Txn);
 
 			mrtSet2 = mrtSet1.Clone();
 
-			Assert.IsFalse(mrtSet2.TransactionId.HasValue);
-			Assert.IsNull(mrtSet2.AerospikeTxn);
+			Assert.IsNull(mrtSet2.DefaultWritePolicy.Txn);
 
 		}
 	}
