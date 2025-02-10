@@ -1,14 +1,8 @@
 ﻿using Aerospike.Client;
 using System;
-using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using static Aerospike.Client.AerospikeException;
 using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
@@ -514,45 +508,36 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					}
 					this.State = TransactionStates.Committed;
 				}
-				catch(AerospikeException ae)
+				catch(AerospikeException ae) when (ae.Result == ResultCode.TXN_ALREADY_ABORTED
+													|| ae.Result == ResultCode.MRT_ABORTED)
 				{
-					if(ae.InDoubt && this.CommitRetries > 0)
+					this.State = TransactionStates.Aborted;
+					return this.CommitStatus = CommitResults.PreviouslyAborted;
+				}
+				catch(AerospikeException ae) when(ae.Result == ResultCode.TXN_ALREADY_COMMITTED
+													|| ae.Result == ResultCode.MRT_COMMITTED)
+				{
+					this.State = TransactionStates.Committed;
+					return this.CommitStatus = CommitResults.AlreadyCommitted;
+				}
+				catch(AerospikeException ae) when (ae.InDoubt && this.CommitRetries > 0)
+				{
+					if(attemp < this.CommitRetries)
 					{
-						if(attemp < this.CommitRetries)
-						{
-							this.State = TransactionStates.PartiallyCommitted;
-							if(this.RetrySleepMS > 0)
-								Thread.Sleep(this.RetrySleepMS);
-							else
-								Thread.Sleep(0);
-							return TryCommit(attemp + 1);
-						}
 						this.State = TransactionStates.PartiallyCommitted;
-						throw new RetryException($"Attempted to Retry Commit for Txn Id '{this.TransactionId}' {attemp} times.",
-													attemp,
-													this,
-													ae);
+						if(this.RetrySleepMS > 0)
+							Thread.Sleep(this.RetrySleepMS);
+						else
+							Thread.Sleep(0);
+						return TryCommit(attemp + 1);
 					}
-					else
-					{
-						switch(ae.Result)
-						{
-							case ResultCode.TXN_ALREADY_ABORTED:
-							case ResultCode.MRT_ABORTED:
-								this.State = TransactionStates.Aborted;
-								return this.CommitStatus = CommitResults.PreviouslyAborted;
-							case ResultCode.TXN_ALREADY_COMMITTED:
-							case ResultCode.MRT_COMMITTED:
-								this.State = TransactionStates.Committed;
-								return this.CommitStatus = CommitResults.AlreadyCommitted;
-							default:
-								break;
-						}
-					}
-					
-					this.State = TransactionStates.Failed;
+
+					this.State = TransactionStates.PartiallyCommitted;
 					this.CommitStatus = CommitResults.Failed;
-					throw;
+					throw new RetryException($"Attempted to Retry Commit for Txn Id '{this.TransactionId}' {attemp} times.",
+												attemp,
+												this,
+												ae);
 				}
 				catch(Exception)
 				{
@@ -597,25 +582,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				};
 				this.State = TransactionStates.Aborted;
 			}
-			catch(AerospikeException ae)
+			catch(AerospikeException ae) when (ae.Result == ResultCode.TXN_ALREADY_ABORTED
+												|| ae.Result == ResultCode.MRT_ABORTED)
 			{
-				switch(ae.Result)
-				{
-					case ResultCode.TXN_ALREADY_ABORTED:
-					case ResultCode.MRT_ABORTED:
-						this.State = TransactionStates.Aborted;
-						return this.AbortStatus = AbortResults.AlreadyAborted;
-					case ResultCode.TXN_ALREADY_COMMITTED:
-					case ResultCode.MRT_COMMITTED:
-						this.State = TransactionStates.Committed;
-						return this.AbortStatus = AbortResults.PreviouslyCommitted;
-					default:
-						break;
-				}
-
-				this.AbortStatus = AbortResults.Failed;
-				this.State = TransactionStates.Failed;
-				throw;
+				this.State = TransactionStates.Aborted;
+				return this.AbortStatus = AbortResults.AlreadyAborted;
+			}
+			catch(AerospikeException ae) when(ae.Result == ResultCode.TXN_ALREADY_COMMITTED
+												|| ae.Result == ResultCode.MRT_COMMITTED)
+			{
+				this.State = TransactionStates.Committed;
+				return this.AbortStatus = AbortResults.PreviouslyCommitted;
 			}
 			catch(Exception)
 			{
