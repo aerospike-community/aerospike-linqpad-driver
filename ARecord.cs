@@ -49,7 +49,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 binNames == null
                                                     ? Array.Empty<string>()
                                                     : (binNames.Length == 0 ? setAccess.BinNames : binNames),
-                                                inDoubt: inDoubt);
+                                                inDoubt: inDoubt,
+                                                txnid: setAccess.GetAerospikeTxn()?.Id);
 
             this.DumpType = dumpType;
             this.SetBinsHashCode = setBinsHashCode;
@@ -120,7 +121,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                 expiration,
                                                 expirationDate,
                                                 generation,
-                                                inDoubt);
+                                                inDoubt,
+												setAccess?.GetAerospikeTxn()?.Id);
            
             this.DumpType = dumpType;
             this.SetBinsHashCode = setBinsHashCode;
@@ -331,12 +333,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             internal AerospikeAPI(Client.Key key,
                                     Client.Record record,
                                     string[] binNames,
-                                    bool? inDoubt = null)
+                                    bool? inDoubt = null,
+                                    long? txnid = null)
             {
                 this.BinNames = binNames;
                 this.Record = record ?? new Record(new Dictionary<string, object>(0), 0, 0);
                 this.Key = key;
                 this.InDoubt = inDoubt;
+                this.TransactionId = txnid;
             }
 
             internal AerospikeAPI([NotNull] string ns,
@@ -346,7 +350,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     int? expiration = null,
                                     DateTimeOffset? expirationDate = null,
                                     int? generation = null,
-                                    bool? inDoubt = null)
+                                    bool? inDoubt = null,
+                                    long? txnid = null)
             {
                 this.Key = Helpers.DetermineAerospikeKey(keyValue, ns, set);              
                 this.Record = new Record((Dictionary<string, object>)binValues,
@@ -357,6 +362,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 this.BinNames = binValues.Keys.ToArray();
                 this._bins = this.Record?.bins?.Select(b => new Bin(b.Key, b.Value)).ToArray();
                 this.InDoubt = inDoubt;
+                this.TransactionId = txnid;
             }
 
             internal AerospikeAPI(AerospikeAPI cloneRecord)
@@ -370,6 +376,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                                             cloneRecord.Record.expiration);
                 this.BinNames = cloneRecord.BinNames;
                 this.InDoubt = cloneRecord.InDoubt;
+                this.TransactionId = cloneRecord.TransactionId;
             }
 
             private Bin[] _bins;
@@ -614,6 +621,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 return this.Record.bins.ContainsKey(binName);
             }
 
+			/// <summary>
+			/// Gets the transaction identifier if from an Aerospike MRT.
+            /// <seealso cref="Txn.Id"/>
+			/// </summary>
+			public long? TransactionId { get; }
+
         }
 
         /// <summary>
@@ -768,7 +781,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Deletes the record from the DB. 
         /// </summary>
-        /// <param name="writePolicy"></param>
+        /// <param name="writePolicy">
+        /// If not provided, the default write policy for the namespace is used.
+        /// </param>
         /// <returns>
         /// True if deleted.
         /// </returns>
@@ -784,27 +799,32 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             return this.SetAccess
                         .AerospikeConnection
-                        .AerospikeClient.Delete(writePolicy, this.Aerospike.Key);
+                        .AerospikeClient.Delete(writePolicy ?? this.SetAccess?.DefaultWritePolicy,
+                                                this.Aerospike.Key);
         }
 
-        /// <summary>
-        /// Updates this record in the DB
-        /// </summary>
-        /// <param name="writePolicy"></param>
-        /// <returns>Returns this object</returns>
-        /// <exception cref="NullReferenceException">
-        /// If <see cref="SetAccess"/> is null, a Null reference exception is thrown. 
-        /// </exception>
-        /// <seealso cref="Refresh(Policy)"/>
-        /// <seealso cref="Delete(WritePolicy)"/>
-        public ARecord Update(WritePolicy writePolicy = null)
+		/// <summary>
+		/// Updates this record in the DB
+		/// </summary>
+		/// <param name="writePolicy">
+		/// If not provided, the default write policy for the namespace is used.
+		/// </param>
+		/// <returns>Returns this object</returns>
+		/// <exception cref="NullReferenceException">
+		/// If <see cref="SetAccess"/> is null, a Null reference exception is thrown. 
+		/// </exception>
+		/// <seealso cref="Refresh(Policy)"/>
+		/// <seealso cref="Delete(WritePolicy)"/>
+		public ARecord Update(WritePolicy writePolicy = null)
         {
             if (this.SetAccess == null)
                 throw new NullReferenceException("No Set Instance associated with this record. As such, it cannot be updated.");
 
             this.SetAccess
                 .AerospikeConnection
-                .AerospikeClient.Put(writePolicy, this.Aerospike.Key, this.Aerospike.Bins);
+                .AerospikeClient.Put(writePolicy ?? this.SetAccess?.DefaultWritePolicy,
+                                        this.Aerospike.Key,
+                                        this.Aerospike.Bins);
 
             return this;
         }
@@ -813,7 +833,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Re-retrieves the record from the DB based on <see cref="Key"/>.
 		/// A new instance of record is created and returned.
 		/// </summary>
-		/// <param name="policy">A <see cref="Policy"/> instance or the default policy is used.</param>
+		/// <param name="policy">A <see cref="Policy"/>
+		/// If not provided, the default read policy for the namespace is used.
+		/// </param>
 		/// <returns>
 		/// A new instance of <see cref="ARecord"/> returned from the DB.
 		/// If the record is not found in the DB, null is returned.
@@ -821,8 +843,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <exception cref="NullReferenceException">
 		/// If <see cref="SetAccess"/> is null, a Null reference exception is thrown. 
 		/// </exception>
-        /// <seealso cref="Update(Client.WritePolicy)"/>
-        /// <seealso cref="Delete(Client.WritePolicy)"/>
+		/// <seealso cref="Update(Client.WritePolicy)"/>
+		/// <seealso cref="Delete(Client.WritePolicy)"/>
 		public ARecord Refresh(Policy policy = null)
         {
 			if(this.SetAccess == null)
@@ -831,7 +853,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			var record = this.SetAccess
 			                    .AerospikeConnection
 				                .AerospikeClient
-                                .Get(policy, this.Aerospike.Key);
+                                .Get(policy ?? this.SetAccess?.DefaultReadPolicy,
+                                        this.Aerospike.Key);
 
             return record is null 
                     ? null

@@ -504,7 +504,11 @@ namespace Aerospike.Database.LINQPadDriver
                 this.Trans = new(baseNS,
 									new Aerospike.Client.Txn() {{Timeout = mrtTimeout}},
 									commitRetries,
-									retrySleepMS);          
+									retrySleepMS);
+                this.DefaultQueryPolicy.Txn = this.Trans.Txn;
+	            this.DefaultReadPolicy.Txn = this.Trans.Txn;
+	            this.DefaultScanPolicy.Txn = this.Trans.Txn;
+	            this.DefaultWritePolicy.Txn = this.Trans.Txn;
             }}
 
             private readonly Aerospike.Database.LINQPadDriver.Extensions.ATransaction Trans;
@@ -542,6 +546,59 @@ namespace Aerospike.Database.LINQPadDriver
             public Aerospike.Database.LINQPadDriver.Extensions.AbortResults
                             Abort() => this.Trans.Abort();
             /// <summary>
+		    /// Returns the <see cref=""TransactionRecordStates""/> of a record's key.
+		    /// This is only valid when the <see cref=""State""/> is <see cref=""TransactionStates.Active""/>.
+		    /// </summary>
+		    /// <param name=""key"">The record&apos;s key used to see if it is part of this transaction</param>
+		    /// <returns>
+		    /// Returns a Value Tuple:
+		    /// state (1st value)		-- The <see cref=""TransactionRecordStates""/>
+		    /// generation (2nd value)	-- The record&apos;s generation, if it was read. Otherwise the value will be null.
+		    /// </returns>
+		    public (TransactionRecordStates state, long? generation) RecordState(Key key)
+                        => this.Trans.RecordState(key);
+
+		    /// <summary>
+		    /// Returns the <see cref=""TransactionRecordStates""/> of a record's key.
+		    /// This is only valid when the <see cref=""State""/> is <see cref=""TransactionStates.Active""/>.
+		    /// </summary>
+		    /// <param name=""key"">The record&apos;s key used to see if it is part of this transaction</param>
+		    /// <returns>
+		    /// Returns a Value Tuple:
+		    /// state (1st value)		-- The <see cref=""TransactionRecordStates""/>
+		    /// generation (2nd value)	-- The record&apos;s generation, if it was read. Otherwise the value will be null.
+		    /// </returns>
+		    public (TransactionRecordStates state, long?) RecordState(APrimaryKey key)
+                            => this.Trans.RecordState(key);
+
+		    /// <summary>
+		    /// Returns the <see cref=""TransactionRecordStates""/> of a record's key.
+		    /// This is only valid when the <see cref=""State""/> is <see cref=""TransactionStates.Active""/>.
+		    /// </summary>
+		    /// <param name=""record"">The record used to see if it is part of this transaction</param>
+		    /// <returns>
+		    /// Returns a Value Tuple:
+		    /// state (1st value)		-- The <see cref=""TransactionRecordStates""/>
+		    /// generation (2nd value)	-- The record&apos;s generation, if it was read. Otherwise the value will be null.
+		    /// </returns>
+		    public (TransactionRecordStates state, long?) RecordState(ARecord record)
+                            => this.Trans.RecordState(record);
+
+            /// <summary>
+		    /// Returns the <see cref=""TransactionRecordStates""/> of a record's key.
+		    /// This is only valid when the <see cref=""State""/> is <see cref=""TransactionStates.Active""/>.
+		    /// </summary>
+		    /// <param name=""setName"">Name of the set or null to indicate the Aerospike Null set.</param>
+		    /// <param name=""keyValue"">The key&apos;s value.</param>
+		    /// <returns>
+		    /// Returns a Value Tuple:
+		    /// state (1st value)		-- The <see cref=""TransactionRecordStates""/>
+		    /// generation (2nd value)	-- The record&apos;s generation, if it was read. Otherwise the value will be null.
+		    /// </returns>
+		    public (TransactionRecordStates state, long?) RecordState(string setName, dynamic keyValue)
+			    => this.Trans.RecordState(setName, keyValue);
+
+            /// <summary>
 		    /// Creates an new Aerospike transaction.
 		    /// </summary>
             /// <inheritdoc cref=""ATransaction.CreateTransaction(int,int,int)""/>
@@ -552,6 +609,11 @@ namespace Aerospike.Database.LINQPadDriver
                                     mrtTimeout,
 									commitRetries,
 									retrySleepMS);
+
+            /// <summary>
+		    /// Gets the aerospike <see cref=""Aerospike.Client.Txn""/> instance or Null
+		    /// </summary>
+            public override Aerospike.Client.Txn GetAerospikeTxn() => this.Txn;
 
             public object ToDump() => this.Trans.ToDump();
         }}

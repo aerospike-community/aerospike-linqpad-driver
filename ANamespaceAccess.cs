@@ -202,9 +202,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Refreshes the Connection Explorer
         /// </summary>        
-#pragma warning disable CA1822 // Mark members as static
-        public async void RefreshExplorer()
-#pragma warning restore CA1822 // Mark members as static
+        public static async void RefreshExplorer()
         {
             await DynamicDriver.GetConnection()?.CXInfo?.ForceRefresh();
         }
@@ -478,7 +476,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// </summary>
 		public ScanPolicy DefaultScanPolicy { get; }
 
-        internal virtual Txn GetAerospikeTxn() => this.DefaultWritePolicy.Txn;
+		/// <summary>
+		/// Gets the aerospike <see cref="Aerospike.Client.Txn"/> instance or Null
+		/// </summary>
+		public virtual Txn GetAerospikeTxn() => this.DefaultWritePolicy.Txn;
 
 		/// <summary>
 		/// Gets a value indicating whether this Instance has MRTs enabled.
