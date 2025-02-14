@@ -138,7 +138,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         {
             this.LPnamespace = clone.LPnamespace;
 			this.IsStrongConsistencyMode = clone.IsStrongConsistencyMode;
-			this.AerospikeTxn = clone.AerospikeTxn;
 		}
 
 		public ANamespaceAccess(ANamespaceAccess clone,
@@ -157,51 +156,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		{
 			this.LPnamespace = clone.LPnamespace;
             this.IsStrongConsistencyMode = clone.IsStrongConsistencyMode;
-			this.AerospikeTxn = clone.AerospikeTxn;
-		}
-
-		/// <summary>
-		/// Initializes a new instance of <see cref="ANamespaceAccess"/> as an Aerospike transactional unit.
-		/// If <see cref="Commit"/> method is not called the server will abort (rollback) this transaction.
-		/// </summary>
-		/// <param name="baseNS">Base Namespace instance</param>
-		/// <param name="txn">The Aerospike <see cref="Txn"/> instance</param>
-		/// <exception cref="System.ArgumentNullException">txn</exception>
-		/// <exception cref="System.ArgumentNullException">clone</exception>
-		/// <seealso cref="CreateTransaction(int)"/>
-		/// <seealso cref="Commit"/>
-		/// <seealso cref="Abort"/>
-		public ANamespaceAccess(ANamespaceAccess baseNS, Txn txn)
-            : this(baseNS,
-					new(baseNS.DefaultReadPolicy)
-					{
-						Txn = txn
-					},
-					new(baseNS.DefaultWritePolicy)
-					{
-						Txn = txn
-					},
-					new(baseNS.DefaultQueryPolicy)
-					{
-						Txn = txn
-					},
-					new(baseNS.DefaultScanPolicy)
-					{
-						Txn = txn
-					})
-		{            
-			if(txn is null) throw new ArgumentNullException(nameof(txn));
-			
-			this.AerospikeTxn = txn;
-
-            this._sets = this._sets.Select(s => s.TurnIntoTrx(this)).ToList(); 
-            
-            if(!this.IsStrongConsistencyMode)
-            {
-				Console.Write(LINQPad.Util.WithStyle("Warning", "color:black;background-color:orange"));
-				Console.Write(": ");
-				Console.WriteLine(LINQPad.Util.WithStyle($"MRTs should be used within a Strong Consistency namespace. {this.Namespace} is an AP namespace.", "color:darkgreen"));
-			}
 		}
 
 		/// <summary>
@@ -212,10 +166,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <param name="newQueryPolicy">The new query policy.</param>
 		/// <param name="newScanPolicy">The new scan policy.</param>
 		/// <returns>New clone of <see cref="ANamespaceAccess"/> instance.</returns>
-		public ANamespaceAccess Clone(Policy newReadPolicy = null,
-                                        WritePolicy newWritePolicy = null,
-                                        QueryPolicy newQueryPolicy = null,
-                                        ScanPolicy newScanPolicy = null)
+		public virtual ANamespaceAccess Clone(Policy newReadPolicy = null,
+                                                WritePolicy newWritePolicy = null,
+                                                QueryPolicy newQueryPolicy = null,
+                                                ScanPolicy newScanPolicy = null)
             => new ANamespaceAccess(this,
                                     newReadPolicy,
                                     newWritePolicy,
@@ -248,9 +202,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Refreshes the Connection Explorer
         /// </summary>        
-#pragma warning disable CA1822 // Mark members as static
-        public async void RefreshExplorer()
-#pragma warning restore CA1822 // Mark members as static
+        public static async void RefreshExplorer()
         {
             await DynamicDriver.GetConnection()?.CXInfo?.ForceRefresh();
         }
@@ -473,16 +425,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		public bool IsStrongConsistencyMode { get; }
 
 		public override string ToString()
-		{
-			string txn = string.Empty;
-			if(this.TransactionId.HasValue)
-				txn = " TXN";
-
-			if(this.BinNames.Length == 0)
-				return $"{this.Namespace}{txn}";
-
-			return $"{this.Namespace}{{{string.Join(',', this.BinNames)}}} {txn}";
-		}
+		    => this.BinNames.Length == 0
+			    ? $"{this.Namespace}"
+                : $"{this.Namespace}{{{string.Join(',', this.BinNames)}}}";
 
 		#endregion
 
@@ -532,92 +477,40 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		public ScanPolicy DefaultScanPolicy { get; }
 
 		/// <summary>
-		/// Gets the aerospike <see cref="Aerospike.Client.Txn"/> instance or null to indicate that it is not within a transaction.
+		/// Gets the aerospike <see cref="Aerospike.Client.Txn"/> instance or Null
 		/// </summary>
-		/// <value>The aerospike <see cref="Aerospike.Client.Txn"/> instance or null</value>
-		public Txn AerospikeTxn { get; }
+		public virtual Txn GetAerospikeTxn() => this.DefaultWritePolicy.Txn;
 
 		/// <summary>
-		/// Returns the transaction identifier or null to indicate not a transactional unit.
+		/// Gets a value indicating whether this Instance has MRTs enabled.
 		/// </summary>
-		public long? TransactionId => this.AerospikeTxn?.Id;
+		public bool IsMRT => this.DefaultWritePolicy.Txn is not null;
 
 		/// <summary>
-		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
+		/// Creates an new Aerospike transaction which is a copy of this namespace.
 		/// </summary>
-		/// <param name="timeout">
-		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
-		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
-		/// a commit or abort is called, the server will expire and rollback the MRT.
-        /// Defaults to 10 seconds.
-		/// </param>
-		/// <returns>Transaction Namespace instance</returns>
-        /// <seealso cref="CreateTransaction(string, int)"/>
-		/// <seealso cref="Commit"/>
-		/// <seealso cref="Abort"/>
-		public ANamespaceAccess CreateTransaction(int timeout = 10) => new(this, new Txn() { Timeout = timeout });
-
-		/// <summary>
-		/// Creates an Aerospike transaction where all operations will be included in this transactional unit.
-		/// </summary>
-		/// <param name="setName">
-        /// Name of the set to create the transaction on.
-        /// If the set does not exists, it will be dynamically created.
-        /// </param>
-		/// <param name="timeout">
+		/// <param name="mrtTimeout">
 		/// MRT timeout in seconds. The timer starts when the MRT monitor record is created.
 		/// This occurs when the first command in the MRT is executed. If the timeout is reached before
 		/// a commit or abort is called, the server will expire and rollback the MRT.
 		/// Defaults to 10 seconds.
 		/// </param>
-		/// <returns>Transaction Set instance</returns>
-		/// <seealso cref="CreateTransaction(int)"/>
-		public SetRecords CreateTransaction(string setName, int timeout = 10)
-        {
-            var set = this[setName];
-
-            if(set is null)
-            {
-                this.AddDynamicSet(setName, Enumerable.Empty<LPSet.BinType>());
-				set = this[setName];
-			}
-
-            return set.CreateTransaction(timeout);
-        }
-
-		/// <summary>
-		/// Attempt to commit the given multi-record transaction. First, the expected record versions are
-		/// sent to the server nodes for verification.If all nodes return success, the command is
-		/// committed. Otherwise, the transaction is aborted.
-		/// <p>
-		/// Requires server version 8.0+
-		/// </p>
-		/// </summary>
-		/// <param name="useTxn">
-		/// If provide, this <see cref="Txn"/> is used, instead of the namespace&apos;s Txn (if thee is one).
+		/// <param name="commitRetries">
+		/// See <see cref="ATransaction.CommitRetries"/> property.
 		/// </param>
-		/// <seealso cref="CreateTransaction(int)"/>
-		/// <seealso cref="Abort"/>
-		public CommitStatus.CommitStatusType Commit(Txn useTxn = null)
-            => this.AerospikeTxn is null && useTxn is null
-				? CommitStatus.CommitStatusType.CLOSE_ABANDONED
-                : this.AerospikeConnection.Commit(useTxn ?? this.AerospikeTxn);
-
-		/// <summary>
-		/// Abort and rollback the given multi-record transaction.
-		/// <p>
-		/// Requires server version 8.0+
-		/// </p>
-		/// </summary>
-		/// <param name="useTxn">
-		/// If provide, this <see cref="Txn"/> is used, instead of the namespace&apos;s Txn (if thee is one).
+		/// <param name="retrySleepMS">
+		/// See <see cref="ATransaction.RetrySleepMS"/> property.
 		/// </param>
-		/// <seealso cref="CreateTransaction(int)"/>
-		/// <seealso cref="Commit"/>
-		public AbortStatus.AbortStatusType Abort(Txn useTxn = null)
-			 => this.AerospikeTxn is null && useTxn is null
-				? AbortStatus.AbortStatusType.ROLL_BACK_ABANDONED
-				: this.AerospikeConnection.Abort(useTxn ?? this.AerospikeTxn);
+		/// <returns>Transaction Namespace instance</returns>
+		/// <seealso cref="ATransaction.Commit"/>
+		/// <seealso cref="ATransaction.Abort"/>
+		public virtual ATransaction CreateTransaction(int mrtTimeout = 10,
+														int commitRetries = 1,
+														int retrySleepMS = 1000)
+							=> new(this,
+									new Txn() { Timeout = mrtTimeout },
+									commitRetries,
+									retrySleepMS);
 
 		#region Get Methods
 		/// <summary>
@@ -1200,7 +1093,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                 sendKey = true,
                                 maxConcurrentThreads = 2,
                                 sleepBetweenRetries = 5,
-                                Txn = this.AerospikeTxn
+                                Txn = this.GetAerospikeTxn()
                             };                
             
             batchWritePolicy ??= new BatchWritePolicy()
@@ -1268,7 +1161,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 sendKey = true,
                 maxConcurrentThreads = 2,
                 sleepBetweenRetries = 5,
-				Txn = this.AerospikeTxn
+				Txn = this.GetAerospikeTxn()
 			};
 
             batchWritePolicy ??= new BatchWritePolicy()
@@ -1346,7 +1239,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 sendKey = true,
                 maxConcurrentThreads = 2,
                 sleepBetweenRetries = 5,
-			    Txn = this.AerospikeTxn
+			    Txn = this.GetAerospikeTxn()
 		   };
 
             batchWritePolicy ??= new BatchWritePolicy()
@@ -1424,7 +1317,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 sendKey = true,
                 maxConcurrentThreads = 2,
                 sleepBetweenRetries = 5,
-				Txn = this.AerospikeTxn
+				Txn = this.GetAerospikeTxn()
 			};
 
             batchWritePolicy ??= new BatchWritePolicy()
@@ -1510,7 +1403,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 sendKey = true,
                 maxConcurrentThreads = 2,
                 sleepBetweenRetries = 5,
-				Txn = this.AerospikeTxn
+				Txn = this.GetAerospikeTxn()
 			};
 
             batchWritePolicy ??= new BatchWritePolicy()
@@ -1603,7 +1496,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 maxConcurrentThreads = 2,
                 sleepBetweenRetries = 5,
                 filterExp = filterExpression,
-				Txn = this.AerospikeTxn
+				Txn = this.GetAerospikeTxn()
 			};
 
             if (filterExpression is not null && batchPolicy.filterExp is null)
@@ -1661,7 +1554,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 maxRetries = 2,
                 maxConcurrentThreads = 1,
                 filterExp = filterExpression,
-				Txn = this.AerospikeTxn
+				Txn = this.GetAerospikeTxn()
 			};
 
             batchReadPolicy ??= new BatchReadPolicy()
@@ -1731,7 +1624,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				maxRetries = 2,
 				maxConcurrentThreads = 1,
 				filterExp = filterExpression,
-				Txn = this.AerospikeTxn
+				Txn = this.GetAerospikeTxn()
 			};
 
 			batchReadPolicy ??= new BatchReadPolicy()
@@ -1975,7 +1868,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					sendKey = this.DefaultWritePolicy.sendKey,
 					maxConcurrentThreads = 5,
 					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries,
-                    Txn = this.AerospikeTxn
+                    Txn = this.GetAerospikeTxn()
 				};
 
 				batchWritePolicy ??= new BatchWritePolicy()
@@ -2210,7 +2103,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					sendKey = this.DefaultWritePolicy.sendKey,
 					maxConcurrentThreads = 5,
 					sleepBetweenRetries = this.DefaultWritePolicy.sleepBetweenRetries,
-                    Txn = this.AerospikeTxn
+                    Txn = this.GetAerospikeTxn()
 				};
 
 				batchWritePolicy ??= new BatchWritePolicy()
@@ -2634,11 +2527,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
             return cnt;
         }
 
-        #endregion
+		#endregion
 
-        protected object ToDump()
-        {
-            return LPU.ToExpando(this, include: "Namespace, DBPlatform, SetNames, BinNames, TransactionId, AerospikeConnection, DefaultReadPolicy, DefaultQueryPolicy, DefaultScanPolicy, DefaultWritePolicy");            
-        }
-    }
+
+		public virtual object ToDump()
+            => LPU.ToExpando(this, include: "Namespace, DBPlatform, SetNames, BinNames, AerospikeConnection, DefaultReadPolicy, DefaultQueryPolicy, DefaultScanPolicy, DefaultWritePolicy");
+
+	}
 }

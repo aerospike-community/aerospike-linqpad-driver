@@ -551,16 +551,14 @@ The LINQPad driver supports Aerospike MRTs using the Aerospike native API and th
 The extension API manages the associated policies for easy use. Below are the extension API functions:
 
 -   CreateTransaction – Creates the MRT (i.e., Begin Transaction)
--   Commit – Commits the associated MRT
+-   Commit – Commits the associated MRT. It handles the “In-Doubt” retry logic.
 -   Abort – Aborts the associated MRT (i.e., rollback)
--   AerospikeTxn – A property that returns the Aerospike MRT instance
--   TransactionId – A property that returns the MRT Transaction Id
 
-The Extension MRT API supports creating MRTs at the namespace and set levels. You call “CreateTransaction” which will return the associated namespace or set and you just use the extension APIs (e.g., Get, Put, CopyRecods, Import, etc.) like normal. When your MRT actions are done call ‘Commit’ or ‘Abort’ as required. No messing with policies!
+Calling “CreateTransaction” which will return a ATransaction object which acts like a namespace object. All the extension APIs (e.g., Get, Put, CopyRecods, Import, etc.) can be used with MRT with no effort.
 
 Like always if you wish to use the Aerospike native API you can at any time. The default policies for the Extension MRT “set” or “namespace” will be properly enabled to support native MRTs.
 
-For more information about Aerospike MRTs [see this page](https://aerospike.com/blog/multi-record-transactions-for-aerospike/).
+For more information about Aerospike MRTs [see this page](https://aerospike.com/blog/aerospike8-transactions/). For more information about the MRT extensions, see the MRT.linq file in the LINQPad sample section/folder.
 
 ## Examples
 
