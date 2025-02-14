@@ -128,7 +128,7 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Aerospike.Client" Version="8.0.1" />
+		<PackageReference Include="Aerospike.Client" Version="8.0.2" />
     <PackageReference Include="LINQPad.Reference" Version="1.4.0-preview.1" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
