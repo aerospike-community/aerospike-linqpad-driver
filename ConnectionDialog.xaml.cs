@@ -279,7 +279,7 @@ namespace Aerospike.Database.LINQPadDriver
                     var testTask = System.Threading.Tasks.Task.Run(() =>
                     {
                         connection = new AerospikeConnection(_cxInfo);
-                        connection.ObtainMetaDate(false);
+                        connection.ObtainMetaData(false);
                     });
                     testTask.Wait();
 

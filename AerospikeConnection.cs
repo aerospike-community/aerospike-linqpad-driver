@@ -345,7 +345,34 @@ namespace Aerospike.Database.LINQPadDriver
                                                                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
         private static Regex VersionRegEx() => versionRegex;
 #endif
-        public void ObtainMetaDate(bool obtainBinsInSet = true, bool closeUponCompletion = true)
+
+		/// <summary>
+		/// Returns the LINQPad&apos;s internal structure by querying the DB is required.
+        /// The returned instances can be used to obtain meta data about the DB and even the ability to generate code.
+        /// You can, also, use the instance to obtain schema information about namespaces, sets, bins, UDF, etc.
+        /// 
+        /// Note: this will update this instance with the returned information.
+		/// </summary>
+		/// <param name="forceRefresh">if set to <c>true</c>, the data is refreshed from the DB.</param>
+		/// <returns>Returns IEnumerable&lt;LPNamespace&gt; instances or <seealso cref="Namespaces"/>.</returns>
+		public IEnumerable<LPNamespace> GetDBInfo(bool forceRefresh = false)
+        {
+            if (this.Namespaces is null || forceRefresh)
+                this.ObtainMetaData();
+
+            return this.Namespaces;
+        }
+
+		/// <summary>
+		/// Obtains the meta data from the DB including namespaces, sets, bins, and other DB information.
+		/// </summary>
+		/// <param name="obtainBinsInSet">if set to <c>true</c> obtain bins in set.</param>
+		/// <param name="closeUponCompletion">if set to <c>true</c> and if the connection is created, it will be closed..</param>
+		/// <exception cref="Aerospike.Client.AerospikeException">11 - Connection to Cloud Host \"{hostName}\" failed.</exception>
+		/// <exception cref="Aerospike.Client.AerospikeException">11 - Connection to Cloud Host \"{hostName}\" failed or timed out.</exception>
+		/// <exception cref="Aerospike.Client.AerospikeException">11 - Connection to {connectionNode.Name} failed or timed out. Cannot obtain meta-data for cluster.</exception>
+		/// <exception cref="Aerospike.Client.AerospikeException">11 - No active node found in cluster \"{this.Database}\". Tried: {nodes}</exception>
+		public void ObtainMetaData(bool obtainBinsInSet = true, bool closeUponCompletion = true)
         {
             
             bool performedOpen = false;

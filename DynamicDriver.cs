@@ -204,7 +204,7 @@ namespace Aerospike.Database.LINQPadDriver
                 System.Diagnostics.Debugger.Launch();
 #endif
 
-            connection.ObtainMetaDate();
+            connection.ObtainMetaData();
 
 			var buildNamespaces = BuildNamespaces(connection, connection.AlwaysUseAValues);
 			var namespaceClasses = buildNamespaces.Item1;
