@@ -136,12 +136,14 @@ namespace Aerospike.Database.LINQPadDriver
             return (binName, GetdocType(binValue, determineDocType));
         }
         
-        public List<LPSet.BinType> Get(string nsName, 
-                                        string setName,
-                                        bool determineDocType, 
-                                        int maxRecords,
-                                        int minRecs)
+        public (List<LPSet.BinType>,Exception) Get(string nsName, 
+                                                    string setName,
+                                                    bool determineDocType, 
+                                                    int maxRecords,
+                                                    int minRecs)
         {
+            Exception exception = null;
+
             if (maxRecords > 0)
                 try
                 {
@@ -152,17 +154,20 @@ namespace Aerospike.Database.LINQPadDriver
 
                     if (nbrRecs >= minRecs)
                     {
-                        return records
-                                .SelectMany(r => r.bins.Select(b => GetBinDocType(nsName, setName, b.Key, b.Value, determineDocType)))
-                                    .GroupBy(x => x)
-                                    .Select(y => (y.Key.name, y.Key.type, y.Count()))
-                                    .GroupBy(y => y.name)
-                                    .SelectMany(x => x.Select(i => new LPSet.BinType(i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs))).ToList();
+                        return (records
+                                    .SelectMany(r => r.bins.Select(b => GetBinDocType(nsName, setName, b.Key, b.Value, determineDocType)))
+                                        .GroupBy(x => x)
+                                        .Select(y => (y.Key.name, y.Key.type, y.Count()))
+                                        .GroupBy(y => y.name)
+                                        .SelectMany(x => x.Select(i => new LPSet.BinType(i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs))).ToList(),
+                                    null
+                                    );
                     }
                 }
                 catch(Exception ex) 
                 {
                     this.LastException = ex;
+                    exception = ex;
                     if (Client.Log.DebugEnabled())
                     {
                         Client.Log.Error($"GetSetBins.Get Exception {ex.GetType().Name} ({ex.Message})");
@@ -170,7 +175,7 @@ namespace Aerospike.Database.LINQPadDriver
                     }
                 }
 
-            return new List<LPSet.BinType>(0);
+            return (new List<LPSet.BinType>(0), exception);
         }
     }
 }

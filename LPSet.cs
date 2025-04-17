@@ -87,7 +87,7 @@ namespace Aerospike.Database.LINQPadDriver
                         };            
 
             public override string ToString()
-                => $"{this.BinName}({this.DataType.Name})";
+                => $"{this.BinName}({this.DataType?.Name})";
 
             public override int GetHashCode()
                 => this.ToString().GetHashCode();
@@ -256,8 +256,12 @@ namespace Aerospike.Database.LINQPadDriver
         {
             lock (binTypes)
             {
-                this.binTypes = getBins.Get(this.LPnamespace.Name, this.IsNullSet ? null : this.Name, determineDocType, maxRecords, minRecs);
+                (this.binTypes, Exception exception) = getBins.Get(this.LPnamespace.Name, this.IsNullSet ? null : this.Name, determineDocType, maxRecords, minRecs);
                 this.DetermineIsVectorIdx();
+
+                if(exception is not null
+                        && this.LastException is null)
+                    this.LastException = exception;
 
 				if (updateCntd)
                 {
@@ -846,9 +850,19 @@ namespace Aerospike.Database.LINQPadDriver
 
         public ExplorerItem CreateExplorerItem()
         {
-            var bins = this.BinTypes
-                        .OrderBy(b => b.BinName)
-                        .Select(b => b.CreateExplorerItem());
+            IEnumerable<ExplorerItem> bins = Enumerable.Empty<ExplorerItem>();
+
+			if(this.LastException is not null)
+			{
+                bins = bins.Append(new ExplorerItem($"{this.LastException.GetType().Name}: {this.LastException.Message}\nEnable Driver Debugging for additional information.",
+                                                    ExplorerItemKind.Category,
+                                                    ExplorerIcon.Blank));
+			}
+
+			bins = bins.Concat(this.BinTypes
+                                .OrderBy(b => b.BinName)
+                                .Select(b => b.CreateExplorerItem()));
+
             var sIdxs = this.SIndexes
                             .OrderBy(sIdx => sIdx.Name)
                             .Select(sIdx => sIdx.CreateExplorerItem());

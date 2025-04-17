@@ -347,6 +347,7 @@ namespace Aerospike.Database.LINQPadDriver
 #endif
         public void ObtainMetaDate(bool obtainBinsInSet = true, bool closeUponCompletion = true)
         {
+            
             bool performedOpen = false;
 
 			if(Client.Log.InfoEnabled())
