@@ -144,36 +144,58 @@ namespace Aerospike.Database.LINQPadDriver
         {
             Exception exception = null;
 
-            if (maxRecords > 0)
+            if(maxRecords > 0)
+            {
+                IEnumerable<Record> records = null;
+
                 try
                 {
                     this.LastException = null;
 
-                    var records = GetRecords(nsName, setName, maxRecords);
-                    var nbrRecs = records.Count();
+                    try
+                    {
+                        records = GetRecords(nsName, setName, maxRecords);
+                    }
+					catch(Exception ex)
+					{
+                        if (records is null)
+                            throw;
 
-                    if (nbrRecs >= minRecs)
+						this.LastException = ex;
+						exception = ex;
+						if(Client.Log.DebugEnabled())
+						{
+							Client.Log.Error($"GetSetBins.Get Exception {ex.GetType().Name} ({ex.Message}) Returned Records {records.Count()}");
+							DynamicDriver.WriteToLog(ex, "GetSetBins.Get");
+						}
+					}
+
+					var nbrRecs = records.Count();
+
+                    if(nbrRecs >= minRecs)
                     {
                         return (records
                                     .SelectMany(r => r.bins.Select(b => GetBinDocType(nsName, setName, b.Key, b.Value, determineDocType)))
                                         .GroupBy(x => x)
                                         .Select(y => (y.Key.name, y.Key.type, y.Count()))
                                         .GroupBy(y => y.name)
-                                        .SelectMany(x => x.Select(i => new LPSet.BinType(i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs))).ToList(),
+                                        .SelectMany(x => x.Select(i => new LPSet.BinType(i.name, i.type, x.Count() > 1, x.Sum(y => y.Item3) >= nbrRecs)))
+                                        .ToList(),
                                     null
                                     );
                     }
                 }
-                catch(Exception ex) 
+                catch(Exception ex)
                 {
                     this.LastException = ex;
                     exception = ex;
-                    if (Client.Log.DebugEnabled())
+                    if(Client.Log.DebugEnabled())
                     {
                         Client.Log.Error($"GetSetBins.Get Exception {ex.GetType().Name} ({ex.Message})");
                         DynamicDriver.WriteToLog(ex, "GetSetBins.Get");
                     }
                 }
+            }
 
             return (new List<LPSet.BinType>(0), exception);
         }
