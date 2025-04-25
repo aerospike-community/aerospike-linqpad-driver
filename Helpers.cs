@@ -460,6 +460,17 @@ namespace Aerospike.Client
                         _ => throw new ArgumentException($"Object type is not supported in Aerospike: {value.GetType()}"),
                     };
 
+		/// <summary>
+		/// Converts a value to an <see cref="Aerospike.Client.Key"/>.
+        /// If value is a string of length 44 that begins with &apos;0x&apos;, it will be treated as a digest.
+		/// </summary>
+		/// <param name="value">The value to be converted to a Key.</param>
+		/// <param name="nameSpace">The namespace associated with the key</param>
+		/// <param name="setName">Name of the set associated with the key</param>
+		/// <returns><see cref="Aerospike.Client.Key"/></returns>
+		public static Client.Key ToAerospikeKey(this object value, string nameSpace, string setName = null)
+                        => Helpers.DetermineAerospikeKey(value, nameSpace, setName);
+
         /// <summary>
         /// Converts a date/time to Unix Epoch nanosecond value
         /// </summary>

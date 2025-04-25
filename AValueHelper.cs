@@ -14,6 +14,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                     => new AValue(value, bin ?? "Value", fld ?? "Value");        
         public static APrimaryKey ToAPrimaryKey(this Key key) => new APrimaryKey(key);
 
+		/// <summary>
+		/// Converts a value to a <see cref="APrimaryKey"/>
+		/// If value is a string of length 44 that begins with &apos;0x&apos;, it will be treated as a digest.
+		/// </summary>
+		/// <param name="value">The value to be converted to a Key.</param>
+		/// <param name="nameSpace">The namespace associated with the key</param>
+		/// <param name="setName">Name of the set associated with the key</param>
+		/// <returns><see cref="APrimaryKey"/></returns>
+		public static APrimaryKey ToAPrimaryKey(this object value, string nameSpace, string setName = null)
+                        => new APrimaryKey(LPDHelpers.ToAerospikeKey(value, nameSpace, setName));
+
         public static AValue ToAValue<T>(this Nullable<T> value, string bin = null, string fld = null)
                                 where T : struct
         {
