@@ -39,13 +39,8 @@
     <PackageProjectUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</PackageProjectUrl>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="GeoJSON.Net" Version="1.4.1" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
   
 	<ItemGroup>
