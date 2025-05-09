@@ -3,7 +3,7 @@
     <ID>973104d1-5fc3-4e74-a869-59441d5e370d</ID>
     <NamingServiceVersion>2</NamingServiceVersion>
     <Driver Assembly="Aerospike.Database.LINQPadDriver" PublicKeyToken="no-strong-name">Aerospike.Database.LINQPadDriver.DynamicDriver</Driver>
-    <Server>172.18.174.161</Server>
+    <Server>172.18.174.172</Server>
     <DisplayName>Aerospike Cluster (Demo)</DisplayName>
     <DriverData>
       <UseExternalIP>false</UseExternalIP>
@@ -18,14 +18,14 @@
 </Query>
 
 //This example shows how to create a Multi-record Transaction (MRT) using the extension API.
-// 	You must follow the instuctions in the ReadMeFirst.linq file first.
+// 	You must follow the instructions in the ReadMeFirst.linq file first.
 //
-//This example required a strong consistency namespace called DemoSC.
+//This example required a strong consistency namespace called testSC.
 //	For more information see https://aerospike.com/docs/server/guide/consistency.
 //
 //You can update the /etc/aerospike/aeorspice.conf file on the dtatabse server with this namepsace:
-//		namespace DemoSC {
-//				replication - factor 1
+//		namespace testSC {
+//				replication-factor 1
 //				strong-consistency true
 //				strong-consistency-allow-expunge true
 //				allow-ttl-without-nsup true
@@ -33,6 +33,9 @@
 //					data-size 2G
 //				}
 //		}
+//
+//  Once completed, you are required to run "asadm" to complete the configuration.
+//		See https://aerospike.com/docs/database/manage/namespace/consistency/
 //
 //For more information on Multi-record Transaction (MRT)
 //	see https://aerospike.com/blog/aerospike8-transactions/
@@ -43,23 +46,23 @@
 //
 void Main()
 {
-	//Copy the Customer set in the Demo Namespace to this namespace (DemoSC).
-	//Note that this will create the Set "Customer" in DemoSC
-	Demo.Customer.CopyRecords(DemoSC, "Customer");
-	DemoSC["Customer"].AsEnumerable().Count().Dump("Customer Records");
+	//Copy the Customer set in the test Namespace to this namespace (testSC).
+	//Note that this will create the Set "Customer" in testSC
+	test.Customer.CopyRecords(testSC, "Customer");
+	testSC["Customer"].AsEnumerable().Count().Dump("Customer Records");
 	
 	//Create two multiple-record transactions (mrt1 and mrt2). 
 	// Transaction mrt1 will update customer record 47 
-	// Once updated we will try different operations against mrt1, mrt2, and non-mrt DemoSC
+	// Once updated we will try different operations against mrt1, mrt2, and non-mrt testSC
 	
-	var mrt1 = DemoSC.CreateTransaction();
-	var mrt2 = DemoSC.CreateTransaction();
+	var mrt1 = testSC.CreateTransaction();
+	var mrt2 = testSC.CreateTransaction();
 	
-	//Get orginal record from both mrts and non-mrt...
+	//Get original record from both mrts and non-mrt...
 	//We can obtain this records since no updates have occurred...
-	DemoSC.Get("Customer", 47).Dump("DemoSC Orginal Customer rec 47");
-	mrt1.Get("Customer", 47).Dump("mrt1 Orginal Customer rec 47");
-	mrt2.Get("Customer", 47).Dump("mrt2 Orginal Customer rec 47");
+	testSC.Get("Customer", 47).Dump("testSC Original Customer rec 47");
+	mrt1.Get("Customer", 47).Dump("mrt1 Original Customer rec 47");
+	mrt2.Get("Customer", 47).Dump("mrt2 Original Customer rec 47");
 	
 	//Use mrt1 to update customer 47's record with a new bin
 	"Updating Record 47 using mrt1".Dump();
@@ -71,8 +74,8 @@ void Main()
 	
 	//Let us try to read the record
 	
-	//DemoSC will succeed and return the orginal record.
-	DemoSC.Get("Customer", 47).Dump("DemoSC obtains the orginal record");
+	//testSC will succeed and return the original record.
+	testSC.Get("Customer", 47).Dump("testSC obtains the original record");
 	
 	//Get record for mrt1
 	mrt1.Get("Customer", 47).Dump("mrt1 obtains the modified record");
@@ -93,17 +96,17 @@ void Main()
 		ae.Message.Dump("mrt2 read failed (blocked)");
 	}
 
-	//Let us try changing the record for mrt2 and DemoSC
+	//Let us try changing the record for mrt2 and testSC
 	
-	//Try adding a new bin with DemoSC
+	//Try adding a new bin with testSC
 	try
 	{
-		"Try adding bin using DemoSC".Dump();
-		DemoSC.Put("Customer", 47, "newbinDemoSC", "DemnoSCvalue");
+		"Try adding bin using testSC".Dump();
+		testSC.Put("Customer", 47, "newbintestSC", "DemnoSCvalue");
 	}
 	catch (AerospikeException ae) when (ae.Result == ResultCode.MRT_BLOCKED)
 	{
-		ae.Message.Dump("DemoSC Put failed (blocked)");
+		ae.Message.Dump("testSC Put failed (blocked)");
 	}
 
 	//Try adding a new bin with mrt2
@@ -133,8 +136,8 @@ void Main()
 	mrt1.RecordState("Customer", 47).Dump("After Commit -- Get Record's Transaction state for mrt1");
 	mrt2.RecordState("Customer", 47).Dump("After Abort -- Get Record's Transaction state for mrt2");
 
-	//Get the saved changed record from DemoSC
-	DemoSC.Get("Customer", 47).Dump("DemoSC obtains the modified/saved record");
+	//Get the saved changed record from testSC
+	testSC.Get("Customer", 47).Dump("testSC obtains the modified/saved record");
 
 	try
 	{
@@ -146,5 +149,3 @@ void Main()
 		ae.Dump("Try Get after Commit");
 	}
 }
-
-// You can define other methods, fields, classes and namespaces here

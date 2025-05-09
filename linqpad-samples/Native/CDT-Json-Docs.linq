@@ -24,7 +24,7 @@ Note: this is not meant to be used in a production environment and there can be 
 void Main()
 {
 	//ORM -- Find all tracks for TrackId 2527 and return those customers who bought this track
-	var fndTrackIdsInstances = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
+	var fndTrackIdsInstances = from custInvoices in test.CustInvsDoc.AsEnumerable()
 							   let custInstance = custInvoices.Cast<Customer>()
 							   where custInstance.Invoices
 									   .Any(d => d.Lines.Any(l => l.TrackId == 2527))
@@ -35,7 +35,7 @@ void Main()
 	// BTW you can configure how documents from Aerospike are presented.
 	//	The default is to treat documents as JObject but you can configure this (via the connection properties)
 	//	to present them as .Net CDTs (i.e., List and Dictionary).
-	var fndTrackIdsCDT = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
+	var fndTrackIdsCDT = from custInvoices in test.CustInvsDoc.AsEnumerable()
 						 let custInvoiceLines = custInvoices.Invoices
 						 									.ToCDT() //Not required if document mode was disabled
 						 where custInvoiceLines
@@ -47,7 +47,7 @@ void Main()
 
 	//.Net CDTs using AValues -- Find all tracks for TrackId 2527 and return those customers who bought this track
 	// Note: Using AValues reduces type checking and casting...
-	var fndTrackIdsAValueCDT = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
+	var fndTrackIdsAValueCDT = from custInvoices in test.CustInvsDoc.AsEnumerable()
 							   where custInvoices
 										.Invoices.AsEnumerable()//Get the list of invoices as an AValues
 									  	.Any(il => il.TryGetValue("Lines", returnEmptyAValue: true) //Get invoice lines as an AValue. If the property "Lines" doens't exist, a Null AValue is returned
@@ -58,7 +58,7 @@ void Main()
 	fndTrackIdsAValueCDT.Dump("Found Using Linq CDT using AValues");
 	
 	//JObject -- Find all tracks for TrackId 2527 and return those customers
-	var fndTrackIdsJObj = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
+	var fndTrackIdsJObj = from custInvoices in test.CustInvsDoc.AsEnumerable()
 						  let custInvoiceLines = custInvoices.ToJson()["Invoices"]
 													  .Children()["Lines"].SelectMany(a => a)
 						  where custInvoiceLines.Any(l => l.Value<int>("TrackId") == 2527)
@@ -67,7 +67,7 @@ void Main()
 	fndTrackIdsJObj.Dump("Found Using Linq JObject");
 	
 	//Json Pathing -- Find all tracks for TrackId 2527 and return those customers
-	var fndTrackIdsJPath = from custInvoices in Demo.CustInvsDoc.AsEnumerable()
+	var fndTrackIdsJPath = from custInvoices in test.CustInvsDoc.AsEnumerable()
 						   where custInvoices.Invoices.ToJArray().SelectToken("$..Lines[?(@.TrackId == 2527)]") != null
 						   select custInvoices;
 	fndTrackIdsJPath.Dump("Found Using Json Path");
@@ -92,19 +92,19 @@ void Main()
 									new List<InvoiceLine>() { invoiceLine });
 									
 		//Append the new invoice as an atomic operation using Aerospike Operate Expressions
-		Demo.CustInvsDoc.Operate(customer.Aerospike.PrimaryKey,
+		test.CustInvsDoc.Operate(customer.Aerospike.PrimaryKey,
 									ListOperation.Append(ListPolicy.Default,
 															"Invoices", //Bin Name
 															invoice.ToAerospikeValue() //Need to make sure to convert the invoice instance into an Aerospike Map Value (ORM)
 								)) 
 								.Dump($"Append Result Using Aerospike Operate Expression for Customer {customer.Aerospike.PrimaryKey}");
 		
-		Demo.CustInvsDoc.Get(customer.Aerospike.PrimaryKey)
+		test.CustInvsDoc.Get(customer.Aerospike.PrimaryKey)
 				.Dump("Check Append Result (should be last item in the list of invoices)");
 
 
 		//Add 1 to the total of the newly created invoice (last item in the list) using Aerospike Operate Expressions which are atomic...		
-		Demo.CustInvsDoc.Operate(customer.Aerospike.PrimaryKey,
+		test.CustInvsDoc.Operate(customer.Aerospike.PrimaryKey,
 									MapOperation.Increment(MapPolicy.Default,
 															"Invoices", //Bin Name
 															Value.Get("Total"), //Property Name
@@ -112,18 +112,18 @@ void Main()
 															CTX.ListIndex(-1) //Get last item in the list
 								)).Dump($"Add 1 to the \"Total\" of the Last Invoice Using Aerospike Operate Expression for Customer {customer.Aerospike.PrimaryKey}");
 		
-		Demo.CustInvsDoc.Get(customer.Aerospike.PrimaryKey)
+		test.CustInvsDoc.Get(customer.Aerospike.PrimaryKey)
 				.Dump("Check Adding 1 to Total Result (should be last item in the list of invoices)");
 
 		//Remove the newly created invoice from the list off invoices as an atomic operation using Aerospike Operate Expressions
-		Demo.CustInvsDoc.Operate(customer.Aerospike.PrimaryKey,
+		test.CustInvsDoc.Operate(customer.Aerospike.PrimaryKey,
 									ListOperation.RemoveByIndex("Invoices",  //Bin Name
 																	-1, //Get Last Item
 																	ListReturnType.VALUE //Return removed item
 																)) 
 									.Dump($"Remove Last Invoice Result Using Aerospike Operate Expression for Customer {customer.Aerospike.PrimaryKey}");
 		
-		Demo.CustInvsDoc.Get(customer.Aerospike.PrimaryKey)
+		test.CustInvsDoc.Get(customer.Aerospike.PrimaryKey)
 				.Dump("Check Removing of the Last Item Result");				
 	}
 	
@@ -133,19 +133,19 @@ void Main()
 	//Note there is a different from using the Import/Export feature compared to importing/exporting Json strings.
 	
 	//Load Json from a MongoDB collection and put it into an Aerospike Set called jsonTest
-	Demo.Truncate("jsonTest");
+	test.Truncate("jsonTest");
 	
 	JSONValues.MonogoDB.Dump("MongoDB Json String", 0);
 	
-	Demo.FromJson("jsonTest", //Set Name
+	test.FromJson("jsonTest", //Set Name
 					JSONValues.MonogoDB, //Json String
 					pkPropertyName: "_id" //The Primary Key's associated Property Name in Json.
 				).Dump("Number of Records Inserted");
 				
-	Demo.GetRecords("jsonTest").Dump("Newly inserted records in the Json Set");
+	test.GetRecords("jsonTest").Dump("Newly inserted records in the Json Set");
 	
 	//Return the Json from the newly updated set...
-	Demo.ToJson("jsonTest").ToString().Dump("Json String");
+	test.ToJson("jsonTest").ToString().Dump("Json String");
 }
 
 public static class JSONValues

@@ -1,21 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Navigation;
-using Microsoft.Win32;
 using LINQPad.Extensibility.DataContext;
 using System.Diagnostics;
-using System.Collections;
 using System.Globalization;
 using System.Windows.Input;
 using System.Windows.Media;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
-using LINQPad.Internal;
 using Aerospike.Client;
+using Microsoft.Win32;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -48,28 +45,47 @@ namespace Aerospike.Database.LINQPadDriver
                 var nameFnd = false;
 
                 this.comboPasswordNames.Items.Clear();
-                foreach (var name in PasswordManagerNames)
-                {
-                    if (!this.comboPasswordNames.Items.Contains(name))
-                        this.comboPasswordNames.Items.Add(name);
-                    if (!this.comboCldPasswordNames.Items.Contains(name))
-                        this.comboCldPasswordNames.Items.Add(name);
-                    if (name == _connectionProps.PasswordManagerName)
-                        nameFnd = true;
-                }
+                var pwdMgrNames = PasswordManagerNames;
 
-                if(!string.IsNullOrEmpty(_connectionProps.PasswordManagerName))
+                if(pwdMgrNames is null)
                 {
-                    if(!nameFnd)
-                        this.comboPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
-                    this.comboPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
-                    if (!nameFnd)
-                        this.comboCldPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
-                    this.comboCldPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
-                }
+					this.spPassword.IsEnabled = true;
+					this.spPassword.Visibility = Visibility.Visible;
+					this.spPasswordNames.IsEnabled = false;
+					this.spPasswordNames.Visibility = Visibility.Hidden;
+					this.cbUsePassMgr.IsChecked = false;
+					this.cbUsePassMgr.IsEnabled = false;
+                    this.cbUsePassMgr.Visibility = Visibility.Hidden;                    
+                    this.cbCldUsePassMgr.IsChecked = false;
+                    this.cbCldUsePassMgr.IsEnabled = false;
+                    this.cbCldUsePassMgr.Visibility = Visibility.Hidden;
+                    this._connectionProps.UsePasswordManager = false;
+				}
+                else
+                {
+                    foreach(var name in PasswordManagerNames)
+                    {
+                        if(!this.comboPasswordNames.Items.Contains(name))
+                            this.comboPasswordNames.Items.Add(name);
+                        if(!this.comboCldPasswordNames.Items.Contains(name))
+                            this.comboCldPasswordNames.Items.Add(name);
+                        if(name == _connectionProps.PasswordManagerName)
+                            nameFnd = true;
+                    }
 
-                cbUsePassMgr_Click(this.cbUsePassMgr, new RoutedEventArgs());
-                cbCldUsePassMgr_Click(this.cbCldUsePassMgr, new RoutedEventArgs());
+                    if(!string.IsNullOrEmpty(_connectionProps.PasswordManagerName))
+                    {
+                        if(!nameFnd)
+                            this.comboPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
+                        this.comboPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
+                        if(!nameFnd)
+                            this.comboCldPasswordNames.Items.Add(_connectionProps.PasswordManagerName);
+                        this.comboCldPasswordNames.SelectedItem = _connectionProps.PasswordManagerName;
+                    }
+
+                    cbUsePassMgr_Click(this.cbUsePassMgr, new RoutedEventArgs());
+                    cbCldUsePassMgr_Click(this.cbCldUsePassMgr, new RoutedEventArgs());
+                }
             }
 
             defaultBolderBrush = this.txtCldhostName.BorderBrush;

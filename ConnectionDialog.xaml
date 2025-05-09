@@ -194,10 +194,24 @@
                         </TabItem>
                     </TabControl>
                     <GroupBox Header="Timeout" BorderThickness="4" Margin="5,0,5,0">
-                        <StackPanel Margin="5,0,0,0" Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal">
                             <StackPanel Orientation="Horizontal">
+                                <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Socket:</Label>
+                                <TextBox Name="txtSocketTimeout" Padding="2" ToolTip="Socket Timeout in milliseconds for all operations" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5"
+>
+                                    <TextBox.Text>
+                                        <Binding Path="SocketTimeout" StringFormat="{}{0:0}"
+                            ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
+                                            <Binding.ValidationRules>
+                                                <local:NumericValidationRule ValidationStep="RawProposedValue"/>
+                                            </Binding.ValidationRules>
+                                        </Binding>
+                                    </TextBox.Text>
+                                </TextBox>
+                            </StackPanel>
+                            <StackPanel Margin="5,0,0,0" Orientation="Horizontal">
                                 <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Connection:</Label>
-                                <TextBox Name="txtConnTimeout" Padding="2" ToolTip="Connection Timeout in milliseconds" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="8,5,5,5">
+                                <TextBox Name="txtConnTimeout" Padding="2" ToolTip="Connection Timeout in milliseconds" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,5,5">
                                     <TextBox.Text>
                                         <Binding Path="ConnectionTimeout" StringFormat="{}{0:0}"
                              ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
@@ -209,9 +223,8 @@
                                 </TextBox>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
-                                <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Write (Total):</Label>
-                                <TextBox Name="txtTotalTimeout" Padding="2" ToolTip="Total Timeout in milliseconds used for operations like Get, Write, Delete, etc. Does not apply to any operations with reads." MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,5,5"
-                     >
+                                <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Total:</Label>
+                                <TextBox Name="txtTotalTimeout" Padding="2" ToolTip="Total Timeout in milliseconds used for operations like Get, Write, Delete, Query, etc." MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,5,5">
                                     <TextBox.Text>
                                         <Binding Path="TotalTimeout" StringFormat="{}{0:0}"
                              ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
@@ -223,12 +236,11 @@
                                 </TextBox>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
-                                <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Socket:</Label>
-                                <TextBox Name="txtSocketTimeout" Padding="2" ToolTip="Socket Timeout in milliseconds for all operations" MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5"
-                     >
+                                <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Retries:</Label>
+                                <TextBox Name="txtRetries" Padding="2" ToolTip="The maximum number of retries for an operation. " MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5">
                                     <TextBox.Text>
-                                        <Binding Path="SocketTimeout" StringFormat="{}{0:0}"
-                             ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
+                                        <Binding Path="Retries" StringFormat="{}{0:0}"
+                            ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
                                             <Binding.ValidationRules>
                                                 <local:NumericValidationRule ValidationStep="RawProposedValue"/>
                                             </Binding.ValidationRules>
@@ -238,8 +250,7 @@
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <Label Padding="0,0,0,2" VerticalAlignment="Center" Margin="0,5,0,5">Sleep:</Label>
-                                <TextBox Name="txtSleepRetries" Padding="2" ToolTip="Sleep between retrying operations in milliseconds.  Enter zero to skip sleep." MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5"
-                     >
+                                <TextBox Name="txtSleepRetries" Padding="2" ToolTip="Sleep between retrying operations in milliseconds.  Enter zero to skip sleep." MaxLines="1" MinLines="1" Width="50" HorizontalAlignment="Left" Margin="0,5,0,5">
                                     <TextBox.Text>
                                         <Binding Path="SleepBetweenRetries" StringFormat="{}{0:0}"
                              ValidatesOnExceptions="True" ValidatesOnDataErrors="True">
@@ -250,6 +261,11 @@
                                     </TextBox.Text>
                                 </TextBox>
                             </StackPanel>
+                            <Label Name="lblPolicyInfo" Margin="5" VerticalAlignment="Center">
+                                <Hyperlink NavigateUri="https://aerospike.com/docs/database/learn/policies" RequestNavigate="Hyperlink_RequestNavigate">
+                                    See Policies
+                                </Hyperlink>
+                            </Label>
                         </StackPanel>
                     </GroupBox>
                     <StackPanel Orientation="Horizontal" Margin="5,0,0,5">

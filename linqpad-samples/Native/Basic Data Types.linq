@@ -42,27 +42,27 @@ Note: this is not meant to be used in a production environment and there can be 
 void Main()
 {
 
-	var demoSet = "DataTypes"; //The name of the set in the Demo nameospace.
+	var demoSet = "DataTypes"; //The name of the set in the test nameospace.
 
 	//Remove all records from the demo set.
-	Demo.Truncate(demoSet);
+	test.Truncate(demoSet);
 
 	var dateTimeOffset = DateTimeOffset.Parse("5/9/2023 2:42:40 PM -07:00");
 
 	//Add some rows to our demo set where the PK is of different data types and so are the bins... 
 	//Note because we are using the Aerospike Bin class, we must convert the unsupported C# values (e.g., DateTime) to the correct DB type (e.g., string).  
-	//Norminally the LinqPad driver's Put methods will have done all the conversions for us but I wanted to show the use of the underlying API... 
-	//If the set doesn' exist, it will also be created...
-	Demo.Put(demoSet, 123, new Bin[] { new Bin("BinA", "BinA123"), new Bin("BinB", 123), new Bin("BinC", dateTimeOffset.DateTime.ToString()) });
-	Demo.Put(demoSet, "MyPK", new Bin[] { new Bin("BinA", 456), new Bin("BinB", 456), new Bin("BinC", dateTimeOffset.ToString()) });
-	Demo.Put(demoSet, 7.89, new Bin[] { new Bin("BinA", 7.89), new Bin("BinB", 789), new Bin("BinC", dateTimeOffset.ToUnixTimeMilliseconds() * 1000000) });
-	Demo.Put(demoSet, 10.01, new Bin[] { new Bin("BinA", "10.01"), new Bin("BinB", 1001), new Bin("BinC", dateTimeOffset.TimeOfDay.ToString()) });
-	Demo.Put(demoSet, "10.01", new Bin[] { new Bin("BinA", 10.01), new Bin("BinB", "1001"), new Bin("BinC", 123) });
+	//Normally the LinqPad driver's Put methods will have done all the conversions for us but I wanted to show the use of the underlying API... 
+	//If the set doesn't exist, it will also be created...
+	test.Put(demoSet, 123, new Bin[] { new Bin("BinA", "BinA123"), new Bin("BinB", 123), new Bin("BinC", dateTimeOffset.DateTime.ToString()) });
+	test.Put(demoSet, "MyPK", new Bin[] { new Bin("BinA", 456), new Bin("BinB", 456), new Bin("BinC", dateTimeOffset.ToString()) });
+	test.Put(demoSet, 7.89, new Bin[] { new Bin("BinA", 7.89), new Bin("BinB", 789), new Bin("BinC", dateTimeOffset.ToUnixTimeMilliseconds() * 1000000) });
+	test.Put(demoSet, 10.01, new Bin[] { new Bin("BinA", "10.01"), new Bin("BinB", 1001), new Bin("BinC", dateTimeOffset.TimeOfDay.ToString()) });
+	test.Put(demoSet, "10.01", new Bin[] { new Bin("BinA", 10.01), new Bin("BinB", "1001"), new Bin("BinC", 123) });
 
 	//Add a record where the PK's actual value will NOT be saved in the DB (digiest will only be used)
 	{
 		var writePolicy = new WritePolicy() { sendKey = false };
-		Demo.Put(demoSet, 
+		test.Put(demoSet, 
 					"NoPKValueSaved", 
 					new Bin[] { new Bin("BinA", 10.02), new Bin("BinB", "1002"), new Bin("BinC", 456) },
 					writePolicy: writePolicy);					
@@ -72,46 +72,46 @@ void Main()
 	//Note that the bin names will now be repeated with an "*" next to the bin's data type indicating that this bin has multiple data types.
 	//LINQPad.Util.ReadLine("Note changes in Connection Pane on the left. Press <Enter> once the Connection Pane has completly refreshed!".Dump());
 
-	Demo.GetRecords(demoSet).Dump("Added new records");
+	test.GetRecords(demoSet).Dump("Added new records");
 
 	//We have a mixture of data types as the PK and in Bins "BinA" and "BinC". 
 	//Let us try some different queries. Note that we don't need to cast any of the operations...
 	//Since we are using the set dynamically, the bins will need to be accessed dynamically plus the grid display will also be in "dynamic" mode. 
-	Demo[demoSet].Where(x => x["PK"] == "MyPK").Dump("\"MyPK\" Record using Where");
-	Demo[demoSet].Get("MyPK").Dump("\"MyPK\" Record using Get");
+	test[demoSet].Where(x => x["PK"] == "MyPK").Dump("\"MyPK\" Record using Where");
+	test[demoSet].Get("MyPK").Dump("\"MyPK\" Record using Get");
 	
-	var R123BinC = Demo[demoSet].Where(x => x["PK"] == 123)
+	var R123BinC = test[demoSet].Where(x => x["PK"] == 123)
 					.Dump("123 Record") //Dump Record
-					.First() //Get first (only record)  BTW, could wrote as "Demo[demoSet].First(x => x["PK"] == 123)"
+					.First() //Get first (only record)  BTW, could wrote as "test[demoSet].First(x => x["PK"] == 123)"
 					.GetValue("BinC") //Get Bin "BinC"'s value
 					.Dump("123 Record BinC's Value"); //Dump Value
 					
-	Demo[demoSet].Where(x => x["PK"] == 10.01M).Dump("10.01 Records");
-	Demo[demoSet].Where(x => x["PK"] == "10.01").Dump("\"10.01\" (string) Records");
+	test[demoSet].Where(x => x["PK"] == 10.01M).Dump("10.01 Records");
+	test[demoSet].Where(x => x["PK"] == "10.01").Dump("\"10.01\" (string) Records");
 
 	//Get the record where we didn't save the PK value. 
-	Demo[demoSet].Where(x => x["PK"] == "NoPKValueSaved").Dump("\"NoPKValueSaved\" Records");
-	Demo[demoSet].Get("NoPKValueSaved").Dump("\"NoPKValueSaved\" Record using Get");
+	test[demoSet].Where(x => x["PK"] == "NoPKValueSaved").Dump("\"NoPKValueSaved\" Records");
+	test[demoSet].Get("NoPKValueSaved").Dump("\"NoPKValueSaved\" Record using Get");
 
 	//This example returns the records based on a date-time. When using linq, The string from the DB is converted into a C# DateTime and that is used for the comparision. 
 	//Since the DB doesn't support date.time, the date/time string must be used and match exactly when using expressions.
-	Demo[demoSet].Where(x => x["BinC"] == dateTimeOffset.DateTime).Dump("DateTime Records using where");
-	Demo[demoSet].Query(Exp.EQ(Exp.StringBin("BinC"), Exp.Val((string)R123BinC))).Dump("DateTime Record using Expressions");
+	test[demoSet].Where(x => x["BinC"] == dateTimeOffset.DateTime).Dump("DateTime Records using where");
+	test[demoSet].Query(Exp.EQ(Exp.StringBin("BinC"), Exp.Val((string)R123BinC))).Dump("DateTime Record using Expressions");
 
-	Demo[demoSet].Where(x => x["BinC"] == dateTimeOffset.DateTime.ToUniversalTime()).Dump("Universal DateTime Records");
-	Demo[demoSet].Where(x => x["BinC"] == dateTimeOffset).Dump("DateTimeOffset Records");
-	Demo[demoSet].Where(x => x["BinC"] == 1683668560000000000).Dump("DateTimeOffset Long Records");
+	test[demoSet].Where(x => x["BinC"] == dateTimeOffset.DateTime.ToUniversalTime()).Dump("Universal DateTime Records");
+	test[demoSet].Where(x => x["BinC"] == dateTimeOffset).Dump("DateTimeOffset Records");
+	test[demoSet].Where(x => x["BinC"] == 1683668560000000000).Dump("DateTimeOffset Long Records");
 
 	//When comparing values for gtrater or less than values of different data types (excludes numeric types), the hash code of eachobject is used.
 	//Also the results will always be consistent for the same query and data.
-	Demo[demoSet].Where(x => x["PK"] < 11).Dump("PK < 11 Records Where");
+	test[demoSet].Where(x => x["PK"] < 11).Dump("PK < 11 Records Where");
 
 	//This shows the use of a where clause with and without a filter. 
 	//When using a filter with a where clause we can produce the same results as using expressions.
-	Demo[demoSet].Where(x => x["BinB"] < 800).Dump("\"BinB <800\" Records using Where");
-	Demo[demoSet].Where(x => x["BinB"].IsInt && x["BinB"] < 800).Dump("\"BinB <800\" Records using Where and an Int Filter (same result as using Expressions)");
-	Demo[demoSet].Query(Exp.LT(Exp.IntBin("BinB"), Exp.Val(800))).Dump("\"BinB <800\" Records using Expressions");
+	test[demoSet].Where(x => x["BinB"] < 800).Dump("\"BinB <800\" Records using Where");
+	test[demoSet].Where(x => x["BinB"].IsInt && x["BinB"] < 800).Dump("\"BinB <800\" Records using Where and an Int Filter (same result as using Expressions)");
+	test[demoSet].Query(Exp.LT(Exp.IntBin("BinB"), Exp.Val(800))).Dump("\"BinB <800\" Records using Expressions");
 	
-	Demo[demoSet].Where(x => x["BinA"] == "10.01" || x["BinB"] == "1001").Dump("\"BinA == \"10.01\" || BinB == \"1001\"\" Records using Where");
-	Demo[demoSet].Query(Exp.Or(Exp.EQ(Exp.StringBin("BinA"), Exp.Val("10.01")), Exp.EQ(Exp.StringBin("BinB"), Exp.Val("1001")))).Dump("\"BinA == \"10.01\" || BinB == \"1001\"\" Records using Expressions");
+	test[demoSet].Where(x => x["BinA"] == "10.01" || x["BinB"] == "1001").Dump("\"BinA == \"10.01\" || BinB == \"1001\"\" Records using Where");
+	test[demoSet].Query(Exp.Or(Exp.EQ(Exp.StringBin("BinA"), Exp.Val("10.01")), Exp.EQ(Exp.StringBin("BinB"), Exp.Val("1001")))).Dump("\"BinA == \"10.01\" || BinB == \"1001\"\" Records using Expressions");
 }

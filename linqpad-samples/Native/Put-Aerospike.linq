@@ -20,10 +20,10 @@
 /*
 This example updates the Customer set using the Aerospike Put functions based on the Primary Key.
 
-Note: this is not meant to be used in a production environment and there can be performance implications using either this LinqPad driver and expresions!
+Note: this is not meant to be used in a production environment and there can be performance implications using either this LinqPad driver and expressions!
 */
-Demo.Customer.Get(20).Dump("Orginal Values");
-Demo.Customer.PutRec(20, Phone: "+1 (650) 123-4567", additionalBinValues: new Dictionary<string, object>() { { "MyBin", "Hello" }});
-Demo.Customer.Get(20).Dump("Edited Phone Number is now +1 (650) 123-4567 and the new Bin (MyBin) is listed in the newly display \"Values\" properties");
-Demo.Customer.Put(20, new Dictionary<string, object>() { { "Phone", "+1 (650) 644-3358"}, { "MyBin", null }});
-Demo.Customer.Get(20).Dump("Phone Number restored to orginal value and \"MyBin\" should have been removed and the \"Values\" property is not visiable");
+test.Customer.Get(20).Dump("Original Values");
+test.Customer.PutRec(20, Phone: "+1 (650) 123-4567", additionalBinValues: new Dictionary<string, object>() { { "MyBin", "Hello" }});
+test.Customer.Get(20).Dump("Edited Phone Number is now +1 (650) 123-4567 and the new Bin (MyBin) is listed in the newly display \"Values\" properties");
+test.Customer.Put(20, new Dictionary<string, object>() { { "Phone", "+1 (650) 644-3358"}, { "MyBin", null }});
+test.Customer.Get(20).Dump("Phone Number restored to original value and \"MyBin\" should have been removed and the \"Values\" property is not visible");

@@ -24,7 +24,7 @@ void Main()
 	//If true, the read record is re-written with a different PK to demo how PICO are written back to the DB.
 	var reWriteAsDiffPK = true;
 	
-	var customerInvoices = Demo.CustInvsDoc
+	var customerInvoices = test.CustInvsDoc
 							.AsEnumerable()
 							.Select(cid => cid.Cast<Customer>(cid.PK)).ToArray();
 
@@ -43,14 +43,14 @@ void Main()
 			var newPK = element.Id * 1000; //Change the PK
 			
 			//Create DB Records from the Customer instances
-			Demo.CustInvsDoc.WriteObject(newPK, element);
+			test.CustInvsDoc.WriteObject(newPK, element);
 			newRecs.Add(newPK); //Removed new record later...
 		}
 		
 		//Note that bin "Fax" is present in the DB (and list as a known bin in the Set's Bin list pane) but not as a property in the Customer Class
 		//	Also bin "Company" is present in the DB and wasn't detected by the Set's Bin list pane and isn't a property either. 
 		//		As such, records that have defined "Company" bin, will have an ExpandoObject value indicating that records has additional bins.
-		Demo.CustInvsDoc.AsEnumerable()
+		test.CustInvsDoc.AsEnumerable()
 						.OrderBy(cid => cid.LastName)
 						.ThenBy(cid => cid.FirstName)
 						.ThenBy(cid => cid.PK)
@@ -60,7 +60,7 @@ void Main()
 
 		foreach (var removePK in newRecs)
 		{
-			Demo.CustInvsDoc.Delete(removePK);
+			test.CustInvsDoc.Delete(removePK);
 		}
 	}
 }

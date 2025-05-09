@@ -20,8 +20,8 @@ This performs a join between the customer and invoice sets.
 
 Note: this is not meant to be used in a production environment and there can be performance implications using either this LinqPad driver and expresions! 
 */
-Demo.Customer.AsEnumerable()
-	.GroupJoin(Demo.Invoice.AsEnumerable(),
+test.Customer.AsEnumerable()
+	.GroupJoin(test.Invoice.AsEnumerable(),
 				c => c.PK,
 				i => i.CustomerId,
 				(cust, invoices) => new {Customer = cust, Invoices=invoices})

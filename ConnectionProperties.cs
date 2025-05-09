@@ -368,7 +368,25 @@ namespace Aerospike.Database.LINQPadDriver
             }
         }
 
-        public int SleepBetweenRetries
+		public int Retries
+		{
+			get
+			{
+				if(DriverData.IsEmpty)
+				{
+					DriverData.SetElementValue("Retries", 2);
+					return 2;
+				}
+
+				return (int?) DriverData.Element("Retries") ?? 2;
+			}
+			set
+			{
+				DriverData.SetElementValue("Retries", value);
+			}
+		}
+
+		public int SleepBetweenRetries
         {
             get
             {

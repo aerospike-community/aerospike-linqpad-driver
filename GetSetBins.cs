@@ -14,7 +14,7 @@ namespace Aerospike.Database.LINQPadDriver
         public GetSetBins(IAerospikeClient connection, int timeout, bool compression)
         {
             this.Connection = connection;
-            this.QueryPolicy = new QueryPolicy() { socketTimeout = timeout, totalTimeout = 0, compress = compression };
+            this.QueryPolicy = new QueryPolicy(connection.QueryPolicyDefault);
         }
 
         IAerospikeClient Connection { get; }
@@ -28,7 +28,7 @@ namespace Aerospike.Database.LINQPadDriver
         
         IEnumerable<Aerospike.Client.Record> GetRecords(string nsName, string setName, int maxRecords)
         {
-            this.QueryPolicy.expectedDuration = maxRecords <= 100 ? QueryDuration.LONG : QueryDuration.SHORT;
+            this.QueryPolicy.expectedDuration = maxRecords <= 100 ? QueryDuration.SHORT : QueryDuration.LONG;
 			using var recordset = this.Connection
                                    .Query(this.QueryPolicy,
                                            new Statement() { Namespace = nsName, SetName = setName, MaxRecords = maxRecords });
@@ -129,9 +129,11 @@ namespace Aerospike.Database.LINQPadDriver
             return value.GetType();
         }
 
-#pragma warning disable IDE0060 // Remove unused parameter
-        private static (string name, Type type) GetBinDocType(string nsName, string setName, string binName, object binValue, bool determineDocType)
-#pragma warning restore IDE0060 // Remove unused parameter
+        private static (string name, Type type) GetBinDocType(string _ /*nsName*/,
+                                                                string __ /*setName*/,
+                                                                string binName,
+                                                                object binValue,
+                                                                bool determineDocType)
         {
             return (binName, GetdocType(binValue, determineDocType));
         }
@@ -140,7 +142,8 @@ namespace Aerospike.Database.LINQPadDriver
                                                     string setName,
                                                     bool determineDocType, 
                                                     int maxRecords,
-                                                    int minRecs)
+                                                    int minRecs,
+													bool retry = false)
         {
             Exception exception = null;
 
@@ -166,7 +169,7 @@ namespace Aerospike.Database.LINQPadDriver
 						if(Client.Log.DebugEnabled())
 						{
 							Client.Log.Error($"GetSetBins.Get Exception {ex.GetType().Name} ({ex.Message}) Returned Records {records.Count()}");
-							DynamicDriver.WriteToLog(ex, "GetSetBins.Get");
+							DynamicDriver.WriteToLog(ex, $"GetSetBins.Get Returned Records {records.Count()}");
 						}
 					}
 

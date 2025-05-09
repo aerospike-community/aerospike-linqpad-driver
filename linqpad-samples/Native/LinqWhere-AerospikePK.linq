@@ -20,5 +20,5 @@ This example compares the use of a Linq Where clause and Aerospike Get function 
 
 Note: this is not meant to be used in a production environment and there can be performance implications using either this LinqPad driver and expresions! 
 */
-Demo.Customer.Where(c => c.PK == 20).Dump("Using Linq");
-Demo.Customer.Get(20).Dump("Using Aerospike Get");
+test.Customer.Where(c => c.PK == 20).Dump("Using Linq");
+test.Customer.Get(20).Dump("Using Aerospike Get");

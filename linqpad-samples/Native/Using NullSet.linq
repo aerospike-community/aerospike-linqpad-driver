@@ -14,11 +14,11 @@
   </Connection>
 </Query>
 
-Demo.NullSet.Where(ns => ns.Aerospike.SetName == "Artist")
+test.NullSet.Where(ns => ns.Aerospike.SetName == "Artist")
 	.Dump("Recorset for Artist Set using the NullSet (record view is Dynamic)");
-Demo[null].Where(ns => ns.Aerospike.SetName == "Artist")
+test[null].Where(ns => ns.Aerospike.SetName == "Artist")
 	.Dump("Recorset for Artist Set using null (record view is Dynamic)");
-Demo["NullSet"].Where(ns => ns.Aerospike.SetName == "Artist")
+test["NullSet"].Where(ns => ns.Aerospike.SetName == "Artist")
 	.Dump("Recorset for Artist Set using 'NullSet' (record view is Dynamic)");
-Demo.Artist
+test.Artist
 	.Dump("Recorset for Artist Set using the Set Directly (record view is Record)");

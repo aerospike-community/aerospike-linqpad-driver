@@ -16,7 +16,7 @@
 
 /*
 This program joins the Customer set and Invoice set, grouped by customer id. 
-Onced joined, it creates a new set (e.g., CustInvsDoc) where each customer has a list of their invoices (documents).
+Once joined, it creates a new set (e.g., CustInvsDoc) where each customer has a list of their invoices (documents).
 
 Note: this is not meant to be used in a production environment and there can be performance implications using this LinqPad driver! 
 */
@@ -25,20 +25,20 @@ void Main()
 {
 	var setName = "CustInvsDoc";
 	//Join Customer and Invoice
-	var ciRecs = Demo.Customer.AsEnumerable()
-					.GroupJoin(Demo.Invoice.AsEnumerable(),
+	var ciRecs = test.Customer.AsEnumerable()
+					.GroupJoin(test.Invoice.AsEnumerable(),
 								c => c.PK,
 								i => i.CustomerId,
 								(cust, invoices) => new { Customer = cust, Invoices = invoices.ToArray() });
 
 	//Truncate the new set if exists...
-	Demo.Truncate(setName);
+	test.Truncate(setName);
 	
 	//Helper function to create invoice with details (lines) by quering the InvoiceLine set using Aerospike Expresions
-	IDictionary<string,object> DetermineInvoiceDetails(Demo_NamespaceCls.Invoice_SetCls.RecordCls invoiceRecord)
+	IDictionary<string,object> DetermineInvoiceDetails(test_NamespaceCls.Invoice_SetCls.RecordCls invoiceRecord)
 	{
 		var invoiceDict = invoiceRecord.ToDictionary();
-		var invoiceLines = Demo.InvoiceLine.Query(Exp.EQ(Exp.IntBin("InvoiceId"), Exp.Val((long) invoiceRecord.PK)));
+		var invoiceLines = test.InvoiceLine.Query(Exp.EQ(Exp.IntBin("InvoiceId"), Exp.Val((long) invoiceRecord.PK)));
 		
 		if(invoiceLines.Any())
 			invoiceDict.Add("Lines", invoiceLines);
@@ -59,8 +59,8 @@ void Main()
 																				
 		//Put the new customer with invoice record into the DB. The driver will transform the dictionary into bins plus 
 		//takes the invoice collection and transforms this into an Aerospike collection (document). 
-		Demo.Put(setName, ciRecords.Customer.PK, customerDict);		
+		test.Put(setName, ciRecords.Customer.PK, customerDict);		
 	}
 	
-	Demo[setName].Dump(setName);
+	test[setName].Dump(setName);
 }
