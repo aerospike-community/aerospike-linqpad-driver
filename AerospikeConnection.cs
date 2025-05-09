@@ -401,11 +401,9 @@ namespace Aerospike.Database.LINQPadDriver
                                                     this.SocketTimeout,
                                                     this.NetworkCompression);
 
-                    var parallelOptions = new ParallelOptions();
-
-                    if(!OperatingSystem.IsWindows())
+                    var parallelOptions = new ParallelOptions()
 					{
-                        parallelOptions.MaxDegreeOfParallelism = 2;
+                        MaxDegreeOfParallelism = 3
 					};
 
 					foreach (var ns in this.Namespaces)
