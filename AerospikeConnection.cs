@@ -51,6 +51,8 @@ namespace Aerospike.Database.LINQPadDriver
             this.ConnectionsPerNode = connectionInfo.ConnectionsPerNode;
             this.ExpectedDuration = connectionInfo.ExpectedDuration;
             this.TotalTimeout = connectionInfo.TotalTimeout;
+            this.Retries = connectionInfo.Retries;
+            this.SleepBetweenRetries = connectionInfo.SleepBetweenRetries;
             this.SocketTimeout = connectionInfo.SocketTimeout;
             this.SendPK = connectionInfo.SendKey;
             this.ExpectedDuration = connectionInfo.ExpectedDuration;
@@ -117,7 +119,7 @@ namespace Aerospike.Database.LINQPadDriver
                     }
                 }
 
-                this.ConnectionString = string.Format("hosts={0};user={1};{2}externalIP={3};{4}timeout={5};totaltimeout={6};sockettimeout={7};connpool={8};compression={9};{10}IsProduction={11}{12}",
+                this.ConnectionString = string.Format("hosts={0};user={1};{2}externalIP={3};{4}timeout={5};totaltimeout={6};sockettimeout={7};retries={8},sleepretries={9},connpool={10};compression={11};{12}IsProduction={13}{14}",
                                                         string.Join(",", connectionInfo.SeedHosts
                                                                             .Select(s => String.Format("{0}:{1}", s, dbPort))),
                                                         cxInfo.DatabaseInfo.UserName,
@@ -131,6 +133,8 @@ namespace Aerospike.Database.LINQPadDriver
                                                         this.ConnectionTimeout,
                                                         this.TotalTimeout,
                                                         this.SocketTimeout,
+                                                        this.Retries,
+                                                        this.SleepBetweenRetries,
                                                         this.ConnectionsPerNode,
                                                         this.NetworkCompression,
                                                         string.IsNullOrEmpty(this.TLSCertName)
@@ -182,8 +186,6 @@ namespace Aerospike.Database.LINQPadDriver
 
         }
 
-
-
         public IConnectionInfo CXInfo { get; }
 
         public string ConnectionString { get; set; }
@@ -233,6 +235,7 @@ namespace Aerospike.Database.LINQPadDriver
         public int SocketTimeout { get; }
         public int TotalTimeout { get; }
         public bool NetworkCompression { get; }
+        public int Retries { get; }
         public int SleepBetweenRetries { get; }
         public int ConnectionsPerNode { get; }
         public bool SendPK { get; }
@@ -397,11 +400,19 @@ namespace Aerospike.Database.LINQPadDriver
                     var getBins = new GetSetBins(this.AerospikeClient,
                                                     this.SocketTimeout,
                                                     this.NetworkCompression);
-					
+
+                    var parallelOptions = new ParallelOptions();
+
+                    if(!OperatingSystem.IsWindows())
+					{
+                        parallelOptions.MaxDegreeOfParallelism = 2;
+					};
+
 					foreach (var ns in this.Namespaces)
-                    {
+                    {                        
                         Parallel.ForEach(ns.Sets,
-                            (set, cancelationToken) =>
+							parallelOptions,
+							(set, cancelationToken) =>
                             {
                                 if (set.IsNullSet && ns.Bins.Any())
                                     set.UpdateTypeBins(ns.Bins, false);
@@ -731,8 +742,9 @@ namespace Aerospike.Database.LINQPadDriver
                     {
                         compress = this.NetworkCompression,
                         socketTimeout = this.SocketTimeout,
-                        totalTimeout = this.ConnectionTimeout,
+                        totalTimeout = this.TotalTimeout,
                         sendKey = this.SendPK,
+                        maxRetries = this.Retries,
                         sleepBetweenRetries = this.SleepBetweenRetries,
                         recordExistsAction = RecordExistsAction.UPDATE,
                         respondAllOps = this.RespondAllOps,
@@ -743,11 +755,12 @@ namespace Aerospike.Database.LINQPadDriver
                     },
                     queryPolicyDefault = new QueryPolicy()
                     {
-                        totalTimeout = 0,
+                        totalTimeout = this.TotalTimeout,
                         socketTimeout = this.SocketTimeout,
                         compress = this.NetworkCompression,
                         sendKey = this.SendPK,
                         failOnClusterChange = false,
+                        maxRetries = this.Retries,
                         sleepBetweenRetries = this.SleepBetweenRetries,
                         expectedDuration = this.ExpectedDuration
                     },
@@ -755,8 +768,9 @@ namespace Aerospike.Database.LINQPadDriver
                     {
                         compress = this.NetworkCompression,
                         socketTimeout = this.SocketTimeout,
-                        totalTimeout = this.ConnectionTimeout,
+                        totalTimeout = this.TotalTimeout,
                         sendKey = this.SendPK,
+                        maxRetries = this.Retries,
                         sleepBetweenRetries = this.SleepBetweenRetries
                     },
                     scanPolicyDefault = new ScanPolicy()
@@ -765,10 +779,10 @@ namespace Aerospike.Database.LINQPadDriver
 						sleepBetweenRetries = this.SleepBetweenRetries,						
 						sendKey = this.SendPK,
 						socketTimeout = this.SocketTimeout,
-						totalTimeout = 0,
+						totalTimeout = this.TotalTimeout,
 						failOnFilteredOut = false,
                         includeBinData = true,
-                        maxRetries = 3,
+                        maxRetries = this.Retries,
                         recordsPerSecond = 0
 					}
                 };
@@ -1129,6 +1143,7 @@ namespace Aerospike.Database.LINQPadDriver
                     && this.SocketTimeout == other.SocketTimeout
                     && this.ConnectionsPerNode == other.ConnectionsPerNode
                     && this.SleepBetweenRetries == other.SleepBetweenRetries
+                    && this.Retries == other.Retries
                     && this.ExpectedDuration == other.ExpectedDuration
                     && this.SendPK == other.SendPK
                     && this.RespondAllOps == other.RespondAllOps

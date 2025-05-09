@@ -20,5 +20,5 @@ This example compares the use of a Linq Where clause and Aerospike Expressions.
 
 Note: this is not meant to be used in a production environment and there can be performance implications using either this LinqPad driver and expresions! 
 */
-Demo.Customer.Where(c => c.Country == "USA" && c.State == "CA").Dump("Using Linq");
-Demo.Customer.Query(Exp.And(Exp.EQ(Exp.StringBin("Country"), Exp.Val("USA")), Exp.EQ(Exp.StringBin("State"), Exp.Val("CA")))).Dump("Using Aerospike Expressions");
+test.Customer.Where(c => c.Country == "USA" && c.State == "CA").Dump("Using Linq");
+test.Customer.Query(Exp.And(Exp.EQ(Exp.StringBin("Country"), Exp.Val("USA")), Exp.EQ(Exp.StringBin("State"), Exp.Val("CA")))).Dump("Using Aerospike Expressions");

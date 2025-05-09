@@ -14,7 +14,7 @@
   </Connection>
 </Query>
 
-Demo.Track.Take(3).ToAPICode().Dump("Generated Get and Put Extended API for three rows");
-Demo.Track.Take(3).ToAPICode(useAerospikeAPI: true).Dump("Generated Get and Put Aerospike API for three rows");
-Demo.Track.Take(3).ToAPICodeBatch().Dump("Generated Batch Extended APIfor three rows");
-Demo.Track.Take(3).ToAPICodeBatch(useAerospikeAPI: true).Dump("Generated Batch Aerospike API for three rows");
+test.Track.Take(3).ToAPICode().Dump("Generated Get and Put Extended API for three rows");
+test.Track.Take(3).ToAPICode(useAerospikeAPI: true).Dump("Generated Get and Put Aerospike API for three rows");
+test.Track.Take(3).ToAPICodeBatch().Dump("Generated Batch Extended APIfor three rows");
+test.Track.Take(3).ToAPICodeBatch(useAerospikeAPI: true).Dump("Generated Batch Aerospike API for three rows");

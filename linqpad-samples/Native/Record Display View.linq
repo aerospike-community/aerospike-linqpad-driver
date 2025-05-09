@@ -31,19 +31,19 @@ Note that you can always force a refresh of the cluster by right clicking on the
 void Main()
 {
 	
-	Demo.Artist.Get(188).Dump("Artist 188 Before Adding a new Bin to the Record");
+	test.Artist.Get(188).Dump("Artist 188 Before Adding a new Bin to the Record");
 	
-	Demo.Artist.Put(188, "Mybin", "Hello");
+	test.Artist.Put(188, "Mybin", "Hello");
 	
-	Demo.Artist.Get(188).Dump("Artist 188 After Adding a new Bin to the Record. Notice the new Column (Values) in the display grid");
+	test.Artist.Get(188).Dump("Artist 188 After Adding a new Bin to the Record. Notice the new Column (Values) in the display grid");
 	
 	//Remove MyBin from this record by setting the value to null.
-	Demo.Artist.Put(188, "Mybin", (string) null); 
+	test.Artist.Put(188, "Mybin", (string) null); 
 	
-	Demo.Artist.Get(188).Dump("Artist 188 After removing new bin.");
+	test.Artist.Get(188).Dump("Artist 188 After removing new bin.");
 	
 	
-	Demo.Customer.Get(20).Dump("This Customer's Record doesn't actual have a \"Company\" nor \"Fax\" bins since their values are null");
+	test.Customer.Get(20).Dump("This Customer's Record doesn't actual have a \"Company\" nor \"Fax\" bins since their values are null");
 	
-	Demo.Customer.ChangeRecordView(ARecord.DumpTypes.Dynamic).Get(20).Dump("By changing the display view to Dynamic, we can see the actual bins returned from the DB in this record via the \"Values\" column in the display grid");
+	test.Customer.ChangeRecordView(ARecord.DumpTypes.Dynamic).Get(20).Dump("By changing the display view to Dynamic, we can see the actual bins returned from the DB in this record via the \"Values\" column in the display grid");
 }
