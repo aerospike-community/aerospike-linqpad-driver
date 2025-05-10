@@ -10,9 +10,9 @@ Here is a subset of what you can perform using the driver:
 -   Use the driver’s extension methods to perform operations like Aerospike Expression, CRUD operations, etc. without understanding the underlying Aerospike API.
 -   Serialize and deserialize any C\# object via the Object-Mapper (POCO). The driver supports all C\# data types, nested classes, and collections.
 -   Full JSON support using [Json.NET](https://www.newtonsoft.com/json).
--   Be able to execute [UDF](https://aerospike.com/docs/database/advanced/udf/)s directly and display their underlying code. UDFs are treated like C\# methods with [IntelliSense](https://learn.microsoft.com/en-us/visualstudio/ide/using-intellisense?view=vs-2022) and code completion. This feature is not available for the cloud.
+-   Be able to execute [UDF](https://aerospike.com/docs/database/advanced/udf/)s directly and display their underlying code. UDFs are treated like C\# methods with [IntelliSense](https://learn.microsoft.com/en-us/visualstudio/ide/using-intellisense?view=vs-2022) and code completion.
 -   Export or Import Sets directly or by means of an [Aerospike Filter](https://docs.aerospike.com/server/operations/configure/cross-datacenter/filters).
--   Provides metadata about the cluster which includes active/inactive nodes, Aerospike server version, etc. This feature is not available for the cloud.
+-   Provides metadata about the cluster which includes active/inactive nodes, Aerospike server version, etc.
 -   Use the Aerospike API directly to perform advanced operations or instantly test snippets used in your application code.
 
 The driver can, also, dynamically detect the structure of records within an Aerospike Set resulting in an easy-to-understand view much like a relational table with enhanced capabilities. Some of these capabilities are:
@@ -366,7 +366,7 @@ Support for TLS encryption and authentication is fully supported by enabling the
 
 ## Connection Dialog
 
-The connection dialog is used to establish a connection to an Aerospike cluster. This can be a self-managed/native cluster or an Aerospike Cloud (DBaaS) cluster.
+The connection dialog is used to establish a connection to an Aerospike cluster.
 
 This dialog also defines the connection [policies](https://aerospike.com/docs/server/guide/policies) and Aerospike LINQPad features. Each field/property will typically have a “tooltip” providing additional information. Blue underlined text is a hyperlink that will take you to additional information about the topic.
 
@@ -400,7 +400,7 @@ The properties are:
 9.  This panel are the options regarding timeout values. Each field will have a tooltip explaining the field.
 10. If enabled, “send key” sends the user-defined key in addition to hash digest on both reads and writes. If the key is sent on a write, the key will be stored with the record on the server and returned to the client on primary and secondary index queries.
 11. If enabled, queries are expected to return less than 100 records per node and the servers will optimize the queries for a small record set.
-12. If enabled, compression is used (only applies to Self-Managed clusters). This field is disabled for Cloud connections.
+12. If enabled, compression is used (only applies to Self-Managed clusters).
 13. Controls how “operate” API function behaves. For more information [click-here](https://aerospike.com/docs/apidocs/csharp/html/f_aerospike_client_writepolicy_respondallops).
 14. Enables the Document/JSON feature. See Document API section above. If disabled, collections are treated as .net collections.
 15. If enabled, the internal Aerospike API debugging/trace is enabled.
@@ -435,7 +435,7 @@ Fields are:
 
 ### Cloud Tab
 
-Aerospike Cloud Not support in this release.
+Aerospike Cloud will be available in a future release.
 
 ### Display/Conversion Options Panel
 
@@ -490,7 +490,7 @@ For more information, see the [Auto-Values blog](https://aerospike.com/developer
 
 You can still perform queries and API calls using the driver’s extension APIs against the [“null” set](https://aerospike.com/docs/server/operations/manage/sets). Below is an example of an API call to obtain the records for Aerospike set “Artist”:
 
-aerospike_cloud.NullSet.Where(ns =\> ns.Aerospike.SetName == "Artist")
+test.NullSet.Where(ns =\> ns.Aerospike.SetName == "Artist")
 
 Below is the output:
 
@@ -566,7 +566,7 @@ Sample scripts can be found in the [LINQPad Sample tree view tab](https://www.li
 
 The sample scripts are:
 
--   ReadMeFirst.linq – This script should be reviewed first. It will load the data into the “Demo” namespace which needs to exist. To create this namespace, please follow these [instructions](https://docs.aerospike.com/server/operations/manage/namespaces).
+-   ReadMeFirst.linq – This script should be reviewed first. It will load the data into the “test” namespace which needs to exist. To create this namespace, please follow these [instructions](https://docs.aerospike.com/server/operations/manage/namespaces).
 -   Basic Data Types.linq - Review some of the capabilities of working with Bins from within the driver plus show how to programmatically access sets and bins.
 -   Basic Data Types 2.linq – Additional examples working with set properties and auto-values (AValue).
 -   Record Display View.linq - This demonstrates how "Record Display View" works.
