@@ -580,7 +580,9 @@ The sample scripts are:
 -   Generate Code.linq – This shows how to generate API code from record collections.
 -   MRT.linq – This shows how to use MRTs
 
-## 
+## API Documentation
+
+LINQPad API documentation can be found [here](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/Help/index.html).
 
 ## Prerequisites
 
@@ -623,3 +625,4 @@ There are multiple ways to install Aerospike DB.
 -   <https://developer.aerospike.com/blog>
 -   <https://github.com/aerospike>
 -   <https://github.com/aerospike-community>
+-   <https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/Help/index.html>
