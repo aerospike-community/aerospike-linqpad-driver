@@ -1,8 +1,8 @@
-# Aerospike Database for LINQPad 7+
+# Aerospike Database for LINQPad 7+ (Windows Only) and LINQPad 8+ (Windows and MacOS)
 
 ## Description
 
-[Aerospike](https://aerospike.com/) for LINQPad 7+ is a data context dynamic driver for interactively querying and updating an Aerospike database using "[LINQPad](https://www.linqpad.net/)". LINQPad is a Graphical Development Tool designed for rapid prototyping, interactive testing, data modeling, data mining, drag-and-drop execution, interactive debugging, etc. The Aerospike driver for LINQPad is designed to support all LINQPad capabilities including the enhanced ability to learn and use the [Aerospike API directly](https://developer.aerospike.com/client/csharp).
+[Aerospike](https://aerospike.com/) for LINQPad 7/8 is a data context dynamic driver for interactively querying and updating an Aerospike database using "[LINQPad](https://www.linqpad.net/)". LINQPad is a Graphical Development Tool designed for rapid prototyping, interactive testing, data modeling, data mining, drag-and-drop execution, interactive debugging, etc. The Aerospike driver for LINQPad is designed to support all LINQPad capabilities including the enhanced ability to learn and use the [Aerospike API directly](https://developer.aerospike.com/client/csharp).
 
 Here is a subset of what you can perform using the driver:
 
@@ -10,10 +10,10 @@ Here is a subset of what you can perform using the driver:
 -   Use the driver’s extension methods to perform operations like Aerospike Expression, CRUD operations, etc. without understanding the underlying Aerospike API.
 -   Serialize and deserialize any C\# object via the Object-Mapper (POCO). The driver supports all C\# data types, nested classes, and collections.
 -   Full JSON support using [Json.NET](https://www.newtonsoft.com/json).
--   Be able to execute [UDF](https://docs.aerospike.com/server/guide/udf)s directly and display their underlying code. UDFs are treated like C\# methods with [IntelliSense](https://learn.microsoft.com/en-us/visualstudio/ide/using-intellisense?view=vs-2022) and code completion. This feature is not available for the cloud.
+-   Be able to execute [UDF](https://aerospike.com/docs/database/advanced/udf/)s directly and display their underlying code. UDFs are treated like C\# methods with [IntelliSense](https://learn.microsoft.com/en-us/visualstudio/ide/using-intellisense?view=vs-2022) and code completion. This feature is not available for the cloud.
 -   Export or Import Sets directly or by means of an [Aerospike Filter](https://docs.aerospike.com/server/operations/configure/cross-datacenter/filters).
 -   Provides metadata about the cluster which includes active/inactive nodes, Aerospike server version, etc. This feature is not available for the cloud.
--   Use the Aerospike API directly to perform advance operations or instantly test snippets used in your application code.
+-   Use the Aerospike API directly to perform advanced operations or instantly test snippets used in your application code.
 
 The driver can, also, dynamically detect the structure of records within an Aerospike Set resulting in an easy-to-understand view much like a relational table with enhanced capabilities. Some of these capabilities are:
 
@@ -25,7 +25,7 @@ The driver can, also, dynamically detect the structure of records within an Aero
 
 ![A screenshot of a computer Description automatically generated](media/2590c33dc0562b6c0f3583edb1e4f91c.png)The LINQPad connection pane will display the different [Aerospike components](https://docs.aerospike.com/server/architecture/data-model) in an hierarchical manner where namespace is under Aerospike cluster connection. Aerospike Sets are under namespaces and bins are under Sets. Below screenshot shows the relationship between these components:
 
-Each component can be dragged-and-dropped onto the LINQPad Query pane to be executed by LINQPad. The execution behavior will depend on the component. For example, a Set or Secondary Index will present the records within that component. For other components, the properties are displayed. In all cases, you can always execute the driver’s extension methods. These extension methods, greatly simplify Aerospike API commands like [Get, Put, Query, Operate, etc](https://developer.aerospike.com/client/csharp). plus, the ability to perform things like importing or exporting data. Of course, you can always use LINQ against Aerospike Sets or Secondary Indexes. Below is an example of some of the driver extensions:
+Each component can be dragged-and-dropped onto the LINQPad Query pane to be executed by LINQPad. The execution behavior will depend on the component. For example, a Set or Secondary Index will present the records within that component. For other components, the properties are displayed. In all cases, you can always execute the driver’s extension methods. These extension methods greatly simplify Aerospike API commands like [Get, Put, Query, Operate, etc](https://developer.aerospike.com/client/csharp). plus, the ability to perform things like importing or exporting data. Of course, you can always use LINQ against Aerospike Sets or Secondary Indexes. Below is an example of some of the driver extensions:
 
 ![A screenshot of a computer Description automatically generated](media/7b6d6cfdfe43159fb1c6dedfc6ef5cc0.png)
 
@@ -41,13 +41,13 @@ Below is an example of the namespace configuration information that is presented
 
 ## Aerospike Namespace, Set, Records, Bins, and Secondary Indexes
 
-Aerospike Sets and records are very easy to use. The detected bins in a record are integrated into LINQPad and are treated as C\# properties. As such, features like Intellisense and Autocompletion just work. You can also access bins within a record by using the bin name.
+Aerospike Sets and records are very easy to use. The detected bins in a record are integrated into LINQPad and are treated as C\# properties. As such, features like IntelliSense and Autocompletion just work. You can also access bins within a record by using the bin name.
 
 Since Aerospike is a schemaless database, a record can consist of varying number of bins, or a bin can have different data types between records. The driver can handle these conditions seamlessly.
 
 ![A screenshot of a computer Description automatically generated](media/9c8cd24effbc3f7e5369afa39c8b51dd.png)
 
-Implicit data conversion ([auto-values](#auto-values)) eliminates the need to test and cast a bin’s value so that it can be used directly in any operation. Below is an example that shows how implicit conversion works. The set, “graphDeviceNodeIdSet”, has a bin named “nodeID” that consists of two different data type values. Some records have a list value while others have a string value. This example uses the “where” clause which compares each record in the set looking for a numeric value of 367 or the value “a” in the list values.  
+Implicit data conversion ([auto-values](#auto-values)) eliminates the need to test and casts a bin’s value so that it can be used directly in any operation. Below is an example that shows how implicit conversion works. The set, “graphDeviceNodeIdSet”, has a bin named “nodeID” that consists of two different data type values. Some records have a list value while others have a string value. This example uses the “where” clause which compares each record in the set looking for a numeric value of 367 or the value “a” in the list values.  
 ![A screenshot of a computer Description automatically generated](media/a3bdd0a57f08799db46a07babdfebe71.png)
 
 ## User-Defined Functions (UDFs)
@@ -478,7 +478,7 @@ Below is an example of Dynamic Display View:
 
 Auto-Values are a wrapper around Aerospike DB values so that working with unstructured data is simple and risk free of exceptions like null reference and invalid cast.
 
-They provide a rich set of functions to work with conversions from or to DB and .Net values. The have the following main features:
+They provide a rich set of functions to work with conversions from or to DB and .Net values. They have the following main features:
 
 -   Implicit Casting – don’t have to worry about check and cast. Just use the standard .Net operators.
 -   Convert functions – Will try to convert a DB or .Net value with or without any explicit reference.
@@ -554,7 +554,7 @@ The extension API manages the associated policies for easy use. Below are the ex
 -   Commit – Commits the associated MRT. It handles the “In-Doubt” retry logic.
 -   Abort – Aborts the associated MRT (i.e., rollback)
 
-Calling “CreateTransaction” which will return a ATransaction object which acts like a namespace object. All the extension APIs (e.g., Get, Put, CopyRecods, Import, etc.) can be used with MRT with no effort.
+Calling “CreateTransaction” which will return an ATransaction object which acts like a namespace object. All the extension APIs (e.g., Get, Put, CopyRecods, Import, etc.) can be used with MRT with no effort.
 
 Like always if you wish to use the Aerospike native API you can at any time. The default policies for the Extension MRT “set” or “namespace” will be properly enabled to support native MRTs.
 
@@ -580,15 +580,18 @@ The sample scripts are:
 -   Generate Code.linq – This shows how to generate API code from record collections.
 -   MRT.linq – This shows how to use MRTs
 
+## 
+
 ## Prerequisites
 
 -   [LINQPad 8](https://www.linqpad.net/LINQPad8.aspx): [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0)/[.NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)/[.NET 6](https://dotnet.microsoft.com/download/dotnet/6.0)
--   [LINQPad 7](https://www.linqpad.net/LINQPad7.aspx): [.NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)/[.NET 6](https://dotnet.microsoft.com/download/dotnet/6.0)/[.NET 5](https://dotnet.microsoft.com/download/dotnet/5.0)/[.NET Core 3.1](https://dotnet.microsoft.com/download/dotnet-core/3.1)
--   [LINQPad 6](https://www.linqpad.net/LINQPad6.aspx): [.NET 5](https://dotnet.microsoft.com/download/dotnet/5.0)/[.NET Core 3.1](https://dotnet.microsoft.com/download/dotnet-core/3.1)
+-   [LINQPad 7](https://www.linqpad.net/LINQPad7.aspx): [.NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)/[.NET 6](https://dotnet.microsoft.com/download/dotnet/6.0)
+
+# 
 
 # Installation of LINQPad Driver
 
-## LINQPad NuGet Manager
+## LINQPad NuGet Manager (Windows Only)
 
 -   Open LINQPad
 -   Click `Add Connection` Link.
@@ -596,7 +599,7 @@ The sample scripts are:
 -   Click radio button “`Show all drivers”` and type `Aerospike`.
 -   Click Install
 
-## Manual
+## Manual and MacOS
 
 Obtain the latest driver from the `Driver` folder and [download](https://github.com/aerospike-community/aerospike-linqpad-driver/tree/main/Driver) to your computer.
 
@@ -609,8 +612,7 @@ Obtain the latest driver from the `Driver` folder and [download](https://github.
 
 There are multiple ways to install Aerospike DB.
 
--   [Aerospike Cloud (DBaaS)](https://aerospike.com/products/aerospike-cloud/) (this release does not supported Cloud)
--   [Docker, Cloud, and Linux](https://docs.aerospike.com/server/operations/install)
+-   [Docker and Linux](https://docs.aerospike.com/server/operations/install)
 -   [AeroLab](https://github.com/aerospike/aerolab)
 
 # Other Resources
