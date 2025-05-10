@@ -582,7 +582,7 @@ The sample scripts are:
 
 ## API Documentation
 
-LINQPad API documentation can be found [here](https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/Help/index.html).
+LINQPad API documentation can be found in the [Help Folder](Help). Open the index.html file in your browser.
 
 ## Prerequisites
 
@@ -625,4 +625,4 @@ There are multiple ways to install Aerospike DB.
 -   <https://developer.aerospike.com/blog>
 -   <https://github.com/aerospike>
 -   <https://github.com/aerospike-community>
--   <https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/Help/index.html>
+-   <https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/Help>
