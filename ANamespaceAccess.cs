@@ -15,6 +15,7 @@ using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using static System.Net.Mime.MediaTypeNames;
 using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
@@ -423,6 +424,33 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <value><c>true</c> if this instance is strong consistency mode; otherwise, <c>false</c>.</value>
 		/// <seealso href="https://aerospike.com/docs/server/guide/consistency"/>
 		public bool IsStrongConsistencyMode { get; }
+
+		/// <summary>
+		/// Gets the Aerospike Set Name based on the PK Digest. 
+		/// </summary>
+		/// <param name="digest">
+        /// The PK Digest (<see cref="Aerospike.Client.Key.digest"/>)
+        /// </param>
+		/// <returns>
+		/// Returns the Aerospike Set name based on <paramref name="digest"/> or null to indicate that the PK doesn&apos;t exists.
+		/// </returns>
+		/// <seealso cref="Aerospike.Client.Key"/>
+        /// <seealso cref="Aerospike.Client.Key.digest"/>
+		/// <seealso cref="APrimaryKey"/>
+		public string GetSetName(byte[] digest)
+        {
+			var policy = this.DefaultWritePolicy.Clone();
+			policy.sendKey = false;
+
+            var result = this.AerospikeConnection
+                                .AerospikeClient
+                                .Operate(policy,
+                                            new Key(this.Namespace, digest, null, Value.AsNull),
+                                            ExpOperation.Read("setname",
+                                                                Exp.Build(Exp.SetName()),
+                                                                ExpReadFlags.EVAL_NO_FAIL));
+            return (string) result?.bins["setname"];
+		}
 
 		public override string ToString()
 		    => this.BinNames.Length == 0

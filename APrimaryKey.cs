@@ -12,6 +12,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
     /// A wrapper around Primary Key&apos;s <see cref="Object"/> value. 
     /// This is used as an aid so that casting is not required to perform comparison operations, etc.
     /// This object also performs implicit casting to standard .Net data types while using LINQ... 
+    /// 
+    /// If the Aerospike PK digest is returned, the value will be the digest (byte[]) otherwise it will be the PK value.
     /// </summary>
     /// <seealso cref="AValue"/>
     /// <seealso cref="AValue.ToValue(object)"/>
@@ -79,6 +81,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// If true, the PK has an actual value. If false, the digest is only provided.
 		/// </summary>
 		public bool HasKeyValue { get => this.AerospikeKey.userKey?.Object is not null; }
+
+		/// <summary>
+		/// Unique server hash value generated from set name and user key.
+		/// </summary>
+		public byte[] Digest => this.AerospikeKey.digest;
 
         public static APrimaryKey ToValue(Aerospike.Client.Key key) => new APrimaryKey(key);
 
