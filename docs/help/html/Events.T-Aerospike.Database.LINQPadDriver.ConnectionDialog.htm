@@ -1,0 +1,1589 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"[]>
+<html>
+  <head><link rel="shortcut icon" href="../favicon.ico" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="save" content="history" />
+    <title>ConnectionDialog Events</title>
+    <link rel="stylesheet" type="text/css" href="../styles/lightweight.css" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:mshelp="http://msdn.microsoft.com/mshelp" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:msxsl="urn:schemas-microsoft-com:xslt" />
+    <link rel="stylesheet" type="text/css" href="../styles/lw-code.css" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:mshelp="http://msdn.microsoft.com/mshelp" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:msxsl="urn:schemas-microsoft-com:xslt" />
+    <script type="text/javascript" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:mshelp="http://msdn.microsoft.com/mshelp" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:msxsl="urn:schemas-microsoft-com:xslt" src="../scripts/languageSelector.js"> </script>
+    <meta name="container" content="Aerospike.Database.LINQPadDriver" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:mshelp="http://msdn.microsoft.com/mshelp" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:msxsl="urn:schemas-microsoft-com:xslt" />
+    <meta name="file" content="Events.T-Aerospike.Database.LINQPadDriver.ConnectionDialog" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:mshelp="http://msdn.microsoft.com/mshelp" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:msxsl="urn:schemas-microsoft-com:xslt" />
+    <meta name="guid" content="Events.T-Aerospike.Database.LINQPadDriver.ConnectionDialog" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:mshelp="http://msdn.microsoft.com/mshelp" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:msxsl="urn:schemas-microsoft-com:xslt" />
+    <xml xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:mshelp="http://msdn.microsoft.com/mshelp" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:msxsl="urn:schemas-microsoft-com:xslt">
+      <MSHelp:Attr Name="AssetID" Value="Events.T:Aerospike.Database.LINQPadDriver.ConnectionDialog" />
+      <MSHelp:TOCTitle Title="ConnectionDialog Events" />
+      <MSHelp:RLTitle Title="ConnectionDialog Events (Aerospike.Database.LINQPadDriver)" />
+      <MSHelp:Keyword Index="A" Term="Events.T:Aerospike.Database.LINQPadDriver.ConnectionDialog" />
+      <MSHelp:Keyword Index="A" Term="frlrfAerospikeDatabaseLINQPadDriverConnectionDialogEventsTopic" />
+      <MSHelp:Keyword Index="K" Term="ConnectionDialog class, events" />
+      <MSHelp:Attr Name="DevLang" Value="CSharp" />
+      <MSHelp:Attr Name="DevLang" Value="VB" />
+      <MSHelp:Attr Name="Locale" Value="en-us" />
+      <MSHelp:Attr Name="TopicType" Value="kbSyntax" />
+      <MSHelp:Attr Name="TopicType" Value="apiref" />
+      <MSHelp:Attr Name="AssemblyVersion" Value="" />
+    </xml>
+  <link rel="stylesheet" href="../TOC.css"><script type="text/javascript" src="../TOC.js"></script></head>
+  <body onload="javascript: Initialize();" onresize="javascript: ResizeTree();">
+            <div id="TOCDiv" class="TOCDiv" style="width: 310px; float: left; position: relative; ">
+
+            <div id="divSearchOpts" class="SearchOpts" style="height: 95px; display: none;">
+                <div class="SearchOptsInner">
+                    <img class="TOCLink" onclick="javascript: ShowHideSearch(false);" src="../Close.png" height="24" width="24" alt="Hide Search" title="Hide Search" style="float: right;" />
+                    <span class="Title">Keyword(s) to search:</span>
+                </div>
+                <div class="SearchOptsInner">
+                    <input id="txtSearchText" type="text" style="width: 95.5%;" onkeypress="javascript: return OnSearchTextKeyPress(event);" />
+                </div>
+                <div class="SearchOptsInner">
+                    <input id="chkSortByTitle" type="checkbox" />&nbsp;Sort results by title
+                    <input type="button" value="Search" onclick="javascript: return PerformSearch();" style="float: right;" />
+                </div>
+            </div>
+
+            <div id="divIndexOpts" class="IndexOpts" style="height: 28px; display: none;">
+                <img class="TOCLink" onclick="javascript: ShowHideIndex(false);"
+                     src="../Close.png" height="24" width="24" alt="Hide Keyword Index" title="Hide Keyword Index" style="float: right;" />
+                <span class="Title">Keyword Index</span>
+            </div>
+
+            <div id="divNavOpts" class="NavOpts" style="height: 28px;">
+                <!--<img class="TOCLink" onclick="javascript: SyncTOC();" src="../SyncTOC.png"
+                     height="24" width="24" alt="Sync to TOC" title="Sync to TOC" />-->
+                <img class="TOCLink" onclick="javascript: ExpandOrCollapseAll(true);"
+                     src="../ExpandAll.png" height="24" width="24" alt="Expand all" title="Expand all" />
+                <img class="TOCLink" onclick="javascript: ExpandOrCollapseAll(false);"
+                     src="../CollapseAll.png" height="24" width="24" alt="Collapse all" title="Collapse all" />
+                <!--<img class="TOCLink" onclick="javascript: alert('Please make sure to use either Index.aspx or Index.php to enable the Keyword Index feature.');"
+                     src="../Index.png" height="24" width="24" alt="Keyword Index" title="Keyword Index" />-->
+                <img class="TOCLink" onclick="javascript: ShowHideSearch(true);"
+                     src="../Search.png" height="24" width="24" alt="Search" title="Search" />
+                <img class="TOCLink" onclick="javascript: ShowDirectLink();"
+                     src="../Link.png" height="24" width="24" alt="Get direct link to the displayed topic" title="Get direct link to the displayed topic" />
+                <a href="#" onclick="javascript: window.history.go(-1); return false;">
+                    <img class="TOCLink" style="float: right;"
+                         src="../Back.png" height="24" width="24" alt="Previous page" title="Previous page" />
+                </a>
+            </div>
+
+            <div class="Tree" id="divSearchResults" style="display: none;"
+                 onselectstart="javascript: return false;">
+            </div>
+
+            <div class="Tree" id="divIndexResults" style="display: none;"
+                 onselectstart="javascript: return false;">
+            </div>
+
+            <div class="Tree" id="divTree" onselectstart="javascript: return false;">
+              <div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="N-Aerospike.Client.htm" target="_self">Aerospike.Client Namespace</a>
+<div class="Hidden">
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Client.BinIgnoreAttribute.htm" target="_self">BinIgnoreAttribute Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Client.BinNameAttribute.htm" target="_self">BinNameAttribute Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Client.ConstructorAttribute.htm" target="_self">ConstructorAttribute Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Client.LPDHelpers.htm" target="_self">LPDHelpers Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Client.PrimaryKeyAttribute.htm" target="_self">PrimaryKeyAttribute Class</a>
+<div class="Hidden">
+</div>
+</div>
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="N-Aerospike.Database.LINQPadDriver.htm" target="_self">Aerospike.Database.LINQPadDriver Namespace</a>
+<div class="Hidden">
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.AerospikeConnection.htm" target="_self">AerospikeConnection Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.CertHelpers.htm" target="_self">CertHelpers Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="T-Aerospike.Database.LINQPadDriver.CertHelpers.ResultCodes.htm" target="_self">CertHelpers.ResultCodes Enumeration</a>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" target="_self">ConnectionDialog Class</a>
+<div class="Hidden">
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="AllMembers.T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" target="_self">ConnectionDialog Members</a>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="M-Aerospike.Database.LINQPadDriver.ConnectionDialog.-ctor.htm" target="_self">ConnectionDialog Constructor </a>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="Methods.T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" target="_self">ConnectionDialog Methods</a>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="Properties.T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" target="_self">ConnectionDialog Properties</a>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="Events.T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" target="_self">ConnectionDialog Events</a>
+</div>
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.DBTypeCache.htm" target="_self">DBTypeCache Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.DynamicDriver.htm" target="_self">DynamicDriver Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Helpers.htm" target="_self">Helpers Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.IGenerateCode.htm" target="_self">IGenerateCode Interface</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.ILPExplorer.htm" target="_self">ILPExplorer Interface</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.LPModule.htm" target="_self">LPModule Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="T-Aerospike.Database.LINQPadDriver.LPModule.Types.htm" target="_self">LPModule.Types Enumeration</a>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.LPNamespace.htm" target="_self">LPNamespace Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.LPSecondaryIndex.htm" target="_self">LPSecondaryIndex Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.LPSet.htm" target="_self">LPSet Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.LPSet.BinType.htm" target="_self">LPSet.BinType Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.LPSet.BinType.NameEqualityComparer.htm" target="_self">BinType.NameEqualityComparer Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.LPUDF.htm" target="_self">LPUDF Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.NumericValidationRule.htm" target="_self">NumericValidationRule Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.PasswordHelper.htm" target="_self">PasswordHelper Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.WaitCursor.htm" target="_self">WaitCursor Class</a>
+<div class="Hidden">
+</div>
+</div>
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="N-Aerospike.Database.LINQPadDriver.Extensions.htm" target="_self">Aerospike.Database.LINQPadDriver.Extensions Namespace</a>
+<div class="Hidden">
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.AbortResults.htm" target="_self">AbortResults Enumeration</a>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.AClusterAccess.htm" target="_self">AClusterAccess Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.AModuleAccess.htm" target="_self">AModuleAccess Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.htm" target="_self">ANamespaceAccess Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.APrimaryKey.htm" target="_self">APrimaryKey Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.AQueryRecord.htm" target="_self">AQueryRecord Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.AQueryRecord-1.htm" target="_self">AQueryRecord(T) Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.ARecord.htm" target="_self">ARecord Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.ARecord.AerospikeAPI.htm" target="_self">ARecord.AerospikeAPI Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.ARecord.DumpTypes.htm" target="_self">ARecord.DumpTypes Enumeration</a>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess.htm" target="_self">ASecondaryIndexAccess Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess-1.htm" target="_self">ASecondaryIndexAccess(T) Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.ATransaction.htm" target="_self">ATransaction Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.AUDFAccess.htm" target="_self">AUDFAccess Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.AValue.htm" target="_self">AValue Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.AValue.EqualityComparer.htm" target="_self">AValue.EqualityComparer Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.AValue.MatchOptions.htm" target="_self">AValue.MatchOptions Enumeration</a>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.AValueHelper.htm" target="_self">AValueHelper Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.CDTConverter.htm" target="_self">CDTConverter Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.CommitResults.htm" target="_self">CommitResults Enumeration</a>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.DBPlatforms.htm" target="_self">DBPlatforms Enumeration</a>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.GeoJSONCollection.htm" target="_self">GeoJSONCollection Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.GeoJSONHelpers.htm" target="_self">GeoJSONHelpers Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.GeoJSONLineString.htm" target="_self">GeoJSONLineString Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.GeoJSONMultiLineString.htm" target="_self">GeoJSONMultiLineString Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.GeoJSONMultiPoint.htm" target="_self">GeoJSONMultiPoint Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.GeoJSONMultiPolygon.htm" target="_self">GeoJSONMultiPolygon Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.GeoJSONPoint.htm" target="_self">GeoJSONPoint Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.GeoJSONPolygon.htm" target="_self">GeoJSONPolygon Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.GeoJSONPosition.htm" target="_self">GeoJSONPosition Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.IATransaction.htm" target="_self">IATransaction Interface</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.IGeoJSON.htm" target="_self">IGeoJSON Interface</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.IGeoJSONCollection.htm" target="_self">IGeoJSONCollection Interface</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.IGeoJSONPosition.htm" target="_self">IGeoJSONPosition Interface</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.JsonDocument.htm" target="_self">JsonDocument Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.JsonExportStructure.htm" target="_self">JsonExportStructure Structure</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.RetryException.htm" target="_self">RetryException Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.SetRecords.htm" target="_self">SetRecords Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.SetRecords-1.htm" target="_self">SetRecords(T) Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeNode">
+<img class="TreeNodeImg" onclick="javascript: Toggle(this);" src="../Collapsed.png"/><a class="UnselectedNode" onclick="javascript: return Expand(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.ToCodeAPI.htm" target="_self">ToCodeAPI Class</a>
+<div class="Hidden">
+</div>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.ToCodeAPI.Options.htm" target="_self">ToCodeAPI.Options Enumeration</a>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.TransactionRecordStates.htm" target="_self">TransactionRecordStates Enumeration</a>
+</div>
+<div class="TreeItem">
+<img src="../Item.gif"/><a class="UnselectedNode" onclick="javascript: return SelectNode(this);" href="T-Aerospike.Database.LINQPadDriver.Extensions.TransactionStates.htm" target="_self">TransactionStates Enumeration</a>
+</div>
+</div>
+</div>
+
+            </div>
+
+        </div>
+
+        <div id="TOCSizer" class="TOCSizer" onmousedown="OnMouseDown(event)" onselectstart="javascript: return false;"></div>
+        
+        <div id ="TopicContent" name="TopicContent" class="TopicContent" style="float: none; margin-left: 312px;height: -webkit-fill-available;display:block;overflow: auto;">
+          <div class="header" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:mshelp="http://msdn.microsoft.com/mshelp" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:msxsl="urn:schemas-microsoft-com:xslt">
+      <table class="headerBar cl_lightweight_topnav_slice" border="0" cellpadding="0" cellspacing="0">
+        <tbody>
+          <tr>
+            <td class="leftSection cl_lightweight_header_leftSection_wave leftSectionImageClusterOverride" />
+            <td class="rightSection cl_lightweight_header_rightSection_wave rightSectionImageClusterOverride">
+              <div class="tabContainer">Aerospike LINDPad Driver</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+          <!-- Content Starts Here -->
+          <div class="contentPlaceHolder" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:mshelp="http://msdn.microsoft.com/mshelp" xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:msxsl="urn:schemas-microsoft-com:xslt">
+      <div class="content">
+        <div class="topicContainer">
+          <div class="topic">
+            <p class="majorTitle" />
+            <h1 class="title">ConnectionDialog Events</h1>
+            <div id="mainSection">
+              <div id="mainBody">
+                <p>The <a href="T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm">ConnectionDialog</a> type exposes the following members.</p>
+                <div class="LW_CollapsibleArea_Container">
+                  <div class="LW_CollapsibleArea_TitleDiv">
+                    <h2 class="LW_CollapsibleArea_Title">Events</h2>
+                    <div class="LW_CollapsibleArea_HrDiv">
+                      <hr class="LW_CollapsibleArea_Hr" />
+                    </div>
+                  </div>
+                  <a id="eventTableSection">
+                    <!---->
+                  </a>
+                  <table class="members">
+                    <tr>
+                      <th class="iconColumn">
+               
+            </th>
+                      <th class="nameColumn">Name</th>
+                      <th class="descriptionColumn">Description</th>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window.activated" target="_blank">Activated</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window" target="_blank">Window</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window.closed" target="_blank">Closed</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window" target="_blank">Window</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window.closing" target="_blank">Closing</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window" target="_blank">Window</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window.contentrendered" target="_blank">ContentRendered</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window" target="_blank">Window</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.contextmenuclosing" target="_blank">ContextMenuClosing</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.contextmenuopening" target="_blank">ContextMenuOpening</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.datacontextchanged" target="_blank">DataContextChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window.deactivated" target="_blank">Deactivated</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window" target="_blank">Window</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window.dpichanged" target="_blank">DpiChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window" target="_blank">Window</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.dragenter" target="_blank">DragEnter</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.dragleave" target="_blank">DragLeave</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.dragover" target="_blank">DragOver</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.drop" target="_blank">Drop</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.focusablechanged" target="_blank">FocusableChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.givefeedback" target="_blank">GiveFeedback</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.gotfocus" target="_blank">GotFocus</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.gotkeyboardfocus" target="_blank">GotKeyboardFocus</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.gotmousecapture" target="_blank">GotMouseCapture</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.gotstyluscapture" target="_blank">GotStylusCapture</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.gottouchcapture" target="_blank">GotTouchCapture</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.initialized" target="_blank">Initialized</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.isenabledchanged" target="_blank">IsEnabledChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.ishittestvisiblechanged" target="_blank">IsHitTestVisibleChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.iskeyboardfocusedchanged" target="_blank">IsKeyboardFocusedChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.iskeyboardfocuswithinchanged" target="_blank">IsKeyboardFocusWithinChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.ismousecapturedchanged" target="_blank">IsMouseCapturedChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.ismousecapturewithinchanged" target="_blank">IsMouseCaptureWithinChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.ismousedirectlyoverchanged" target="_blank">IsMouseDirectlyOverChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.isstyluscapturedchanged" target="_blank">IsStylusCapturedChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.isstyluscapturewithinchanged" target="_blank">IsStylusCaptureWithinChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.isstylusdirectlyoverchanged" target="_blank">IsStylusDirectlyOverChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.isvisiblechanged" target="_blank">IsVisibleChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.keydown" target="_blank">KeyDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.keyup" target="_blank">KeyUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.layoutupdated" target="_blank">LayoutUpdated</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.loaded" target="_blank">Loaded</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window.locationchanged" target="_blank">LocationChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window" target="_blank">Window</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.lostfocus" target="_blank">LostFocus</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.lostkeyboardfocus" target="_blank">LostKeyboardFocus</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.lostmousecapture" target="_blank">LostMouseCapture</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.loststyluscapture" target="_blank">LostStylusCapture</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.losttouchcapture" target="_blank">LostTouchCapture</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.manipulationboundaryfeedback" target="_blank">ManipulationBoundaryFeedback</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.manipulationcompleted" target="_blank">ManipulationCompleted</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.manipulationdelta" target="_blank">ManipulationDelta</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.manipulationinertiastarting" target="_blank">ManipulationInertiaStarting</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.manipulationstarted" target="_blank">ManipulationStarted</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.manipulationstarting" target="_blank">ManipulationStarting</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.controls.control.mousedoubleclick" target="_blank">MouseDoubleClick</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.controls.control" target="_blank">Control</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.mousedown" target="_blank">MouseDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.mouseenter" target="_blank">MouseEnter</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.mouseleave" target="_blank">MouseLeave</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.mouseleftbuttondown" target="_blank">MouseLeftButtonDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.mouseleftbuttonup" target="_blank">MouseLeftButtonUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.mousemove" target="_blank">MouseMove</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.mouserightbuttondown" target="_blank">MouseRightButtonDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.mouserightbuttonup" target="_blank">MouseRightButtonUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.mouseup" target="_blank">MouseUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.mousewheel" target="_blank">MouseWheel</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewdragenter" target="_blank">PreviewDragEnter</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewdragleave" target="_blank">PreviewDragLeave</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewdragover" target="_blank">PreviewDragOver</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewdrop" target="_blank">PreviewDrop</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewgivefeedback" target="_blank">PreviewGiveFeedback</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewgotkeyboardfocus" target="_blank">PreviewGotKeyboardFocus</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewkeydown" target="_blank">PreviewKeyDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewkeyup" target="_blank">PreviewKeyUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewlostkeyboardfocus" target="_blank">PreviewLostKeyboardFocus</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.controls.control.previewmousedoubleclick" target="_blank">PreviewMouseDoubleClick</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.controls.control" target="_blank">Control</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewmousedown" target="_blank">PreviewMouseDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewmouseleftbuttondown" target="_blank">PreviewMouseLeftButtonDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewmouseleftbuttonup" target="_blank">PreviewMouseLeftButtonUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewmousemove" target="_blank">PreviewMouseMove</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewmouserightbuttondown" target="_blank">PreviewMouseRightButtonDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewmouserightbuttonup" target="_blank">PreviewMouseRightButtonUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewmouseup" target="_blank">PreviewMouseUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewmousewheel" target="_blank">PreviewMouseWheel</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewquerycontinuedrag" target="_blank">PreviewQueryContinueDrag</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewstylusbuttondown" target="_blank">PreviewStylusButtonDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewstylusbuttonup" target="_blank">PreviewStylusButtonUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewstylusdown" target="_blank">PreviewStylusDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewstylusinairmove" target="_blank">PreviewStylusInAirMove</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewstylusinrange" target="_blank">PreviewStylusInRange</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewstylusmove" target="_blank">PreviewStylusMove</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewstylusoutofrange" target="_blank">PreviewStylusOutOfRange</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewstylussystemgesture" target="_blank">PreviewStylusSystemGesture</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewstylusup" target="_blank">PreviewStylusUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewtextinput" target="_blank">PreviewTextInput</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewtouchdown" target="_blank">PreviewTouchDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewtouchmove" target="_blank">PreviewTouchMove</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.previewtouchup" target="_blank">PreviewTouchUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.querycontinuedrag" target="_blank">QueryContinueDrag</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.querycursor" target="_blank">QueryCursor</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.requestbringintoview" target="_blank">RequestBringIntoView</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.sizechanged" target="_blank">SizeChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window.sourceinitialized" target="_blank">SourceInitialized</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window" target="_blank">Window</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.sourceupdated" target="_blank">SourceUpdated</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window.statechanged" target="_blank">StateChanged</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.window" target="_blank">Window</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylusbuttondown" target="_blank">StylusButtonDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylusbuttonup" target="_blank">StylusButtonUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylusdown" target="_blank">StylusDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylusenter" target="_blank">StylusEnter</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylusinairmove" target="_blank">StylusInAirMove</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylusinrange" target="_blank">StylusInRange</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylusleave" target="_blank">StylusLeave</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylusmove" target="_blank">StylusMove</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylusoutofrange" target="_blank">StylusOutOfRange</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylussystemgesture" target="_blank">StylusSystemGesture</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.stylusup" target="_blank">StylusUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.targetupdated" target="_blank">TargetUpdated</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.textinput" target="_blank">TextInput</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.tooltipclosing" target="_blank">ToolTipClosing</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.tooltipopening" target="_blank">ToolTipOpening</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.touchdown" target="_blank">TouchDown</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.touchenter" target="_blank">TouchEnter</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.touchleave" target="_blank">TouchLeave</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.touchmove" target="_blank">TouchMove</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement.touchup" target="_blank">TouchUp</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.uielement" target="_blank">UIElement</a>.)</td>
+                    </tr>
+                    <tr data="public;inherited;notNetfw;">
+                      <td>
+                        <img src="../icons/pubevent.gif" alt="Public event" title="Public event" />
+                      </td>
+                      <td>
+                        <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement.unloaded" target="_blank">Unloaded</a>
+                      </td>
+                      <td> (Inherited from <a href="https://docs.microsoft.com/en-us/dotnet/api/system.windows.frameworkelement" target="_blank">FrameworkElement</a>.)</td>
+                    </tr>
+                  </table>
+                </div>
+                <div class="LW_CollapsibleArea_Container">
+                  <div class="LW_CollapsibleArea_TitleDiv">
+                    <h2 class="LW_CollapsibleArea_Title">See Also</h2>
+                    <div class="LW_CollapsibleArea_HrDiv">
+                      <hr class="LW_CollapsibleArea_Hr" />
+                    </div>
+                  </div>
+                  <a id="seeAlsoSection">
+                    <!---->
+                  </a>
+                  <div class="seeAlsoStyle">
+                    <a href="T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm">ConnectionDialog Class</a>
+                  </div>
+                  <div class="seeAlsoStyle">
+                    <a href="N-Aerospike.Database.LINQPadDriver.htm">Aerospike.Database.LINQPadDriver Namespace</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <div id="footer" class="footerContainer">
+          <div class="footerLogoContainer">
+            <div style="margin-top:5px">
+              <span class="customCopyrightFooter">c 2025 Aerospike</span>
+            </div>
+            <div style="margin-top:5px" class="copyrightFooter">Help File generated with GhostDoc</div>
+            <div> </div>
+          </div>
+        </div>
+      </div>
+    </div>
+          <!-- /Content Ends Here -->
+        </div>
+
+
+  </body>
+</html>

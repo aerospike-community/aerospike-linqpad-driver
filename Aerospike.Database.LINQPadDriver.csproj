@@ -19,8 +19,8 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2025</Copyright>
-    <Version>5.1.1.0</Version>
-    <FileVersion>5.1.1.0</FileVersion>
+    <Version>5.1.1.1</Version>
+    <FileVersion>5.1.1.1</FileVersion>
 	</PropertyGroup>
 
   <PropertyGroup>

@@ -58,6 +58,10 @@
   <HelpKINode Title="Aerospike.Database.LINQPadDriver.CertHelpers class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.CertHelpers.htm" />
   <HelpKINode Title="Aerospike.Database.LINQPadDriver.CertHelpers class" Url="html/T-Aerospike.Database.LINQPadDriver.CertHelpers.htm" />
   <HelpKINode Title="Aerospike.Database.LINQPadDriver.CertHelpers.ResultCodes enumeration" Url="html/T-Aerospike.Database.LINQPadDriver.CertHelpers.ResultCodes.htm" />
+  <HelpKINode Title="Aerospike.Database.LINQPadDriver.ConnectionDialog class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" />
+  <HelpKINode Title="Aerospike.Database.LINQPadDriver.ConnectionDialog class" Url="html/T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" />
+  <HelpKINode Title="Aerospike.Database.LINQPadDriver.DBTypeCache class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.DBTypeCache.htm" />
+  <HelpKINode Title="Aerospike.Database.LINQPadDriver.DBTypeCache class" Url="html/T-Aerospike.Database.LINQPadDriver.DBTypeCache.htm" />
   <HelpKINode Title="Aerospike.Database.LINQPadDriver.DynamicDriver class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.DynamicDriver.htm" />
   <HelpKINode Title="Aerospike.Database.LINQPadDriver.DynamicDriver class" Url="html/T-Aerospike.Database.LINQPadDriver.DynamicDriver.htm" />
   <HelpKINode Title="Aerospike.Database.LINQPadDriver.Extensions namespace" Url="html/N-Aerospike.Database.LINQPadDriver.Extensions.htm" />
@@ -164,6 +168,12 @@
   <HelpKINode Title="Aerospike.Database.LINQPadDriver.LPSet.BinType class" Url="html/T-Aerospike.Database.LINQPadDriver.LPSet.BinType.htm" />
   <HelpKINode Title="Aerospike.Database.LINQPadDriver.LPUDF class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.LPUDF.htm" />
   <HelpKINode Title="Aerospike.Database.LINQPadDriver.LPUDF class" Url="html/T-Aerospike.Database.LINQPadDriver.LPUDF.htm" />
+  <HelpKINode Title="Aerospike.Database.LINQPadDriver.NumericValidationRule class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.NumericValidationRule.htm" />
+  <HelpKINode Title="Aerospike.Database.LINQPadDriver.NumericValidationRule class" Url="html/T-Aerospike.Database.LINQPadDriver.NumericValidationRule.htm" />
+  <HelpKINode Title="Aerospike.Database.LINQPadDriver.PasswordHelper class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.PasswordHelper.htm" />
+  <HelpKINode Title="Aerospike.Database.LINQPadDriver.PasswordHelper class" Url="html/T-Aerospike.Database.LINQPadDriver.PasswordHelper.htm" />
+  <HelpKINode Title="Aerospike.Database.LINQPadDriver.WaitCursor class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.WaitCursor.htm" />
+  <HelpKINode Title="Aerospike.Database.LINQPadDriver.WaitCursor class" Url="html/T-Aerospike.Database.LINQPadDriver.WaitCursor.htm" />
   <HelpKINode Title="AerospikeAPI.BinExists method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ARecord.AerospikeAPI.BinExists.htm" />
   <HelpKINode Title="AerospikeAPI.BinNames property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ARecord.AerospikeAPI.BinNames.htm" />
   <HelpKINode Title="AerospikeAPI.Bins property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ARecord.AerospikeAPI.Bins.htm" />
@@ -264,6 +274,7 @@
   <HelpKINode Title="AerospikeConnection.UsePasswordManager property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.UsePasswordManager.htm" />
   <HelpKINode Title="AerospikeKey property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.APrimaryKey.AerospikeKey.htm" />
   <HelpKINode Title="AllDateTimeUseUnixEpochNano field" Url="html/F-Aerospike.Database.LINQPadDriver.Helpers.AllDateTimeUseUnixEpochNano.htm" />
+  <HelpKINode Title="AllowEmpty property" Url="html/P-Aerospike.Database.LINQPadDriver.NumericValidationRule.AllowEmpty.htm" />
   <HelpKINode Title="AlreadyAborted enumeration member" Url="html/T-Aerospike.Database.LINQPadDriver.Extensions.AbortResults.htm" />
   <HelpKINode Title="AlreadyAborted field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.AbortResults.AlreadyAborted.htm" />
   <HelpKINode Title="AlreadyCommitted enumeration member" Url="html/T-Aerospike.Database.LINQPadDriver.Extensions.CommitResults.htm" />
@@ -313,6 +324,7 @@
   <HelpKINode Title="ANamespaceAccess.Get method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Get.htm" />
   <HelpKINode Title="ANamespaceAccess.GetAerospikeTxn method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.GetAerospikeTxn.htm" />
   <HelpKINode Title="ANamespaceAccess.GetRecords method" Url="html/Overload-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.GetRecords.htm" />
+  <HelpKINode Title="ANamespaceAccess.GetSetName method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.GetSetName.htm" />
   <HelpKINode Title="ANamespaceAccess.Import method" Url="html/Overload-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.Import.htm" />
   <HelpKINode Title="ANamespaceAccess.ImportJsonFile method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.ImportJsonFile.htm" />
   <HelpKINode Title="ANamespaceAccess.IsMRT property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.IsMRT.htm" />
@@ -344,6 +356,7 @@
   </HelpKINode>
   <HelpKINode Title="APrimaryKey.AerospikeKey property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.APrimaryKey.AerospikeKey.htm" />
   <HelpKINode Title="APrimaryKey.APrimaryKey constructor" Url="html/Overload-Aerospike.Database.LINQPadDriver.Extensions.APrimaryKey.-ctor.htm" />
+  <HelpKINode Title="APrimaryKey.Digest property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.APrimaryKey.Digest.htm" />
   <HelpKINode Title="APrimaryKey.Equals method" Url="html/Overload-Aerospike.Database.LINQPadDriver.Extensions.APrimaryKey.Equals.htm" />
   <HelpKINode Title="APrimaryKey.GetHashCode method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.APrimaryKey.GetHashCode.htm" />
   <HelpKINode Title="APrimaryKey.GetHashCode method" Url="html/Overload-Aerospike.Database.LINQPadDriver.Extensions.APrimaryKey.GetHashCode.htm" />
@@ -527,6 +540,7 @@
   <HelpKINode Title="ATransaction.ToString method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ATransaction.ToString.htm" />
   <HelpKINode Title="ATransaction.TransactionId property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ATransaction.TransactionId.htm" />
   <HelpKINode Title="ATransaction.Txn property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ATransaction.Txn.htm" />
+  <HelpKINode Title="AttachProperty field" Url="html/F-Aerospike.Database.LINQPadDriver.PasswordHelper.AttachProperty.htm" />
   <HelpKINode Title="Attemps property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.RetryException.Attemps.htm" />
   <HelpKINode Title="AUDFAccess class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.Extensions.AUDFAccess.htm" />
   <HelpKINode Title="AUDFAccess class" Url="html/T-Aerospike.Database.LINQPadDriver.Extensions.AUDFAccess.htm" />
@@ -866,6 +880,17 @@
   <HelpKINode Title="CompletedRetry field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.CommitResults.CompletedRetry.htm" />
   <HelpKINode Title="ConfigParams property" Url="html/P-Aerospike.Database.LINQPadDriver.LPNamespace.ConfigParams.htm" />
   <HelpKINode Title="Connection property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.Connection.htm" />
+  <HelpKINode Title="ConnectionDialog class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" />
+  <HelpKINode Title="ConnectionDialog class" Url="html/T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" />
+  <HelpKINode Title="ConnectionDialog class">
+    <HelpKINode Title="about ConnectionDialog class" Url="html/T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" />
+    <HelpKINode Title="all members" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" />
+    <HelpKINode Title="constructor" Url="html/M-Aerospike.Database.LINQPadDriver.ConnectionDialog.-ctor.htm" />
+    <HelpKINode Title="events" Url="html/Events.T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" />
+    <HelpKINode Title="methods" Url="html/Methods.T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" />
+    <HelpKINode Title="properties" Url="html/Properties.T-Aerospike.Database.LINQPadDriver.ConnectionDialog.htm" />
+  </HelpKINode>
+  <HelpKINode Title="ConnectionDialog.ConnectionDialog constructor" Url="html/M-Aerospike.Database.LINQPadDriver.ConnectionDialog.-ctor.htm" />
   <HelpKINode Title="ConnectionsPerNode property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.ConnectionsPerNode.htm" />
   <HelpKINode Title="ConnectionString property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.ConnectionString.htm" />
   <HelpKINode Title="ConnectionString property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.AClusterAccess.ConnectionString.htm" />
@@ -935,6 +960,24 @@
   <HelpKINode Title="DBPlatforms.None field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.DBPlatforms.None.htm" />
   <HelpKINode Title="DBRecordSampleSet property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.DBRecordSampleSet.htm" />
   <HelpKINode Title="DBRecordSampleSetMin property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.DBRecordSampleSetMin.htm" />
+  <HelpKINode Title="DBType property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.DBType.htm" />
+  <HelpKINode Title="DBTypeCache class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.DBTypeCache.htm" />
+  <HelpKINode Title="DBTypeCache class" Url="html/T-Aerospike.Database.LINQPadDriver.DBTypeCache.htm" />
+  <HelpKINode Title="DBTypeCache class">
+    <HelpKINode Title="about DBTypeCache class" Url="html/T-Aerospike.Database.LINQPadDriver.DBTypeCache.htm" />
+    <HelpKINode Title="all members" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.DBTypeCache.htm" />
+    <HelpKINode Title="methods" Url="html/Methods.T-Aerospike.Database.LINQPadDriver.DBTypeCache.htm" />
+    <HelpKINode Title="properties" Url="html/Properties.T-Aerospike.Database.LINQPadDriver.DBTypeCache.htm" />
+  </HelpKINode>
+  <HelpKINode Title="DBTypeCache.DBType property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.DBType.htm" />
+  <HelpKINode Title="DBTypeCache.Host property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.Host.htm" />
+  <HelpKINode Title="DBTypeCache.Password property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.Password.htm" />
+  <HelpKINode Title="DBTypeCache.PasswordManagerName property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.PasswordManagerName.htm" />
+  <HelpKINode Title="DBTypeCache.Port property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.Port.htm" />
+  <HelpKINode Title="DBTypeCache.ShowPassword property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.ShowPassword.htm" />
+  <HelpKINode Title="DBTypeCache.TLSCertName property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.TLSCertName.htm" />
+  <HelpKINode Title="DBTypeCache.UsePasswordManager property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.UsePasswordManager.htm" />
+  <HelpKINode Title="DBTypeCache.UserName property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.UserName.htm" />
   <HelpKINode Title="DBVersion property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.DBVersion.htm" />
   <HelpKINode Title="Debug property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.Debug.htm" />
   <HelpKINode Title="DebugDump method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.AValue.DebugDump.htm" />
@@ -965,7 +1008,9 @@
   <HelpKINode Title="DetermineExpiration method" Url="html/Overload-Aerospike.Database.LINQPadDriver.Extensions.SetRecords.DetermineExpiration.htm" />
   <HelpKINode Title="DetermineTTL method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.SetRecords.DetermineTTL.htm" />
   <HelpKINode Title="Digest field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.JsonExportStructure.Digest.htm" />
+  <HelpKINode Title="Digest property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.APrimaryKey.Digest.htm" />
   <HelpKINode Title="Digest property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ARecord.AerospikeAPI.Digest.htm" />
+  <HelpKINode Title="Dispose method" Url="html/M-Aerospike.Database.LINQPadDriver.WaitCursor.Dispose.htm" />
   <HelpKINode Title="DocumentAPI property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.DocumentAPI.htm" />
   <HelpKINode Title="DriverLogging property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.DriverLogging.htm" />
   <HelpKINode Title="Drop method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess.Drop.htm" />
@@ -1275,6 +1320,7 @@
   <HelpKINode Title="GetAerospikeTxn method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ATransaction.GetAerospikeTxn.htm" />
   <HelpKINode Title="GetAssembliesToAdd method" Url="html/M-Aerospike.Database.LINQPadDriver.DynamicDriver.GetAssembliesToAdd.htm" />
   <HelpKINode Title="GetAssembliesToAdd method" Url="html/Overload-Aerospike.Database.LINQPadDriver.DynamicDriver.GetAssembliesToAdd.htm" />
+  <HelpKINode Title="GetAttach method" Url="html/M-Aerospike.Database.LINQPadDriver.PasswordHelper.GetAttach.htm" />
   <HelpKINode Title="GetCode enumeration member" Url="html/T-Aerospike.Database.LINQPadDriver.Extensions.ToCodeAPI.Options.htm" />
   <HelpKINode Title="GetCode field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.ToCodeAPI.Options.GetCode.htm" />
   <HelpKINode Title="GetConnectionCloud method" Url="html/M-Aerospike.Database.LINQPadDriver.AerospikeConnection.GetConnectionCloud.htm" />
@@ -1327,6 +1373,7 @@
   <HelpKINode Title="GetNamepsace method" Url="html/M-Aerospike.Database.LINQPadDriver.LPNamespace.GetNamepsace.htm" />
   <HelpKINode Title="GetNamespacesToAdd method" Url="html/M-Aerospike.Database.LINQPadDriver.DynamicDriver.GetNamespacesToAdd.htm" />
   <HelpKINode Title="GetNamespacesToAdd method" Url="html/Overload-Aerospike.Database.LINQPadDriver.DynamicDriver.GetNamespacesToAdd.htm" />
+  <HelpKINode Title="GetPassword method" Url="html/M-Aerospike.Database.LINQPadDriver.PasswordHelper.GetPassword.htm" />
   <HelpKINode Title="GetPK method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ARecord.GetPK.htm" />
   <HelpKINode Title="GetPutCode enumeration member" Url="html/T-Aerospike.Database.LINQPadDriver.Extensions.ToCodeAPI.Options.htm" />
   <HelpKINode Title="GetPutCode field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.ToCodeAPI.Options.GetPutCode.htm" />
@@ -1336,6 +1383,7 @@
   <HelpKINode Title="GetSchemaAndBuildAssembly method" Url="html/M-Aerospike.Database.LINQPadDriver.DynamicDriver.GetSchemaAndBuildAssembly.htm" />
   <HelpKINode Title="GetSchemaAndBuildAssembly method" Url="html/Overload-Aerospike.Database.LINQPadDriver.DynamicDriver.GetSchemaAndBuildAssembly.htm" />
   <HelpKINode Title="GetSet method" Url="html/M-Aerospike.Database.LINQPadDriver.LPSet.GetSet.htm" />
+  <HelpKINode Title="GetSetName method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.GetSetName.htm" />
   <HelpKINode Title="GetStableHashCode method" Url="html/Overload-Aerospike.Database.LINQPadDriver.Helpers.GetStableHashCode.htm" />
   <HelpKINode Title="GetTypeCode method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.AValue.GetTypeCode.htm" />
   <HelpKINode Title="GetValue method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ARecord.AerospikeAPI.GetValue.htm" />
@@ -1348,6 +1396,7 @@
   <HelpKINode Title="HasHexValues method" Url="html/M-Aerospike.Database.LINQPadDriver.Helpers.HasHexValues.htm" />
   <HelpKINode Title="HasKeyValue property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.APrimaryKey.HasKeyValue.htm" />
   <HelpKINode Title="HasKeyValue property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ARecord.AerospikeAPI.HasKeyValue.htm" />
+  <HelpKINode Title="HasPercent property" Url="html/P-Aerospike.Database.LINQPadDriver.NumericValidationRule.HasPercent.htm" />
   <HelpKINode Title="Helpers class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.Helpers.htm" />
   <HelpKINode Title="Helpers class" Url="html/T-Aerospike.Database.LINQPadDriver.Helpers.htm" />
   <HelpKINode Title="Helpers class">
@@ -1396,6 +1445,7 @@
   <HelpKINode Title="Helpers.Transform(Of T) method" Url="html/M-Aerospike.Database.LINQPadDriver.Helpers.Transform--1.htm" />
   <HelpKINode Title="Helpers.Transform&lt;T&gt; method" Url="html/M-Aerospike.Database.LINQPadDriver.Helpers.Transform--1.htm" />
   <HelpKINode Title="Helpers.UseUnixEpochNanoForNumericDateTime field" Url="html/F-Aerospike.Database.LINQPadDriver.Helpers.UseUnixEpochNanoForNumericDateTime.htm" />
+  <HelpKINode Title="Host property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.Host.htm" />
   <HelpKINode Title="IATransaction interface" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.Extensions.IATransaction.htm" />
   <HelpKINode Title="IATransaction interface" Url="html/T-Aerospike.Database.LINQPadDriver.Extensions.IATransaction.htm" />
   <HelpKINode Title="IATransaction interface">
@@ -1718,6 +1768,8 @@
   <HelpKINode Title="MatchOptions.Regex field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.AValue.MatchOptions.Regex.htm" />
   <HelpKINode Title="MatchOptions.SubString field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.AValue.MatchOptions.SubString.htm" />
   <HelpKINode Title="MatchOptions.Value field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.AValue.MatchOptions.Value.htm" />
+  <HelpKINode Title="Max property" Url="html/P-Aerospike.Database.LINQPadDriver.NumericValidationRule.Max.htm" />
+  <HelpKINode Title="Min property" Url="html/P-Aerospike.Database.LINQPadDriver.NumericValidationRule.Min.htm" />
   <HelpKINode Title="Module property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.AUDFAccess.Module.htm" />
   <HelpKINode Title="Module property" Url="html/P-Aerospike.Database.LINQPadDriver.LPUDF.Module.htm" />
   <HelpKINode Title="ModuleRegEx field" Url="html/F-Aerospike.Database.LINQPadDriver.LPModule.ModuleRegEx.htm" />
@@ -1775,6 +1827,20 @@
   <HelpKINode Title="NoTLSCommonName field" Url="html/F-Aerospike.Database.LINQPadDriver.CertHelpers.ResultCodes.NoTLSCommonName.htm" />
   <HelpKINode Title="NullSet property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.NullSet.htm" />
   <HelpKINode Title="NullSetName field" Url="html/F-Aerospike.Database.LINQPadDriver.LPSet.NullSetName.htm" />
+  <HelpKINode Title="NumericValidationRule class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.NumericValidationRule.htm" />
+  <HelpKINode Title="NumericValidationRule class" Url="html/T-Aerospike.Database.LINQPadDriver.NumericValidationRule.htm" />
+  <HelpKINode Title="NumericValidationRule class">
+    <HelpKINode Title="about NumericValidationRule class" Url="html/T-Aerospike.Database.LINQPadDriver.NumericValidationRule.htm" />
+    <HelpKINode Title="all members" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.NumericValidationRule.htm" />
+    <HelpKINode Title="methods" Url="html/Methods.T-Aerospike.Database.LINQPadDriver.NumericValidationRule.htm" />
+    <HelpKINode Title="properties" Url="html/Properties.T-Aerospike.Database.LINQPadDriver.NumericValidationRule.htm" />
+  </HelpKINode>
+  <HelpKINode Title="NumericValidationRule.AllowEmpty property" Url="html/P-Aerospike.Database.LINQPadDriver.NumericValidationRule.AllowEmpty.htm" />
+  <HelpKINode Title="NumericValidationRule.HasPercent property" Url="html/P-Aerospike.Database.LINQPadDriver.NumericValidationRule.HasPercent.htm" />
+  <HelpKINode Title="NumericValidationRule.Max property" Url="html/P-Aerospike.Database.LINQPadDriver.NumericValidationRule.Max.htm" />
+  <HelpKINode Title="NumericValidationRule.Min property" Url="html/P-Aerospike.Database.LINQPadDriver.NumericValidationRule.Min.htm" />
+  <HelpKINode Title="NumericValidationRule.Validate method" Url="html/M-Aerospike.Database.LINQPadDriver.NumericValidationRule.Validate.htm" />
+  <HelpKINode Title="NumericValidationRule.Validate method" Url="html/Overload-Aerospike.Database.LINQPadDriver.NumericValidationRule.Validate.htm" />
   <HelpKINode Title="ObtainMetaData method" Url="html/M-Aerospike.Database.LINQPadDriver.AerospikeConnection.ObtainMetaData.htm" />
   <HelpKINode Title="OfType(Of TResult) method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.AValueHelper.OfType--1.htm" />
   <HelpKINode Title="OfType&lt;TResult&gt; method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.AValueHelper.OfType--1.htm" />
@@ -1794,7 +1860,25 @@
   <HelpKINode Title="Parent property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.IATransaction.Parent.htm" />
   <HelpKINode Title="PartiallyCommitted enumeration member" Url="html/T-Aerospike.Database.LINQPadDriver.Extensions.TransactionStates.htm" />
   <HelpKINode Title="PartiallyCommitted field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.TransactionStates.PartiallyCommitted.htm" />
+  <HelpKINode Title="Password property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.Password.htm" />
+  <HelpKINode Title="PasswordHelper class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.PasswordHelper.htm" />
+  <HelpKINode Title="PasswordHelper class" Url="html/T-Aerospike.Database.LINQPadDriver.PasswordHelper.htm" />
+  <HelpKINode Title="PasswordHelper class">
+    <HelpKINode Title="about PasswordHelper class" Url="html/T-Aerospike.Database.LINQPadDriver.PasswordHelper.htm" />
+    <HelpKINode Title="all members" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.PasswordHelper.htm" />
+    <HelpKINode Title="fields" Url="html/Fields.T-Aerospike.Database.LINQPadDriver.PasswordHelper.htm" />
+    <HelpKINode Title="methods" Url="html/Methods.T-Aerospike.Database.LINQPadDriver.PasswordHelper.htm" />
+  </HelpKINode>
+  <HelpKINode Title="PasswordHelper.AttachProperty field" Url="html/F-Aerospike.Database.LINQPadDriver.PasswordHelper.AttachProperty.htm" />
+  <HelpKINode Title="PasswordHelper.GetAttach method" Url="html/M-Aerospike.Database.LINQPadDriver.PasswordHelper.GetAttach.htm" />
+  <HelpKINode Title="PasswordHelper.GetPassword method" Url="html/M-Aerospike.Database.LINQPadDriver.PasswordHelper.GetPassword.htm" />
+  <HelpKINode Title="PasswordHelper.PasswordProperty field" Url="html/F-Aerospike.Database.LINQPadDriver.PasswordHelper.PasswordProperty.htm" />
+  <HelpKINode Title="PasswordHelper.SetAttach method" Url="html/M-Aerospike.Database.LINQPadDriver.PasswordHelper.SetAttach.htm" />
+  <HelpKINode Title="PasswordHelper.SetPassword method" Url="html/M-Aerospike.Database.LINQPadDriver.PasswordHelper.SetPassword.htm" />
   <HelpKINode Title="PasswordManagerName property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.PasswordManagerName.htm" />
+  <HelpKINode Title="PasswordManagerName property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.PasswordManagerName.htm" />
+  <HelpKINode Title="PasswordProperty field" Url="html/F-Aerospike.Database.LINQPadDriver.PasswordHelper.PasswordProperty.htm" />
+  <HelpKINode Title="Port property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.Port.htm" />
   <HelpKINode Title="Premature enumeration member" Url="html/T-Aerospike.Database.LINQPadDriver.CertHelpers.ResultCodes.htm" />
   <HelpKINode Title="Premature field" Url="html/F-Aerospike.Database.LINQPadDriver.CertHelpers.ResultCodes.Premature.htm" />
   <HelpKINode Title="PreviouslyAborted enumeration member" Url="html/T-Aerospike.Database.LINQPadDriver.Extensions.CommitResults.htm" />
@@ -1890,6 +1974,7 @@
   <HelpKINode Title="Set property" Url="html/P-Aerospike.Database.LINQPadDriver.LPSecondaryIndex.Set.htm" />
   <HelpKINode Title="SetAccess property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ARecord.SetAccess.htm" />
   <HelpKINode Title="SetAccess property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.SetRecords.SetAccess.htm" />
+  <HelpKINode Title="SetAttach method" Url="html/M-Aerospike.Database.LINQPadDriver.PasswordHelper.SetAttach.htm" />
   <HelpKINode Title="SetDumpType method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ARecord.SetDumpType.htm" />
   <HelpKINode Title="SetException method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ARecord.SetException.htm" />
   <HelpKINode Title="SetFilter method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess.SetFilter.htm" />
@@ -1899,6 +1984,7 @@
   <HelpKINode Title="SetName property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ASecondaryIndexAccess.SetName.htm" />
   <HelpKINode Title="SetName property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.SetRecords.SetName.htm" />
   <HelpKINode Title="SetNames property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ANamespaceAccess.SetNames.htm" />
+  <HelpKINode Title="SetPassword method" Url="html/M-Aerospike.Database.LINQPadDriver.PasswordHelper.SetPassword.htm" />
   <HelpKINode Title="SetRecords class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.Extensions.SetRecords.htm" />
   <HelpKINode Title="SetRecords class" Url="html/T-Aerospike.Database.LINQPadDriver.Extensions.SetRecords.htm" />
   <HelpKINode Title="SetRecords class">
@@ -2038,6 +2124,7 @@
   <HelpKINode Title="Sets property" Url="html/P-Aerospike.Database.LINQPadDriver.LPNamespace.Sets.htm" />
   <HelpKINode Title="ShowConnectionDialog method" Url="html/M-Aerospike.Database.LINQPadDriver.DynamicDriver.ShowConnectionDialog.htm" />
   <HelpKINode Title="ShowConnectionDialog method" Url="html/Overload-Aerospike.Database.LINQPadDriver.DynamicDriver.ShowConnectionDialog.htm" />
+  <HelpKINode Title="ShowPassword property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.ShowPassword.htm" />
   <HelpKINode Title="SIndexes property" Url="html/P-Aerospike.Database.LINQPadDriver.LPNamespace.SIndexes.htm" />
   <HelpKINode Title="SIndexes property" Url="html/P-Aerospike.Database.LINQPadDriver.LPSet.SIndexes.htm" />
   <HelpKINode Title="Skip method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.SetRecords-1.Skip.htm" />
@@ -2061,6 +2148,7 @@
   <HelpKINode Title="TimeToLive field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.JsonExportStructure.TimeToLive.htm" />
   <HelpKINode Title="TLS property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.TLS.htm" />
   <HelpKINode Title="TLSCertName property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.TLSCertName.htm" />
+  <HelpKINode Title="TLSCertName property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.TLSCertName.htm" />
   <HelpKINode Title="TLSCertVerification property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.TLSCertVerification.htm" />
   <HelpKINode Title="TLSClientCertFile property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.TLSClientCertFile.htm" />
   <HelpKINode Title="ToAerospikeExpression method" Url="html/M-Aerospike.Client.LPDHelpers.ToAerospikeExpression.htm" />
@@ -2192,13 +2280,27 @@
   <HelpKINode Title="Update method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.ARecord.Update.htm" />
   <HelpKINode Title="UseExternalIP property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.UseExternalIP.htm" />
   <HelpKINode Title="UsePasswordManager property" Url="html/P-Aerospike.Database.LINQPadDriver.AerospikeConnection.UsePasswordManager.htm" />
+  <HelpKINode Title="UsePasswordManager property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.UsePasswordManager.htm" />
+  <HelpKINode Title="UserName property" Url="html/P-Aerospike.Database.LINQPadDriver.DBTypeCache.UserName.htm" />
   <HelpKINode Title="UseUnixEpochNanoForNumericDateTime field" Url="html/F-Aerospike.Database.LINQPadDriver.Helpers.UseUnixEpochNanoForNumericDateTime.htm" />
+  <HelpKINode Title="Validate method" Url="html/M-Aerospike.Database.LINQPadDriver.NumericValidationRule.Validate.htm" />
   <HelpKINode Title="Validate method" Url="html/Overload-Aerospike.Database.LINQPadDriver.CertHelpers.Validate.htm" />
+  <HelpKINode Title="Validate method" Url="html/Overload-Aerospike.Database.LINQPadDriver.NumericValidationRule.Validate.htm" />
   <HelpKINode Title="Value enumeration member" Url="html/T-Aerospike.Database.LINQPadDriver.Extensions.AValue.MatchOptions.htm" />
   <HelpKINode Title="Value field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.AValue.MatchOptions.Value.htm" />
   <HelpKINode Title="Value property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.AValue.Value.htm" />
   <HelpKINode Title="Values field" Url="html/F-Aerospike.Database.LINQPadDriver.Extensions.JsonExportStructure.Values.htm" />
   <HelpKINode Title="Values property" Url="html/P-Aerospike.Database.LINQPadDriver.Extensions.ARecord.AerospikeAPI.Values.htm" />
+  <HelpKINode Title="WaitCursor class" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.WaitCursor.htm" />
+  <HelpKINode Title="WaitCursor class" Url="html/T-Aerospike.Database.LINQPadDriver.WaitCursor.htm" />
+  <HelpKINode Title="WaitCursor class">
+    <HelpKINode Title="about WaitCursor class" Url="html/T-Aerospike.Database.LINQPadDriver.WaitCursor.htm" />
+    <HelpKINode Title="all members" Url="html/AllMembers.T-Aerospike.Database.LINQPadDriver.WaitCursor.htm" />
+    <HelpKINode Title="constructor" Url="html/M-Aerospike.Database.LINQPadDriver.WaitCursor.-ctor.htm" />
+    <HelpKINode Title="methods" Url="html/Methods.T-Aerospike.Database.LINQPadDriver.WaitCursor.htm" />
+  </HelpKINode>
+  <HelpKINode Title="WaitCursor.Dispose method" Url="html/M-Aerospike.Database.LINQPadDriver.WaitCursor.Dispose.htm" />
+  <HelpKINode Title="WaitCursor.WaitCursor constructor" Url="html/M-Aerospike.Database.LINQPadDriver.WaitCursor.-ctor.htm" />
   <HelpKINode Title="Where method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.SetRecords-1.Where.htm" />
   <HelpKINode Title="Where method" Url="html/M-Aerospike.Database.LINQPadDriver.Extensions.SetRecords.Where.htm" />
   <HelpKINode Title="Where method" Url="html/Overload-Aerospike.Database.LINQPadDriver.Extensions.SetRecords-1.Where.htm" />
