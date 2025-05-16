@@ -15,7 +15,6 @@ using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using static System.Net.Mime.MediaTypeNames;
 using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
@@ -29,11 +28,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// The non-managed platform
         /// </summary>
-        Native = 0,
-        /// <summary>
-        /// The DBaaS platform
-        /// </summary>
-        Cloud = 1
+        Native = 0
     }
 
 	/// <summary>

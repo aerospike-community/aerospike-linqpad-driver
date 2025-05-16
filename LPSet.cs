@@ -1,7 +1,3 @@
-using Aerospike.Database.LINQPadDriver.Extensions;
-using GeoJSON.Net;
-using LINQPad.Extensibility.DataContext;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -10,6 +6,10 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Aerospike.Database.LINQPadDriver.Extensions;
+using GeoJSON.Net;
+using LINQPad.Extensibility.DataContext;
+using Newtonsoft.Json.Linq;
 
 namespace Aerospike.Database.LINQPadDriver
 {

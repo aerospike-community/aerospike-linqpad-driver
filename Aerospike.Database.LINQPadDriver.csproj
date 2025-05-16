@@ -19,8 +19,8 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2025</Copyright>
-    <Version>5.1.1.2</Version>
-    <FileVersion>5.1.1.2</FileVersion>
+    <Version>5.2.0.0</Version>
+    <FileVersion>5.2.0.0</FileVersion>
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -148,6 +148,10 @@
 	  </Compile>
 	</ItemGroup>
  
+	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net7.0-windows' and '$(ConfigurationName)' == 'Debug'">
+		<Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)&quot;" />
+	</Target>
+
   <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(ConfigurationName)' == 'Release'">
     <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.LPX6&quot; &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot;" />
     <Exec Command="powershell -nologo -noprofile -command &quot;compress-archive -force -path &quot;$(TargetDir)*.*&quot; -destinationpath &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
