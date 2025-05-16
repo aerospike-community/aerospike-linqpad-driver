@@ -19,8 +19,8 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2025</Copyright>
-    <Version>5.2.0.0</Version>
-    <FileVersion>5.2.0.0</FileVersion>
+    <Version>5.6.0.0</Version>
+    <FileVersion>5.6.0.0</FileVersion>
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -60,19 +60,6 @@
 	  <None Remove="linqpad-samples\Native\Record Display View.linq" />
     <None Remove="linqpad-samples\Native\MRT.linq" />
 	</ItemGroup>
-
-  <ItemGroup>
-    <None Remove="linqpad-samples\Cloud\Basic Data Types.linq" />
-    <None Remove="linqpad-samples\Cloud\CDT-Json-Docs.linq" />
-    <None Remove="linqpad-samples\Cloud\Create CustInvsDoc set.linq" />
-    <None Remove="linqpad-samples\Cloud\Linq Join Customer and Invoice.linq" />
-    <None Remove="linqpad-samples\Cloud\LinqWhere-AerospikeExpressions.linq" />
-    <None Remove="linqpad-samples\Cloud\LinqWhere-AerospikePK.linq" />
-    <None Remove="linqpad-samples\Cloud\POCO.linq" />
-    <none Remove="linqpad-samples\Cloud\Put-Aerospike.linq" />
-    <None Remove="linqpad-samples\Cloud\ReadMeFirst.linq" />
-    <None Remove="linqpad-samples\Cloud\Record Display View.linq" />
-  </ItemGroup>
 
   <ItemGroup>
     <None Update="AValue.tt">

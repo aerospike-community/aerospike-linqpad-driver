@@ -19,7 +19,6 @@
                         <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSocketTimeout}" Value="False"/>
                         <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSleepRetries}" Value="False"/>
                         <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSampleRecs}" Value="False"/>
-                        <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtCldPort}" Value="False"/>
                         <Condition Binding="{Binding Path=(Validation.HasError), ElementName=txtSampleRecsPercent}" Value="False"/>
                     </MultiDataTrigger.Conditions>
                     <Setter Property="IsEnabled" Value="True"/>
