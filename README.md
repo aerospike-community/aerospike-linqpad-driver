@@ -587,7 +587,7 @@ LINQPad API documentation can be found in the [Help Folder](https://aerospike-co
 
 # Installation of LINQPad Driver
 
-## LINQPad NuGet Manager (Windows Only)
+## LINQPad NuGet Manager
 
 -   Open LINQPad
 -   Click `Add Connection` Link.
@@ -595,7 +595,7 @@ LINQPad API documentation can be found in the [Help Folder](https://aerospike-co
 -   Click radio button “`Show all drivers”` and type `Aerospike`.
 -   Click Install
 
-## Manual and MacOS
+## Manual
 
 Obtain the latest driver from the `Driver` folder and [download](https://github.com/aerospike-community/aerospike-linqpad-driver/tree/main/Driver) to your computer.
 
