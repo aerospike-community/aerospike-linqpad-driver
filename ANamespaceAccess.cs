@@ -15,7 +15,6 @@ using Aerospike.Client;
 using LINQPad;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using static System.Net.Mime.MediaTypeNames;
 using LPU = LINQPad.Util;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
@@ -29,11 +28,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// The non-managed platform
         /// </summary>
-        Native = 0,
-        /// <summary>
-        /// The DBaaS platform
-        /// </summary>
-        Cloud = 1
+        Native = 0
     }
 
 	/// <summary>
@@ -437,6 +432,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <seealso cref="Aerospike.Client.Key"/>
         /// <seealso cref="Aerospike.Client.Key.digest"/>
 		/// <seealso cref="APrimaryKey"/>
+        /// <seealso cref="GetSetKeyValue(byte[])"/>
 		public string GetSetName(byte[] digest)
         {
 			var policy = this.DefaultWritePolicy.Clone();
@@ -450,6 +446,46 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                                                 Exp.Build(Exp.SetName()),
                                                                 ExpReadFlags.EVAL_NO_FAIL));
             return (string) result?.bins["setname"];
+		}
+
+		/// <summary>
+		/// Gets the Aerospike Set's name and the key value based on the digest.
+		/// </summary>
+		/// <param name="digest">
+		/// The PK Digest (<see cref="Aerospike.Client.Key.digest"/>)
+		/// </param>
+		/// <returns>
+		/// Returns the Aerospike Set name and Key Value (only if the <see cref="Policy.sendKey"/> is true when the record was create) based on <paramref name="digest"/> or null to indicate that the PK doesn&apos;t exists.
+		/// </returns>
+		/// <seealso cref="Aerospike.Client.Key"/>
+		/// <seealso cref="Aerospike.Client.Key.digest"/>
+		/// <seealso cref="APrimaryKey"/>
+		/// <seealso cref="GetSetName(byte[])"/>
+		public (string setName, object keyValue) GetSetKeyValue(byte[] digest)
+		{
+			var policy = this.DefaultWritePolicy.Clone();
+			policy.sendKey = false;
+
+			var result = this.AerospikeConnection
+								.AerospikeClient
+								.Operate(policy,
+											new Key(this.Namespace, digest, null, Value.AsNull),
+											ExpOperation.Read("setname",
+																Exp.Build(Exp.SetName()),
+																            ExpReadFlags.EVAL_NO_FAIL),
+											ExpOperation.Read("keyint", Exp.Build(Exp.Key(Exp.Type.INT)),
+																			ExpReadFlags.EVAL_NO_FAIL),
+											ExpOperation.Read("keystr", Exp.Build(Exp.Key(Exp.Type.STRING)),
+																			ExpReadFlags.EVAL_NO_FAIL),
+											ExpOperation.Read("keyblob", Exp.Build(Exp.Key(Exp.Type.BLOB)),
+																			ExpReadFlags.EVAL_NO_FAIL));
+
+            return ((string) result?.bins["setname"],
+                    result is null
+                        ? null
+                        : result.bins["keyint"]
+                            ?? result.bins["keystr"]
+                            ?? result.bins["keyblob"]);
 		}
 
 		public override string ToString()
