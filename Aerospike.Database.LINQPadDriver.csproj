@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 	
 	<PropertyGroup>    
-    <TargetFrameworks>net6.0-windows;net7.0-windows</TargetFrameworks>
+    <TargetFrameworks>net6.0-windows;net7.0-windows;net8.0-windows</TargetFrameworks>
 
     <NoWarn>1591</NoWarn>
 		<UseWpf>true</UseWpf>
@@ -21,6 +21,7 @@
     <Copyright>2025</Copyright>
     <Version>5.6.0.0</Version>
     <FileVersion>5.6.0.0</FileVersion>
+    <Deterministic>true</Deterministic>
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -36,7 +37,10 @@
     <IncludeSymbols>true</IncludeSymbols>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>    
     <DebugType>embedded</DebugType>    
-    <PackageProjectUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</PackageProjectUrl>    
+    <SignAssembly>True</SignAssembly>    
+    <PackageIcon>AerospikeLINQPad.png</PackageIcon>    
+    <AssemblyOriginatorKeyFile>$(SolutionDir)..\..\aerospike-linqpad-driver.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
 	<ItemGroup>
@@ -47,6 +51,7 @@
 	</ItemGroup>
   
 	<ItemGroup>
+	  <None Remove="AerospikeLINQPad.png" />
 	  <None Remove="linqpad-samples\Native\Basic Data Types.linq" />
 	  <None Remove="linqpad-samples\Native\CDT-Json-Docs.linq" />
 	  <None Remove="linqpad-samples\Native\Create CustInvsDoc set.linq" />
@@ -61,8 +66,7 @@
     <None Remove="linqpad-samples\Native\MRT.linq" />
 	</ItemGroup>
 
-  <ItemGroup>
-    <None Update="AValue.tt">
+  <ItemGroup>    <None Update="AValue.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AValue.cs</LastGenOutput>
     </None>    
@@ -74,6 +78,12 @@
   </ItemGroup>
   
 	<ItemGroup>
+	  <Content Include="AerospikeLINQPad.png">
+	    <PackageCopyToOutput>true</PackageCopyToOutput>
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </Content>
 	  <Content Include="Connection.png">
       <PackageCopyToOutput>true</PackageCopyToOutput>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -135,11 +145,11 @@
 	  </Compile>
 	</ItemGroup>
  
-	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net7.0-windows' and '$(ConfigurationName)' == 'Debug'">
+	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(ConfigurationName)' == 'Debug'">
 		<Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)&quot;" />
 	</Target>
 
-  <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(ConfigurationName)' == 'Release'">
+  <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(ConfigurationName)' == 'Release'">
     <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.LPX6&quot; &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot;" />
     <Exec Command="powershell -nologo -noprofile -command &quot;compress-archive -force -path &quot;$(TargetDir)*.*&quot; -destinationpath &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
     <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot; &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.$(FileVersion).LPX6&quot;" />
