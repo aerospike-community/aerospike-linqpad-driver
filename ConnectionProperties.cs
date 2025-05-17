@@ -62,12 +62,7 @@ namespace Aerospike.Database.LINQPadDriver
                     DriverData.SetElementValue("DBType", "Native");
                     return DBPlatforms.Native;
                 }
-                else if (elementValue == "1")
-                {
-                    DriverData.SetElementValue("DBType", "Cloud");
-                    return DBPlatforms.Cloud;
-                }
-
+                
                 if (Enum.TryParse<DBPlatforms>(elementValue, true, out DBPlatforms result))
                 {
                     return result;

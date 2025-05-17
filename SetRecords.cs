@@ -8,13 +8,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.IO;
-using Aerospike.Client;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using Aerospike.Client;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {

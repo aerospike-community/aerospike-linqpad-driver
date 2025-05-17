@@ -269,16 +269,13 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
 			items.AddRange(CreateNamespaceExploreItems(connection));
 
-            if (connection.DBPlatform != DBPlatforms.Cloud)
+            items.Add(new ExplorerItem("UDFs", ExplorerItemKind.Category, ExplorerIcon.Box)
             {
-                items.Add(new ExplorerItem("UDFs", ExplorerItemKind.Category, ExplorerIcon.Box)
-                {
-                    IsEnumerable = false,
-                    DragText = null,
-                    ToolTipText = "User Defined Functions",
-                    Children = CreateModuleExploreItems(connection).ToList()
-                });
-            }
+                IsEnumerable = false,
+                DragText = null,
+                ToolTipText = "User Defined Functions",
+                Children = CreateModuleExploreItems(connection).ToList()
+            });
 
 			items.Add(CreateInformationalExploreItem(cxInfo, connection));
 
@@ -551,97 +548,79 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 		{
 			List<ExplorerItem> children;
 
-            if (connection.DBPlatform == DBPlatforms.Cloud)
-            {
-                children = new List<ExplorerItem>()
-                                {
-                                    new ExplorerItem($"Database Id \"{cxInfo.DatabaseInfo.Database}\"",
-                                                        ExplorerItemKind.Parameter,
-                                                        ExplorerIcon.ScalarFunction)
+            children = new List<ExplorerItem>()
+                            {
+                                new ExplorerItem($"Cluster Name \"{cxInfo.DatabaseInfo.Database}\"",
+                                                    ExplorerItemKind.Parameter,
+                                                    ExplorerIcon.ScalarFunction)
+                                                {
+                                                    IsEnumerable = false,
+                                                    DragText = null,
+                                                    ToolTipText= cxInfo.DatabaseInfo.Database
+                                                },
+                                new ExplorerItem($"DB Version {cxInfo.DatabaseInfo.DbVersion}",
+                                                    ExplorerItemKind.Parameter,
+                                                    ExplorerIcon.ScalarFunction)
+                                                {
+                                                    IsEnumerable = false,
+                                                    DragText = null,
+                                                    ToolTipText= cxInfo.DatabaseInfo.DbVersion
+                                                },
+                                new ExplorerItem($"Nodes ({connection.Nodes.Length})",
+                                                    ExplorerItemKind.Category,
+                                                    ExplorerIcon.OneToMany)
+                                                {
+                                                    IsEnumerable = false,
+                                                    DragText = null,
+                                                    Children = CreateClusterNodesExploreItems(connection).ToList(),
+                                                    ToolTipText= "Nodes within the Cluster"
+                                                },
+                                new ExplorerItem("Stats",
+                                                    ExplorerItemKind.Category,
+                                                    ExplorerIcon.Box)
+                                                {
+                                                    IsEnumerable = false,
+                                                    DragText = null,
+                                                    Children = new List<ExplorerItem>()
                                                     {
-                                                        IsEnumerable = false,
-                                                        DragText = null,
-                                                        ToolTipText= cxInfo.DatabaseInfo.Database
+                                                        new ExplorerItem($"Total Namespaces: {connection.Namespaces.Count()}",
+                                                                            ExplorerItemKind.Parameter,
+                                                                            ExplorerIcon.ScalarFunction),
+                                                        new ExplorerItem($"Total Sets: {connection.Namespaces.Sum(n => n.Sets.Count())}",
+                                                                            ExplorerItemKind.Parameter,
+                                                                            ExplorerIcon.ScalarFunction),
+                                                        new ExplorerItem($"Total Bins: {connection.Namespaces.Sum(n => n.Bins.Count())}",
+                                                                            ExplorerItemKind.Parameter,
+                                                                            ExplorerIcon.ScalarFunction),
+                                                        new ExplorerItem($"Total SIdx: {connection.Namespaces.Sum(n => n.SIndexes.Count())}",
+                                                                            ExplorerItemKind.Parameter,
+                                                                            ExplorerIcon.ScalarFunction),
+                                                        new ExplorerItem($"Total UDFs: {connection.UDFModules.Count()}",
+                                                                            ExplorerItemKind.Parameter,
+                                                                            ExplorerIcon.ScalarFunction)
                                                     }
-                                };
-            }
-			else 
-			{
-                children = new List<ExplorerItem>()
+                                                },
+                                new ExplorerItem("Features",
+									                ExplorerItemKind.Category,
+													ExplorerIcon.Box)
                                 {
-                                    new ExplorerItem($"Cluster Name \"{cxInfo.DatabaseInfo.Database}\"",
-                                                        ExplorerItemKind.Parameter,
-                                                        ExplorerIcon.ScalarFunction)
-                                                    {
-                                                        IsEnumerable = false,
-                                                        DragText = null,
-                                                        ToolTipText= cxInfo.DatabaseInfo.Database
-                                                    },
-                                    new ExplorerItem($"DB Version {cxInfo.DatabaseInfo.DbVersion}",
-                                                        ExplorerItemKind.Parameter,
-                                                        ExplorerIcon.ScalarFunction)
-                                                    {
-                                                        IsEnumerable = false,
-                                                        DragText = null,
-                                                        ToolTipText= cxInfo.DatabaseInfo.DbVersion
-                                                    },
-                                    new ExplorerItem($"Nodes ({connection.Nodes.Length})",
-                                                        ExplorerItemKind.Category,
-                                                        ExplorerIcon.OneToMany)
-                                                    {
-                                                        IsEnumerable = false,
-                                                        DragText = null,
-                                                        Children = CreateClusterNodesExploreItems(connection).ToList(),
-                                                        ToolTipText= "Nodes within the Cluster"
-                                                    },
-                                    new ExplorerItem("Stats",
-                                                        ExplorerItemKind.Category,
-                                                        ExplorerIcon.Box)
-                                                    {
-                                                        IsEnumerable = false,
-                                                        DragText = null,
-                                                        Children = new List<ExplorerItem>()
-                                                        {
-                                                            new ExplorerItem($"Total Namespaces: {connection.Namespaces.Count()}",
-                                                                                ExplorerItemKind.Parameter,
-                                                                                ExplorerIcon.ScalarFunction),
-                                                            new ExplorerItem($"Total Sets: {connection.Namespaces.Sum(n => n.Sets.Count())}",
-                                                                                ExplorerItemKind.Parameter,
-                                                                                ExplorerIcon.ScalarFunction),
-                                                            new ExplorerItem($"Total Bins: {connection.Namespaces.Sum(n => n.Bins.Count())}",
-                                                                                ExplorerItemKind.Parameter,
-                                                                                ExplorerIcon.ScalarFunction),
-                                                            new ExplorerItem($"Total SIdx: {connection.Namespaces.Sum(n => n.SIndexes.Count())}",
-                                                                                ExplorerItemKind.Parameter,
-                                                                                ExplorerIcon.ScalarFunction),
-                                                            new ExplorerItem($"Total UDFs: {connection.UDFModules.Count()}",
-                                                                                ExplorerItemKind.Parameter,
-                                                                                ExplorerIcon.ScalarFunction)
-                                                        }
-                                                    },
-                                    new ExplorerItem("Features",
-									                    ExplorerItemKind.Category,
-														ExplorerIcon.Box)
-                                    {
-										IsEnumerable = false,
-										DragText = null,
-										Children = connection.DBFeatures
-                                                    .Select(f => new ExplorerItem(f, ExplorerItemKind.Parameter, ExplorerIcon.ScalarFunction))
-                                                    .ToList()
-									},
-									new ExplorerItem("Configuration",
-														ExplorerItemKind.Category,
-														ExplorerIcon.Box)
-									{
-										IsEnumerable = false,
-										DragText = null,
-										Children = connection.DBConfig
-													.Select(f => new ExplorerItem(f, ExplorerItemKind.Parameter, ExplorerIcon.ScalarFunction))
-													.ToList()
-									}
-								};
-
-            }
+									IsEnumerable = false,
+									DragText = null,
+									Children = connection.DBFeatures
+                                                .Select(f => new ExplorerItem(f, ExplorerItemKind.Parameter, ExplorerIcon.ScalarFunction))
+                                                .ToList()
+								},
+								new ExplorerItem("Configuration",
+													ExplorerItemKind.Category,
+													ExplorerIcon.Box)
+								{
+									IsEnumerable = false,
+									DragText = null,
+									Children = connection.DBConfig
+												.Select(f => new ExplorerItem(f, ExplorerItemKind.Parameter, ExplorerIcon.ScalarFunction))
+												.ToList()
+								}
+							};
 
             var infoItem = new ExplorerItem("Information", ExplorerItemKind.Category, ExplorerIcon.Box)
             {

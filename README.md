@@ -376,16 +376,14 @@ The dialog is divided into multiple sections.
 
 The sections are:
 
-1.  Self-Managed. Each tab provides the parameters needed to connect to an Aerospike cluster based on the targeted platform.
+1.  The different tabs are no longer provided. There is only a Database section.
 2.  This section provides the general policies and features used by the [Aerospike C\# driver](https://github.com/aerospike/aerospike-client-csharp) or LINQPad feature.
 3.  Display/Conversion Options expansion panel, provides the options needed for auto-set bin discovery, serialization/deserialization options, use of [auto-values](#auto-values), record display views, etc.
 4.  Buttons are used to determine if the options are saved, canceled, or to test the connection.
 
-### Self-Managed Tab
+### Database Section
 
 ![A screenshot of a computer Description automatically generated](media/aea590330b05fe5fc6a08a37627dd353.png)
-
-This tab is used to [connect to a self-managed/native Aerospike cluster](https://aerospike.com/docs/connect/kafka/to-asdb/configuring/aerospike).
 
 The properties are:
 
@@ -393,11 +391,11 @@ The properties are:
 2.  A checkbox when enabled will indicate that this cluster will be connected typically to a public IP address. For more information [click-here](https://aerospike.com/docs/apidocs/csharp/html/f_aerospike_client_clientpolicy_useservicesalternate).
 3.  The node’s client port for connection.
 4.  The username if [authentication](https://aerospike.com/docs/server/operations/configure/security/access-control) is enabled.
-5.  If enabled, the built-in LINQPad password manager is used. When enabled, a dropdown will be displayed to select your Password Name you defined in the manager. The Password Manager can be found on the File menu of LINQPad.
+5.  If enabled, the built-in LINQPad password manager is used. When enabled, a dropdown will be displayed to select your Password Name you defined in the manager. The Password Manager can be found on the File menu of LINQPad for MS-Windows.
 6.  The associated password of the user.
 7.  If checked, it will show the password in plain text.
 8.  This expansion panel will display the TLS options (see below).
-9.  This panel are the options regarding timeout values. Each field will have a tooltip explaining the field.
+9.  This panel provides the options regarding timeout values. Each field will have a tooltip explaining the field.
 10. If enabled, “send key” sends the user-defined key in addition to hash digest on both reads and writes. If the key is sent on a write, the key will be stored with the record on the server and returned to the client on primary and secondary index queries.
 11. If enabled, queries are expected to return less than 100 records per node and the servers will optimize the queries for a small record set.
 12. If enabled, compression is used (only applies to Self-Managed clusters).
@@ -432,10 +430,6 @@ Fields are:
 4.  Select the client certificate file.
 5.  Reject server certificates whose serial numbers match.
 6.  If enabled, TLS is only used for authentication (login).
-
-### Cloud Tab
-
-Aerospike Cloud will be available in a future release.
 
 ### Display/Conversion Options Panel
 
@@ -593,7 +587,7 @@ LINQPad API documentation can be found in the [Help Folder](https://aerospike-co
 
 # Installation of LINQPad Driver
 
-## LINQPad NuGet Manager (Windows Only)
+## LINQPad NuGet Manager
 
 -   Open LINQPad
 -   Click `Add Connection` Link.
@@ -601,7 +595,7 @@ LINQPad API documentation can be found in the [Help Folder](https://aerospike-co
 -   Click radio button “`Show all drivers”` and type `Aerospike`.
 -   Click Install
 
-## Manual and MacOS
+## Manual
 
 Obtain the latest driver from the `Driver` folder and [download](https://github.com/aerospike-community/aerospike-linqpad-driver/tree/main/Driver) to your computer.
 
