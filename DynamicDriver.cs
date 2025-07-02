@@ -639,15 +639,19 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
             foreach (var node in _Connection.Nodes)
             {
-				string nodeState;
+				string nodeState = string.Empty;
+                (string hostName, bool? pinged) = Helpers.GetHostName(node.Host.name);
 
-				if (connection.UseExternalIP)
-					nodeState = "External/Alternate IP";
-				else
-					nodeState = node.Active ? "Active" : "Inactive";
+                if(pinged.HasValue && !pinged.Value)
+                    nodeState = " Cannot Ping";
+
+                if(connection.UseExternalIP)
+                    nodeState += " (External/Alternate IP)";
+                //else
+                //    nodeState = node.Active ? "Active" : "Inactive";
 
 				items.Add(
-                            new ExplorerItem($"{node.Host.name} ({nodeState})",
+                            new ExplorerItem($"{hostName}{nodeState}",
 												ExplorerItemKind.Property,
 												ExplorerIcon.LinkedDatabase)
 										{

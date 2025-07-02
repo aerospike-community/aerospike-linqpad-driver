@@ -42,8 +42,7 @@ namespace Aerospike.Database.LINQPadDriver
             var encryptTraffic = cxInfo.DatabaseInfo.EncryptTraffic;
 
             this.DBPlatform = connectionInfo.DBType;
-            this.CloudNamespace = connectionInfo.NamespaceCloud;
-
+            
             this.UsePasswordManager = connectionInfo.UsePasswordManager;
             this.PasswordManagerName = connectionInfo.PasswordManagerName?.Trim();
             this.Debug = connectionInfo.Debug;
@@ -73,12 +72,17 @@ namespace Aerospike.Database.LINQPadDriver
 
             if(encryptTraffic)
             {
-				this.TLSClientCertFile = connectionInfo.TLSClientCertFile;
-				(this.TLSCertVerification, this.TLSCertName)
+                this.TLSClientCertFile = connectionInfo.TLSClientCertFile;
+                (this.TLSCertVerification, this.TLSCertName)
                     = AerospikeConnection.ValidateCert(this.TLSClientCertFile, this.TLSCertName);
-			}            
+            }
+            else
+            {
+                this.TLSClientCertFile = null;
+                this.TLSCertName = null;
+            }
 
-            this.DBVersion = new Version();
+                this.DBVersion = new Version();
 
             cxInfo.DatabaseInfo.EncryptTraffic = !string.IsNullOrEmpty(connectionInfo.TLSProtocols);
 
@@ -173,10 +177,6 @@ namespace Aerospike.Database.LINQPadDriver
         public Host[] SeedHosts { get; }
 
         public Node[] Nodes => this.AerospikeClient?.Nodes;
-
-        public string CloudNamespace { get; }
-
-        public IEnumerable<string> CloudSetNames { get; } = Array.Empty<string>();
 
         public DBPlatforms DBPlatform { get; }
 

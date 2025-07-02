@@ -12,6 +12,7 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
 using Aerospike.Client;
 using Microsoft.Win32;
+using static Aerospike.Client.AerospikeException;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -389,8 +390,19 @@ Note: The DB seems to be on a private network
 
 Note: If the DB has Public/NATted/Alternate Addresses,
     you may need to enable ""Public Address"" option for this connection!
+
+							";
+						}
+
+                        if(connection.TLS != null
+                            && connection.SeedHosts.Any()
+                            && connection.SeedHosts[0].port == 3000)
+                        {
+							messageBoxText += $@"
+
+Note: The port being used is 3000, shouldn't this be port 4333 (default)! Check the DB's TLS port to be certain!
 ";
-                        }
+						}
                     }
                 }
                 

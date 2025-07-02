@@ -16,6 +16,8 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Net.NetworkInformation;
 
 namespace Aerospike.Client
 {
@@ -503,11 +505,55 @@ namespace Aerospike.Database.LINQPadDriver
     public static partial class Helpers
     {
 
-        public static bool IsPrivateAddress(string ipAddress)
+		public static (string, bool?) GetHostName(string ipAddress, bool tryPing = false, int timeoutms = 200)
+		{
+            if(string.IsNullOrEmpty(ipAddress)) return ("<Unknown>", null);
+
+            if(ipAddress.ToLower() == "localhost"
+				|| ipAddress.ToLower() == "local"
+				|| ipAddress == "127.0.0.1"
+				|| ipAddress == "::1")
+				return ("localhost", true);
+
+            bool? pinged = null;
+
+            if(tryPing)
+            {
+                try
+                {
+                    using(Ping pinger = new Ping())
+                    {
+                        PingReply reply = pinger.Send(ipAddress, timeoutms);
+                        pinged = reply.Status == IPStatus.Success;
+                    }
+                }
+                catch(PingException)
+                {
+                }
+            }
+
+			try
+			{
+				IPHostEntry entry = Dns.GetHostEntry(ipAddress);
+				if(entry != null)
+				{
+					return (entry.HostName, pinged);
+				}
+			}
+			catch
+			{
+			}
+
+			
+			return (ipAddress, pinged);
+		}
+		public static bool IsPrivateAddress(string ipAddress)
         {
             if(string.IsNullOrEmpty(ipAddress)
                 || ipAddress.ToLower() == "localhost"
-                || ipAddress.ToLower() == "local")
+                || ipAddress.ToLower() == "local"
+                || ipAddress == "127.0.0.1"
+                || ipAddress == "::1")
                 return true;
 
             try
