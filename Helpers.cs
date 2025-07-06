@@ -18,6 +18,8 @@ using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Threading;
 
 namespace Aerospike.Client
 {
@@ -547,6 +549,38 @@ namespace Aerospike.Database.LINQPadDriver
 			
 			return (ipAddress, pinged);
 		}
+
+		public static bool IsPortOpen(string host, int port, int timeoutms = 200)
+		{
+			try
+			{
+                using(TcpClient tcpClient = new TcpClient())
+                {
+                    var cancel = new CancellationTokenSource();
+                    var tstTask = tcpClient.ConnectAsync(host, port, cancel.Token);
+                    var cnt = 0;
+                    while(!tstTask.IsCompleted) 
+                    {
+                        if(cnt++ > timeoutms)
+                        {
+                            cancel.Cancel();
+                            break;
+                        }
+                        Thread.Sleep(1);
+                    }
+
+                    tstTask.AsTask().Wait();
+                    
+                    return tstTask.IsCompletedSuccessfully; // Connection successful, port is likely open
+                }
+			}
+			catch(Exception)
+			{
+				return false; // Connection failed, port is likely closed or unreachable
+			}
+		}
+
+
 		public static bool IsPrivateAddress(string ipAddress)
         {
             if(string.IsNullOrEmpty(ipAddress)

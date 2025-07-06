@@ -373,7 +373,7 @@ Source: ""{ex.InnerException.Source}"" Help Link: ""{ex.InnerException.HelpLink}
                     }
                     if (connection != null)
                     {
-                        if (Helpers.IsPrivateAddress(connection.SeedHosts.FirstOrDefault().name))
+                        if (Helpers.IsPrivateAddress(connection.SeedHosts.FirstOrDefault()?.name))
                         {
                             if (connection.UseExternalIP)
                             {
@@ -403,6 +403,47 @@ Note: If the DB has Public/NATted/Alternate Addresses,
 Note: The port being used is 3000, shouldn't this be port 4333 (default)! Check the DB's TLS port to be certain!
 ";
 						}
+                    
+                        if(ex.InnerException.Message.Contains("Failed to connect to host"))
+                        {
+                            messageBoxText += $@"
+
+Host Status:";
+                            foreach(var host in connection.SeedHosts)
+                            {
+                                (string hostName, bool? pinged) = Helpers.GetHostName(host.name, true, connection.SocketTimeout);
+                                if(!string.IsNullOrEmpty(hostName) && hostName != host.name)
+                                    hostName = $" ({hostName})";
+                                else
+                                    hostName = string.Empty;
+
+                                string status = string.Empty;
+
+                                if(pinged.HasValue)
+                                {
+                                    if(Helpers.IsPortOpen(host.name, host.port, connection.SocketTimeout))
+                                    {
+										status = "Reachable";
+									}
+                                    else
+                                    if(pinged.Value)
+                                    {
+										status = "Reachable (ping). Is the Port correct and the DB Running?";
+									}
+                                    else
+                                    {
+                                        status = "Unreachable. Is this host name/address and/or Port correct?";
+                                    }
+                                }
+                                else
+                                {
+                                    status = "Pinged Failed";
+                                }
+
+                                    messageBoxText += $@"
+    Host: {host.name}:{host.port}{hostName} Status: {status}";
+							}
+                        }
                     }
                 }
                 

@@ -31,6 +31,34 @@
 
         <StackPanel Margin="12" Name="StackPanelMain">
 
+            <WrapPanel>
+
+                <Label>
+                    <Hyperlink NavigateUri="https://aerospike.com" RequestNavigate="Hyperlink_RequestNavigate">
+                        Aerospike Information
+                    </Hyperlink>
+                </Label>
+                <Label>
+                    <Hyperlink NavigateUri="https://aerospike.com/docs/database/install" RequestNavigate="Hyperlink_RequestNavigate">
+                        How to Install Aerospike
+                    </Hyperlink>
+                </Label>
+                <Label>
+                    <Hyperlink NavigateUri="https://aerospike.com/docs/database/learn/policies" RequestNavigate="Hyperlink_RequestNavigate">
+                        Learn about Policies
+                    </Hyperlink>
+                </Label>
+                <Label>
+                    <Hyperlink NavigateUri="https://aerospike.com/docs/develop/client/csharp" RequestNavigate="Hyperlink_RequestNavigate">
+                        Learn about C# Client
+                    </Hyperlink>
+                </Label>
+                <Label>
+                    <Hyperlink NavigateUri="https://github.com/aerospike-community/aerospike-linqpad-driver/blob/main/README.md" RequestNavigate="Hyperlink_RequestNavigate">
+                        ReadMe File
+                    </Hyperlink>
+                </Label>
+            </WrapPanel>
             <GroupBox Header="Database" BorderThickness="4">
                 <StackPanel Margin="5,0,0,5">
                     <Label Padding="0,0,0,2">Seed Nodes separated by a comma:</Label>
