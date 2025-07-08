@@ -14,7 +14,7 @@
   </Connection>
 </Query>
 
-#load ".\POCO"
+#load ".\POCO-Classes"
 
 /* 
 This will show how to use CDT/Json/Documents with the driver. You can create the required set by running "Create CustInvsDoc set" script.
