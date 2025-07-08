@@ -1,10 +1,10 @@
 ﻿using Aerospike.Client;
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -108,25 +108,195 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         new public IEnumerable<T> Query(long inclusiveStartRange, long inclusiveEndRange, params string[] bins)
                     => this.Query(GetFilter(inclusiveStartRange, inclusiveEndRange), bins);
 
-        #endregion
+		#endregion
 
-        #region IEnumerable        
 
-        /// <summary>
-        /// Returns IEnumerable&gt;<see cref="AQueryRecord"/>&lt; based on <see cref="ASecondaryIndexAccess.DefaultFilter"/> and <paramref name="filterExpression"/>.
-        /// </summary>
-        /// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>        
-        /// <param name="returningOnlyMatchingCT">
-        /// if true (default), only index values that match the collection type are returned.
-        /// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
-        /// </param>
-        /// <returns/>
-        /// <seealso cref="Query(dynamic, string[])"/>
-        /// <seealso cref="Query(Filter, Exp, string[])"/>
-        /// <seealso cref="Query(Filter, string[])"/>   
-        /// <seealso cref="ASecondaryIndexAccess.DefaultFilter"/>
-        /// <seealso cref="ASecondaryIndexAccess.AsEnumerable(Exp, bool)"/>
-        public new IEnumerable<AQueryRecord<T>> AsEnumerable(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+		#region LINQ Methods
+
+		/// <summary>
+		/// Returns the top number of records from the Index based on <see cref="ASecondaryIndexAccess.DefaultFilter"/> and <see cref="ASecondaryIndexAccess.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="numberRecords">Number of records to return</param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>        
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns>A collection of records or empty set</returns>
+		/// <seealso cref="AsEnumerable(Exp, bool)"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultQueryPolicy"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultFilter"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public new IEnumerable<AQueryRecord<T>> Take(int numberRecords, Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+			=> this.AsEnumerable(filterExpression, returningOnlyMatchingCT)
+					.Take(numberRecords);
+
+		/// <summary>
+		/// Returns the first record from the Index based on <see cref="ASecondaryIndexAccess.DefaultFilter"/> and <see cref="ASecondaryIndexAccess.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="First(Func{AQueryRecord{T}, bool}, Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultFilter"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultQueryPolicy"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public new AQueryRecord<T> First(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+				=> this.Take(1, filterExpression, returningOnlyMatchingCT).First();
+
+		/// <summary>
+		/// Returns the first record or null from the Index based on <see cref="ASecondaryIndexAccess.DefaultFilter"/> and <see cref="ASecondaryIndexAccess.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="First(Client.Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultFilter"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultQueryPolicy"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public new AQueryRecord<T> FirstOrDefault(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+					=> this.Take(1, filterExpression, returningOnlyMatchingCT).FirstOrDefault();
+
+		/// <summary>
+		/// Returns the first record from the Index based on <see cref="ASecondaryIndexAccess.DefaultFilter"/> and <see cref="ASecondaryIndexAccess.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="predicate">
+		/// Predicate used to find the first occurrence.
+		/// </param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp, bool)"/>
+		/// <seealso cref="First(Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultFilter"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultQueryPolicy"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public AQueryRecord<T> First(Func<AQueryRecord<T>, bool> predicate, Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+						=> this.AsEnumerable(filterExpression, returningOnlyMatchingCT)
+							.First(predicate);
+
+		/// <summary>
+		/// Returns the first record or null from the Index based on <see cref="ASecondaryIndexAccess.DefaultFilter"/> and <see cref="ASecondaryIndexAccess.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="predicate">
+		/// Predicate used to find the first occurrence.
+		/// </param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="First(Client.Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultFilter"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultQueryPolicy"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public AQueryRecord<T> FirstOrDefault(Func<AQueryRecord<T>, bool> predicate, Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+						=> this.AsEnumerable(filterExpression, returningOnlyMatchingCT)
+							.FirstOrDefault(predicate);
+
+		/// <summary>
+		/// Skips the number of records from the Index based on <see cref="ASecondaryIndexAccess.DefaultFilter"/> and <see cref="ASecondaryIndexAccess.DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="numberRecords">Number of records to skip</param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="First(Client.Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultQueryPolicy"/>
+		/// <seealso cref="ASecondaryIndexAccess.DefaultFilter"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public new IEnumerable<AQueryRecord<T>> Skip(int numberRecords, Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+			=> this.AsEnumerable(filterExpression, returningOnlyMatchingCT)
+								.Skip(numberRecords);
+
+		/// <summary>
+		/// Filters a collection based on <paramref name="predicate"/>.
+		/// </summary>
+		/// <param name="predicate">A function that is used to determine if the item should be returned</param>
+		/// <returns>
+		/// A collection of filtered items.
+		/// </returns>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		/// <seealso cref="AsEnumerable(Exp, bool)"/>
+		public IEnumerable<AQueryRecord<T>> Where(Func<AQueryRecord<T>, bool> predicate)
+					=> this.AsEnumerable().Where(predicate);
+
+		/// <summary>
+		/// Projects each element of an <see cref="AQueryRecord"/> into a new form.
+		/// </summary>
+		/// <typeparam name="TResult">
+		/// The type of the value returned by <paramref name="selector"/>.
+		/// </typeparam>
+		/// <param name="selector">
+		/// A transform function to apply to each element.
+		/// </param>
+		/// <returns>
+		/// An IEnumerable&lt;T&gt; whose elements are the result of invoking the transform function on each element of <paramref name="selector"/>.
+		/// </returns>
+		public IEnumerable<TResult> Select<TResult>(Func<AQueryRecord<T>, TResult> selector)
+			=> this.AsEnumerable().Select(selector);
+
+
+		#endregion
+
+
+		#region IEnumerable        
+
+		/// <summary>
+		/// Returns IEnumerable&gt;<see cref="AQueryRecord"/>&lt; based on <see cref="ASecondaryIndexAccess.DefaultFilter"/> and <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>        
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>   
+		/// <seealso cref="ASecondaryIndexAccess.DefaultFilter"/>
+		/// <seealso cref="ASecondaryIndexAccess.AsEnumerable(Exp, bool)"/>
+		public new IEnumerable<AQueryRecord<T>> AsEnumerable(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
         {
             var setRecs = this.DefaultFilter == null
                             ? this.SetRecords.AsEnumerable(filterExpression)
@@ -486,13 +656,208 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="SetRecords.Query(Filter, Exp, string[])"/>        
         public IEnumerable<ARecord> Query(long inclusiveStartRange, long inclusiveEndRange, params string[] bins)
                     => this.Query(GetFilter(inclusiveStartRange, inclusiveEndRange), bins);
-        
-        #endregion
 
-        /// <summary>
-        /// Drops this index
-        /// </summary>
-        public void Drop()
+		#endregion
+
+		#region LINQ Methods
+
+		/// <summary>
+		/// Returns the top number of records from the Index based on <see cref="DefaultFilter"/> and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="numberRecords">Number of records to return</param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>        
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns>A collection of records or empty set</returns>
+		/// <seealso cref="AsEnumerable(Exp, bool)"/>
+		/// <seealso cref="DefaultQueryPolicy"/>
+		/// <seealso cref="DefaultFilter"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public IEnumerable<AQueryRecord> Take(int numberRecords, Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+            => this.AsEnumerable(filterExpression, returningOnlyMatchingCT)
+                    .Take(numberRecords);
+
+		/// <summary>
+		/// Returns the first record from the Index based on <see cref="DefaultFilter"/> and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="First(Func{AQueryRecord, bool}, Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Func{AQueryRecord, bool}, Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="DefaultFilter"/>
+		/// <seealso cref="DefaultQueryPolicy"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public AQueryRecord First(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+				=> this.Take(1, filterExpression, returningOnlyMatchingCT).First();
+
+		/// <summary>
+		/// Returns the first record or null from the Index based on <see cref="DefaultFilter"/> and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="First(Client.Exp, bool)"/>
+		/// <seealso cref="First(Func{AQueryRecord, bool}, Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Func{AQueryRecord, bool}, Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="DefaultFilter"/>
+		/// <seealso cref="DefaultQueryPolicy"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public AQueryRecord FirstOrDefault(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+					=> this.Take(1, filterExpression, returningOnlyMatchingCT).FirstOrDefault();
+
+		/// <summary>
+		/// Returns the first record from the Index based on <see cref="DefaultFilter"/> and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="predicate">
+		/// Predicate used to find the first occurrence.
+		/// </param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp, bool)"/>
+		/// <seealso cref="First(Exp, bool)"/>
+		/// <seealso cref="First(Func{AQueryRecord, bool}, Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="DefaultFilter"/>
+		/// <seealso cref="DefaultQueryPolicy"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public AQueryRecord First(Func<AQueryRecord, bool> predicate, Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+                        => this.AsEnumerable(filterExpression, returningOnlyMatchingCT)                       
+                            .First(predicate);
+
+		/// <summary>
+		/// Returns the first record or null from the Index based on <see cref="DefaultFilter"/> and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="predicate">
+		/// Predicate used to find the first occurrence.
+		/// </param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="First(Client.Exp, bool)"/>
+		/// <seealso cref="First(Func{AQueryRecord, bool}, Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="DefaultFilter"/>
+		/// <seealso cref="DefaultQueryPolicy"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public AQueryRecord FirstOrDefault(Func<AQueryRecord, bool> predicate, Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+						=> this.AsEnumerable(filterExpression, returningOnlyMatchingCT)
+                            .FirstOrDefault(predicate);
+
+		/// <summary>
+		/// Skips the number of records from the Index based on <see cref="DefaultFilter"/> and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="numberRecords">Number of records to skip</param>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="First(Client.Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="DefaultQueryPolicy"/>
+		/// <seealso cref="DefaultFilter"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public IEnumerable<AQueryRecord> Skip(int numberRecords, Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+			=> this.AsEnumerable(filterExpression, returningOnlyMatchingCT)
+							    .Skip(numberRecords);
+
+		/// <summary>
+		/// Number of records from the Index based on <see cref="DefaultFilter"/> and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns></returns>
+		/// <seealso cref="Take(int, Client.Exp, bool)"/>
+		/// <seealso cref="First(Client.Exp, bool)"/>
+		/// <seealso cref="FirstOrDefault(Client.Exp, bool)"/>
+		/// <seealso cref="AsEnumerable(Client.Exp, bool)"/>
+		/// <seealso cref="DefaultQueryPolicy"/>
+		/// <seealso cref="DefaultFilter"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		public int Count(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+			=> this.AsEnumerable(filterExpression, returningOnlyMatchingCT)
+								.Count();
+
+		/// <summary>
+		/// Filters a collection based on <paramref name="predicate"/>.
+		/// </summary>
+		/// <param name="predicate">A function that is used to determine if the item should be returned</param>
+		/// <returns>
+		/// A collection of filtered items.
+		/// </returns>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>  
+		/// <seealso cref="AsEnumerable(Exp, bool)"/>
+		public IEnumerable<AQueryRecord> Where(Func<AQueryRecord, bool> predicate)
+					=> this.AsEnumerable().Where(predicate);
+
+		/// <summary>
+		/// Projects each element of an <see cref="AQueryRecord"/> into a new form.
+		/// </summary>
+		/// <typeparam name="TResult">
+		/// The type of the value returned by <paramref name="selector"/>.
+		/// </typeparam>
+		/// <param name="selector">
+		/// A transform function to apply to each element.
+		/// </param>
+		/// <returns>
+		/// An IEnumerable&lt;T&gt; whose elements are the result of invoking the transform function on each element of <paramref name="selector"/>.
+		/// </returns>
+		public IEnumerable<TResult> Select<TResult>(Func<AQueryRecord, TResult> selector)
+			=> this.AsEnumerable().Select(selector);
+
+
+		#endregion
+
+		/// <summary>
+		/// Drops this index
+		/// </summary>
+		public void Drop()
         {
             this.SetRecords.DropIndex(this.Name);
         }
@@ -679,35 +1044,38 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                         GrpkeyValue = DetermineGrpValue(idxValue),
                         Record = rec
                     } };
-            }
-        }
+            }            
+		}
 
-        /// <summary>
-        /// Returns IEnumerable&gt;<see cref="AQueryRecord"/>&lt; based on <see cref="DefaultFilter"/> and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
-        /// </summary>
-        /// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>        
-        /// <param name="returningOnlyMatchingCT">
-        /// if true (default), only index values that match the collection type are returned.
-        /// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
-        /// </param>
-        /// <returns/>
-        /// <seealso cref="DefaultQueryPolicy"/>
-        /// <seealso cref="DefaultFilter"/>
-        /// <seealso cref="Query(dynamic, string[])"/>
-        /// <seealso cref="Query(Filter, Exp, string[])"/>
-        /// <seealso cref="Query(Filter, string[])"/>           
-        public IEnumerable<AQueryRecord> AsEnumerable(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
+		protected IEnumerable<AQueryRecord> GroupByKey(IEnumerable<ARecord> setRecs, bool returningOnlyMatchingCT) =>
+				setRecs.SelectMany(r => GroupRecord.GetGrpKeys(r.Aerospike.GetValue(this.BinName),
+																	this.CollectionType,
+																	r,
+																	returningOnlyMatchingCT))
+					.GroupBy(dnis => dnis.GrpkeyValue)
+							.Select(dnis => new AQueryRecord(dnis.Key, dnis.Select(r => r.Record)));
+
+		/// <summary>
+		/// Returns IEnumerable&gt;<see cref="AQueryRecord"/>&lt; based on <see cref="DefaultFilter"/> and <see cref="DefaultQueryPolicy"/> or <paramref name="filterExpression"/>.
+		/// </summary>
+		/// <param name="filterExpression">A Filter <see cref="Client.Exp"/> used to obtain the collection of records.</param>        
+		/// <param name="returningOnlyMatchingCT">
+		/// if true (default), only index values that match the collection type are returned.
+		/// If false values that don't match the collection type are returned but will be wrapped with &quot;!|&apos;&lt;value&gt;&apos;|!&quot;
+		/// </param>
+		/// <returns/>
+		/// <seealso cref="DefaultQueryPolicy"/>
+		/// <seealso cref="DefaultFilter"/>
+		/// <seealso cref="Query(dynamic, string[])"/>
+		/// <seealso cref="Query(Filter, Exp, string[])"/>
+		/// <seealso cref="Query(Filter, string[])"/>           
+		public IEnumerable<AQueryRecord> AsEnumerable(Client.Exp filterExpression = null, bool returningOnlyMatchingCT = true)
         {
             var setRecs = this.DefaultFilter == null
                             ? this.SetRecords.AsEnumerable(filterExpression)
                             : this.SetRecords.Query(secondaryIdxFilter: this.DefaultFilter, filterExpression: filterExpression);
             
-            return setRecs.SelectMany(r => GroupRecord.GetGrpKeys(r.Aerospike.GetValue(this.BinName),
-                                                                    this.CollectionType,
-                                                                    r,
-                                                                    returningOnlyMatchingCT))
-                    .GroupBy(dnis => dnis.GrpkeyValue)
-                            .Select(dnis => new AQueryRecord(dnis.Key, dnis.Select(r => r.Record)));
+            return this.GroupByKey(setRecs, returningOnlyMatchingCT);
         }
 
         public IEnumerator<AQueryRecord> GetEnumerator()
