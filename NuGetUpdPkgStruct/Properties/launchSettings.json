@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "NuGetUpdPkgStruct": {
+      "commandName": "Project",
+      "commandLineArgs": "\"E:\\Aerospike.Database.LINQPadDriver.6.0.5.nupkg\""
+    },
+    "NuGetUpdPkgStruct New File": {
+      "commandName": "Project",
+      "commandLineArgs": "\"E:\\Aerospike.Database.LINQPadDriver.6.0.5.nupkg\" -n \"E:\\Aerospike.Database.LINQPadDriver.6.0.5-Change.nupkg\""
+    }
+  }
+}

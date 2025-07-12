@@ -19,8 +19,8 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2025</Copyright>
-    <Version>6.0.5.0</Version>
-    <FileVersion>6.0.5.0</FileVersion>
+    <Version>6.0.6</Version>
+    <FileVersion>6.0.6</FileVersion>
     <Deterministic>true</Deterministic>
 	</PropertyGroup>
 
@@ -44,9 +44,13 @@
   </PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="NuGetUpdPkgStruct\**" />
 	  <Compile Remove="TestProjects\**" />
+	  <EmbeddedResource Remove="NuGetUpdPkgStruct\**" />
 	  <EmbeddedResource Remove="TestProjects\**" />
+	  <None Remove="NuGetUpdPkgStruct\**" />
 	  <None Remove="TestProjects\**" />
+	  <Page Remove="NuGetUpdPkgStruct\**" />
 	  <Page Remove="TestProjects\**" />
 	</ItemGroup>
   
@@ -154,6 +158,15 @@
     <Exec Command="powershell -nologo -noprofile -command &quot;compress-archive -force -path &quot;$(TargetDir)*.*&quot; -destinationpath &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
     <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot; &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.$(FileVersion).LPX6&quot;" />
     <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot; &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.LPX6&quot;" />
+  </Target>
+
+  <Target Name="NuGetUpdate" AfterTargets="Pack">
+    <Exec Command="$(SolutionDir)Tools\NuGetUpdPkgStruct.exe &quot;$(OutputPath)$(PackageId).$(PackageVersion).nupkg&quot;" />
+    <Exec Command="$(SolutionDir)Tools\NuGetUpdPkgStruct.exe &quot;$(OutputPath)$(PackageId).$(PackageVersion).symbols.nupkg&quot;" />
+  </Target>
+  
+	<Target Name="NuGetPublish" AfterTargets="Pack" Condition="'$(ConfigurationName)' == 'Release'">
+    <Exec Command="echo F|xcopy /y/k &quot;$(OutputPath)$(PackageId).$(PackageVersion).nupkg&quot; &quot;$(SolutionDir)Publish\$(PackageId).$(PackageVersion).nupkg&quot;" />
   </Target>
 
 </Project>
