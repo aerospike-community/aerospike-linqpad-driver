@@ -149,24 +149,29 @@
 	  </Compile>
 	</ItemGroup>
  
-	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(ConfigurationName)' == 'Debug'">
-		<Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)&quot;" />
-	</Target>
-
-  <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(ConfigurationName)' == 'Release'">
-    <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.LPX6&quot; &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot;" />
-    <Exec Command="powershell -nologo -noprofile -command &quot;compress-archive -force -path &quot;$(TargetDir)*.*&quot; -destinationpath &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
-    <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot; &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.$(FileVersion).LPX6&quot;" />
-    <Exec Command="echo F|xcopy /y/k &quot;$(SolutionDir)Publish\Aerospike.Database.LINQPadDriver.zip&quot; &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.LPX6&quot;" />
+	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(Configuration)' == 'Debug'">
+    <Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)&quot;" />
   </Target>
 
-  <Target Name="NuGetUpdate" AfterTargets="Pack">
-    <Exec Command="$(SolutionDir)Tools\NuGetUpdPkgStruct.exe &quot;$(OutputPath)$(PackageId).$(PackageVersion).nupkg&quot;" />
-    <Exec Command="$(SolutionDir)Tools\NuGetUpdPkgStruct.exe &quot;$(OutputPath)$(PackageId).$(PackageVersion).symbols.nupkg&quot;" />
+  <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(Configuration)' == 'Release'">
+    <Exec Command="powershell -nologo -noprofile -command &quot;compress-archive -force -path &quot;$(TargetDir)*.*&quot; -destinationpath &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
+    <Copy SourceFiles="Driver\Aerospike.Database.LINQPadDriver.zip" DestinationFiles="Publish\Aerospike.Database.LINQPadDriver.$(FileVersion).LPX6" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
+    <Copy SourceFiles="Driver\Aerospike.Database.LINQPadDriver.zip" DestinationFiles="Driver\Aerospike.Database.LINQPadDriver.LPX6" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
+    <Delete Files="Driver\Aerospike.Database.LINQPadDriver.zip" ContinueOnError="true" />
+  </Target>
+
+  <Target Name="NuGetUpdate" AfterTargets="Pack">   
+    <Exec Command="Tools\NuGetUpdPkgStruct.exe &quot;$(OutputPath)$(PackageId).$(PackageVersion).nupkg&quot;" />
+    <Exec Command="Tools\NuGetUpdPkgStruct.exe &quot;$(OutputPath)$(PackageId).$(PackageVersion).symbols.nupkg&quot;" />
   </Target>
   
-	<Target Name="NuGetPublish" AfterTargets="Pack" Condition="'$(ConfigurationName)' == 'Release'">
-    <Exec Command="echo F|xcopy /y/k &quot;$(OutputPath)$(PackageId).$(PackageVersion).nupkg&quot; &quot;$(SolutionDir)Publish\$(PackageId).$(PackageVersion).nupkg&quot;" />
+	<Target Name="NuGetPublish" AfterTargets="Pack" Condition="'$(Configuration)' == 'Release'">
+    <Copy SourceFiles="$(OutputPath)$(PackageId).$(PackageVersion).nupkg" DestinationFiles="Publish\$(PackageId).$(PackageVersion).nupkg" SkipUnchangedFiles="true"  OverwriteReadOnlyFiles="true"/>
+    <ItemGroup>
+      <TargetFilesToDelete Include="Driver\**\*.nuget" />
+    </ItemGroup>
+    <Delete Files="@{TargetFilesToDelete}" TreatErrorsAsWarnings="true" ContinueOnError="true" />
+    <Copy SourceFiles="$(OutputPath)$(PackageId).$(PackageVersion).nupkg" DestinationFiles="Driver\$(PackageId).$(PackageVersion).nupkg" SkipUnchangedFiles="true"  OverwriteReadOnlyFiles="true"/>
   </Target>
 
 </Project>

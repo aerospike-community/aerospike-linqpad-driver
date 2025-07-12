@@ -11,8 +11,11 @@
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta5.25306.1" />
   </ItemGroup>
 
-  <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(ConfigurationName)' == 'Release'">
-    <Exec Command="echo F |xcopy /i/y/s/c &quot;$(TargetDir)*.*&quot; &quot;$(SolutionDir)Tools\&quot;" />  
+  <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <TargetFilesToCopy Include="$(TargetDir)**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(TargetFilesToCopy)" DestinationFolder="$(SolutionDir)Tools\" OverwriteReadOnlyFiles="true" SkipUnchangedFiles="true" />  
   </Target>
 
 </Project>
