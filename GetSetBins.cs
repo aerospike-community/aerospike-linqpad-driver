@@ -187,6 +187,14 @@ namespace Aerospike.Database.LINQPadDriver
                                     null
                                     );
                     }
+                    else if(nbrRecs > 0)
+                    {
+                        return (records.SelectMany(r => r.bins.Keys)
+                                        .Distinct()
+                                        .Select(k => new LPSet.BinType(k, typeof(object), false, false))
+                                        .ToList(),
+                                null);
+                    }
                 }
                 catch(Exception ex)
                 {
