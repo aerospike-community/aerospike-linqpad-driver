@@ -19,8 +19,8 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2025</Copyright>
-    <Version>6.0.6</Version>
-    <FileVersion>6.0.6</FileVersion>
+    <Version>6.0.7</Version>
+    <FileVersion>6.0.7</FileVersion>
     <Deterministic>true</Deterministic>
 	</PropertyGroup>
 
@@ -64,6 +64,7 @@
 	  <None Remove="linqpad-samples\Native\LinqWhere-AerospikeExpressions.linq" />
 	  <None Remove="linqpad-samples\Native\LinqWhere-AerospikePK.linq" />
 	  <None Remove="linqpad-samples\Native\POCO.linq" />
+    <None Remove="linqpad-samples\Native\POCO-Classes.linq" />
     <none Remove="linqpad-samples\Native\Put-Aerospike.linq" />
 	  <None Remove="linqpad-samples\Native\ReadMeFirst.linq" />
 	  <None Remove="linqpad-samples\Native\Record Display View.linq" />
@@ -107,6 +108,7 @@
 	  <Content Include="linqpad-samples\Native\LinqWhere-AerospikeExpressions.linq" />
 	  <Content Include="linqpad-samples\Native\LinqWhere-AerospikePK.linq" />
 	  <Content Include="linqpad-samples\Native\POCO.linq" />
+    <Content Include="linqpad-samples\Native\POCO-Classes.linq" />
     <Content Include="linqpad-samples\Native\MRT.linq" />
     <Content Include="linqpad-samples\Native\Put-Aerospike.linq" />
 	  <Content Include="linqpad-samples\Native\ReadMeFirst.linq" />
