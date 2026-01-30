@@ -18,9 +18,9 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <Copyright>2025</Copyright>
-    <Version>6.0.7</Version>
-    <FileVersion>6.0.7</FileVersion>
+    <Copyright>2026</Copyright>
+    <Version>6.1.0</Version>
+    <FileVersion>6.1.0</FileVersion>
     <Deterministic>true</Deterministic>
 	</PropertyGroup>
 

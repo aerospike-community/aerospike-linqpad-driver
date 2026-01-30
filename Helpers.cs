@@ -641,19 +641,12 @@ namespace Aerospike.Database.LINQPadDriver
         public static string CheckName(string name, string contextType)
         {
             var changeList = new char[] { '.', ' ', '[', ']', '(', ')', '+', '-', '=', '^', '*', '/', '\\', ',', '<', '>', ';', ':', '@', '#', '!', '%', '&', '?', '~', '`', '$', '"', '\'' };
-            StringBuilder newName = new StringBuilder();
-
-            foreach(char c in name)
-            {
-                if(changeList.Contains(c))
-                {
-                    newName.Append('_');
-                }
-                else
-                    newName.Append(c);
-            }
-
-            var newStr = newName.ToString();
+            string newStr = string.Concat(name.Select(c =>
+	                                        char.IsControl(c) || !(c >= 32 && c <= 126)
+												? ((int) c).ToString()
+                                                : (changeList.Contains(c)
+                                                    ? "_"
+                                                    : c.ToString())));
 
             if(Char.IsDigit(newStr.FirstOrDefault()))
                 newStr = contextType + newStr;
