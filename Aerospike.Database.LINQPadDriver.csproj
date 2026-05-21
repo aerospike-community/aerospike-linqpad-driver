@@ -19,8 +19,8 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2026</Copyright>
-    <Version>7.0.0</Version>
-    <FileVersion>7.0.0</FileVersion>
+    <Version>7.0.14</Version>
+    <FileVersion>7.0.14</FileVersion>
     <Deterministic>true</Deterministic>
 	</PropertyGroup>
 

@@ -32,7 +32,7 @@ namespace Aerospike.Database.LINQPadDriver
         public static void ToLinqPadFile(string sourceCode, string[] errors)
         {            
             var fileBuilder = new StringBuilder(stdHeader);
-            var fixedSourceCode = sourceCode.Replace("using ", "//using ");
+            var fixedSourceCode = sourceCode; //.Replace("using ", "//using ");
 
             fileBuilder.AppendLine();
 
