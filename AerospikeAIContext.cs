@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Aerospike.Client;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -190,15 +192,44 @@ When accessing Aerospike bin values from generated record objects, prefer genera
 For example, generate customer.userid instead of customer[""userid""] when the userid property exists.
 Only use record[""binName""] string-indexer access when no generated property is available, when the bin name is not a valid C# identifier, or when dynamic bin access is specifically required.
 
+Important AValue / AutoValue rule:
+The Aerospike LINQPad driver may expose bin values through AValue / AutoValue behavior, especially when the connection setting ""Always use AValue"" is enabled.
+When AValue / AutoValue behavior is enabled, generated record properties may represent Aerospike values using the driver's AValue abstraction instead of plain CLR primitive types.
+Prefer generated record properties first, but write comparisons and projections in a way that respects the property's generated type.
+Do not assume an AValue-backed property is a raw string, int, long, double, bool, DateTime, list, or dictionary unless the context metadata clearly says so.
+Avoid unsafe casts from AValue-backed values to CLR primitive types.
+Use the driver's AValue-friendly comparison, conversion, or value-access patterns when needed.
+For equality comparisons, simple comparisons such as record.Status == ""active"" may be valid when the generated property/operator supports it.
+For numeric comparisons, only generate record.Amount > 100 when the generated property type supports that comparison.
+If the generated property is AValue-backed and the required comparison/conversion is unclear, prefer a conservative projection or ask the user to clarify the desired conversion.
+When AValue / AutoValue behavior is disabled and metadata shows a concrete CLR type, generated properties can usually be used as normal typed C# properties.
+
+Important AValue operation rule:
+Generated record properties may be AValue instances, especially when Always use AValue / AutoValue behavior is enabled.
+When a generated property is AValue-backed, prefer AValue-aware operations instead of unsafe CLR casts.
+Use value.CanConvert<T>() to test conversion without throwing.
+Use value.Convert<T>() when conversion is expected to be valid.
+Use value.Apply<TValue, TResult>(func) to safely convert an existing AValue, execute func, and return the result or default.
+Use value.TryApply<TValue, TResult>(func) when the AValue may be null or the bin may be missing; this is preferred in query filters.
+Use TryApply for type-specific methods such as StartsWith, Contains, ToUpper, date operations, or numeric calculations.
+For example:
+    from customer in test.Customer.AsEnumerable()
+    where customer.FirstName.TryApply<string, bool>(name => name.StartsWith(""a""))
+    select customer
+AValue supports comparison operators such as ==, !=, <, >, <=, and >=, and CompareTo(...).
+Use direct comparison operators only when the intent is direct value comparison and the generated property/operator supports it.
+For IEnumerable<AValue>, use OfType<T>(), Cast<T>(), or Convert<T>() depending on whether exact type filtering, strict casting, or coercion is desired.
+
 Important primary-key rule:
 When the Aerospike primary key value is required, prefer the generated/default primary-key property when available.
-For example, use record.PK when PK exists.
+For example, use record.{ARecord.DefaultASPIKeyName} when {ARecord.DefaultASPIKeyName} exists.
 If no generated/default primary-key property is available, use record.GetPK().
 Do not use string bin access for the primary key unless the context explicitly says the primary key is stored as a normal bin.
 
 Important LINQ rule:
 Generated Aerospike set objects are SetRecords / SetRecords<T> instances.
 For LINQ collection operations such as Join, GroupJoin, OrderBy, GroupBy, SelectMany, Concat, Union, Distinct, Except, Intersect, ToDictionary, and similar methods, call AsEnumerable() on the set first.
+Note: The API has native First, FirstOrDefault, Skip, Where, ToList and ToArry functions for ""set"" instances (i.e., SetRecords, SetRecords<T>) and those should be used directly. if possible, without using the AsEnumerable() pattern.
 When using query syntax, generate from record in NamespaceName.SetName.AsEnumerable().
 When using method syntax, generate NamespaceName.SetName.AsEnumerable() before Join, OrderBy, GroupBy, and similar methods.
 ";
@@ -240,12 +271,28 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("- The set-level bin metadata below lists the raw Aerospike bin name and, when available, the generated C# property name.");
 			sb.AppendLine();
 
+			sb.AppendLine("### Important AValue / AutoValue Rule");
+			sb.AppendLine();
+			sb.AppendLine("- The Aerospike LINQPad driver may expose bin values through `AValue` / AutoValue behavior.");
+			sb.AppendLine($"- Current connection setting `Always use AValue`: `{connection.AlwaysUseAValues}`.");
+			sb.AppendLine("- When `Always use AValue` is true, generated record properties may represent Aerospike values using the driver's `AValue` abstraction instead of plain CLR primitive types.");
+			sb.AppendLine("- Prefer generated record properties first, but write comparisons and projections in a way that respects the property's generated type.");
+			sb.AppendLine("- Do not assume an `AValue`-backed property is a raw `string`, `int`, `long`, `double`, `bool`, `DateTime`, list, or dictionary unless the context metadata clearly says so.");
+			sb.AppendLine("- Avoid unsafe casts from `AValue`-backed values to CLR primitive types.");
+			sb.AppendLine("- Use the driver's `AValue`-friendly comparison, conversion, or value-access patterns when needed.");
+			sb.AppendLine("- Simple equality comparisons such as `record.Status == \"active\"` may be valid when the generated property/operator supports it.");
+			sb.AppendLine("- Numeric comparisons such as `record.Amount > 100` should only be generated when the generated property type supports that comparison.");
+			sb.AppendLine("- When `Always use AValue` is false and metadata shows a concrete CLR type, generated properties can usually be used as normal typed C# properties.");
+			sb.AppendLine();
+
+			AppendAValueOperationGuide(sb);
+
 			sb.AppendLine("### Important Primary Key Rule");
 			sb.AppendLine();
 			sb.AppendLine("- When the Aerospike primary key value is required, prefer the generated/default primary-key property when available.");
-			sb.AppendLine("- Example: use `record.PK` when the `PK` property exists.");
+			sb.AppendLine($"- Example: use `record.{ARecord.DefaultASPIKeyName}` when the `{ARecord.DefaultASPIKeyName}` property exists.");
 			sb.AppendLine("- If no generated/default primary-key property is available, use `record.GetPK()`.");
-			sb.AppendLine("- Do not access the primary key through `record[\"PK\"]` or another string-indexer expression unless the context explicitly says the primary key is stored as a normal bin.");
+			sb.AppendLine($"- Do not access the primary key through `record[\"{ARecord.DefaultASPIKeyName}\"]` or another string-indexer expression unless the context explicitly says the primary key is stored as a normal bin.");
 			sb.AppendLine();
 
 			sb.AppendLine("### Important LINQ Rule for SetRecords");
@@ -253,11 +300,49 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("- Generated Aerospike set objects are `SetRecords` / `SetRecords<T>` instances.");
 			sb.AppendLine("- When using LINQ extension methods that require `IEnumerable<T>` semantics, call `AsEnumerable()` on the set first.");
 			sb.AppendLine("- This applies to LINQ operations such as `Join`, `GroupJoin`, `OrderBy`, `OrderByDescending`, `ThenBy`, `ThenByDescending`, `GroupBy`, `SelectMany`, `Concat`, `Union`, `Distinct`, `Except`, `Intersect`, `ToDictionary`, and similar collection-style LINQ methods.");
+			sb.AppendLine("- The API has native First, FirstOrDefault, Skip, Where, ToList and ToArry functions for 'set' instances(i.e., SetRecords, SetRecords<T>) and those should be used directly. if possible, without using the AsEnumerable() pattern.");
 			sb.AppendLine("- With query syntax, use `from record in NamespaceName.SetName.AsEnumerable()`.");
 			sb.AppendLine("- With method syntax, use `NamespaceName.SetName.AsEnumerable()` as the LINQ source.");
 			sb.AppendLine("- Do not generate `NamespaceName.SetName.Join(...)`, `NamespaceName.SetName.OrderBy(...)`, or `NamespaceName.SetName.GroupBy(...)` directly.");
 			sb.AppendLine("- Instead generate query syntax such as `from record in NamespaceName.SetName.AsEnumerable()` when QuerySyntax is configured.");
 			sb.AppendLine("- Use method syntax such as `NamespaceName.SetName.AsEnumerable().Join(...)` only when MethodSyntax is configured or query syntax cannot express the operation cleanly.");
+			sb.AppendLine();
+		}
+
+		private static void AppendAValueOperationGuide(StringBuilder sb)
+		{
+			sb.AppendLine("### Important AValue Operations Rule");
+			sb.AppendLine();
+			sb.AppendLine("- Generated record properties may be `AValue` instances, especially when `Always use AValue` / AutoValue behavior is enabled.");
+			sb.AppendLine("- Prefer generated record properties first, such as `customer.FirstName`, `invoice.Total`, or `record.Status`.");
+			sb.AppendLine("- When a generated property is `AValue`, use the driver's AValue-aware operations instead of unsafe casts.");
+			sb.AppendLine();
+			sb.AppendLine("#### AValue conversion operations");
+			sb.AppendLine();
+			sb.AppendLine("- Use `value.CanConvert<T>()` to test whether an `AValue` can be converted to `T` without throwing.");
+			sb.AppendLine("- Use `value.Convert<T>()` to convert an `AValue` to `T` when conversion is expected to be valid.");
+			sb.AppendLine("- Use `value.Apply<TValue, TResult>(func)` to safely convert an existing non-null `AValue` to `TValue`, execute `func`, and return `TResult`; it returns `default` if conversion or execution fails.");
+			sb.AppendLine("- Use `value.TryApply<TValue, TResult>(func)` when the `AValue` itself may be null; this is the preferred null-safe option in query filters.");
+			sb.AppendLine();
+			sb.AppendLine("#### AValue comparison operations");
+			sb.AppendLine();
+			sb.AppendLine("- `AValue` supports equality and comparison operators such as `==`, `!=`, `<`, `>`, `<=`, and `>=`.");
+			sb.AppendLine("- `AValue` also supports `CompareTo(...)` for comparing against another `AValue`, an Aerospike `Value`, an Aerospike `Key`, or another object.");
+			sb.AppendLine("- Use simple comparison operators when the intent is direct value comparison and the generated property/operator supports it.");
+			sb.AppendLine("- Use `Apply` or `TryApply` when invoking type-specific methods such as `StartsWith`, `Contains`, `ToUpper`, date operations, or numeric calculations.");
+			sb.AppendLine();
+			sb.AppendLine("#### AValue collection helper operations");
+			sb.AppendLine();
+			sb.AppendLine("- For `IEnumerable<AValue>`, use `OfType<T>()` to return only underlying values that are exactly type `T`.");
+			sb.AppendLine("- For `IEnumerable<AValue>`, use `Cast<T>()` when each underlying value must be cast to `T` and failures should throw.");
+			sb.AppendLine("- For `IEnumerable<AValue>`, use `Convert<T>()` when values should be coerced to `T` where possible and non-convertible values should be ignored.");
+			sb.AppendLine();
+			sb.AppendLine("#### Preferred query usage");
+			sb.AppendLine();
+			sb.AppendLine("- In query filters, prefer `TryApply<TValue, bool>(...)` when the bin/property may be missing, null, mixed-type, or AValue-backed.");
+			sb.AppendLine("- Use `Apply<TValue, TResult>(...)` when the `AValue` is expected to exist but the underlying value still needs safe conversion.");
+			sb.AppendLine("- Avoid direct CLR casts such as `(string)customer.FirstName.Value` unless the context clearly says the value is present and has that exact type.");
+			sb.AppendLine("- Avoid calling type-specific CLR methods directly on an `AValue` unless the generated property type is known to be that CLR type.");
 			sb.AppendLine();
 		}
 
@@ -295,7 +380,7 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			AppendKeyValue(sb, "Connection string", connection.ConnectionString);
 			AppendKeyValue(sb, "Record view", connection.RecordView);
 			AppendKeyValue(sb, "Document API enabled", connection.DocumentAPI);
-			AppendKeyValue(sb, "Always use AValue", connection.AlwaysUseAValues);
+			AppendKeyValue(sb, "Always use AValue / AutoValue behavior", connection.AlwaysUseAValues);
 			AppendKeyValue(sb, "Send user key", connection.SendPK);
 			AppendKeyValue(sb, "Network compression", connection.NetworkCompression);
 
@@ -496,7 +581,7 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			AppendKeyValue(sb, "Generated C# name", set.SafeName);
 			AppendKeyValue(sb, "Suggested access pattern", $"{ns.SafeName}.{set.SafeName}");
 
-			sb.AppendLine("- Primary key access: prefer generated/default property `PK` when available; otherwise use `GetPK()`.");
+			sb.AppendLine($"- Primary key access: prefer generated/default property `{ARecord.DefaultASPIKeyName}` when available; otherwise use `GetPK()`.");
 			sb.AppendLine("- Record bin access: prefer generated C# properties listed below; use string-indexer access only as a fallback.");
 			sb.AppendLine("- LINQ collection operations: call `.AsEnumerable()` on this set before `Join`, `OrderBy`, `GroupBy`, and similar methods.");
 
@@ -737,6 +822,60 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("```");
 			sb.AppendLine();
 
+			sb.AppendLine("### Filter with AValue TryApply");
+			sb.AppendLine();
+			sb.AppendLine("```csharp");
+			sb.AppendLine("// Prefer TryApply when an AValue-backed property may be null, missing, or mixed-type.");
+			sb.AppendLine("// This safely converts FirstName to string and invokes StartsWith only when possible.");
+			sb.AppendLine("var customers =");
+			sb.AppendLine("    (from customer in test.Customer.AsEnumerable()");
+			sb.AppendLine("     where customer.FirstName.TryApply<string, bool>(name => name.StartsWith(\"a\"))");
+			sb.AppendLine("     select customer)");
+			sb.AppendLine("    .Take(100);");
+			sb.AppendLine();
+			sb.AppendLine("customers.Dump();");
+			sb.AppendLine("```");
+			sb.AppendLine();
+
+			sb.AppendLine("### Project with AValue Convert and CanConvert");
+			sb.AppendLine();
+			sb.AppendLine("```csharp");
+			sb.AppendLine("// Use CanConvert<T>() before Convert<T>() when conversion may not be valid.");
+			sb.AppendLine("var customers =");
+			sb.AppendLine("    (from customer in test.Customer.AsEnumerable()");
+			sb.AppendLine("     where customer.TotalPurchases.CanConvert<decimal>()");
+			sb.AppendLine("     select new");
+			sb.AppendLine("     {");
+			sb.AppendLine($"         customer.{ARecord.DefaultASPIKeyName},");
+			sb.AppendLine("         customer.FirstName,");
+			sb.AppendLine("         customer.LastName,");
+			sb.AppendLine("         TotalPurchases = customer.TotalPurchases.Convert<decimal>()");
+			sb.AppendLine("     })");
+			sb.AppendLine("    .Take(100);");
+			sb.AppendLine();
+			sb.AppendLine("customers.Dump();");
+			sb.AppendLine("```");
+			sb.AppendLine();
+
+			sb.AppendLine("### Use AValue Apply for type-specific operations");
+			sb.AppendLine();
+			sb.AppendLine("```csharp");
+			sb.AppendLine("// Use Apply when the AValue is expected to exist, but conversion or execution may fail.");
+			sb.AppendLine("var customers =");
+			sb.AppendLine("    (from customer in test.Customer.AsEnumerable()");
+			sb.AppendLine("     select new");
+			sb.AppendLine("     {");
+			sb.AppendLine($"         customer.{ARecord.DefaultASPIKeyName},");
+			sb.AppendLine("         customer.FirstName,");
+			sb.AppendLine("         FirstNameLength = customer.FirstName.Apply<string, int>(name => name.Length),");
+			sb.AppendLine("         StartsWithA = customer.FirstName.Apply<string, bool>(name => name.StartsWith(\"a\"))");
+			sb.AppendLine("     })");
+			sb.AppendLine("    .Take(100);");
+			sb.AppendLine();
+			sb.AppendLine("customers.Dump();");
+			sb.AppendLine("```");
+			sb.AppendLine();
+
 			sb.AppendLine("### Sort records from an Aerospike set");
 			sb.AppendLine();
 			sb.AppendLine("```csharp");
@@ -744,10 +883,10 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("// Prefer generated properties over string-indexer bin access.");
 			sb.AppendLine("var ordered =");
 			sb.AppendLine("    (from r in NamespaceName.SetName.AsEnumerable()");
-			sb.AppendLine("     orderby r.status, r.PK");
+			sb.AppendLine($"     orderby r.status, r.{ARecord.DefaultASPIKeyName}");
 			sb.AppendLine("     select new");
 			sb.AppendLine("     {");
-			sb.AppendLine("         r.PK,");
+			sb.AppendLine($"         r.{ARecord.DefaultASPIKeyName},");
 			sb.AppendLine("         r.status");
 			sb.AppendLine("     })");
 			sb.AppendLine("    .Take(100);");
@@ -768,8 +907,8 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("     select new");
 			sb.AppendLine("     {");
 			sb.AppendLine("         UserId = user.userid,");
-			sb.AppendLine("         UserPK = user.PK,");
-			sb.AppendLine("         OrderPK = order.PK,");
+			sb.AppendLine($"         UserPK = user.{ARecord.DefaultASPIKeyName},");
+			sb.AppendLine($"         OrderPK = order.{ARecord.DefaultASPIKeyName},");
 			sb.AppendLine("         OrderAmount = order.amount");
 			sb.AppendLine("     })");
 			sb.AppendLine("    .Take(100);");
@@ -785,14 +924,14 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("var joined =");
 			sb.AppendLine("    (from customer in test.Customer.AsEnumerable()");
 			sb.AppendLine("     join invoice in test.Invoice.AsEnumerable()");
-			sb.AppendLine("        on customer.PK equals invoice.CustomerId");
+			sb.AppendLine($"        on customer.{ARecord.DefaultASPIKeyName} equals invoice.CustomerId");
 			sb.AppendLine("     select new");
 			sb.AppendLine("     {");
-			sb.AppendLine("         CustomerPK = customer.PK,");
+			sb.AppendLine($"         CustomerPK = customer.{ARecord.DefaultASPIKeyName},");
 			sb.AppendLine("         customer.FirstName,");
 			sb.AppendLine("         customer.LastName,");
 			sb.AppendLine("         customer.Email,");
-			sb.AppendLine("         InvoicePK = invoice.PK,");
+			sb.AppendLine($"         InvoicePK = invoice.{ARecord.DefaultASPIKeyName},");
 			sb.AppendLine("         invoice.InvoiceDate,");
 			sb.AppendLine("         invoice.Total,");
 			sb.AppendLine("         invoice.BillingCity,");
@@ -833,14 +972,14 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("    (from r in NamespaceName.SetName.AsEnumerable()");
 			sb.AppendLine("     select new");
 			sb.AppendLine("     {");
-			sb.AppendLine("         PrimaryKey = r.PK,");
+			sb.AppendLine($"         PrimaryKey = r.{ARecord.DefaultASPIKeyName},");
 			sb.AppendLine("         r.status");
 			sb.AppendLine("     })");
 			sb.AppendLine("    .Take(100);");
 			sb.AppendLine();
 			sb.AppendLine("records.Dump();");
 			sb.AppendLine();
-			sb.AppendLine("// Fallback if the generated PK property is not available:");
+			sb.AppendLine($"// Fallback if the generated {ARecord.DefaultASPIKeyName} property is not available:");
 			sb.AppendLine("var recordsWithFallbackPK =");
 			sb.AppendLine("    (from r in NamespaceName.SetName.AsEnumerable()");
 			sb.AppendLine("     select new");
@@ -888,6 +1027,56 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("```");
 			sb.AppendLine();
 
+			sb.AppendLine("### Filter with AValue TryApply");
+			sb.AppendLine();
+			sb.AppendLine("```csharp");
+			sb.AppendLine("// Prefer TryApply when an AValue-backed property may be null, missing, or mixed-type.");
+			sb.AppendLine("var customers = test.Customer");
+			sb.AppendLine("    .AsEnumerable()");
+			sb.AppendLine("    .Where(customer => customer.FirstName.TryApply<string, bool>(name => name.StartsWith(\"a\")))");
+			sb.AppendLine("    .Take(100);");
+			sb.AppendLine();
+			sb.AppendLine("customers.Dump();");
+			sb.AppendLine("```");
+			sb.AppendLine();
+
+			sb.AppendLine("### Project with AValue Convert and CanConvert");
+			sb.AppendLine();
+			sb.AppendLine("```csharp");
+			sb.AppendLine("var customers = test.Customer");
+			sb.AppendLine("    .AsEnumerable()");
+			sb.AppendLine("    .Where(customer => customer.TotalPurchases.CanConvert<decimal>())");
+			sb.AppendLine("    .Select(customer => new");
+			sb.AppendLine("    {");
+			sb.AppendLine($"        customer.{ARecord.DefaultASPIKeyName},");
+			sb.AppendLine("        customer.FirstName,");
+			sb.AppendLine("        customer.LastName,");
+			sb.AppendLine("        TotalPurchases = customer.TotalPurchases.Convert<decimal>()");
+			sb.AppendLine("    })");
+			sb.AppendLine("    .Take(100);");
+			sb.AppendLine();
+			sb.AppendLine("customers.Dump();");
+			sb.AppendLine("```");
+			sb.AppendLine();
+
+			sb.AppendLine("### Use AValue Apply for type-specific operations");
+			sb.AppendLine();
+			sb.AppendLine("```csharp");
+			sb.AppendLine("var customers = test.Customer");
+			sb.AppendLine("    .AsEnumerable()");
+			sb.AppendLine("    .Select(customer => new");
+			sb.AppendLine("    {");
+			sb.AppendLine($"        customer.{ARecord.DefaultASPIKeyName},");
+			sb.AppendLine("        customer.FirstName,");
+			sb.AppendLine("        FirstNameLength = customer.FirstName.Apply<string, int>(name => name.Length),");
+			sb.AppendLine("        StartsWithA = customer.FirstName.Apply<string, bool>(name => name.StartsWith(\"a\"))");
+			sb.AppendLine("    })");
+			sb.AppendLine("    .Take(100);");
+			sb.AppendLine();
+			sb.AppendLine("customers.Dump();");
+			sb.AppendLine("```");
+			sb.AppendLine();
+
 			sb.AppendLine("### Use LINQ collection operations with SetRecords");
 			sb.AppendLine();
 			sb.AppendLine("```csharp");
@@ -897,7 +1086,7 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("var ordered = NamespaceName.SetName");
 			sb.AppendLine("    .AsEnumerable()");
 			sb.AppendLine("    .OrderBy(r => r.status)");
-			sb.AppendLine("    .ThenBy(r => r.PK)");
+			sb.AppendLine($"    .ThenBy(r => r.{ARecord.DefaultASPIKeyName})");
 			sb.AppendLine("    .Take(100);");
 			sb.AppendLine();
 			sb.AppendLine("ordered.Dump();");
@@ -918,8 +1107,8 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("        (user, order) => new");
 			sb.AppendLine("        {");
 			sb.AppendLine("            UserId = user.userid,");
-			sb.AppendLine("            UserPK = user.PK,");
-			sb.AppendLine("            OrderPK = order.PK,");
+			sb.AppendLine($"            UserPK = user.{ARecord.DefaultASPIKeyName},");
+			sb.AppendLine($"            OrderPK = order.{ARecord.DefaultASPIKeyName},");
 			sb.AppendLine("            OrderAmount = order.amount");
 			sb.AppendLine("        })");
 			sb.AppendLine("    .Take(100);");
@@ -955,13 +1144,13 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("    .Take(100)");
 			sb.AppendLine("    .Select(r => new");
 			sb.AppendLine("    {");
-			sb.AppendLine("        PrimaryKey = r.PK,");
+			sb.AppendLine($"        PrimaryKey = r.{ARecord.DefaultASPIKeyName},");
 			sb.AppendLine("        r.status");
 			sb.AppendLine("    });");
 			sb.AppendLine();
 			sb.AppendLine("records.Dump();");
 			sb.AppendLine();
-			sb.AppendLine("// Fallback if the generated PK property is not available:");
+			sb.AppendLine($"// Fallback if the generated {ARecord.DefaultASPIKeyName} property is not available:");
 			sb.AppendLine("var recordsWithFallbackPK = NamespaceName.SetName");
 			sb.AppendLine("    .AsEnumerable()");
 			sb.AppendLine("    .Take(100)");
@@ -995,7 +1184,20 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("- Use secondary indexes when available.");
 			sb.AppendLine("- Treat bin/type information as inferred because Aerospike is schemaless.");
 			sb.AppendLine("- Prefer generated record properties over string-indexer bin access.");
-			sb.AppendLine("- Use `PK` for the primary key when available; otherwise use `GetPK()`.");
+
+			if(connection.AlwaysUseAValues)
+			{
+				sb.AppendLine("- `Always use AValue` is enabled; respect AValue-backed property behavior and avoid unsafe primitive casts.");
+			}
+			else
+			{
+				sb.AppendLine("- `Always use AValue` is disabled; use generated typed properties normally when metadata provides concrete CLR types.");
+			}
+
+			sb.AppendLine("- For AValue-backed properties, use `CanConvert<T>()`, `Convert<T>()`, `Apply<TValue, TResult>()`, and null-safe `TryApply<TValue, TResult>()` instead of unsafe CLR casts.");
+			sb.AppendLine("- Prefer `TryApply<TValue, bool>(...)` in filters when invoking type-specific methods on values that may be null, missing, mixed-type, or AValue-backed.");
+			sb.AppendLine("- Use AValue comparison operators for direct comparisons when supported; use `Apply` / `TryApply` for type-specific methods.");
+			sb.AppendLine($"- Use `{ARecord.DefaultASPIKeyName}` for the primary key when available; otherwise use `GetPK()`.");
 			sb.AppendLine("- Use `.AsEnumerable()` before collection-style LINQ operations on `SetRecords` instances.");
 
 			if(options.LinqSyntaxPreference == AerospikeLinqSyntaxPreference.MethodSyntax)
@@ -1042,11 +1244,11 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 				return null;
 			}
 
-			
+
 			return Helpers.CheckName(bin.BinName, "Bin");
 		}
 
-		
+
 
 		private static string Safe(object value)
 		{

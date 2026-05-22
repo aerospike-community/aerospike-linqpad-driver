@@ -642,19 +642,147 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <exception cref="InvalidCastException">Thrown if value cannot be converted</exception>
         public T Convert<T>() => this.Value is T tValue ? tValue : (T)Helpers.CastToNativeTypeInvalidCast(this.FldName, typeof(T), this.BinName, this.Value);
 
-        /// <summary>
-        /// Returns an enumerable object converting each element to <typeparamref name="T"/>. 
-        /// If not possible an <see cref="ArgumentException"/> is thrown.
-        /// <seealso cref="AsEnumerable()"/>
-        /// </summary>
-        /// <typeparam name="T">The element type</typeparam>
-        /// <returns>
-        /// Returns an enumerable object
-        /// </returns>
-        /// <exception cref="ArgumentException">Thrown if value cannot be converted</exception>
-        /// <seealso cref="AsEnumerable()"/>
-        /// <seealso cref="Convert{T}()"/>
-        public IEnumerable<T> AsEnumerable<T>() => (T[])this.Convert<T[]>();
+		/// <summary>
+		/// Determines whether this <see cref="AValue"/> can be converted to the specified target type.
+		/// </summary>
+		/// <typeparam name="T">
+		/// The target type to test for conversion.
+		/// </typeparam>
+		/// <returns>
+		/// <c>true</c> if the underlying value can be converted to <typeparamref name="T"/>;
+		/// otherwise, <c>false</c>.
+		/// </returns>
+		/// <remarks>
+		/// This method is a non-throwing companion to <see cref="Convert{T}"/>.
+		/// It should be used when callers need to test conversion safety before calling
+		/// <see cref="Convert{T}"/>.
+		/// 
+		/// If <typeparamref name="T"/> is <see cref="string"/>, native scalar values such as
+		/// numeric types, <see cref="bool"/>, <see cref="DateTime"/>, <see cref="DateTimeOffset"/>,
+		/// <see cref="TimeSpan"/>, <see cref="Guid"/>, and enum values are considered convertible
+		/// because they can be represented as strings.
+		/// </remarks>
+		/// <seealso cref="Convert{T}"/>
+		public bool CanConvert<T>()
+		{
+			try
+			{
+				object value = this.Value;
+
+				Type targetType = typeof(T);
+				Type underlyingTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+				if(value == null)
+				{
+					return !targetType.IsValueType || Nullable.GetUnderlyingType(targetType) != null;
+				}
+
+				if(value is T)
+				{
+					return true;
+				}
+
+				if(underlyingTargetType == typeof(string))
+				{
+                    if(this.IsJson){
+                        return true;
+                    }
+					
+                    Type sourceType = value.GetType();
+
+					return sourceType.IsPrimitive
+						|| value is decimal
+						|| value is DateTime
+						|| value is DateTimeOffset
+						|| value is TimeSpan
+						|| value is Guid
+						|| value is Enum;
+				}
+
+				return false;
+			}
+			catch
+			{
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Safely executes a function against an AValue <see cref="AValue"/> after converting
+		/// the underlying value to the specified input type.
+		/// </summary>
+		/// <typeparam name="TValue">
+		/// The type to convert the underlying <see cref="AValue"/> value to before
+		/// executing the function.
+		/// </typeparam>
+		/// <typeparam name="TResult">
+		/// The function return type.
+		/// </typeparam>
+		/// <param name="method">
+		/// The function to execute against the converted value.
+		/// </param>
+		/// <returns>
+		/// The result returned by <paramref name="method"/> when conversion succeeds and
+		/// the function executes successfully; otherwise, <c>default</c>.
+		/// </returns>
+		/// <remarks>
+		/// This method is a safe helper for invoking type-specific functions against an
+		/// <see cref="AValue"/> without throwing when the underlying value is not compatible.
+		///
+		/// For examples:
+		///
+		/// <code>
+		/// bool startsWithA = value.Apply&lt;string, bool&gt;(s =&gt; s.StartsWith("A"));
+		/// int length = value.Apply&lt;string, int&gt;(s =&gt; s.Length);
+		/// </code>
+		///
+		/// Find all customers where the Name starts with "B" (regardless the bin's underlying value type):
+		/// <code>
+		/// test.customers.Where(dt =&gt; dt.Name.Apply&lt;string,bool&gt;(v =>&gt;v.StartsWith("B"))).Dump();
+		/// </code>
+		///
+		/// This method uses <see cref="CanConvert{T}"/> before calling
+		/// <see cref="Convert{T}"/>.
+		/// </remarks>
+		/// <seealso cref="CanConvert{T}"/>
+		/// <seealso cref="Convert{T}"/>
+		public TResult Apply<TValue, TResult>(Func<TValue, TResult> method)
+		{
+			if(method == null)
+			{
+				return default;
+			}
+
+			try
+			{
+				if(!this.CanConvert<TValue>())
+				{
+					return default;
+				}
+
+				TValue convertedValue = this.Convert<TValue>();
+
+				return method(convertedValue);
+			}
+			catch
+			{
+				return default;
+			}
+		}
+
+		/// <summary>
+		/// Returns an enumerable object converting each element to <typeparamref name="T"/>. 
+		/// If not possible an <see cref="ArgumentException"/> is thrown.
+		/// <seealso cref="AsEnumerable()"/>
+		/// </summary>
+		/// <typeparam name="T">The element type</typeparam>
+		/// <returns>
+		/// Returns an enumerable object
+		/// </returns>
+		/// <exception cref="ArgumentException">Thrown if value cannot be converted</exception>
+		/// <seealso cref="AsEnumerable()"/>
+		/// <seealso cref="Convert{T}()"/>
+		public IEnumerable<T> AsEnumerable<T>() => (T[])this.Convert<T[]>();
 
         /// <summary>
         /// Returns an enumerable object such that each item is an <see cref="AValue"/>.

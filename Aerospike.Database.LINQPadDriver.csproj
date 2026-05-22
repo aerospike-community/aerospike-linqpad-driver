@@ -19,8 +19,8 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2026</Copyright>
-    <Version>7.0.14</Version>
-    <FileVersion>7.0.14</FileVersion>
+    <Version>7.0.19</Version>
+    <FileVersion>7.0.19</FileVersion>
     <Deterministic>true</Deterministic>
 	</PropertyGroup>
 
@@ -153,6 +153,9 @@
  
 	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(Configuration)' == 'Debug'">
     <Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)&quot;" />
+    <Exec Command="powershell -nologo -noprofile -command &quot;New-Item -Path &quot;$(TargetDir)LPX6&quot; -ItemType Directory -Force &gt; $null &quot;" ContinueOnError="true" />
+    <Exec Command="powershell -nologo -noprofile -command &quot;compress-archive -force -path &quot;$(TargetDir)*.*&quot; -destinationpath &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
+    <Exec Command="xcopy /Y/R /-I &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.zip&quot; &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.LPX6&quot;" />
   </Target>
 
   <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(Configuration)' == 'Release'">

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Media;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -378,7 +379,59 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="TryGetValue{T}(IEnumerable{AValue}, T, bool)"/>
         public static IEnumerable<AValue> FindAll<T>(this IEnumerable<AValue> source, T matchValue, AValue.MatchOptions matchOptions = AValue.MatchOptions.Value | AValue.MatchOptions.Equals)
                         => source.SelectMany(a => a.FindAll(matchValue, matchOptions));
-        
 
-    }
+
+		/// <summary>
+		/// Safely executes a function against an AValue after converting
+		/// the underlying value to the specified input type, when the AValue is not null.
+		/// </summary>
+		/// <typeparam name="TValue">
+		/// The type to convert the underlying <see cref="AValue"/> value to before
+		/// executing the function.
+		/// </typeparam>
+		/// <typeparam name="TResult">
+		/// The function return type.
+		/// </typeparam>
+		/// <param name="value">
+		/// The <see cref="AValue"/> instance to operate on. If null, returns <c>default</c> immediately.
+		/// </param>
+		/// <param name="method">
+		/// The function to execute against the converted value.
+		/// </param>
+		/// <returns>
+		/// The result returned by <paramref name="method"/> when <paramref name="value"/> is not null, 
+		/// conversion succeeds, and the function executes successfully; otherwise, <c>default</c>.
+		/// </returns>
+		/// <remarks>
+		/// This is a null-safe wrapper around <see cref="AValue.Apply{TValue, TResult}(Func{TValue, TResult})"/>.
+		/// It provides a convenient way to execute type-specific functions against an <see cref="AValue"/>
+		/// that may be null, without requiring explicit null checks.
+		/// 
+		/// If <paramref name="value"/> is null, this method returns <c>default</c> without attempting
+		/// to execute <paramref name="method"/>.
+		/// 
+		/// If <paramref name="value"/> is not null, this method delegates to 
+		/// <see cref="AValue.Apply{TValue, TResult}(Func{TValue, TResult})"/>, which safely converts
+		/// the underlying value and executes the function.
+		/// 
+		/// For example:
+		/// 
+		/// <code>
+		/// AValue value = testns.myset.First().BinA; // May be null since bin may not exists in the record.
+		/// bool startsWithA = value.TryApply&lt;string, bool&gt;(s =&gt; s.StartsWith("A"));
+		/// int length = value.TryApply&lt;string, int&gt;(s =&gt; s.Length);
+		/// </code>
+		///
+		/// Find all customers where the Name starts with "B" (regardless the bin's underlying value type or even if the bin exists in the record):
+		/// <code>
+		/// test.customers.Where(dt =&gt; dt.Name.TryApply&lt;string,bool&gt;(v =>&gt;v.StartsWith("B"))).Dump();
+		/// </code>
+		///
+		/// </remarks>
+		/// <seealso cref="AValue.Apply{TValue, TResult}(Func{TValue, TResult})"/>
+		/// <seealso cref="AValue.CanConvert{T}"/>
+		/// <seealso cref="AValue.Convert{T}"/>
+		public static TResult TryApply<TValue, TResult>(this AValue value, Func<TValue, TResult> method)
+			=> value is null ? default : value.Apply(method);
+	}
 }
