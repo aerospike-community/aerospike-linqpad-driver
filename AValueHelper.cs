@@ -1,6 +1,7 @@
 ﻿using Aerospike.Client;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,19 +40,78 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         ? aValue
                                         : new AValue(value, bin ?? "Object", fld ??"Value");
 
-        /// <summary>
-        /// Converts a collection of <see cref="AValue"/>s into a dictionary where the key is the AValue&apos;s Bin Name and the value is the AValue.
-        /// </summary>
-        /// <param name="values">
-        /// A collection of <see cref="AValue"/>s
-        /// </param>
-        /// <returns>
-        /// A dictionary where the key is the AValue&apos;s Bin Name and the value is the AValue.
-        /// </returns>
-        /// <exception cref="NullReferenceException">
-        /// If <paramref name="values"/> is null.
-        /// </exception>
-        public static IDictionary<string,AValue> ToDictionary(this IEnumerable<AValue> values)
+		/// <summary>
+		/// Converts an <see cref="AValue"/> to an Aerospike expression value (<see cref="Exp"/>).
+		/// </summary>
+		/// <param name="value">The <see cref="AValue"/> to convert.</param>
+		/// <param name="mapOrder">The default map (Dictionary) server side ordering. Defaults to key order.</param>
+		/// <returns>
+		/// An Aerospike expression representing the value. Returns <see cref="Exp.Nil()"/> if <paramref name="value"/> is null or empty.
+		/// </returns>
+		/// <remarks>
+		/// This method converts the underlying <see cref="AValue.Value"/> into an Aerospike expression
+		/// using the appropriate <see cref="Exp"/> overload based on the value's runtime type.
+		/// 
+		/// Supported types include:
+		/// - Primitive types: int, long, double, float, bool, string, byte[]
+		/// - Collections: IList, IDictionary
+		/// - Null values
+		/// 
+		/// The conversion uses <see cref="Helpers.ConvertToAerospikeType(object)"/> to handle type transformations
+		/// such as converting decimals to doubles, date/time values to strings or longs (depending on configuration),
+		/// and collections to Aerospike CDT types.
+		/// 
+		/// For example:
+		/// 
+		/// <code>
+		/// AValue nameValue = record.Name.ToAValue();
+		/// Exp nameExp = nameValue.ToExpVal();
+		/// 
+		/// // Use in an Aerospike expression
+		/// Exp filterExp = Exp.Eq(Exp.Bin("status", Exp.Type.STRING), myValue.ToExpVal());
+		/// </code>
+		/// </remarks>
+		/// <seealso cref="AValue"/>
+		/// <seealso cref="Exp"/>
+		/// <seealso cref="Helpers.ConvertToAerospikeType(object)"/>
+		public static Exp ToExpVal(this AValue value, MapOrder mapOrder = MapOrder.KEY_ORDERED)
+		{
+			if(value is null || value.IsEmpty) return Exp.Nil();
+
+			var convertedValue = Helpers.ConvertToAerospikeType(value.Value);
+
+			return convertedValue switch
+			{
+				null => Exp.Nil(),
+				string s => Exp.Val(s),
+				long l => Exp.Val(l),
+				int i => Exp.Val((long) i),
+				short sh => Exp.Val((long) sh),
+				byte b => Exp.Val((long) b),
+				double d => Exp.Val(d),
+				float f => Exp.Val((double) f),
+				bool bo => Exp.Val(bo),
+				byte[] ba => Exp.Val(ba),
+                DateTime dt => Exp.Val(dt),
+                IList list => Exp.Val(list),
+                IDictionary dict => Exp.Val(dict, mapOrder),
+				_ => Exp.Val(convertedValue.ToString())
+			};
+		}
+
+		/// <summary>
+		/// Converts a collection of <see cref="AValue"/>s into a dictionary where the key is the AValue&apos;s Bin Name and the value is the AValue.
+		/// </summary>
+		/// <param name="values">
+		/// A collection of <see cref="AValue"/>s
+		/// </param>
+		/// <returns>
+		/// A dictionary where the key is the AValue&apos;s Bin Name and the value is the AValue.
+		/// </returns>
+		/// <exception cref="NullReferenceException">
+		/// If <paramref name="values"/> is null.
+		/// </exception>
+		public static IDictionary<string,AValue> ToDictionary(this IEnumerable<AValue> values)
             => new Dictionary<string,AValue>(values.Select(x => new KeyValuePair<string,AValue>(x.BinName, x)));
 
         /// <summary>
