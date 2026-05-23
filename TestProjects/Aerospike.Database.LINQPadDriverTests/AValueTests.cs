@@ -95,7 +95,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsTrue(checkValue <= aValueStr);
 			Assert.IsTrue(checkValue < aValueStr);
 
-			Assert.AreEqual(aValueStr, "abc");
+			Assert.AreEqual("abc", aValueStr);
 			Assert.IsTrue(aValueStr == "abc");
 			Assert.IsFalse(aValueStr != "abc");
 			Assert.IsTrue(aValueStr >= "abc");
@@ -106,7 +106,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			aValueStr = new AValue(expectedValuex10.ToString(), "binStrNum", "fldStrNum");
 
 			Assert.AreEqual(aValueStr, expectedValuex10.ToString());
-			Assert.AreEqual(aValueStr, expectedValuex10);
+			Assert.AreEqual(expectedValuex10, aValueStr);
 			Assert.IsFalse(checkValue == aValueStr);
 			Assert.IsTrue(checkValue != aValueStr);
 			Assert.IsFalse(checkValue >= aValueStr);

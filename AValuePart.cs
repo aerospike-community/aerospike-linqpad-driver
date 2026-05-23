@@ -643,71 +643,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         public T Convert<T>() => this.Value is T tValue ? tValue : (T)Helpers.CastToNativeTypeInvalidCast(this.FldName, typeof(T), this.BinName, this.Value);
 
 		/// <summary>
-		/// Determines whether this <see cref="AValue"/> can be converted to the specified target type.
-		/// </summary>
-		/// <typeparam name="T">
-		/// The target type to test for conversion.
-		/// </typeparam>
-		/// <returns>
-		/// <c>true</c> if the underlying value can be converted to <typeparamref name="T"/>;
-		/// otherwise, <c>false</c>.
-		/// </returns>
-		/// <remarks>
-		/// This method is a non-throwing companion to <see cref="Convert{T}"/>.
-		/// It should be used when callers need to test conversion safety before calling
-		/// <see cref="Convert{T}"/>.
-		/// 
-		/// If <typeparamref name="T"/> is <see cref="string"/>, native scalar values such as
-		/// numeric types, <see cref="bool"/>, <see cref="DateTime"/>, <see cref="DateTimeOffset"/>,
-		/// <see cref="TimeSpan"/>, <see cref="Guid"/>, and enum values are considered convertible
-		/// because they can be represented as strings.
-		/// </remarks>
-		/// <seealso cref="Convert{T}"/>
-		public bool CanConvert<T>()
-		{
-			try
-			{
-				object value = this.Value;
-
-				Type targetType = typeof(T);
-				Type underlyingTargetType = Nullable.GetUnderlyingType(targetType) ?? targetType;
-
-				if(value == null)
-				{
-					return !targetType.IsValueType || Nullable.GetUnderlyingType(targetType) != null;
-				}
-
-				if(value is T)
-				{
-					return true;
-				}
-
-				if(underlyingTargetType == typeof(string))
-				{
-                    if(this.IsJson){
-                        return true;
-                    }
-					
-                    Type sourceType = value.GetType();
-
-					return sourceType.IsPrimitive
-						|| value is decimal
-						|| value is DateTime
-						|| value is DateTimeOffset
-						|| value is TimeSpan
-						|| value is Guid
-						|| value is Enum;
-				}
-
-				return false;
-			}
-			catch
-			{
-				return false;
-			}
-		}
-
-		/// <summary>
 		/// Safely executes a function against an AValue <see cref="AValue"/> after converting
 		/// the underlying value to the specified input type.
 		/// </summary>
@@ -741,10 +676,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// test.customers.Where(dt =&gt; dt.Name.Apply&lt;string,bool&gt;(v =>&gt;v.StartsWith("B"))).Dump();
 		/// </code>
 		///
-		/// This method uses <see cref="CanConvert{T}"/> before calling
+		/// This method uses <see cref="AValueHelper.CanConvert{T}"/> before calling
 		/// <see cref="Convert{T}"/>.
 		/// </remarks>
-		/// <seealso cref="CanConvert{T}"/>
+		/// <seealso cref="AValueHelper.CanConvert{T}"/>
 		/// <seealso cref="Convert{T}"/>
 		public TResult Apply<TValue, TResult>(Func<TValue, TResult> method)
 		{

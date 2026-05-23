@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 	
 	<PropertyGroup>    
-    <TargetFrameworks>net6.0-windows;net7.0-windows;net8.0-windows</TargetFrameworks>
+    <TargetFrameworks>net8.0-windows</TargetFrameworks>
 
     <NoWarn>1591</NoWarn>
 		<UseWpf>true</UseWpf>
@@ -12,15 +12,15 @@
     <Authors>Richard Andersen</Authors>
     <Company>Aerospike</Company>
     <Product>Aerospike LINQPad Driver</Product>
-    <Description>Aerospike for LINQPad 7+ is a data context dynamic driver for querying and updating an Aerospike database.</Description>
+    <Description>Aerospike for LINQPad 9+ is a data context dynamic driver for querying and updating an Aerospike database.</Description>
     <RepositoryUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2026</Copyright>
-    <Version>7.0.22</Version>
-    <FileVersion>7.0.22</FileVersion>
+    <Version>7.0.25</Version>
+    <FileVersion>7.0.25</FileVersion>
     <Deterministic>true</Deterministic>
 	</PropertyGroup>
 
@@ -122,11 +122,11 @@
   </ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Aerospike.Client" Version="8.0.2" />
+		<PackageReference Include="Aerospike.Client" Version="8.4.1" />
     <PackageReference Include="LINQPad.Reference" Version="1.3.1" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="GeoJSON.Net" Version="1.4.1" />
-    <PackageReference Include="NeoLua" Version="1.3.15-beta.4" />
+    <PackageReference Include="NeoLua" Version="1.3.19" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -171,12 +171,12 @@
   </Target>
   
 	<Target Name="NuGetPublish" AfterTargets="Pack" Condition="'$(Configuration)' == 'Release'">
-    <Copy SourceFiles="$(OutputPath)$(PackageId).$(PackageVersion).nupkg" DestinationFiles="Publish\$(PackageId).$(PackageVersion).nupkg" SkipUnchangedFiles="true"  OverwriteReadOnlyFiles="true"/>
+    <Copy SourceFiles="$(OutputPath)$(PackageId).$(PackageVersion).nupkg" DestinationFiles="Publish\$(PackageId).$(PackageVersion).nupkg" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
     <ItemGroup>
       <TargetFilesToDelete Include="Driver\**\*.nuget" />
     </ItemGroup>
     <Delete Files="@{TargetFilesToDelete}" TreatErrorsAsWarnings="true" ContinueOnError="true" />
-    <Copy SourceFiles="$(OutputPath)$(PackageId).$(PackageVersion).nupkg" DestinationFiles="Driver\$(PackageId).$(PackageVersion).nupkg" SkipUnchangedFiles="true"  OverwriteReadOnlyFiles="true"/>
+    <Copy SourceFiles="$(OutputPath)$(PackageId).$(PackageVersion).nupkg" DestinationFiles="Driver\$(PackageId).$(PackageVersion).nupkg" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
   </Target>
 
 </Project>

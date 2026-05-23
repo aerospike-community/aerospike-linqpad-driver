@@ -41,6 +41,64 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         : new AValue(value, bin ?? "Object", fld ??"Value");
 
 		/// <summary>
+		/// Converts an <see cref="AValue"/> to an Aerospike bin expression (<see cref="Exp.Bin(string, Exp.Type)"/>).
+		/// </summary>
+		/// <param name="value">The <see cref="AValue"/> to convert.</param>
+		/// <param name="expType">
+		/// Optional: explicitly specify the bin type. If not provided, the type is automatically inferred from the value.
+		/// </param>
+		/// <returns>
+		/// An Aerospike bin expression that references the bin associated with this <see cref="AValue"/>.
+		/// </returns>
+		/// <remarks>
+		/// This method creates an expression that references a bin in the Aerospike record by name.
+		/// Use this when building filter expressions that need to reference record bins.
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// AValue statusValue = record["status"].ToAValue();
+		/// Exp filterExp = Exp.Eq(statusValue.ToExpBin(), Exp.Val("active"));
+		/// </code>
+		/// </example>
+		/// <seealso cref="ToExpVal(AValue, MapOrder)"/>
+		public static Exp ToExpBin(this AValue value, Exp.Type? expType = null)
+		{
+			if(value is null || value.IsEmpty)
+				return Exp.Bin(value?.BinName ?? "null", Exp.Type.NIL);
+
+			var binName = value.BinName;
+
+			// If type not specified, try to infer it
+			if(!expType.HasValue)
+            {
+				expType = InferExpType(value.Value);
+			}
+
+			return Exp.Bin(binName, expType.Value);
+		}
+
+		/// <summary>
+		/// Infers the Aerospike expression type from a value's runtime type.
+		/// </summary>
+		private static Exp.Type InferExpType(object value)
+		{
+			return value switch
+			{
+				null => Exp.Type.NIL,
+				string => Exp.Type.STRING,
+				long or int or short or byte or sbyte or ushort or uint or ulong => Exp.Type.INT,
+				double or float or decimal => Exp.Type.FLOAT,
+				bool => Exp.Type.BOOL,
+				byte[] => Exp.Type.BLOB,
+				IList => Exp.Type.LIST,
+				IDictionary => Exp.Type.MAP,
+				_ when value.GetType().Name.Contains("HyperLogLog") => Exp.Type.HLL,
+				_ when GeoJSONHelpers.IsGeoValue(value.GetType()) => Exp.Type.GEO,
+				_ => Exp.Type.NIL
+			};
+		}
+
+		/// <summary>
 		/// Converts an <see cref="AValue"/> to an Aerospike expression value (<see cref="Exp"/>).
 		/// </summary>
 		/// <param name="value">The <see cref="AValue"/> to convert.</param>
@@ -75,7 +133,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <seealso cref="Exp"/>
 		/// <seealso cref="Helpers.ConvertToAerospikeType(object)"/>
 		public static Exp ToExpVal(this AValue value, MapOrder mapOrder = MapOrder.KEY_ORDERED)
-		{
+        {
 			if(value is null || value.IsEmpty) return Exp.Nil();
 
 			var convertedValue = Helpers.ConvertToAerospikeType(value.Value);
@@ -489,9 +547,43 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		///
 		/// </remarks>
 		/// <seealso cref="AValue.Apply{TValue, TResult}(Func{TValue, TResult})"/>
-		/// <seealso cref="AValue.CanConvert{T}"/>
+		/// <seealso cref="AValueHelper.CanConvert{T}"/>
 		/// <seealso cref="AValue.Convert{T}"/>
 		public static TResult TryApply<TValue, TResult>(this AValue value, Func<TValue, TResult> method)
 			=> value is null ? default : value.Apply(method);
+
+
+		/// <summary>
+		/// Determines whether this <see cref="AValue"/> can be converted to the specified target type.
+		/// </summary>
+		/// <typeparam name="T">
+		/// The target type to test for conversion.
+		/// </typeparam>
+		/// <param name="aValue">
+		/// The <see cref="AValue"/> instance to operate on. If null, returns <c>false</c> immediately.
+        /// </param>
+		/// <returns>
+		/// <c>true</c> if the underlying value can be converted to <typeparamref name="T"/>;
+		/// otherwise, <c>false</c>.
+		/// </returns>
+		/// <remarks>
+		/// This method is a non-throwing companion to <see cref="AValue.Convert{T}"/>.
+		/// It should be used when callers need to test conversion safety before calling
+		/// <see cref="AValue.Convert{T}"/>.
+		/// 
+		/// If <typeparamref name="T"/> is <see cref="string"/>, native scalar values such as
+		/// numeric types, <see cref="bool"/>, <see cref="DateTime"/>, <see cref="DateTimeOffset"/>,
+		/// <see cref="TimeSpan"/>, <see cref="Guid"/>, and enum values are considered convertible
+		/// because they can be represented as strings.
+		/// </remarks>
+		/// <seealso cref="AValue.Convert{T}"/>
+		public static bool CanConvert<T>(this AValue aValue)
+		{
+            if(aValue is null) return false;
+            if(aValue.UnderlyingType == typeof(T))  return true;
+
+			return Helpers.CanCastToNativeType(typeof(T), aValue.Value);
+		}
+
 	}
 }

@@ -1,25 +1,27 @@
 using Aerospike.Client;
+using Aerospike.Database.LINQPadDriver;
+using Aerospike.Database.LINQPadDriver.Extensions;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using Aerospike.Database.LINQPadDriver;
-using System.Globalization;
-using Newtonsoft.Json.Linq;
-using Aerospike.Database.LINQPadDriver.Extensions;
-using LPEDC = LINQPad.Extensibility.DataContext;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Documents;
+using LPEDC = LINQPad.Extensibility.DataContext;
 
 namespace Aerospike.Client
 {
@@ -921,23 +923,120 @@ namespace Aerospike.Database.LINQPadDriver
         /// </summary>
         public static string TimeSpanFormat = defaultTimeSpanFormat;
 
-        /// <summary>
-        /// A boolean, if true numeric values from the DB for targeted Date/Time data types are nanoseconds from Unix Epoch.
-        /// If false, the numeric value represents .net ticks.
-        /// <see cref="DateTime.DateTime(long)"/>
-        /// <see cref="DateTimeOffset.DateTimeOffset(long, TimeSpan)"/>
-        /// <see cref="Client.Exp.Val(DateTime)"/>
-        /// <see cref="AllDateTimeUseUnixEpochNano"/>
-        /// </summary>
-        public static bool UseUnixEpochNanoForNumericDateTime = true;
+		/// <summary>
+		/// A boolean, if true numeric values from the DB for targeted Date/Time data types are nanoseconds from Unix Epoch.
+		/// If false, the numeric value represents .net ticks.
+		/// DB -> .Net
+		/// <see cref="DateTime.DateTime(long)"/>
+		/// <see cref="DateTimeOffset.DateTimeOffset(long, TimeSpan)"/>
+		/// <see cref="Client.Exp.Val(DateTime)"/>
+		/// <see cref="AllDateTimeUseUnixEpochNano"/>
+		/// </summary>
+		public static bool UseUnixEpochNanoForNumericDateTime = true;
 
         /// <summary>
         /// All Date/Time values are converted to nanoseconds from Unix Epoch Date/Time.
+        /// .Net -> DB
         /// </summary>
         /// <see cref="UseUnixEpochNanoForNumericDateTime"/>
         public static bool AllDateTimeUseUnixEpochNano = false;
 
-        public static object ConvertToAerospikeType(object putObject)
+        /// <summary>
+        /// Gets a value indicating whether Unix epoch should be used for numeric DateTime values.
+        /// </summary>
+        public static bool UseUnixEpochNumericDT => AllDateTimeUseUnixEpochNano ? true : UseUnixEpochNanoForNumericDateTime;
+
+		/// <summary>
+		/// Converts a .NET object into an Aerospike-compatible type that can be stored in the database.
+		/// Aerospike natively supports primitives (int, long, double, bool, etc.), strings, byte arrays, lists, and dictionaries.
+		/// All other types are converted into one of these supported types.
+		/// </summary>
+		/// <param name="putObject">
+		/// The object to convert. Can be any .NET type.
+		/// </param>
+		/// <returns>
+		/// An Aerospike-compatible representation of the input object:
+		/// <list type="bullet">
+		/// <item><description><c>null</c> - Returns null unchanged</description></item>
+		/// <item><description><b>Primitives</b> (int, long, double, bool, etc.) - Returned unchanged</description></item>
+		/// <item><description><b>string</b> - Returned unchanged</description></item>
+		/// <item><description><b>byte[]</b> - Returned unchanged</description></item>
+		/// <item><description><b>Decimal</b> - Converted to <see cref="double"/></description></item>
+		/// <item><description><b>Enum</b> - Converted to <see cref="string"/> via <see cref="object.ToString()"/></description></item>
+		/// <item><description><b>Guid</b> - Converted to <see cref="string"/></description></item>
+		/// <item><description><b>DateTime</b> - Converted to <see cref="string"/> (using <see cref="DateTimeFormat"/>) or <see cref="long"/> (nanoseconds from Unix epoch) depending on <see cref="AllDateTimeUseUnixEpochNano"/></description></item>
+		/// <item><description><b>DateTimeOffset</b> - Converted to <see cref="string"/> (using <see cref="DateTimeOffsetFormat"/>) or <see cref="long"/> (nanoseconds from Unix epoch UTC) depending on <see cref="AllDateTimeUseUnixEpochNano"/></description></item>
+		/// <item><description><b>TimeSpan</b> - Converted to <see cref="string"/> (using <see cref="TimeSpanFormat"/>) or <see cref="long"/> (total milliseconds * 1,000,000) depending on <see cref="AllDateTimeUseUnixEpochNano"/></description></item>
+		/// <item><description><b>GeoJSON types</b> - Converted via <see cref="GeoJSONHelpers.ConvertFromGeoJson(object)"/></description></item>
+		/// <item><description><b>JObject</b> - Converted to <see cref="Dictionary{TKey, TValue}"/> of string, object via <see cref="CDTConverter.ConvertToDictionary(JObject)"/></description></item>
+		/// <item><description><b>JArray</b> - Converted to <see cref="List{T}"/> of object via <see cref="CDTConverter.ConvertToList(JArray)"/></description></item>
+		/// <item><description><b>JProperty</b> - Converted to <see cref="Dictionary{TKey, TValue}"/> via <see cref="CDTConverter.ConvertToDictionary(JProperty)"/></description></item>
+		/// <item><description><b>JValue</b> - Recursively converted by extracting the underlying value</description></item>
+		/// <item><description><b>ARecord</b> - Converted by extracting the bin values via <see cref="ARecord.Aerospike"/> and recursively converting</description></item>
+		/// <item><description><b>AValue</b> - Converted by extracting <see cref="AValue.Value"/> and recursively converting</description></item>
+		/// <item><description><b>Aerospike.Client.Value</b> - Converted by extracting the <see cref="Value.Object"/> property</description></item>
+		/// <item><description><b>Aerospike.Client.Bin</b> - Converted by extracting the bin's value object</description></item>
+		/// <item><description><b>IDictionary</b> - If keys/values are not Aerospike types, recursively converts all keys and values to a new <see cref="Dictionary{TKey, TValue}"/></description></item>
+		/// <item><description><b>IEnumerable</b> (lists, arrays, etc.) - If elements are not Aerospike types, recursively converts all elements to a new <see cref="List{T}"/> of object</description></item>
+		/// <item><description><b>Custom objects</b> - Transformed into dictionaries via <see cref="TransForm(object, Func{string, string, object, bool, object}, bool)"/></description></item>
+		/// </list>
+		/// </returns>
+		/// <remarks>
+		/// This method is recursive and will process nested collections and dictionaries.
+		/// <para>
+		/// <b>DateTime/DateTimeOffset/TimeSpan Conversion Behavior:</b>
+		/// </para>
+		/// <list type="bullet">
+		/// <item><description>When <see cref="AllDateTimeUseUnixEpochNano"/> is <c>false</c> (default), dates and times are stored as formatted strings.</description></item>
+		/// <item><description>When <see cref="AllDateTimeUseUnixEpochNano"/> is <c>true</c>, dates and times are stored as nanoseconds since Unix epoch (1970-01-01 UTC).</description></item>
+		/// </list>
+		/// <para>
+		/// <b>Collection Behavior:</b>
+		/// </para>
+		/// <list type="bullet">
+		/// <item><description>Collections containing only Aerospike-compatible types are returned unchanged.</description></item>
+		/// <item><description>Collections with non-Aerospike types have all elements recursively converted to a new collection.</description></item>
+		/// </list>
+		/// </remarks>
+		/// <example>
+		/// <code>
+		/// // Primitive types pass through
+		/// var result1 = Helpers.ConvertToAerospikeType(123); // Returns 123 (int)
+		/// var result2 = Helpers.ConvertToAerospikeType("test"); // Returns "test" (string)
+		/// 
+		/// // Non-Aerospike types are converted
+		/// var guid = Guid.NewGuid();
+		/// var result3 = Helpers.ConvertToAerospikeType(guid); // Returns guid.ToString() (string)
+		/// 
+		/// var dt = DateTime.Now;
+		/// var result4 = Helpers.ConvertToAerospikeType(dt); 
+		/// // Returns formatted string or long (nanoseconds) depending on AllDateTimeUseUnixEpochNano
+		/// 
+		/// // Collections with non-Aerospike types
+		/// var list = new List&lt;Guid&gt; { Guid.NewGuid(), Guid.NewGuid() };
+		/// var result5 = Helpers.ConvertToAerospikeType(list);
+		/// // Returns List&lt;object&gt; with each Guid converted to string
+		/// 
+		/// // Nested collections
+		/// var nested = new Dictionary&lt;string, List&lt;DateTime&gt;&gt;
+		/// {
+		///     { "dates", new List&lt;DateTime&gt; { DateTime.Now, DateTime.Now.AddDays(1) } }
+		/// };
+		/// var result6 = Helpers.ConvertToAerospikeType(nested);
+		/// // Returns Dictionary&lt;string, object&gt; with nested List&lt;object&gt; of converted DateTimes
+		/// </code>
+		/// </example>
+		/// <seealso cref="IsAerospikeType(Type)"/>
+		/// <seealso cref="AllDateTimeUseUnixEpochNano"/>
+		/// <seealso cref="DateTimeFormat"/>
+		/// <seealso cref="DateTimeOffsetFormat"/>
+		/// <seealso cref="TimeSpanFormat"/>
+		/// <seealso cref="NanosFromEpoch(DateTime)"/>
+		/// <seealso cref="TransForm(object, Func{string, string, object, bool, object}, bool)"/>
+		/// <seealso cref="GeoJSONHelpers.ConvertFromGeoJson(object)"/>
+		/// <seealso cref="CDTConverter.ConvertToDictionary(JObject)"/>
+		/// <seealso cref="CDTConverter.ConvertToList(JArray)"/>
+		public static object ConvertToAerospikeType(object putObject)
         {
             if(putObject == null)
                 return null;
@@ -1431,25 +1530,600 @@ namespace Aerospike.Database.LINQPadDriver
             return false;
         }
 
-        /// <summary>
-        /// Based on <paramref name="fldType"/>, creates a .Net Native (int, decimal, string, datetime, etc.) instance based on <paramref name="binValue"/>.
-        /// </summary>
-        /// <param name="fldName">
-        /// Used mostly for detailed exception messages in case of errors.
-        /// </param>
-        /// <param name="fldType">
-        /// Used to create an instance of this type.
-        /// </param>
-        /// <param name="binName">
-        /// Used mostly for detailed exception messages in case of errors.
-        /// </param>
-        /// <param name="binValue">
-        /// The bin value used to create <paramref name="fldType"/>. This value maybe returned, if the types match. 
-        /// </param>
-        /// <returns>
-        /// An instance of <paramref name="fldType"/> or just <paramref name="binValue"/> depending if their types match.
-        /// </returns>
-        public static object CastToNativeType(string fldName, Type fldType, string binName, object binValue)
+		/// <summary>
+		/// Converts a .NET object into a <see cref="JObject"/>.
+		/// Handles dictionaries, DateTime, DateTimeOffset, collections, and complex objects.
+		/// If the input is a string, attempts to parse it as JSON. If it's a JSON array, wraps it in a JObject.
+		/// </summary>
+		/// <param name="obj">The object to convert</param>
+		/// <returns>A <see cref="JObject"/> representation of the object, or null if the input is null</returns>
+		public static JObject ToJObject(object obj)
+		{
+			if(obj == null)
+				return null;
+
+			if(obj is JObject jObj)
+				return jObj;
+
+			// Handle string - try to parse as JSON
+			if(obj is string str)
+			{
+				if(TryParseJsonString(str, out JToken parsedToken))
+				{
+					// If it's a JObject, return it directly
+					if(parsedToken is JObject parsedObj)
+						return parsedObj;
+
+					// If it's a JArray, wrap it in a JObject
+					if(parsedToken is JArray parsedArray)
+						return new JObject(new JProperty("items", parsedArray));
+
+					// For other JToken types (primitives), wrap them
+					return new JObject(new JProperty("value", parsedToken));
+				}
+
+				// If not JSON, wrap in a JObject
+				return new JObject(new JProperty("value", str));
+			}
+
+			// Handle JArray - wrap in JObject
+			if(obj is JArray jArray)
+				return new JObject(new JProperty("items", jArray));
+
+			// Handle ARecord
+			if(obj is ARecord aRecord)
+				return ToJObject(aRecord.ToDictionary());
+
+			// Handle AValue
+			if(obj is AValue aValue)
+				return ToJObject(aValue.Value);
+
+			// Handle JsonDocument
+			if(obj is JsonDocument jsonDoc)
+				return (JObject) jsonDoc;
+
+			// Handle dictionaries explicitly
+			if(obj is IDictionary<string, object> stringDict)
+			{
+				var jObject = new JObject();
+				foreach(var kvp in stringDict)
+				{
+					jObject[kvp.Key] = ToJToken(kvp.Value);
+				}
+				return jObject;
+			}
+
+			if(obj is IDictionary dict)
+			{
+				var jObject = new JObject();
+				foreach(DictionaryEntry entry in dict)
+				{
+					string key = entry.Key?.ToString() ?? "null";
+					jObject[key] = ToJToken(entry.Value);
+				}
+				return jObject;
+			}
+
+			// Handle collections - wrap in JObject with "items" property
+			if(obj is IEnumerable enumerable && !(obj is string) && !(obj is byte[]))
+			{
+				var njArray = new JArray();
+				foreach(var item in enumerable)
+				{
+					njArray.Add(ToJToken(item));
+				}
+				return new JObject(new JProperty("items", njArray));
+			}
+
+			// For other objects, use reflection to create JObject
+			try
+			{
+				var jObject = new JObject();
+				var properties = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+				foreach(var prop in properties)
+				{
+					if(prop.CanRead)
+					{
+						try
+						{
+							var value = prop.GetValue(obj);
+							jObject[prop.Name] = ToJToken(value);
+						}
+						catch
+						{
+							// Skip properties that can't be read
+						}
+					}
+				}
+
+				return jObject;
+			}
+			catch
+			{
+				// Fallback: create simple object representation
+				return new JObject(new JProperty("value", obj?.ToString()));
+			}
+		}
+
+		/// <summary>
+		/// Converts a .NET object into a <see cref="JToken"/>.
+		/// Supports primitive types, DateTime, collections, dictionaries, and complex objects.
+		/// If the input is a string, attempts to parse it as JSON.
+		/// </summary>
+		/// <param name="obj">The object to convert</param>
+		/// <returns>A <see cref="JToken"/> representation of the object</returns>
+		public static JToken ToJToken(object obj)
+		{
+			if(obj == null)
+				return JValue.CreateNull();
+
+			// Handle JToken types directly
+			if(obj is JToken jToken)
+				return jToken;
+
+			// Handle string - try to parse as JSON
+			if(obj is string str)
+			{
+				if(TryParseJsonString(str, out JToken parsedToken))
+					return parsedToken;
+
+				// If not JSON, return as string value
+				return new JValue(str);
+			}
+
+			// Handle DateTime types - convert to ISO string to avoid reader exceptions
+			if(obj is DateTime dt)
+			{
+				return new JValue(dt.ToString("o")); // ISO 8601 format
+			}
+
+			if(obj is DateTimeOffset dto)
+			{
+				return new JValue(dto.ToString("o")); // ISO 8601 format
+			}
+
+			if(obj is TimeSpan ts)
+			{
+				return new JValue(ts.ToString()); // Standard TimeSpan format
+			}
+
+			// Handle Guid
+			if(obj is Guid guid)
+				return new JValue(guid.ToString());
+
+			// Handle ARecord
+			if(obj is ARecord aRecord)
+				return ToJObject(aRecord);
+
+			// Handle AValue
+			if(obj is AValue aValue)
+				return ToJToken(aValue.Value);
+
+			// Handle Aerospike Value
+			if(obj is Value value)
+				return ToJToken(value.Object);
+
+			// Handle JsonDocument
+			if(obj is JsonDocument jsonDoc)
+				return (JObject) jsonDoc;
+
+			// Handle dictionaries
+			if(obj is IDictionary<string, object> stringDict)
+			{
+				var jObject = new JObject();
+				foreach(var kvp in stringDict)
+				{
+					jObject[kvp.Key] = ToJToken(kvp.Value);
+				}
+				return jObject;
+			}
+
+			if(obj is IDictionary dict)
+			{
+				var jObject = new JObject();
+				foreach(DictionaryEntry entry in dict)
+				{
+					string key = entry.Key?.ToString() ?? "null";
+					jObject[key] = ToJToken(entry.Value);
+				}
+				return jObject;
+			}
+
+			// Handle collections (but not strings or byte arrays)
+			if(obj is IEnumerable enumerable && !(obj is string) && !(obj is byte[]))
+			{
+				var jArray = new JArray();
+				foreach(var item in enumerable)
+				{
+					jArray.Add(ToJToken(item));
+				}
+				return jArray;
+			}
+
+			// Handle primitives and strings
+			if(obj is bool || obj is byte || obj is sbyte ||
+				obj is short || obj is ushort || obj is int || obj is uint ||
+				obj is long || obj is ulong || obj is float || obj is double ||
+				obj is decimal)
+			{
+				return new JValue(obj);
+			}
+
+			// Handle byte arrays
+			if(obj is byte[] byteArray)
+			{
+				return new JValue(Convert.ToBase64String(byteArray));
+			}
+
+			// Handle enums
+			if(obj.GetType().IsEnum)
+			{
+				return new JValue(obj.ToString());
+			}
+
+			// For complex objects, recursively convert properties
+			try
+			{
+				var jObject = new JObject();
+				var properties = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+				foreach(var prop in properties)
+				{
+					if(prop.CanRead)
+					{
+						try
+						{
+							var gvalue = prop.GetValue(obj);
+							jObject[prop.Name] = ToJToken(gvalue);
+						}
+						catch
+						{
+							// Skip properties that can't be read
+						}
+					}
+				}
+
+				return jObject;
+			}
+			catch
+			{
+				// Fallback to string representation
+				return new JValue(obj?.ToString());
+			}
+		}
+
+		/// <summary>
+		/// Attempts to parse a string as JSON and return a JToken (can be JObject, JArray, or JValue).
+		/// </summary>
+		/// <param name="str">The string to parse</param>
+		/// <param name="result">The parsed JToken if successful</param>
+		/// <returns>True if the string was valid JSON; otherwise false</returns>
+		private static bool TryParseJsonString(string str, out JToken result)
+		{
+			result = null;
+
+			if(string.IsNullOrWhiteSpace(str))
+				return false;
+
+			str = str.Trim();
+
+			// Quick check - JSON must start with {, [, or be a quoted string/number/boolean/null
+			if(!str.StartsWith("{") && !str.StartsWith("[") &&
+				!str.StartsWith("\"") && !str.Equals("true") &&
+				!str.Equals("false") && !str.Equals("null") &&
+				!char.IsDigit(str[0]) && str[0] != '-')
+				return false;
+
+			try
+			{
+				result = JToken.Parse(str);
+				return true;
+			}
+			catch
+			{
+				// Not valid JSON
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Determines whether <paramref name="binValue"/> can be cast to <paramref name="fldType"/> without throwing an exception.
+		/// This method mirrors the logic of <see cref="CastToNativeType(string, Type, string, object)"/> but returns a boolean instead of performing the actual cast.
+		/// </summary>
+		/// <param name="fldType">The target type to cast to</param>
+		/// <param name="binValue">The value to test for castability</param>
+		/// <returns>True if the cast would succeed; otherwise, false.</returns>
+		/// <seealso cref="CastToNativeType(string, Type, string, object)"/>
+		public static bool CanCastToNativeType(Type fldType, object binValue)
+		{
+			if(fldType == null) return false;
+
+			try
+			{
+				// Handle null values
+				if(binValue == null)
+				{
+					return !fldType.IsValueType
+						   || (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>));
+				}
+
+				// Handle JToken types
+				if(fldType == typeof(JToken) || fldType == typeof(JValue))
+				{                    
+					return true;
+				}
+
+				if(fldType == typeof(JObject))
+				{
+                    if(binValue is string str)
+                    {
+                        var tstr = str.Trim();
+						if((tstr.StartsWith("{") && !tstr.EndsWith("}"))
+                                || (tstr.StartsWith("[") && !tstr.EndsWith("]")))
+                            return false;
+                    }
+					return true;
+				}
+
+				if(fldType == typeof(JArray))
+				{
+					if(binValue is string str)
+					{
+						var tstr = str.Trim();
+                        if(tstr.StartsWith("{")
+                            || (tstr.StartsWith("[") && !tstr.EndsWith("]")))
+                            return false;						
+					}
+					return true;
+				}
+
+				if(fldType == typeof(JsonDocument))
+				{
+					if(binValue is string str)
+					{
+						var tstr = str.Trim();
+						if((tstr.StartsWith("{") && tstr.EndsWith("}"))
+								|| (tstr.StartsWith("[") && tstr.EndsWith("]")))
+							return true;
+						return false;
+					}
+					return true;
+				}
+
+				// Handle Nullable<T>
+				if(fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Nullable<>))
+				{
+					return CanCastToNativeType(fldType.GetGenericArguments()[0], binValue);
+				}
+
+				switch(binValue)
+				{
+					case byte _:
+						return fldType == typeof(byte) || fldType == typeof(short) || fldType == typeof(int) ||
+							   fldType == typeof(long) || fldType == typeof(uint) || fldType == typeof(ulong) ||
+							   fldType == typeof(ushort) || fldType == typeof(decimal) || fldType == typeof(float) ||
+							   fldType == typeof(double) || fldType == typeof(bool) || fldType == typeof(string);
+
+					case long _:
+						return fldType == typeof(byte) || fldType == typeof(short) || fldType == typeof(int) ||
+							   fldType == typeof(long) || fldType == typeof(uint) || fldType == typeof(ulong) ||
+							   fldType == typeof(ushort) || fldType == typeof(decimal) || fldType == typeof(float) ||
+							   fldType == typeof(double) || fldType == typeof(bool) || fldType == typeof(string) ||
+							   fldType.IsEnum || fldType == typeof(DateTime) || fldType == typeof(DateTimeOffset) ||
+							   fldType == typeof(TimeSpan);
+
+					case double _:
+						return fldType == typeof(short) || fldType == typeof(int) || fldType == typeof(uint) ||
+							   fldType == typeof(ulong) || fldType == typeof(ushort) || fldType == typeof(decimal) ||
+							   fldType == typeof(float) || fldType == typeof(double) || fldType == typeof(bool) ||
+							   fldType == typeof(string);
+
+					case string strValue:
+						if(string.IsNullOrEmpty(strValue))
+						{
+							return fldType == typeof(string) || GeoJSONHelpers.IsGeoValue(fldType);
+						}
+
+						if(fldType == typeof(string)) return true;
+						if(fldType == typeof(DateTime)) return DateTime.TryParse(strValue, out _);
+						if(fldType == typeof(DateTimeOffset)) return DateTimeOffset.TryParse(strValue, out _);
+						if(fldType == typeof(TimeSpan)) return TimeSpan.TryParse(strValue, out _);
+						if(fldType == typeof(bool)) return bool.TryParse(strValue, out _);
+						if(fldType == typeof(short)) return short.TryParse(strValue, out _);
+						if(fldType == typeof(int)) return int.TryParse(strValue, out _);
+						if(fldType == typeof(long)) return long.TryParse(strValue, out _);
+						if(fldType == typeof(uint)) return uint.TryParse(strValue, out _);
+						if(fldType == typeof(ulong)) return ulong.TryParse(strValue, out _);
+						if(fldType == typeof(ushort)) return ushort.TryParse(strValue, out _);
+						if(fldType == typeof(decimal)) return decimal.TryParse(strValue, out _);
+						if(fldType == typeof(float)) return float.TryParse(strValue, out _);
+						if(fldType == typeof(double)) return double.TryParse(strValue, out _);
+						if(fldType == typeof(Guid)) return Guid.TryParse(strValue, out _);
+						if(fldType == typeof(JObject) || fldType == typeof(JToken) || fldType == typeof(JArray))
+						{
+							try { var _ = JToken.Parse(strValue); return true; } catch { return false; }
+						}
+						if(fldType.IsEnum)
+						{
+							return Enum.TryParse(fldType, strValue, true, out _);
+						}
+						if(fldType == typeof(Value.GeoJSONValue)) return true;
+						if(GeoJSONHelpers.IsGeoValue(fldType))
+						{
+							try { var _ = GeoJSONHelpers.ConvertToGeoJson(strValue); return true; } catch { return false; }
+						}
+						return false;
+
+					case Value.GeoJSONValue _:
+						return GeoJSONHelpers.IsGeoValue(fldType);
+
+					case DateTime _:
+						return fldType == typeof(DateTime) || fldType == typeof(DateTimeOffset) ||
+							   fldType == typeof(string) || fldType == typeof(long) ||
+							   fldType == typeof(JObject) || fldType == typeof(JToken);
+
+					case DateTimeOffset _:
+						return fldType == typeof(DateTime) || fldType == typeof(DateTimeOffset) ||
+							   fldType == typeof(string) || fldType == typeof(long) ||
+							   fldType == typeof(JObject) || fldType == typeof(JToken);
+
+					case TimeSpan _:
+						return fldType == typeof(TimeSpan) || fldType == typeof(string) ||
+							   fldType == typeof(JObject) || fldType == typeof(JToken);
+
+					case IList<AValue> _:
+						return CanCastToNativeType(fldType, ((IList<AValue>) binValue).Cast<object>().ToList());
+
+					case IList<object> _:
+						// IList<object> can be converted to arrays and generic collections
+						return fldType.IsArray || IsSubclassOfInterface(typeof(IList<>), fldType) ||
+							   (fldType != typeof(string) && IsSubclassOfInterface(typeof(IEnumerable<>), fldType));
+
+					case IDictionary<AValue, AValue> _:
+						return CanCastToNativeType(fldType, ((IDictionary<AValue, AValue>) binValue).ToDictionary(k => (object) k.Key, v => (object) v.Value));
+
+					case IDictionary<string, object> _:
+						return CanCastToNativeType(fldType, ((IDictionary<string, object>) binValue).ToDictionary(k => (object) k.Key, v => v.Value));
+
+					case IDictionary<object, object> _:
+						return fldType == typeof(JsonDocument) || fldType == typeof(JObject) ||
+							   IsSubclassOfInterface(typeof(IDictionary<,>), fldType) ||
+							   !fldType.IsPrimitive;
+
+					case AValue aValue:
+						if(aValue.Value is null) return true;
+
+						if(fldType.IsGenericType && aValue.UnderlyingType.IsGenericType &&
+							aValue.UnderlyingType.GetGenericTypeDefinition() == fldType.GetGenericTypeDefinition())
+						{
+							return CanCastToNativeType(fldType, aValue.Value);
+						}
+
+						return fldType == typeof(string) || fldType == typeof(DateTime) ||
+							   fldType == typeof(DateTimeOffset) || fldType == typeof(TimeSpan) ||
+							   fldType == typeof(bool) || fldType == typeof(short) ||
+							   fldType == typeof(int) || fldType == typeof(uint) ||
+							   fldType == typeof(ulong) || fldType == typeof(ushort) ||
+							   fldType == typeof(decimal) || fldType == typeof(float) ||
+							   fldType == typeof(double) || fldType == typeof(long) ||
+							   fldType == typeof(Guid) || fldType == typeof(JObject) ||
+							   fldType == typeof(JsonDocument) || fldType.IsEnum;
+
+					case IConvertible _:
+						if(fldType == typeof(DateTimeOffset) || fldType == typeof(TimeSpan) ||
+							fldType == typeof(Guid) || fldType == typeof(JObject) ||
+							fldType == typeof(JsonDocument))
+						{
+							return true;
+						}
+						if(fldType.IsEnum) return true;
+
+						// IConvertible can convert to most basic types
+						return fldType.IsPrimitive || fldType == typeof(string) ||
+							   fldType == typeof(DateTime) || fldType == typeof(decimal);
+
+					default:
+						var binValueType = binValue.GetType();
+
+						// Handle arrays - mirrors CastToNativeType lines 2735-2770
+						if(binValueType.IsArray)
+						{
+							// Array to array
+							if(fldType.IsArray)
+							{
+								return true;
+							}
+
+							// Array to generic collection (e.g., int[] to List<int>)
+							if(fldType.IsGenericType && IsSubclassOfInterface(typeof(IEnumerable<>), fldType))
+							{
+								return true;
+							}
+
+							// Special case: byte[] to string
+							if(fldType == typeof(string) && binValueType.GetElementType() == typeof(byte))
+							{
+								return true;
+							}
+
+							// Arrays can't convert to other types (except above cases)
+							return false;
+						}
+
+						// Handle generic collections like List<int>, HashSet<string>, etc.
+						// These can be converted by enumeration if target is array or compatible collection
+						if(binValue is IEnumerable && !(binValue is string) && !(binValue is byte[]) && !(binValue is IDictionary))
+						{
+							// Check if it's a generic collection (List<T>, IEnumerable<T>, etc.)
+							var binInterfaces = binValueType.GetInterfaces();
+							var isGenericCollection = binInterfaces.Any(i =>
+								i.IsGenericType &&
+								(i.GetGenericTypeDefinition() == typeof(IEnumerable<>) ||
+								 i.GetGenericTypeDefinition() == typeof(IList<>) ||
+								 i.GetGenericTypeDefinition() == typeof(ICollection<>)));
+
+							if(isGenericCollection)
+							{
+								// Generic collections CAN be converted to arrays
+								if(fldType.IsArray)
+								{
+									return true;
+								}
+
+								// Generic collections CAN be converted to other generic collection types
+								if(fldType.IsGenericType && IsSubclassOfInterface(typeof(IEnumerable<>), fldType))
+								{
+									return true;
+								}
+
+								// Generic collections can also be converted to non-generic IList, IEnumerable
+								if(typeof(IList).IsAssignableFrom(fldType) 
+                                    || (typeof(IEnumerable).IsAssignableFrom(fldType) && fldType != typeof(string)))
+								{
+									return true;
+								}
+							}
+
+							// Non-generic collections are not handled
+							return false;
+						}
+
+						// Direct type match
+						if(fldType.IsAssignableFrom(binValueType))
+						{
+							return true;
+						}
+
+						return false;
+				}
+			}
+			catch
+			{
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Based on <paramref name="fldType"/>, creates a .Net Native (int, decimal, string, datetime, etc.) instance based on <paramref name="binValue"/>.
+		/// </summary>
+		/// <param name="fldName">
+		/// Used mostly for detailed exception messages in case of errors.
+		/// </param>
+		/// <param name="fldType">
+		/// Used to create an instance of this type.
+		/// </param>
+		/// <param name="binName">
+		/// Used mostly for detailed exception messages in case of errors.
+		/// </param>
+		/// <param name="binValue">
+		/// The bin value used to create <paramref name="fldType"/>. This value maybe returned, if the types match. 
+		/// </param>
+		/// <returns>
+		/// An instance of <paramref name="fldType"/> or just <paramref name="binValue"/> depending if their types match.
+		/// </returns>
+		public static object CastToNativeType(string fldName, Type fldType, string binName, object binValue)
         {
             //Debugger.Launch();
 
@@ -1471,7 +2145,8 @@ namespace Aerospike.Database.LINQPadDriver
                                                 innerException);
             }
 
-            if (fldType == typeof(object) || fldType == binValue?.GetType())
+            if (fldType == typeof(object) 
+                    || fldType == binValue?.GetType())
             {
                 return binValue;
             }            
@@ -1481,7 +2156,7 @@ namespace Aerospike.Database.LINQPadDriver
                 {
                     if (fldType == typeof(JToken))
                     {
-                        return binValue is null ? (JToken)null : JToken.FromObject(binValue);
+                        return binValue is null ? (JToken)null : ToJToken(binValue);
                     }
                     else if (fldType == typeof(JValue))
                     {
@@ -1489,15 +2164,27 @@ namespace Aerospike.Database.LINQPadDriver
                     }
                     else if (fldType == typeof(JArray))
                     {
-                        return binValue is null ? (JArray)null : JArray.FromObject(binValue);
+						if(binValue is string str)
+						{
+							if(TryParseJsonString(str, out JToken parsedToken))
+							{
+								if(parsedToken is JArray parsedArray)
+									return parsedArray;
+							}
+
+							// If not JSON, wrap in a JObject
+							return new JObject(new JProperty("value", str));
+						}
+
+						return binValue is null ? (JArray)null : JArray.FromObject(binValue);
                     }
                     else if (fldType == typeof(JObject))
                     {
                         if (binValue is Value.GeoJSONValue geoJson)
                             return JObject.FromObject(geoJson.value);
 
-                        return binValue is null ? (JObject)null : JObject.FromObject(binValue);
-                    }
+						return ToJObject(binValue);
+					}
                     else if (fldType == typeof(JsonDocument))
                     {
                         return binValue is null ? (JsonDocument) null : new JsonDocument(JObject.FromObject(binValue));
@@ -1522,19 +2209,23 @@ namespace Aerospike.Database.LINQPadDriver
                                 {
                                     return (int)byteValue;
                                 }
-                                else if (fldType == typeof(uint))
+								else if(fldType == typeof(long))
+								{
+									return (long) byteValue;
+								}
+								else if (fldType == typeof(uint))
                                 {
                                     return (uint)byteValue;
                                 }
                                 else if (fldType == typeof(ulong))
                                 {
                                     return (ulong)byteValue;
-                                }
-                                else if (fldType == typeof(ushort))
+                                }								
+								else if (fldType == typeof(ushort))
                                 {
                                     return (ushort)byteValue;
-                                }
-                                else if (fldType == typeof(decimal))
+                                }								
+								else if (fldType == typeof(decimal))
                                 {
                                     return (decimal)byteValue;
                                 }
@@ -1592,7 +2283,11 @@ namespace Aerospike.Database.LINQPadDriver
                                 {
                                     return (ushort)intValue;
                                 }
-                                else if (fldType == typeof(decimal))
+								else if(fldType == typeof(byte))
+								{
+									return (byte) intValue;
+								}
+								else if (fldType == typeof(decimal))
                                 {
                                     return (decimal)intValue;
                                 }
@@ -1619,20 +2314,20 @@ namespace Aerospike.Database.LINQPadDriver
                                 else if (fldType == typeof(DateTime))
                                 {
 
-                                    return UseUnixEpochNanoForNumericDateTime || AllDateTimeUseUnixEpochNano
-                                            ? NanoEpochToDateTime(intValue)
+                                    return UseUnixEpochNumericDT
+											? NanoEpochToDateTime(intValue)
                                             : new DateTime(intValue);
                                 }
                                 else if (fldType == typeof(DateTimeOffset))
                                 {
-                                    return UseUnixEpochNanoForNumericDateTime || AllDateTimeUseUnixEpochNano
-                                            ? new DateTimeOffset(NanoEpochToDateTime(intValue), TimeSpan.Zero)
+                                    return UseUnixEpochNumericDT
+											? new DateTimeOffset(NanoEpochToDateTime(intValue), TimeSpan.Zero)
                                             : new DateTimeOffset(intValue, TimeSpan.Zero);
                                 }
                                 else if (fldType == typeof(TimeSpan))
                                 {
-                                    return UseUnixEpochNanoForNumericDateTime || AllDateTimeUseUnixEpochNano
-                                            ? new TimeSpan(intValue / 100)
+                                    return UseUnixEpochNumericDT
+											? new TimeSpan(intValue / 100)
                                             : new TimeSpan(intValue);
                                 }
                                 else
@@ -1657,7 +2352,11 @@ namespace Aerospike.Database.LINQPadDriver
                                 {
                                     return (int)doubleValue;
                                 }
-                                else if (fldType == typeof(uint))
+								else if(fldType == typeof(long))
+								{
+									return (long) doubleValue;
+								}
+								else if (fldType == typeof(uint))
                                 {
                                     return (uint)doubleValue;
                                 }
@@ -1668,8 +2367,8 @@ namespace Aerospike.Database.LINQPadDriver
                                 else if (fldType == typeof(ushort))
                                 {
                                     return (ushort)doubleValue;
-                                }
-                                else if (fldType == typeof(decimal))
+                                }								
+								else if (fldType == typeof(decimal))
                                 {
                                     return (decimal)doubleValue;
                                 }
@@ -1734,7 +2433,11 @@ namespace Aerospike.Database.LINQPadDriver
 
                                     return TimeSpan.ParseExact(strValue, TimeSpanFormat, CultureInfo.InvariantCulture);
                                 }
-                                else if (fldType == typeof(bool))
+								else if(fldType == typeof(byte))
+								{
+									return byte.Parse(strValue);
+								}
+								else if (fldType == typeof(bool))
                                 {
                                     return bool.Parse(strValue);
                                 }
@@ -2189,17 +2892,17 @@ namespace Aerospike.Database.LINQPadDriver
                                 {
                                     var binValueType = binValue.GetType();
 
-                                    if (binValueType.IsArray)
+                                    if(binValueType.IsArray)
                                     {
-                                        var binArray = (Array)binValue;
+                                        var binArray = (Array) binValue;
 
-                                        if (fldType.IsArray)
+                                        if(fldType.IsArray)
                                         {
                                             var itemType = fldType.GetElementType();
                                             var newArray = Array.CreateInstance(itemType, binArray.Length);
                                             var idx = 0;
 
-                                            foreach (var item in binArray)
+                                            foreach(var item in binArray)
                                             {
                                                 newArray.SetValue(CastToNativeType(fldName, itemType, binName, item), idx++);
                                             }
@@ -2207,12 +2910,12 @@ namespace Aerospike.Database.LINQPadDriver
                                             return newArray;
                                         }
 
-                                        if (fldType.IsGenericType && IsSubclassOfInterface(typeof(IEnumerable<>), fldType))
+                                        if(fldType.IsGenericType && IsSubclassOfInterface(typeof(IEnumerable<>), fldType))
                                         {
                                             var itemTypes = fldType.GetGenericArguments();
-                                            var newList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(itemTypes[0]));
+                                            var newList = (IList) Activator.CreateInstance(typeof(List<>).MakeGenericType(itemTypes[0]));
 
-                                            foreach (var item in binArray)
+                                            foreach(var item in binArray)
                                             {
                                                 newList.Add(CastToNativeType(fldName, itemTypes[0], binName, item));
                                             }
@@ -2220,11 +2923,20 @@ namespace Aerospike.Database.LINQPadDriver
                                             return newList;
                                         }
 
-                                        if (fldType == typeof(string) && binValueType.GetElementType() == typeof(byte))
+                                        if(fldType == typeof(string) && binValueType.GetElementType() == typeof(byte))
                                         {
-                                            return Encoding.Default.GetString((byte[])binValue);
+                                            return Encoding.Default.GetString((byte[]) binValue);
                                         }
                                     }
+                                    else if(fldType.IsAssignableFrom(binValue.GetType()))
+                                    {
+										return binValue;
+									}
+                                    else if(binValue is IList vLst)
+                                    {
+										IList<object> genericList = vLst.Cast<object>().ToList();
+                                        return CastToNativeType(fldName, fldType, binName, genericList);
+									}
                                 }
 
                                 throw CreateException(binValue);
