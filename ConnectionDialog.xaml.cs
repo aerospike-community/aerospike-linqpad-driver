@@ -21,9 +21,7 @@ namespace Aerospike.Database.LINQPadDriver
         readonly ConnectionProperties _connectionProps;
 
         public ConnectionDialog (IConnectionInfo cxInfo)
-		{
-            System.Diagnostics.Debugger.Launch();
-
+        {
 			_cxInfo = cxInfo;
 
             // ConnectionProperties is your view-model.
