@@ -12,7 +12,6 @@ using Aerospike.Database.LINQPadDriver.Extensions;
 using static Aerospike.Database.LINQPadDriver.ConnectionProperties;
 using Aerospike.Client;
 using Microsoft.Win32;
-using static Aerospike.Client.AerospikeException;
 
 namespace Aerospike.Database.LINQPadDriver
 {
@@ -23,6 +22,8 @@ namespace Aerospike.Database.LINQPadDriver
 
         public ConnectionDialog (IConnectionInfo cxInfo)
 		{
+            System.Diagnostics.Debugger.Launch();
+
 			_cxInfo = cxInfo;
 
             // ConnectionProperties is your view-model.
@@ -500,8 +501,14 @@ Host Status:";
             {
                 try
                 {
-                    return (string[])typeof(LINQPad.Util).Assembly.GetType("LINQPad.PasswordManager")
-                            .GetMethod("GetAllPasswordNames").Invoke(null, null);
+                    var lpPssMgr = ConnectionProperties.LinqPadPasswordManager;
+                    if(lpPssMgr != null)
+                    {
+                        return ((HashSet<string>) typeof(LINQPad.Util).Assembly.GetType("LINQPad.PasswordManager")
+                                .GetMethod("GetAllPasswordNames")
+                                .Invoke(lpPssMgr, null))
+                                ?.ToArray();
+                    }
                 }
                 catch (Exception ex)
                 {

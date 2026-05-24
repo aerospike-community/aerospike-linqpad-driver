@@ -598,11 +598,16 @@ namespace Aerospike.Database.LINQPadDriver
                 Client.Log.Info($"Open Start {this.ConnectionString}");
             }
 
-            static string GetPasswordName(string name)
+            static string GetPasswordName(string name, string user)
             {
-                return (string)typeof(LINQPad.Util).Assembly.GetType("LINQPad.PasswordManager")
-                            ?.GetMethod("GetPassword")
-                            ?.Invoke(null, new object[] {name});
+				var lpPssMgr = ConnectionProperties.LinqPadPasswordManager;
+                if(lpPssMgr != null)
+                {
+                    return (string) typeof(LINQPad.Util).Assembly.GetType("LINQPad.PasswordManager")
+                                ?.GetMethod("GetPassword")
+                                ?.Invoke(lpPssMgr, new object[] { name, "Aerospike " + user });
+                }
+                return null;
             }
 
             this.State = ConnectionState.Connecting;
@@ -610,15 +615,17 @@ namespace Aerospike.Database.LINQPadDriver
             try
             {
                 var password = this.CXInfo.DatabaseInfo.Password;
+				var userName = this.CXInfo.DatabaseInfo.UserName;
 
-                if(this.UsePasswordManager)
+				if(this.UsePasswordManager)
                 {
-                    var newPassword = GetPasswordName(this.PasswordManagerName)
+                    var newPassword = GetPasswordName(this.PasswordManagerName,
+                                                        userName)
                                         ?? throw new KeyNotFoundException($"A LINQPad Password Manager Name of \"{this.PasswordManagerName}\" was provided but was not found in LINQPAD. You need to define the password association with name or disable Password Manager use!");
                     password = newPassword;
                 }
 
-                var userName = this.CXInfo.DatabaseInfo.UserName;
+                
 
                 if(string.IsNullOrEmpty(userName) )
                 {

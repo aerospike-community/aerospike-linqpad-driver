@@ -1,7 +1,7 @@
 ﻿using Aerospike.Client;
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Data;
 using System.Linq;
 using System.Text;
 
@@ -19,6 +19,18 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 	{
 		private readonly AClusterAccess cluster;
 		private readonly AerospikeConnection connection;
+
+		private const string DriverRepositoryUrl =
+			"https://github.com/aerospike-community/aerospike-linqpad-driver";
+
+		private const string DriverRepositoryName =
+			"aerospike-community/aerospike-linqpad-driver";
+
+		private const string AValueReadmeFileName =
+			"AValues_Readme.md";
+
+		private const string AutoValuesBlogUrl =
+			"https://aerospike.com/developer/blog/how-to-use-auto-values-in-nosql-linqpad-driver";
 
 		private AerospikeAIContext(AClusterAccess cluster)
 		{
@@ -86,6 +98,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			return TrimToMaxChars(sb.ToString(), options.MaxChars);
 		}
 
+		private const string DefaultUserRequest =
+	"This should generate a safe, read-only LINQPad C# Statements query that explores the Aerospike Cluster associated with this connection. " +
+	"Use the available namespace, set, bin, index, AValue, APrimaryKey, and expression context. " +
+	"Prefer query syntax when practical, use generated properties instead of string-indexer access, " +
+	"use PK for primary keys when available, call AsEnumerable() for LINQ collection operations, " +
+	"limit output to 100 records, and display results with Dump().";
+
 		/// <summary>
 		/// Builds a complete AI prompt using this connection's context and a user request.
 		/// </summary>
@@ -94,9 +113,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			AerospikeAIContextOptions options = null,
 			string systemInstruction = null)
 		{
-			if(string.IsNullOrWhiteSpace(userRequest))
+			if(userRequest is null)
 			{
-				throw new ArgumentException("User request cannot be blank.", nameof(userRequest));
+				userRequest = DefaultUserRequest;
 			}
 
 			options ??= new AerospikeAIContextOptions();
@@ -179,6 +198,9 @@ Do not generate:
 You are generating LINQPad C# statements for the Aerospike LINQPad driver.
 
 Use only the APIs, generated members, namespaces, sets, bins, and examples described in the supplied context.
+The Aerospike LINQPad driver source repository is {DriverRepositoryUrl}.
+The detailed Auto-Values README is ./{AValueReadmeFileName}, and the Auto-Values blog article is {AutoValuesBlogUrl}.
+Use these references as additional human/source guidance when available, but do not assume live web access from LINQPad AI.
 Return runnable LINQPad C# statements unless the user asks for explanation.
 Prefer safe, bounded, read-only queries unless the user explicitly asks for writes.
 Use Dump() for output.
@@ -206,43 +228,54 @@ When AValue / AutoValue behavior is disabled and metadata shows a concrete CLR t
 
 Important AValue operation rule:
 Generated record properties may be AValue instances, especially when Always use AValue / AutoValue behavior is enabled.
+AValue exists to make schemaless, mixed-type, sparse Aerospike records natural in LINQPad without repeated null checks, casts, type guards, or raw Aerospike Value plumbing.
 When a generated property is AValue-backed, prefer AValue-aware operations instead of unsafe CLR casts.
+Use direct AValue comparison for simple equality such as customer.State == ""CA"".
+Use type checks such as IsString, IsNumeric, IsInt, IsFloat, IsBool, IsList, IsMap, IsDictionary, IsCDT, IsJson, IsGeoJson, IsDateTime, IsDateTimeOffset, IsTimeSpan, IsKeyValuePair, IsEmpty, and UnderlyingType when operation semantics depend on the underlying type.
 Use value.CanConvert<T>() to test conversion without throwing.
 Use value.Convert<T>() when conversion is expected to be valid.
 Use value.Apply<TValue, TResult>(func) to safely convert an existing AValue, execute func, and return the result or default.
 Use value.TryApply<TValue, TResult>(func) when the AValue may be null or the bin may be missing; this is preferred in query filters.
-Use TryApply for type-specific methods such as StartsWith, Contains, ToUpper, date operations, or numeric calculations.
+Use TryApply for type - specific methods such as StartsWith, Contains, ToUpper, date operations, or numeric calculations.
 For example:
-    from customer in test.Customer.AsEnumerable()
-    where customer.FirstName.TryApply<string, bool>(name => name.StartsWith(""a""))
-    select customer
+
+	from customer in test.Customer.AsEnumerable()
+	where customer.FirstName.TryApply<string, bool>(name => name.StartsWith(""a""))
+	select customer
 AValue supports comparison operators such as ==, !=, <, >, <=, and >=, and CompareTo(...).
-Use direct comparison operators only when the intent is direct value comparison and the generated property/operator supports it.
+Use direct comparison operators only when the intent is direct value comparison and the generated property /operator supports it.
+For mixed - type ordering, add type checks or CanConvert<T>() before numeric / date ordering comparisons.
+Use Contains(...), ContainsKey(...), FindAll(...), TryGetValue(...), and AValue.MatchOptions for scalar / list / map / JSON / CDT search scenarios.
+Use AsEnumerable(), AsEnumerable<T>(), ToList(), ToListItem(), ToDictionary(), ToDictionary<K, V>(), ToCDT(), ElementAt(...), and ElementAtOrDefault(...) for collection, map, JSON, GeoJSON, and CDT exploration.
+Use ToBin() when turning an AValue back into an Aerospike Bin for write operations.
+Use DebugDump() when debugging AValue metadata.
 For IEnumerable<AValue>, use OfType<T>(), Cast<T>(), or Convert<T>() depending on whether exact type filtering, strict casting, or coercion is desired.
+Use ToExpBin() for an Aerospike expression bin reference and ToExpVal() for an Aerospike expression literal when building server - side expressions from AValues.
 
 Important Aerospike expression rule:
-Aerospike filter expressions are server-side expressions built with the Aerospike C# client Exp APIs.
-Use filter expressions when the user asks for server-side filtering, Aerospike filter expressions, expression filters, metadata filters, CDT/map/list expression filters, or when the user explicitly asks to use SetRecords.Query(...).
-Do not confuse Aerospike filter expressions with LINQ where clauses.
-A LINQ where clause filters client-side after records are returned.
-A Aerospike.Client.Exp passed to SetRecords.Query(...), Take(...), First(...), FirstOrDefault(...), or AsEnumerable(...) is applied by Aerospike on the server.
-When passing a Aerospike.Client.Exp to SetRecords.Query(...), do not call Exp.Build(...) yourself because the driver builds it into the policy.
-Use generated record properties only in LINQ logic after records are returned.
-Use raw Aerospike bin names inside Exp.StringBin(...), Exp.IntBin(...), Exp.FloatBin(...), Exp.BoolBin(...), Exp.Bin(...), MapExp, ListExp, and related server-side expression builders.
-Prefer Query(filterExpression, bins...) for expression-filtered set queries.
-Prefer Query(secondaryIdxFilter, filterExpression, bins...) or the named-argument Query overload when combining a secondary index with an expression filter.
-Use operational expressions with Operate(...) and ExpOperation.Read(...) or ExpOperation.Write(...) only when the user asks to compute or write expression-derived values atomically.
+AValue comparisons and LINQ where clauses are client - side after records are returned and materialized by the driver.
+Aerospike filter expressions are server - side and use raw Aerospike bin names plus Aerospike Exp APIs.
+Use Aerospike expressions when the user asks for server - side filtering, expression filters, filter expressions, Query(...), CDT / map / list expression filters, or reducing records at the server.
+Use raw bin names inside Exp.StringBin(...), Exp.IntBin(...), Exp.FloatBin(...), Exp.BoolBin(...), Exp.Bin(...), MapExp, ListExp, and related expression builders.
+Do not use generated record properties inside server - side Exp.* expression builders.
+For straightforward expressions, Exp.StringBin(""Status"") and Exp.Val(""active"") are fine.
+When using AValue expression helpers, use value.ToExpBin(...) for the bin reference side and value.ToExpVal() for the literal side.
+Do not call Exp.Build(...) when passing a Client.Exp filter expression to SetRecords.Query(...); the driver builds it into the policy.
+Use operational expressions with Operate(...) and ExpOperation.Read(...) / ExpOperation.Write(...) only when the user asks for expression read/ write operations.
 
-Important primary-key rule:
-When the Aerospike primary key value is required, prefer the generated/default primary-key property when available.
-For example, use record.{ARecord.DefaultASPIKeyName} when {ARecord.DefaultASPIKeyName} exists.
-If no generated/default primary-key property is available, use record.GetPK().
+
+Important primary - key rule:
+When the Aerospike primary key value is required, prefer the generated / default primary - key property when available.
+For example, use record.{ ARecord.DefaultASPIKeyName}
+			when { ARecord.DefaultASPIKeyName}
+			exists.
+If no generated / default primary - key property is available, use record.GetPK().
 Do not use string bin access for the primary key unless the context explicitly says the primary key is stored as a normal bin.
 
 Important LINQ rule:
-Generated Aerospike set objects are SetRecords / SetRecords<T> instances.
+Generated Aerospike set objects are SetRecords / SetRecords < T > instances.
 For LINQ collection operations such as Join, GroupJoin, OrderBy, GroupBy, SelectMany, Concat, Union, Distinct, Except, Intersect, ToDictionary, and similar methods, call AsEnumerable() on the set first.
-Note: The API has native First, FirstOrDefault, Skip, Where, ToList and ToArry functions for ""set"" instances (i.e., SetRecords, SetRecords<T>) and those should be used directly. if possible, without using the AsEnumerable() pattern.
+Note: The API has native First, FirstOrDefault, Skip, Where, ToList and ToArry functions for ""set"" instances(i.e., SetRecords, SetRecords<T>) and those should be used directly. if possible, without using the AsEnumerable() pattern.
 When using query syntax, generate from record in NamespaceName.SetName.AsEnumerable().
 When using method syntax, generate NamespaceName.SetName.AsEnumerable() before Join, OrderBy, GroupBy, and similar methods.
 ";
@@ -254,6 +287,16 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine();
 			sb.AppendLine("This context describes the current Aerospike LINQPad connection.");
 			sb.AppendLine("Aerospike is schemaless, so bin/type information is observed or inferred from driver metadata.");
+			sb.AppendLine();
+			sb.AppendLine("## Driver Reference");
+			sb.AppendLine();
+			sb.AppendLine($"- Driver repository: `{DriverRepositoryName}`");
+			sb.AppendLine($"- Repository URL: {DriverRepositoryUrl}");
+			sb.AppendLine($"- Auto-Values README: `./{AValueReadmeFileName}`");
+			sb.AppendLine($"- Auto-Values blog article: {AutoValuesBlogUrl}");
+			sb.AppendLine("- Treat this generated AI context as the primary source for the current connection.");
+			sb.AppendLine("- Use the repository, README, and blog as additional human/source references for driver APIs, samples, and behavior when accessible.");
+			sb.AppendLine("- Do not assume the AI provider has live web access to the repository or external links.");
 			sb.AppendLine();
 		}
 
@@ -299,6 +342,7 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine();
 
 			AppendAValueOperationGuide(sb);
+			AppendPrimaryKeyDigestGuide(sb);
 			AppendAerospikeExpressionGuide(sb);
 
 			sb.AppendLine("### Important Primary Key Rule");
@@ -328,8 +372,15 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("### Important AValue Operations Rule");
 			sb.AppendLine();
 			sb.AppendLine("- Generated record properties may be `AValue` instances, especially when `Always use AValue` / AutoValue behavior is enabled.");
+			sb.AppendLine("- `AValue` makes schemaless, mixed-type, sparse Aerospike records feel natural in LINQPad without repeated null checks, casts, type guards, or raw `Aerospike.Client.Value` plumbing.");
 			sb.AppendLine("- Prefer generated record properties first, such as `customer.FirstName`, `invoice.Total`, or `record.Status`.");
 			sb.AppendLine("- When a generated property is `AValue`, use the driver's AValue-aware operations instead of unsafe casts.");
+			sb.AppendLine("- For simple equality, direct comparisons such as `customer.State == \"CA\"` or `record.Status == \"active\"` are preferred when the generated property/operator supports the comparison.");
+			sb.AppendLine();
+			sb.AppendLine("#### AValue type inspection");
+			sb.AppendLine();
+			sb.AppendLine("- Use type-inspection properties when the operation depends on the underlying type: `IsString`, `IsNumeric`, `IsInt`, `IsFloat`, `IsBool`, `IsList`, `IsMap`, `IsDictionary`, `IsCDT`, `IsJson`, `IsGeoJson`, `IsDateTime`, `IsDateTimeOffset`, `IsTimeSpan`, `IsKeyValuePair`, `IsEmpty`, and `UnderlyingType`.");
+			sb.AppendLine("- For mixed-type ordering, prefer type checks or `CanConvert<T>()` before numeric/date comparisons.");
 			sb.AppendLine();
 			sb.AppendLine("#### AValue conversion operations");
 			sb.AppendLine();
@@ -345,11 +396,21 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("- Use simple comparison operators when the intent is direct value comparison and the generated property/operator supports it.");
 			sb.AppendLine("- Use `Apply` or `TryApply` when invoking type-specific methods such as `StartsWith`, `Contains`, `ToUpper`, date operations, or numeric calculations.");
 			sb.AppendLine();
-			sb.AppendLine("#### AValue collection helper operations");
+			sb.AppendLine("#### AValue collection, map, JSON, and CDT operations");
 			sb.AppendLine();
-			sb.AppendLine("- For `IEnumerable<AValue>`, use `OfType<T>()` to return only underlying values that are exactly type `T`.");
-			sb.AppendLine("- For `IEnumerable<AValue>`, use `Cast<T>()` when each underlying value must be cast to `T` and failures should throw.");
-			sb.AppendLine("- For `IEnumerable<AValue>`, use `Convert<T>()` when values should be coerced to `T` where possible and non-convertible values should be ignored.");
+			sb.AppendLine("- Use `Contains(...)`, `ContainsKey(...)`, `FindAll(...)`, `TryGetValue(...)`, and `AValue.MatchOptions` for scalar/list/map/JSON/CDT search scenarios.");
+			sb.AppendLine("- `AValue.MatchOptions` can control value matching, equality matching, dictionary key/value matching, substring matching, exact matching, and regex matching.");
+			sb.AppendLine("- Use `AsEnumerable()`, `AsEnumerable<T>()`, `ToList()`, `ToListItem()`, `ToDictionary()`, `ToDictionary<K,V>()`, `ToCDT()`, `ElementAt(...)`, and `ElementAtOrDefault(...)` for collection, map, JSON, GeoJSON, and CDT exploration.");
+			sb.AppendLine("- Use `Count()` for string or collection counts, noting that non-string/non-collection values may return `-1`.");
+			sb.AppendLine("- Use `ToBin()` when turning an `AValue` back into an Aerospike `Bin` for write operations.");
+			sb.AppendLine("- Use `DebugDump()` when debugging `AValue` metadata such as value, bin name, field name, and detected type.");
+			sb.AppendLine();
+			sb.AppendLine("#### AValue helper extension operations");
+			sb.AppendLine();
+			sb.AppendLine("- Use `ToAValue(...)` to create an `AValue` from a normal value, nullable value, Aerospike `Value`, or Aerospike `Bin`.");
+			sb.AppendLine("- Use `ToAPrimaryKey(...)` to create an `APrimaryKey` from a normal value or Aerospike `Key`.");
+			sb.AppendLine("- Use `ToAValueList()` to create a list of AValues from an `ARecord` or Aerospike `Record`.");
+			sb.AppendLine("- For `IEnumerable<AValue>`, use `OfType<T>()`, `Cast<T>()`, or `Convert<T>()` depending on whether exact type filtering, strict casting, or coercion is desired.");
 			sb.AppendLine();
 			sb.AppendLine("#### Preferred query usage");
 			sb.AppendLine();
@@ -357,6 +418,37 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("- Use `Apply<TValue, TResult>(...)` when the `AValue` is expected to exist but the underlying value still needs safe conversion.");
 			sb.AppendLine("- Avoid direct CLR casts such as `(string)customer.FirstName.Value` unless the context clearly says the value is present and has that exact type.");
 			sb.AppendLine("- Avoid calling type-specific CLR methods directly on an `AValue` unless the generated property type is known to be that CLR type.");
+			sb.AppendLine();
+		}
+
+		private void AppendPrimaryKeyDigestGuide(StringBuilder sb)
+		{
+			sb.AppendLine("### Important APrimaryKey / Digest Rule");
+			sb.AppendLine();
+			sb.AppendLine("- `APrimaryKey` is the primary-key companion to `AValue` and supports the same Auto-Value style comparisons and conversions.");
+			sb.AppendLine("- Prefer the generated/default primary-key property first, then `GetPK()` if the generated property is unavailable.");
+			sb.AppendLine("- `APrimaryKey` can represent a user key value, an Aerospike `Key`, a digest-backed key, a byte-array digest, or a hex digest string.");
+			sb.AppendLine("- Records written with send-key disabled may not expose the original user key, but can still be identified by digest.");
+			sb.AppendLine("- A digest identifies the record but is not the original user key value.");
+			sb.AppendLine("- The native Aerospike `Key` instance can be obtained through the `AerospikeKey` property when native API calls require it.");
+			sb.AppendLine("- Digest/user-key comparisons are supported, so primary-key filters can often be written naturally, such as `record.PK == \"0x...\"` or `record.PK == userKeyValue`.");
+			sb.AppendLine("- Do not treat the primary key as a normal bin unless the context explicitly says the primary key is stored as a bin.");
+			sb.AppendLine();
+		}
+
+		private static void AppendAerospikeExpressionGuide(StringBuilder sb)
+		{
+			sb.AppendLine("### Important Aerospike Expression Rule");
+			sb.AppendLine();
+			sb.AppendLine("- AValue comparisons and LINQ `where` clauses are client-side after records are returned and materialized by the driver.");
+			sb.AppendLine("- Aerospike filter expressions are server-side and use raw Aerospike bin names plus Aerospike expression APIs.");
+			sb.AppendLine("- Use Aerospike expressions when the user asks for server-side filtering, expression filters, filter expressions, `Query(...)`, CDT/map/list expression filters, or reducing records at the server.");
+			sb.AppendLine("- Use raw bin names inside `Exp.StringBin(...)`, `Exp.IntBin(...)`, `Exp.FloatBin(...)`, `Exp.BoolBin(...)`, `Exp.Bin(...)`, `MapExp`, `ListExp`, and related expression builders.");
+			sb.AppendLine("- Do not use generated record properties inside server-side `Exp.*` expression builders.");
+			sb.AppendLine("- When using AValue expression helpers, use `value.ToExpBin(...)` for the bin reference side and `value.ToExpVal()` for the literal side.");
+			sb.AppendLine("- For straightforward server-side expressions, using raw bin names directly is usually simpler and clearer.");
+			sb.AppendLine("- Do not call `Exp.Build(...)` when passing a `Client.Exp` filter expression to `SetRecords.Query(...)`; the driver builds it into the policy.");
+			sb.AppendLine("- Use operational expressions with `Operate(...)` and `ExpOperation.Read(...)` / `ExpOperation.Write(...)` only when the user asks for expression read/write operations.");
 			sb.AppendLine();
 		}
 
@@ -433,35 +525,6 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 				}
 			}
 
-			sb.AppendLine();
-		}
-
-		private void AppendAerospikeExpressionGuide(StringBuilder sb)
-		{
-			sb.AppendLine("### Important Aerospike Expression Rule");
-			sb.AppendLine();
-			sb.AppendLine("- Aerospike expressions are server-side expressions built with the Aerospike C# client `Exp`, `ListExp`, `MapExp`, `HLLExp`, `BitExp`, and related expression APIs.");
-			sb.AppendLine("- Prefer Aerospike filter expressions when the user asks for server-side filtering, expression filtering, filter expressions, query expressions, record metadata filters, TTL/generation filters, CDT/map/list filters, or when the user explicitly asks to use the `Query` method.");
-			sb.AppendLine("- Do not confuse Aerospike filter expressions with LINQ `where` clauses.");
-			sb.AppendLine("- A LINQ `where` clause filters records client-side after records are returned to LINQPad.");
-			sb.AppendLine("- A `Aerospike.Client.Exp` passed to `SetRecords.Query(...)`, `Take(...)`, `First(...)`, `FirstOrDefault(...)`, or `AsEnumerable(...)` is applied by Aerospike on the server through the operation/query/scan policy.");
-			sb.AppendLine("- When using `SetRecords.Query(...)` with a filter expression, build a `Aerospike.Client.Exp` expression and pass it to the driver; do not call `Exp.Build(...)` yourself because the driver builds the expression into the policy.");
-			sb.AppendLine("- Use generated record properties such as `customer.FirstName` only in LINQ query logic after records are returned.");
-			sb.AppendLine("- Use raw Aerospike bin names such as `\"FirstName\"`, `\"Total\"`, or `\"BillingCity\"` inside `Exp.StringBin(...)`, `Exp.IntBin(...)`, `Exp.FloatBin(...)`, `Exp.BoolBin(...)`, `Exp.Bin(...)`, `MapExp`, `ListExp`, and related server-side expression builders.");
-			sb.AppendLine("- Aerospike expressions are strictly typed; choose the correct expression bin reader for the expected bin type.");
-			sb.AppendLine("- Use `Exp.And(...)`, `Exp.Or(...)`, and `Exp.Not(...)` for logical combinations.");
-			sb.AppendLine("- Use `Exp.EQ(...)`, `Exp.NE(...)`, `Exp.GT(...)`, `Exp.GE(...)`, `Exp.LT(...)`, and `Exp.LE(...)` for comparisons.");
-			sb.AppendLine("- Use `Exp.Val(...)` for literal expression values.");
-			sb.AppendLine("- For secondary-index queries, prefer the overload that combines `Aerospike.Client.Filter` and `Aerospike.Client.Exp`: `Set.Query(secondaryIdxFilter, filterExpression, bins...)` or the named-argument overload.");
-			sb.AppendLine("- Use secondary indexes to reduce the candidate record set when an appropriate index exists, then use a filter expression for additional server-side predicates.");
-			sb.AppendLine();
-			sb.AppendLine("#### Filter expressions versus operational expressions");
-			sb.AppendLine();
-			sb.AppendLine("- Filter expressions decide whether a record should be read, queried, scanned, written, deleted, or operated on.");
-			sb.AppendLine("- Operational expressions compute a value during an `Operate(...)` call.");
-			sb.AppendLine("- Use filter expressions with `Query(...)`, `Get(...)`, `BatchRead(...)`, `BatchDelete(...)`, `Take(...)`, `First(...)`, `FirstOrDefault(...)`, or `AsEnumerable(...)` when the goal is to filter records.");
-			sb.AppendLine("- Use operational expressions with `Operate(...)` and `ExpOperation.Read(...)` or `ExpOperation.Write(...)` when the goal is to compute a value or write a computed value atomically.");
-			sb.AppendLine("- Do not use operational expressions for normal LINQ projections; use LINQ projection after records are returned unless the user explicitly asks for Aerospike operation expressions.");
 			sb.AppendLine();
 		}
 
@@ -919,122 +982,83 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("```");
 			sb.AppendLine();
 
-			sb.AppendLine("### Query with an Aerospike filter expression");
+			sb.AppendLine("### Filter sparse or mixed-type bins with Auto-Values");
 			sb.AppendLine();
 			sb.AppendLine("```csharp");
-			sb.AppendLine("// Aerospike filter expressions run server-side.");
-			sb.AppendLine("// Use raw Aerospike bin names inside Exp.*Bin(...) expression builders.");
-			sb.AppendLine("// Do not call Exp.Build(...); the driver builds the expression into the policy.");
-			sb.AppendLine("var filterExpression = Exp.And(");
-			sb.AppendLine("    Exp.EQ(Exp.StringBin(\"Status\"), Exp.Val(\"active\")),");
-			sb.AppendLine("    Exp.GE(Exp.IntBin(\"Age\"), Exp.Val(21)));");
+			sb.AppendLine("// Auto-Values handle missing bins and mixed types more safely than raw casts.");
+			sb.AppendLine("var californiaCustomers =");
+			sb.AppendLine("    (from customer in test.Customer.AsEnumerable()");
+			sb.AppendLine("     where !customer.Company.IsEmpty && customer.State == \"CA\"");
+			sb.AppendLine("     select customer)");
+			sb.AppendLine("    .Take(100);");
+			sb.AppendLine();
+			sb.AppendLine("californiaCustomers.Dump();");
+			sb.AppendLine("```");
+			sb.AppendLine();
+
+			sb.AppendLine("### Query collection, map, JSON, or CDT values");
+			sb.AppendLine();
+			sb.AppendLine("```csharp");
+			sb.AppendLine("// Use TryGetValue, Contains, AsEnumerable, ToList, ToDictionary, and ElementAtOrDefault for CDT exploration.");
+			sb.AppendLine("var customersWithEmail =");
+			sb.AppendLine("    (from customer in test.Customer.AsEnumerable()");
+			sb.AppendLine("     let email = customer.Profile.TryGetValue(\"email\", \"<missing>\")");
+			sb.AppendLine("     where email != \"<missing>\"");
+			sb.AppendLine("     select new");
+			sb.AppendLine("     {");
+			sb.AppendLine($"         customer.{ARecord.DefaultASPIKeyName},");
+			sb.AppendLine("         customer.FirstName,");
+			sb.AppendLine("         Email = email");
+			sb.AppendLine("     })");
+			sb.AppendLine("    .Take(100);");
+			sb.AppendLine();
+			sb.AppendLine("customersWithEmail.Dump();");
+			sb.AppendLine("```");
+			sb.AppendLine();
+
+			sb.AppendLine("### Query by APrimaryKey or digest");
+			sb.AppendLine();
+			sb.AppendLine("```csharp");
+			sb.AppendLine("// APrimaryKey can compare against user key values or digest hex strings when appropriate.");
+			sb.AppendLine("var recordsByKeyOrDigest =");
+			sb.AppendLine("    (from record in test.DataTypes.AsEnumerable()");
+			sb.AppendLine($"     where record.{ARecord.DefaultASPIKeyName} == \"NoPKValueSaved\"");
+			sb.AppendLine($"        || record.{ARecord.DefaultASPIKeyName} == \"0xc363ecde6a39ae0611c69ee2c7bd8a3b6930337b\"");
+			sb.AppendLine("     select record)");
+			sb.AppendLine("    .Take(100);");
+			sb.AppendLine();
+			sb.AppendLine("recordsByKeyOrDigest.Dump();");
+			sb.AppendLine("```");
+			sb.AppendLine();
+
+			sb.AppendLine("### Server-side Aerospike expression filter");
+			sb.AppendLine();
+			sb.AppendLine("```csharp");
+			sb.AppendLine("// Aerospike expressions run server-side. Use raw bin names inside Exp.*Bin(...).");
+			sb.AppendLine("Client.Exp filterExpression = Exp.And(");
+			sb.AppendLine("    Exp.EQ(Exp.StringBin(\"State\"), Exp.Val(\"CA\")),");
+			sb.AppendLine("    Exp.BinExists(\"Company\"));");
 			sb.AppendLine();
 			sb.AppendLine("var customers =");
 			sb.AppendLine("    (from customer in test.Customer.Query(filterExpression)");
-			sb.AppendLine("     select new");
-			sb.AppendLine("     {");
-			sb.AppendLine("         customer.PK,");
-			sb.AppendLine("         customer.FirstName,");
-			sb.AppendLine("         customer.LastName,");
-			sb.AppendLine("         customer.Status,");
-			sb.AppendLine("         customer.Age");
-			sb.AppendLine("     })");
+			sb.AppendLine("     select customer)");
 			sb.AppendLine("    .Take(100);");
 			sb.AppendLine();
 			sb.AppendLine("customers.Dump();");
 			sb.AppendLine("```");
 			sb.AppendLine();
 
-			sb.AppendLine("### Query with correlated subquery using ToExpVal");
+			sb.AppendLine("### Build a server-side expression with AValue helpers");
 			sb.AppendLine();
 			sb.AppendLine("```csharp");
-			sb.AppendLine("// Use ToExpVal to convert an AValue to an Aerospike expression value.");
-			sb.AppendLine("// This example retrieves invoices for each customer using a correlated subquery.");
-			sb.AppendLine("var groupedInvoices =");
-			sb.AppendLine("    (from customer in test.Customer.AsEnumerable()");
-			sb.AppendLine("     let invoices =");
-			sb.AppendLine("         (from invoice in test.Invoice.Query(");
-			sb.AppendLine("             Exp.EQ(Exp.IntBin(\"CustomerId\"), customer.PK.ToExpVal()))");
-			sb.AppendLine("          select invoice)");
-			sb.AppendLine("         .ToList()");
-			sb.AppendLine("     select new");
-			sb.AppendLine("     {");
-			sb.AppendLine("         Customer = customer,");
-			sb.AppendLine("         InvoiceCount = invoices.Count(),");
-			sb.AppendLine("         Invoices = invoices");
-			sb.AppendLine("     })");
-			sb.AppendLine("    .Take(100);");
+			sb.AppendLine("// Use ToExpBin() for the bin reference and ToExpVal() for the literal value.");
+			sb.AppendLine("var status = \"active\".ToAValue(\"Status\", \"Status\");");
 			sb.AppendLine();
-			sb.AppendLine("groupedInvoices.Dump();");
-			sb.AppendLine("```");
+			sb.AppendLine("Client.Exp filterExpression = Exp.EQ(");
+			sb.AppendLine("    status.ToExpBin(Exp.Type.STRING),");
+			sb.AppendLine("    status.ToExpVal());");
 			sb.AppendLine();
-
-			sb.AppendLine("### Query with a secondary index and Aerospike filter expression");
-			sb.AppendLine();
-			sb.AppendLine("```csharp");
-			sb.AppendLine("// Use a secondary index filter to reduce candidate records,");
-			sb.AppendLine("// then use an Aerospike filter expression for additional server-side predicates.");
-			sb.AppendLine("Filter cityIndexFilter = Filter.Equal(\"BillingCity\", \"Chicago\");");
-			sb.AppendLine();
-			sb.AppendLine("var filterExpression = Exp.And(");
-			sb.AppendLine("    Exp.EQ(Exp.StringBin(\"Status\"), Exp.Val(\"active\")),");
-			sb.AppendLine("    Exp.GT(Exp.FloatBin(\"Total\"), Exp.Val(100.0)));");
-			sb.AppendLine();
-			sb.AppendLine("var invoices =");
-			sb.AppendLine("    (from invoice in test.Invoice.Query(cityIndexFilter, filterExpression)");
-			sb.AppendLine("     select new");
-			sb.AppendLine("     {");
-			sb.AppendLine("         invoice.PK,");
-			sb.AppendLine("         invoice.CustomerId,");
-			sb.AppendLine("         invoice.InvoiceDate,");
-			sb.AppendLine("         invoice.Total,");
-			sb.AppendLine("         invoice.BillingCity");
-			sb.AppendLine("     })");
-			sb.AppendLine("    .Take(100);");
-			sb.AppendLine();
-			sb.AppendLine("invoices.Dump();");
-			sb.AppendLine("```");
-			sb.AppendLine();
-
-			sb.AppendLine("### Use the named Query overload for expression filtering");
-			sb.AppendLine();
-			sb.AppendLine("```csharp");
-			sb.AppendLine("// The named-argument overload is useful when only some query parts are needed.");
-			sb.AppendLine("var filterExpression = Exp.Or(");
-			sb.AppendLine("    Exp.EQ(Exp.StringBin(\"BillingCtry\"), Exp.Val(\"USA\")),");
-			sb.AppendLine("    Exp.EQ(Exp.StringBin(\"BillingCtry\"), Exp.Val(\"Canada\")));");
-			sb.AppendLine();
-			sb.AppendLine("var invoices =");
-			sb.AppendLine("    (from invoice in test.Invoice.Query(");
-			sb.AppendLine("         filterExpression: filterExpression,");
-			sb.AppendLine("         bins: new[] { \"CustomerId\", \"InvoiceDate\", \"Total\", \"BillingCtry\" })");
-			sb.AppendLine("     select new");
-			sb.AppendLine("     {");
-			sb.AppendLine("         invoice.PK,");
-			sb.AppendLine("         invoice.CustomerId,");
-			sb.AppendLine("         invoice.InvoiceDate,");
-			sb.AppendLine("         invoice.Total,");
-			sb.AppendLine("         invoice.BillingCtry");
-			sb.AppendLine("     })");
-			sb.AppendLine("    .Take(100);");
-			sb.AppendLine();
-			sb.AppendLine("invoices.Dump();");
-			sb.AppendLine("```");
-			sb.AppendLine();
-
-			sb.AppendLine("### Operational expression with Operate");
-			sb.AppendLine();
-			sb.AppendLine("```csharp");
-			sb.AppendLine("// Operational expressions compute values during an Operate(...) call.");
-			sb.AppendLine("// Use this pattern only when the user asks for expression read/write operations.");
-			sb.AppendLine("var expression = Exp.Build(");
-			sb.AppendLine("    Exp.Add(Exp.IntBin(\"Quantity\"), Exp.IntBin(\"BackOrderQuantity\")));");
-			sb.AppendLine();
-			sb.AppendLine("var record = test.Invoice.Operate(");
-			sb.AppendLine("    primaryKey: 12345,");
-			sb.AppendLine("    ExpOperation.Read(\"ComputedQuantity\", expression, ExpReadFlags.DEFAULT));");
-			sb.AppendLine();
-			sb.AppendLine("record.Dump();");
+			sb.AppendLine("test.Customer.Query(filterExpression).Take(100).Dump();");
 			sb.AppendLine("```");
 			sb.AppendLine();
 
@@ -1239,95 +1263,6 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("```");
 			sb.AppendLine();
 
-			sb.AppendLine("### Query with an Aerospike filter expression");
-			sb.AppendLine();
-			sb.AppendLine("```csharp");
-			sb.AppendLine("// Aerospike filter expressions run server-side.");
-			sb.AppendLine("// Use raw Aerospike bin names inside Exp.*Bin(...) expression builders.");
-			sb.AppendLine("var filterExpression = Exp.And(");
-			sb.AppendLine("    Exp.EQ(Exp.StringBin(\"Status\"), Exp.Val(\"active\")),");
-			sb.AppendLine("    Exp.GE(Exp.IntBin(\"Age\"), Exp.Val(21)));");
-			sb.AppendLine();
-			sb.AppendLine("var customers = test.Customer");
-			sb.AppendLine("    .Query(filterExpression)");
-			sb.AppendLine("    .Select(customer => new");
-			sb.AppendLine("    {");
-			sb.AppendLine("        customer.PK,");
-			sb.AppendLine("        customer.FirstName,");
-			sb.AppendLine("        customer.LastName,");
-			sb.AppendLine("        customer.Status,");
-			sb.AppendLine("        customer.Age");
-			sb.AppendLine("    })");
-			sb.AppendLine("    .Take(100);");
-			sb.AppendLine();
-			sb.AppendLine("customers.Dump();");
-			sb.AppendLine("```");
-			sb.AppendLine();
-
-			sb.AppendLine("### Query with correlated subquery using ToExpVal");
-			sb.AppendLine();
-			sb.AppendLine("```csharp");
-			sb.AppendLine("// Use ToExpVal to convert an AValue to an Aerospike expression value.");
-			sb.AppendLine("// This example retrieves invoices for each customer using a correlated subquery.");
-			sb.AppendLine("var groupedInvoices = test.Customer");
-			sb.AppendLine("    .Select(customer => new");
-			sb.AppendLine("    {");
-			sb.AppendLine("        Customer = customer,");
-			sb.AppendLine("        Invoices = test.Invoice");
-			sb.AppendLine("            .Query(Exp.EQ(Exp.IntBin(\"CustomerId\"), customer.PK.ToExpVal()))");
-			sb.AppendLine("            .ToList()");
-			sb.AppendLine("    })");
-			sb.AppendLine("    .Select(x => new");
-			sb.AppendLine("    {");
-			sb.AppendLine("        x.Customer,");
-			sb.AppendLine("        InvoiceCount = x.Invoices.Count(),");
-			sb.AppendLine("        x.Invoices");
-			sb.AppendLine("    })");
-			sb.AppendLine("    .Take(100);");
-			sb.AppendLine();
-			sb.AppendLine("groupedInvoices.Dump();");
-			sb.AppendLine("```");
-			sb.AppendLine();
-
-			sb.AppendLine("### Query with a secondary index and Aerospike filter expression");
-			sb.AppendLine();
-			sb.AppendLine("```csharp");
-			sb.AppendLine("var cityIndexFilter = Filter.Equal(\"BillingCity\", \"Chicago\");");
-			sb.AppendLine();
-			sb.AppendLine("var filterExpression = Exp.And(");
-			sb.AppendLine("    Exp.EQ(Exp.StringBin(\"Status\"), Exp.Val(\"active\")),");
-			sb.AppendLine("    Exp.GT(Exp.FloatBin(\"Total\"), Exp.Val(100.0)));");
-			sb.AppendLine();
-			sb.AppendLine("var invoices = test.Invoice");
-			sb.AppendLine("    .Query(cityIndexFilter, filterExpression)");
-			sb.AppendLine("    .Select(invoice => new");
-			sb.AppendLine("    {");
-			sb.AppendLine("        invoice.PK,");
-			sb.AppendLine("        invoice.CustomerId,");
-			sb.AppendLine("        invoice.InvoiceDate,");
-			sb.AppendLine("        invoice.Total,");
-			sb.AppendLine("        invoice.BillingCity");
-			sb.AppendLine("    })");
-			sb.AppendLine("    .Take(100);");
-			sb.AppendLine();
-			sb.AppendLine("invoices.Dump();");
-			sb.AppendLine("```");
-			sb.AppendLine();
-
-			sb.AppendLine("### Operational expression with Operate");
-			sb.AppendLine();
-			sb.AppendLine("```csharp");
-			sb.AppendLine("var expression = Exp.Build(");
-			sb.AppendLine("    Exp.Add(Exp.IntBin(\"Quantity\"), Exp.IntBin(\"BackOrderQuantity\")));");
-			sb.AppendLine();
-			sb.AppendLine("var record = test.Invoice.Operate(");
-			sb.AppendLine("    primaryKey: 12345,");
-			sb.AppendLine("    ExpOperation.Read(\"ComputedQuantity\", expression, ExpReadFlags.DEFAULT));");
-			sb.AppendLine();
-			sb.AppendLine("record.Dump();");
-			sb.AppendLine("```");
-			sb.AppendLine();
-
 			sb.AppendLine("### Use LINQ collection operations with SetRecords");
 			sb.AppendLine();
 			sb.AppendLine("```csharp");
@@ -1448,13 +1383,14 @@ When using method syntax, generate NamespaceName.SetName.AsEnumerable() before J
 			sb.AppendLine("- For AValue-backed properties, use `CanConvert<T>()`, `Convert<T>()`, `Apply<TValue, TResult>()`, and null-safe `TryApply<TValue, TResult>()` instead of unsafe CLR casts.");
 			sb.AppendLine("- Prefer `TryApply<TValue, bool>(...)` in filters when invoking type-specific methods on values that may be null, missing, mixed-type, or AValue-backed.");
 			sb.AppendLine("- Use AValue comparison operators for direct comparisons when supported; use `Apply` / `TryApply` for type-specific methods.");
+			sb.AppendLine("- Use type-inspection properties such as `IsString`, `IsNumeric`, `IsInt`, `IsList`, `IsMap`, `IsJson`, `IsGeoJson`, `IsEmpty`, and `UnderlyingType` before type-sensitive operations on mixed bins.");
+			sb.AppendLine("- Use `Contains(...)`, `ContainsKey(...)`, `FindAll(...)`, `TryGetValue(...)`, and `AValue.MatchOptions` for scalar/list/map/JSON/CDT searches.");
+			sb.AppendLine("- Use `AsEnumerable()`, `AsEnumerable<T>()`, `ToList()`, `ToListItem()`, `ToDictionary()`, `ToDictionary<K,V>()`, `ToCDT()`, and `ElementAtOrDefault(...)` for CDT exploration.");
+			sb.AppendLine("- Use `ToBin()` when turning an `AValue` back into an Aerospike bin for write operations.");
+			sb.AppendLine("- Use `ToExpBin()` and `ToExpVal()` only for Aerospike expression-building scenarios.");
+			sb.AppendLine("- Use Aerospike expressions with raw bin names when the user asks for server-side filtering; do not replace those with LINQ `where` clauses.");
 			sb.AppendLine($"- Use `{ARecord.DefaultASPIKeyName}` for the primary key when available; otherwise use `GetPK()`.");
 			sb.AppendLine("- Use `.AsEnumerable()` before collection-style LINQ operations on `SetRecords` instances.");
-
-			sb.AppendLine("- Use Aerospike filter expressions with `SetRecords.Query(...)` when the user asks for server-side filtering or expression filtering.");
-			sb.AppendLine("- Do not replace Aerospike filter expressions with LINQ `where` clauses when the user explicitly asks for server-side filtering.");
-			sb.AppendLine("- Use raw Aerospike bin names inside `Exp.*Bin(...)`, `MapExp`, and `ListExp`; use generated properties only after records are returned.");
-			sb.AppendLine("- Use operational expressions with `Operate(...)` only when the user asks for expression read/write operations.");
 
 			if(options.LinqSyntaxPreference == AerospikeLinqSyntaxPreference.MethodSyntax)
 			{

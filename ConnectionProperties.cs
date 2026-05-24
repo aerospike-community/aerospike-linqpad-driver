@@ -142,6 +142,31 @@ namespace Aerospike.Database.LINQPadDriver
             }
         }
 
+        private static object _linqPadPasswordManager = null;
+		public static object LinqPadPasswordManager
+        {
+            get
+			{
+				if(_linqPadPasswordManager is null)
+				{
+					try
+					{
+						_linqPadPasswordManager = typeof(LINQPad.Util)
+                                                    .Assembly
+                                                    .GetType("LINQPad.PasswordManager")
+                                                    .GetProperty("Instance")
+                                                    .GetValue(null);
+					}
+					catch(Exception e) {
+						LINQPad.Extensions.Dump(e, "Error accessing LINQPad's PasswordManager Instance.");
+						_linqPadPasswordManager = null;
+					}
+				}
+				return _linqPadPasswordManager;
+			}
+
+		}
+
         public bool UsePasswordManager
         {
             get
