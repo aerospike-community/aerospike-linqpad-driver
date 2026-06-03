@@ -19,8 +19,9 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2026</Copyright>
-    <Version>7.0.29</Version>
-    <FileVersion>7.0.29</FileVersion>
+    <Version>7.0.33</Version>
+    <VersionSuffix Condition="'$(Configuration)' == 'Debug'">debug</VersionSuffix>
+    <FileVersion>7.0.33</FileVersion>
     <Deterministic>true</Deterministic>
 	</PropertyGroup>
 
@@ -56,24 +57,13 @@
   
 	<ItemGroup>
 	  <None Remove="AerospikeLINQPad.png" />
-	  <None Remove="linqpad-samples\Native\Basic Data Types.linq" />
-	  <None Remove="linqpad-samples\Native\CDT-Json-Docs.linq" />
-	  <None Remove="linqpad-samples\Native\Create CustInvsDoc set.linq" />
-	  <None Remove="linqpad-samples\DemoDBJson\aerospike.json" />
-	  <None Remove="linqpad-samples\Native\Linq Join Customer and Invoice.linq" />
-	  <None Remove="linqpad-samples\Native\LinqWhere-AerospikeExpressions.linq" />
-	  <None Remove="linqpad-samples\Native\LinqWhere-AerospikePK.linq" />
-	  <None Remove="linqpad-samples\Native\POCO.linq" />
-    <None Remove="linqpad-samples\Native\POCO-Classes.linq" />
-    <none Remove="linqpad-samples\Native\Put-Aerospike.linq" />
-	  <None Remove="linqpad-samples\Native\ReadMeFirst.linq" />
-	  <None Remove="linqpad-samples\Native\Record Display View.linq" />
-    <None Remove="linqpad-samples\Native\MRT.linq" />
+	  <None Remove="linqpad-samples\**" />    
 	</ItemGroup>
 
-  <ItemGroup>    <None Update="AValue.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>AValue.cs</LastGenOutput>
+  <ItemGroup>    
+      <None Update="AValue.tt">
+        <Generator>TextTemplatingFileGenerator</Generator>
+        <LastGenOutput>AValue.cs</LastGenOutput>
     </None>    
   </ItemGroup>
 
@@ -94,31 +84,31 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	    <Pack>true</Pack>      
 	  </Content>
-	  <Content Include="FailedConnection.png">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <Content Include="FailedConnection.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackageCopyToOutput>true</PackageCopyToOutput>
-      <pack>true</pack>      
-	  </Content>
-	  <Content Include="linqpad-samples\Native\Basic Data Types.linq" />
-    <Content Include="linqpad-samples\Native\Basic Data Types 2.linq" />
-	  <Content Include="linqpad-samples\Native\CDT-Json-Docs.linq" />
-	  <Content Include="linqpad-samples\Native\Create CustInvsDoc set.linq" />
+      <pack>true</pack>
+    </Content>
 	  <Content Include="linqpad-samples\DemoDBJson\aerospike.json" />
-	  <Content Include="linqpad-samples\Native\Linq Join Customer and Invoice.linq" />
-	  <Content Include="linqpad-samples\Native\LinqWhere-AerospikeExpressions.linq" />
-	  <Content Include="linqpad-samples\Native\LinqWhere-AerospikePK.linq" />
-	  <Content Include="linqpad-samples\Native\POCO.linq" />
-    <Content Include="linqpad-samples\Native\POCO-Classes.linq" />
-    <Content Include="linqpad-samples\Native\MRT.linq" />
-    <Content Include="linqpad-samples\Native\Put-Aerospike.linq" />
-	  <Content Include="linqpad-samples\Native\ReadMeFirst.linq" />
-	  <Content Include="linqpad-samples\Native\Record Display View.linq" />
+	  <Content Include="linqpad-samples\Native\*.linq" />
+    <Content Include="linqpad-samples\AI\*.linq" />
+    <Content Include="linqpad-samples\AI\*.md" />
     
     <Content Include="README.md">
       <Pack>true</Pack>
       <PackagePath />
     </Content>
+    
+    <None Update="AIContext\*.md">
+      <Pack>true</Pack>
+      <PackagePath>contentFiles\any\any\AIContext\</PackagePath>
+      <Visible>false</Visible>
+    </None>
     <None Include="LICENSE" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="AIContext\*.md" />
   </ItemGroup>
 
 	<ItemGroup>

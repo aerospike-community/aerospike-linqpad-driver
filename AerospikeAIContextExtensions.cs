@@ -1,4 +1,5 @@
-﻿
+﻿using System.Threading.Tasks;
+
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
 	public static class AerospikeAIContextExtensions
