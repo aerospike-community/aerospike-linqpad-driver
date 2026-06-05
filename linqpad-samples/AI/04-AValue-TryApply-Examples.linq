@@ -17,7 +17,7 @@
 
 // Ask AI for AValue-safe examples using TryApply, Apply, CanConvert, and Convert.
 
-var request = """
+AIContext.SubmitRequestAndCreateQuery("""
 Generate LINQPad C# Statements examples for AValue-backed properties.
 
 Use query syntax where practical.
@@ -28,10 +28,4 @@ Show:
 3. A numeric conversion example using CanConvert<decimal>() and Convert<decimal>().
 4. Use generated properties, not string-indexer access.
 Limit each example to 100 rows and use Dump().
-""";
-
-var prompt = AIContext.BuildPrompt(request);
-
-var response = await LINQPad.Util.AI.Ask(prompt).GetResponseAsync();
-
-response.Text.Dump("AI-generated AValue examples");
+""");

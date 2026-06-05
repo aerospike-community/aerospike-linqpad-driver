@@ -17,6 +17,7 @@
 
 // Ask LINQPad AI a general question about the current Aerospike connection.
 // This uses AIContext.BuildPrompt(...) and the driver's current metadata/context.
+// This shows some of the AI API...
 
 var request = LINQPad.Util.ReadLine(
     "Ask AI about this Aerospike connection:",

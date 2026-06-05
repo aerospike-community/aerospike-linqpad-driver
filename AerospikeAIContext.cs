@@ -1,9 +1,12 @@
 ﻿using Aerospike.Client;
+using LINQPad;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -76,11 +79,25 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				?? throw new InvalidOperationException("The Aerospike LINQPad connection is not available.");			
 		}
 
+		/// <summary>
+		/// Creates a context builder bound to the provided cluster access instance.
+		/// </summary>
+		/// <param name="cluster">The cluster access wrapper that exposes connection metadata and runtime state.</param>
+		/// <returns>A new <see cref="AerospikeAIContext"/> instance.</returns>
+		/// <exception cref="ArgumentNullException">Thrown when <paramref name="cluster"/> is <see langword="null"/>.</exception>
+		/// <exception cref="InvalidOperationException">Thrown when the underlying Aerospike connection is unavailable.</exception>
 		public static AerospikeAIContext From(AClusterAccess cluster)
 		{
 			return new AerospikeAIContext(cluster);
 		}
 
+		/// <summary>
+		/// Creates a context builder from the current global LINQPad cluster instance.
+		/// </summary>
+		/// <returns>A new <see cref="AerospikeAIContext"/> instance for <c>AClusterAccess.Instance</c>.</returns>
+		/// <exception cref="InvalidOperationException">
+		/// Thrown when no current cluster instance is registered for the active LINQPad connection.
+		/// </exception>
 		public static AerospikeAIContext FromCurrent()
 		{
 			if(AClusterAccess.Instance is null)
@@ -93,8 +110,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		}
 
 		/// <summary>
-		/// Creates Markdown context suitable for display or for inclusion in Util.AI.Ask(...).
+		/// Builds Markdown context suitable for display or inclusion in an AI prompt.
 		/// </summary>
+		/// <param name="options">
+		/// Optional generation controls for sections, truncation limits, metadata filtering, and syntax preference.
+		/// </param>
+		/// <returns>A Markdown document representing connection guidance and metadata.</returns>
 		public string ToMarkdown(AerospikeAIContextOptions options = null)
 		{
 			options ??= new AerospikeAIContextOptions();
@@ -134,6 +155,156 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			return TrimToMaxChars(sb.ToString(), options.MaxChars);
 		}
 
+
+		/// <summary>
+		/// Submits a request to the configured AI provider using the generated Aerospike context prompt.
+		/// </summary>
+		/// <param name="userRequest">The natural-language user request appended to the generated prompt.</param>
+		/// <param name="options">Optional context-generation options.</param>
+		/// <param name="systemInstruction">Optional system instruction override; defaults to embedded guidance.</param>
+		/// <param name="progression">Reserved for compatibility with progressive-response workflows.</param>
+		/// <returns>The AI response text, or <see langword="null"/> when the request/response is blank.</returns>
+		public string SubmitRequest(string userRequest,
+									AerospikeAIContextOptions options = null,
+									string systemInstruction = null,
+									bool progression = true)
+			=> SubmitRequestAsync(userRequest, options, systemInstruction, progression).Result;
+
+		/// <summary>
+		/// Asynchronously submits a request to the configured AI provider using the generated Aerospike context prompt.
+		/// </summary>
+		/// <param name="userRequest">The natural-language user request appended to the generated prompt.</param>
+		/// <param name="options">Optional context-generation options.</param>
+		/// <param name="systemInstruction">Optional system instruction override; defaults to embedded guidance.</param>
+		/// <param name="progression">Reserved for compatibility with progressive-response workflows.</param>
+		/// <param name="cancellationToken">A cancellation token for cooperative cancellation.</param>
+		/// <returns>
+		/// A task that resolves to the AI response text, or <see langword="null"/> when the request/response is blank.
+		/// </returns>
+		public async System.Threading.Tasks.Task<string> SubmitRequestAsync(
+			string userRequest,
+			AerospikeAIContextOptions options = null,
+			string systemInstruction = null,
+			bool progression = true,
+			CancellationToken cancellationToken = default)
+		{
+			if(String.IsNullOrWhiteSpace(userRequest)) return null;
+
+			var prompt = BuildPrompt(userRequest.Trim(), options, systemInstruction);
+			var response = await AerospikeAIContextExtensions.Ask(prompt);
+
+			if(String.IsNullOrWhiteSpace(response))
+			{
+				return null;
+			}
+
+			return response;
+		}
+
+		/// <summary>
+		/// Submits a request through <see cref="LINQPadAIGeneratedQuery"/> and creates a generated LINQPad query when applicable.
+		/// </summary>
+		/// <param name="userRequest">The natural-language request to send to the AI service.</param>
+		/// <param name="options">Optional context-generation settings used to build the prompt.</param>
+		/// <param name="systemInstruction">Optional system instruction override for the AI prompt.</param>
+		/// <param name="progression">Reserved for compatibility with progressive response workflows.</param>
+		/// <param name="cancellationToken">A token that can be used to cancel the request.</param>
+		/// <returns>
+		/// A task that resolves to the raw AI response text returned by the submission pipeline.
+		/// </returns>
+		/// <remarks>
+		/// This method is intended for interactive LINQPad use. It sends the request through
+		/// <see cref="SubmitRequestAsync(string, bool, CancellationToken)"/>, classifies the
+		/// AI response, and creates a connected generated query when runnable C# is detected.
+		///
+		/// When the current LINQPad query has been saved, the generated query copies the current
+		/// query header so the same Aerospike connection is reused. When the current query has
+		/// not been saved, the generated query is still created as a C# Statements query, but
+		/// it may not automatically include the current Aerospike connection.
+		///
+		/// The generated query target is LINQPad <c>C# Statements</c>, not <c>C# Program</c>.
+		///
+		/// <para>
+		/// Example: generate a query from the current Aerospike connection.
+		/// </para>
+		/// <code>
+		/// var response = await AIContext.SubmitRequestAndCreateQueryAsync(
+		///     "Generate a query-syntax LINQPad C# query that shows 100 customers.");
+		///
+		/// response.Dump("Raw AI response");
+		/// </code>
+		///
+		/// <para>
+		/// Example: generate a query-syntax join.
+		/// </para>
+		/// <code>
+		/// await AIContext.SubmitRequestAndCreateQueryAsync(
+		///     "Generate a LINQPad C# Statements query using query syntax. " +
+		///     "Join test.Customer and test.Invoice using customer.PK and invoice.CustomerId. " +
+		///     "Use AsEnumerable() on both sets, project customer and invoice fields, " +
+		///     "limit to 100 rows, and Dump the result.");
+		/// </code>
+		///
+		/// <para>
+		/// Example: generate AValue-safe code.
+		/// </para>
+		/// <code>
+		/// await AIContext.SubmitRequestAndCreateQueryAsync(
+		///     "Generate LINQPad C# Statements examples for AValue-backed properties. " +
+		///     "Use query syntax where practical. Use test.Customer.AsEnumerable(). " +
+		///     "Show FirstName.TryApply&lt;string,bool&gt;(name =&gt; name.StartsWith(\"a\")), " +
+		///     "FirstName.Apply&lt;string,int&gt;(name =&gt; name.Length), " +
+		///     "and CanConvert&lt;decimal&gt;()/Convert&lt;decimal&gt;(). " +
+		///     "Use generated properties, limit each example to 100 rows, and Dump().");
+		/// </code>
+		///
+		/// <para>
+		/// Example: request an explanation instead of code. In this case the method displays
+		/// the explanation but does not create a generated query file.
+		/// </para>
+		/// <code>
+		/// var explanation = await AIContext.SubmitRequestAndCreateQueryAsync(
+		///     "Explain whether this query is client-side LINQ or a server-side Aerospike expression: " +
+		///     "from customer in test.Customer.AsEnumerable() " +
+		///     "where customer.FirstName.TryApply&lt;string,bool&gt;(name =&gt; name.StartsWith(\"a\")) " +
+		///     "select customer");
+		/// </code>
+		/// </remarks>
+		public Task<string> SubmitRequestAndCreateQueryAsync(
+			string userRequest,
+			AerospikeAIContextOptions options = null,
+			string systemInstruction = null,
+			bool progression = true,
+			CancellationToken cancellationToken = default)
+		{
+			return LINQPadAIGeneratedQuery.SubmitRequestAsync(
+						this,
+						userRequest,
+						options,
+						systemInstruction,
+						progression,
+						cancellationToken);
+		}
+
+		/// <summary>
+		/// Submits a request through <see cref="LINQPadAIGeneratedQuery"/> and synchronously creates a generated LINQPad query when applicable.
+		/// </summary>
+		/// <param name="userRequest">The natural-language request to send to the AI service.</param>
+		/// <param name="options">Optional context-generation settings used to build the prompt.</param>
+		/// <param name="systemInstruction">Optional system instruction override for the AI prompt.</param>
+		/// <param name="progression">Reserved for compatibility with progressive response workflows.</param>
+		/// <returns>
+		/// The raw AI response text returned by the submission pipeline, or <see langword="null"/> when no response is produced.
+		/// </returns>
+		/// <remarks>
+		/// This is a synchronous wrapper over <see cref="SubmitRequestAndCreateQueryAsync(string, AerospikeAIContextOptions, string, bool, CancellationToken)"/>.
+		/// </remarks>
+		public string SubmitRequestAndCreateQuery(
+			string userRequest,
+			AerospikeAIContextOptions options = null,
+			string systemInstruction = null,
+			bool progression = true) => SubmitRequestAndCreateQueryAsync(userRequest, options, systemInstruction, progression).Result;
+
 		private const string DefaultUserRequest =
 	"This should generate a safe, read-only LINQPad C# Statements query that explores the Aerospike Cluster associated with this connection. " +
 	"Use the available namespace, set, bin, index, AValue, APrimaryKey, and expression context. " +
@@ -142,8 +313,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 	"limit output to 100 records, and display results with Dump().";
 
 		/// <summary>
-		/// Builds a complete AI prompt using this connection's context and a user request.
+		/// Builds a complete AI prompt by combining system instruction, generated Aerospike Markdown context, and user request.
 		/// </summary>
+		/// <param name="userRequest">
+		/// The request to append to the prompt. When <see langword="null"/>, a safe read-only default request is used.
+		/// </param>
+		/// <param name="options">Optional context-generation options.</param>
+		/// <param name="systemInstruction">
+		/// Optional system instruction override. When omitted, embedded instruction content is selected by syntax preference.
+		/// </param>
+		/// <returns>A complete prompt string ready to send to an AI completion API.</returns>
 		public string BuildPrompt(
 			string userRequest,
 			AerospikeAIContextOptions options = null,
@@ -174,8 +353,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		}
 
 		/// <summary>
-		/// Builds a narrower prompt for one namespace/set.
+		/// Builds a scoped AI prompt for a single namespace and set, reducing unrelated metadata.
 		/// </summary>
+		/// <param name="namespaceName">Target namespace name (or generated safe namespace name).</param>
+		/// <param name="setName">Target set name (or generated safe set name).</param>
+		/// <param name="userRequest">The request to append to the scoped prompt.</param>
+		/// <param name="options">Optional context-generation options that are constrained to the specified namespace/set.</param>
+		/// <param name="systemInstruction">Optional system instruction override.</param>
+		/// <returns>A prompt string scoped to the requested namespace and set.</returns>
+		/// <exception cref="ArgumentException">
+		/// Thrown when <paramref name="namespaceName"/> or <paramref name="setName"/> is blank.
+		/// </exception>
 		public string BuildSetPrompt(
 			string namespaceName,
 			string setName,
@@ -659,10 +847,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				return value;
 			}
 
-			return value.Substring(0, maxChars)
-				+ Environment.NewLine
-				+ Environment.NewLine
-				+ $"_AI context truncated at {maxChars:n0} characters._";
+			return string.Concat(value.AsSpan(0, maxChars)
+, Environment.NewLine
+, Environment.NewLine
+, $"_AI context truncated at {maxChars:n0} characters._");
 		}
 
 		private static string GetGeneratedPropertyName(LPSet.BinType bin)

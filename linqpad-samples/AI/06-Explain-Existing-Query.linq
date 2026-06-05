@@ -21,7 +21,7 @@ var queryToExplain = LINQPad.Util.ReadLine(
     "Paste the LINQPad/Aerospike query to explain:",
     """
 from customer in test.Customer.AsEnumerable()
-where customer.FirstName.TryApply<string, bool>(name => name.StartsWith("a"))
+where customer.FirstName.TryApply<string, bool>(name => name.StartsWith("J"))
 select customer
 """);
 

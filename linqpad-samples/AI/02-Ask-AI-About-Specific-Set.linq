@@ -17,6 +17,7 @@
 
 // Ask AI about a specific namespace/set.
 // Change namespaceName and setName to match your connection.
+// This uses some fo the AI API... 
 
 var namespaceName = "test";
 var setName = "Customer";

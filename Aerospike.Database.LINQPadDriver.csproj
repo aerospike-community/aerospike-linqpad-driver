@@ -19,9 +19,9 @@
     <Icon>Connection.png</Icon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2026</Copyright>
-    <Version>7.0.33</Version>
+    <Version>7.0.37</Version>
     <VersionSuffix Condition="'$(Configuration)' == 'Debug'">debug</VersionSuffix>
-    <FileVersion>7.0.33</FileVersion>
+    <FileVersion>7.0.37</FileVersion>
     <Deterministic>true</Deterministic>
 	</PropertyGroup>
 
