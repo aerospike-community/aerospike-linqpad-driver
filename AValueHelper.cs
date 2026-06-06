@@ -4,8 +4,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Windows.Media;
 
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
@@ -337,39 +335,96 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                                         AValue.MatchOptions matchOptions = AValue.MatchOptions.Value | AValue.MatchOptions.Equals)
                             => source?.Any(i => i.Contains(matchValue, matchOptions)) ?? false;
 
-        /// <summary>
-        /// Returns the converted value based on <typeparamref name="R"/>, if possible, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="AValue.Value"/>.
-        /// If the matched value cannot be converted to <typeparamref name="R"/>, this will return false.
-        /// A match occurs when any of the following happens:
-        ///     <see cref="AValue.Value"/> is a <see cref="IEnumerable{T}"/> or <see cref="Newtonsoft.Json.Linq.JArray"/> and one of the elements matches <paramref name="matchValue"/>
-        ///     <see cref="AValue.Value"/> is a <see cref="IDictionary{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
-        ///     <see cref="AValue.Value"/> is a <see cref="KeyValuePair{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
-        ///         If <paramref name="matchValue"/> is a <see cref="KeyValuePair{TKey, TValue}"/>, both the key and value must match
-        ///     <see cref="AValue.Value"/> is a <see cref="string"/> and <paramref name="matchValue"/> is contained within
-        ///     Otherwise <see cref="AValue.Value"/> <see cref="AValue.Equals(Object)"/> is applied against <paramref name="matchValue"/>
-        /// </summary>
-        /// <typeparam name="R">
-        /// The type used to convert the matched value, if possible.
-        /// If found value cannot be converted, it is ignored.
-        /// </typeparam>
-        /// <typeparam name="T"> <paramref name="source"/>&apos;s type</typeparam>
-        /// <param name="source">A collection of <see cref="AValue"/> values</param>
-        /// <param name="matchValue">
-        /// The value used to determine if a match occurred.
-        /// </param>
-        /// <param name="resultValue">
-        /// Returns the converted matched value, if possible. 
-        /// If a match dose not occur or the value could not be converted, this will be the default value of type <typeparamref name="R"/>. 
-        /// </param>
-        /// <returns>
-        /// True to indicate that a match occurred and the matched value could be converted.
-        /// </returns>
-        /// <seealso cref="AValue"/>
-        /// <seealso cref="AValue.TryGetValue{R}(object, out R)"/>
-        /// <seealso cref="TryGetValue{T, R}(IEnumerable{AValue}, T, R)"/>
-        /// <seealso cref="TryGetValue{T}(IEnumerable{AValue}, T, bool)"/>
-        /// <seealso cref="TryGetValue{T}(IEnumerable{AValue}, T, out AValue)"/>
-        public static bool TryGetValue<T,R>(this IEnumerable<AValue> source, T matchValue, out R resultValue)
+		/// <summary>
+		/// Determines whether any key in a collection of <see cref="KeyValuePair{AValue, TValue}"/> entries
+		/// matches <paramref name="matchKey"/> based on <paramref name="matchOptions"/>.
+		/// </summary>
+        /// <typeparam name="TKey">The type of the key in each key-value pair. Must derive from <see cref="AValue"/>.</typeparam>
+		/// <typeparam name="TValue">The type of the value in each key-value pair.</typeparam>
+		/// <typeparam name="T">The type of <paramref name="matchKey"/>.</typeparam>
+		/// <param name="source">
+		/// A collection of <see cref="KeyValuePair{AValue, TValue}"/> entries whose keys will be searched.
+		/// </param>
+		/// <param name="matchKey">
+		/// The key value to search for.
+		/// If <paramref name="matchOptions"/> is <see cref="AValue.MatchOptions.Regex"/>, this should be a
+		/// RegEx string or a <see cref="System.Text.RegularExpressions.Regex"/> instance.
+		/// </param>
+		/// <param name="matchOptions">
+		/// Matching options based on <see cref="AValue.MatchOptions"/>.
+		/// </param>
+		/// <returns>
+		/// <c>true</c> if any key in <paramref name="source"/> matches <paramref name="matchKey"/>; otherwise, <c>false</c>.
+		/// Returns <c>false</c> if <paramref name="source"/> is null.
+		/// </returns>
+		/// <seealso cref="AValue.Contains{T}(T, AValue.MatchOptions)"/>
+		/// <seealso cref="Contains{T}(IEnumerable{AValue}, T, AValue.MatchOptions)"/>
+		public static bool ContainsKey<TKey, TValue,T>(this IEnumerable<KeyValuePair<TKey, TValue>> source,
+                                                    T matchKey,
+													AValue.MatchOptions matchOptions = AValue.MatchOptions.Exact)
+			where TKey : AValue
+			=> source?.Any(i => i.Key?.Contains(matchKey, matchOptions) ?? false) ?? false;
+
+		
+		/// <summary>
+		/// Retrieves the first value whose key matches the specified <paramref name="key"/> using the provided match behavior.
+		/// </summary>
+		/// <typeparam name="TKey">The key type in the source collection. Must derive from <see cref="AValue"/>.</typeparam>
+		/// <typeparam name="TValue">The value type in the source collection.</typeparam>
+		/// <typeparam name="K">The type of the key to match.</typeparam>
+		/// <param name="source">The key/value sequence to search.</param>
+		/// <param name="key">The key to match against each source key.</param>
+		/// <param name="matchOptions">The key comparison mode to use during matching.</param>
+		/// <returns>
+		/// The first matching value found in <paramref name="source"/>.
+		/// </returns>
+		/// <exception cref="KeyNotFoundException">
+		/// Thrown when no matching key is found in <paramref name="source"/>.
+		/// </exception>
+		public static TValue GetByKey<TKey, TValue,K>(this IEnumerable<KeyValuePair<TKey, TValue>> source, 
+													K key,
+													AValue.MatchOptions matchOptions = AValue.MatchOptions.Exact)
+			where TKey : AValue
+		{
+			KeyValuePair<TKey, TValue> result = source?.FirstOrDefault(kvp => kvp.Key?.Contains(key, matchOptions) ?? false)
+													?? throw new KeyNotFoundException($"Key '{key}' not found in the provided collection.");
+			
+			return result.Value;
+		}
+
+		/// <summary>
+		/// Returns the converted value based on <typeparamref name="R"/>, if possible, only if there is a match based on <paramref name="matchValue"/> and this AValue&apos;s <see cref="AValue.Value"/>.
+		/// If the matched value cannot be converted to <typeparamref name="R"/>, this will return false.
+		/// A match occurs when any of the following happens:
+		///     <see cref="AValue.Value"/> is a <see cref="IEnumerable{T}"/> or <see cref="Newtonsoft.Json.Linq.JArray"/> and one of the elements matches <paramref name="matchValue"/>
+		///     <see cref="AValue.Value"/> is a <see cref="IDictionary{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
+		///     <see cref="AValue.Value"/> is a <see cref="KeyValuePair{TKey, TValue}"/> and the key matches <paramref name="matchValue"/>
+		///         If <paramref name="matchValue"/> is a <see cref="KeyValuePair{TKey, TValue}"/>, both the key and value must match
+		///     <see cref="AValue.Value"/> is a <see cref="string"/> and <paramref name="matchValue"/> is contained within
+		///     Otherwise <see cref="AValue.Value"/> <see cref="AValue.Equals(Object)"/> is applied against <paramref name="matchValue"/>
+		/// </summary>
+		/// <typeparam name="R">
+		/// The type used to convert the matched value, if possible.
+		/// If found value cannot be converted, it is ignored.
+		/// </typeparam>
+		/// <typeparam name="T"> <paramref name="source"/>&apos;s type</typeparam>
+		/// <param name="source">A collection of <see cref="AValue"/> values</param>
+		/// <param name="matchValue">
+		/// The value used to determine if a match occurred.
+		/// </param>
+		/// <param name="resultValue">
+		/// Returns the converted matched value, if possible. 
+		/// If a match dose not occur or the value could not be converted, this will be the default value of type <typeparamref name="R"/>. 
+		/// </param>
+		/// <returns>
+		/// True to indicate that a match occurred and the matched value could be converted.
+		/// </returns>
+		/// <seealso cref="AValue"/>
+		/// <seealso cref="AValue.TryGetValue{R}(object, out R)"/>
+		/// <seealso cref="TryGetValue{T, R}(IEnumerable{AValue}, T, R)"/>
+		/// <seealso cref="TryGetValue{T}(IEnumerable{AValue}, T, bool)"/>
+		/// <seealso cref="TryGetValue{T}(IEnumerable{AValue}, T, out AValue)"/>
+		public static bool TryGetValue<T,R>(this IEnumerable<AValue> source, T matchValue, out R resultValue)
         {
             foreach(var item in source) 
             {

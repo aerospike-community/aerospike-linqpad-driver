@@ -12,7 +12,6 @@
       <DocumentAPI>true</DocumentAPI>
     </DriverData>
   </Connection>
-  </Connection>
   <Namespace>System.Threading.Tasks</Namespace>
 </Query>
 

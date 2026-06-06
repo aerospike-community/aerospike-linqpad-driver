@@ -214,7 +214,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// </returns>
 		/// <remarks>
 		/// This method is intended for interactive LINQPad use. It sends the request through
-		/// <see cref="SubmitRequestAsync(string, bool, CancellationToken)"/>, classifies the
+		/// <see cref="LINQPadAIGeneratedQuery.SubmitRequestAsync(AerospikeAIContext, string, AerospikeAIContextOptions, string, bool, CancellationToken)"/>, classifies the
 		/// AI response, and creates a connected generated query when runnable C# is detected.
 		///
 		/// When the current LINQPad query has been saved, the generated query copies the current

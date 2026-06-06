@@ -271,3 +271,105 @@ var recordsWithFallbackPK =
 recordsWithFallbackPK.Dump();
 ```
 
+### Query nested document/list/CDT values
+
+```csharp
+// Use this pattern when a generated property is a document/list/map/CDT value.
+// Do not assume a searched field exists directly at the first level.
+// Traverse safely with Contains, TryGetValue, AsEnumerable, SelectMany, and AValue.Empty.
+
+var targetIds = new HashSet<long> { 1447, 179, 3169 };
+
+var results =
+    (from parent in NamespaceName.SetName.AsEnumerable()
+     let documents = parent.DocumentProperty
+     where !documents.IsEmpty
+     let childItems =
+         documents
+            .AsEnumerable()
+            .Where(document => document.Contains("ChildCollectionName"))
+            .SelectMany(document => document.TryGetValue("ChildCollectionName", AValue.Empty).AsEnumerable())
+            .ToList()
+     let matchingItems =
+         childItems
+            .Where(item => targetIds.Contains(item.TryGetValue("NestedIdField", 0L)))
+            .ToList()
+     where matchingItems.Any()
+     select new
+     {
+         parent.PK,
+         MatchingItems = matchingItems
+     })
+    .Take(100);
+
+results.Dump();
+```
+
+### Query `CustInvsDoc` by nested invoice-line `TrackId` (nested document/list/CDT values)
+
+```csharp
+var targetTrackIds = new HashSet<long> { 1447, 179, 3169 };
+
+var results =
+    (from doc in test.CustInvsDoc.AsEnumerable()
+     let invoices = doc.Invoices
+     where !invoices.IsEmpty
+     let matchingInvoiceLines =
+         invoices
+            .AsEnumerable()
+            .Where(invoice => invoice.Contains("Lines"))
+            .SelectMany(invoice => invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable())
+            .ToList()
+     let trackIds = matchingInvoiceLines.Select(line => line.TryGetValue("TrackId", 0L))
+     where trackIds.Any(trackId => targetTrackIds.Contains(trackId))
+     select new
+     {
+         doc.PK,
+         doc.FirstName,
+         doc.LastName,
+         doc.Email,
+         doc.Address,
+         doc.City,
+         doc.State,
+         doc.Country,
+         MatchingInvoiceLines = matchingInvoiceLines
+     })
+    .Take(100);
+
+results.Dump();
+```
+
+### Query `CustInvsDoc` by nested invoice-line `TrackId` by Query Syntax (nested document/list/CDT values)
+
+Request:
+```text
+I want to obtain all customer records from CustInvDoc set for TrackIds	2955, 1447, 179, or 3169.
+"Trackid" is within the "Lines" map which is within "Invoices" map. 
+I just need the customer's record and the matching TrackIds.
+```
+
+```csharp
+var results =
+	(from customer in test.CustInvsDoc.AsEnumerable()
+	 let invoices = customer.Invoices.AsEnumerable()
+	 let matchingTrackIds =
+		(from invoice in invoices
+		 let lines = invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable()
+		 from line in lines
+		 let trackId = line.TryGetValue("TrackId", AValue.Empty)
+		 where
+			(trackId == 2955L) ||
+			(trackId == 1447L) ||
+			(trackId == 179L) ||
+			(trackId == 3169L)
+		 select trackId)
+		.ToList()
+	 where matchingTrackIds.Any()
+	 select new
+	 {
+		 customer,
+		 MatchingTrackIds = matchingTrackIds
+	 });
+
+results.Dump();
+```

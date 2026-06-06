@@ -550,6 +550,16 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 
 			var aerospikeClient = typeof(Aerospike.Client.Connection).Assembly.GetName();
             var linqPadDriver = typeof(DynamicDriver).Assembly.GetName();
+			var informationalVersion = typeof(DynamicDriver).Assembly
+	                                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+	                                    .InformationalVersion;
+
+			string versionSuffix = string.Empty;
+			if(informationalVersion?.Contains('-') == true)
+			{
+                var endOfReferenceIdx = informationalVersion.IndexOf('+');
+				versionSuffix = " " + informationalVersion[(informationalVersion.IndexOf('-') + 1)..endOfReferenceIdx];
+			}
 
 			children = new List<ExplorerItem>()
                             {
@@ -577,7 +587,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 													DragText = null,
 													ToolTipText= aerospikeClient?.Version?.ToString() ?? "N/A"
 												},
-								  new ExplorerItem($"ALPD Version {linqPadDriver?.Version}",
+								  new ExplorerItem($"ALPD Version {linqPadDriver?.Version}{versionSuffix}",
 													ExplorerItemKind.Parameter,
 													ExplorerIcon.ScalarFunction)
 												{

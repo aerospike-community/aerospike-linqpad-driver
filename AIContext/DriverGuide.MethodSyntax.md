@@ -11,11 +11,75 @@
 - Ask before destructive deletes/truncates unless the user explicitly requested them.
 - Use the native Aerospike client only when the high-level driver API does not cover the request.
 
+### Important `Util` Type Ambiguity Rule
+
+- The name `Util` can be ambiguous because both `LINQPad.Util` and `Aerospike.Client.Util` may be available.
+- When calling a LINQPad utility method, fully qualify it as `LINQPad.Util`.
+- When calling an Aerospike client utility method, fully qualify it as `Aerospike.Client.Util`.
+- Do not generate unqualified `Util.SomeMethod(...)` unless the context clearly guarantees there is no ambiguity.
+- For LINQPad output, input, file, markdown, CSV, or AI helper calls, prefer explicit `LINQPad.Util`.
+- For Aerospike client utility calls, prefer explicit `Aerospike.Client.Util`.
+
+Examples:
+
+```csharp
+LINQPad.Util.WriteCsv(rows, filePath);
+LINQPad.Util.ReadLine("Enter a value:");
+LINQPad.Util.Markdown(markdown).Dump("Rendered Markdown");
+```
+
+### Important native Aerospike C# client API override
+
+When the user asks for "native Aerospike API", "native C# client", "total Aerospike native API", "no LINQPad driver API", or similar wording, native mode overrides all LINQPad-driver examples and rules.
+
+In native API mode, do not use `test.Customer`, `test.Customer.Query(...)`, `test.Customer.AsEnumerable()`, `SetRecords`, `SetRecords<T>`, `AValue`, `APrimaryKey`, `PK`, `GetPK()`, or generated record properties such as `customer.FirstName`.
+
+In native API mode, use `new AerospikeClient(...)`, `ClientPolicy`, `ScanPolicy`, `QueryPolicy`, `Statement`, `Filter`, `client.ScanAll(...)`, `client.Query(...)`, raw namespace/set/bin names, `record.GetValue("BinName")`, and `Exp.Build(...)` for native policy filter expressions.
+
+Use `RegexFlag.NONE`, not `Exp.RegexFlag.NONE`.
+
+Do not generate `test.Customer.Query(filterExpression)` in native API mode. That is the Aerospike LINQPad driver API, not the native Aerospike C# client API.
+
+### Important Native Nested CDT Expression Safety Rule
+
+- Native Aerospike expressions are strict server-side expression trees.
+- Do not invent `ListExp` or `MapExp` method chains for complex nested document/list/map searches.
+- For nested paths such as `Invoices -> Lines -> TrackId`, only generate a fully server-side native expression if the exact C# expression API pattern is known and verified.
+- If the nested native expression pattern is uncertain, generate a correct native scan with client-side nested traversal, or use a simple/coarse server-side expression such as `Exp.BinExists("Invoices")` followed by client-side traversal.
+- Prefer correct runnable code over speculative server-side expression code.
+- Do not generate invalid expression calls such as:
+  - `Exp.Val(ListReturnType.VALUE)`
+  - `ListExp.ValRange(...)`
+  - `ListExp.ValRange(Value.Get("TrackId"))`
+  - `Exp.Bin("Invoices")`
+  - `Exp.RegexFlag.NONE`
+- Use `RegexFlag.NONE`, not `Exp.RegexFlag.NONE`.
+
 ### Important LINQ Syntax Preference
 
 - Preferred LINQ style: `method syntax`.
 - Prefer chained methods such as `.Where(...)`, `.OrderBy(...)`, `.Select(...)`, `.Join(...)`, and `.GroupBy(...)`.
 - Use query syntax only when explicitly requested by the user or when it is materially clearer.
+
+
+### Important C# Scoping Rule for `out var` and LINQ
+
+When generating C# code that uses dictionaries and `TryGetValue(...)`, do not declare `out var` variables in one LINQ query clause and then reference those variables in later query clauses. This can produce invalid or fragile C#.
+
+Avoid this pattern:
+
+```csharp
+from trackId in trackIds
+let hasTrack = trackById.TryGetValue(trackId, out var trackInfo)
+let albumId = hasTrack ? trackInfo.AlbumId : 0L
+select new
+{
+    TrackId = trackId,
+    TrackName = trackInfo.Name
+}
+```
+
+This rule applies to all generated C# code, including LINQPad-driver queries, native Aerospike C# client code, helper methods, projections, enrichment logic, and post-processing code. Prefer correctness and clear C# scoping over forcing query syntax when `out var`, dictionary lookups, exception handling, or multi-step enrichment logic is involved.
 
 ### Important Record Property Rule
 
@@ -34,70 +98,17 @@
 - Do not assume an `AValue`-backed property is a raw `string`, `int`, `long`, `double`, `bool`, `DateTime`, list, or dictionary unless the context metadata clearly says so.
 - Avoid unsafe casts from `AValue`-backed values to CLR primitive types.
 - Use the driver's `AValue`-friendly comparison, conversion, or value-access patterns when needed.
-- Simple equality comparisons such as `record.Status == "active"` may be valid when the generated property/operator supports it.
-- Numeric comparisons such as `record.Amount > 100` should only be generated when the generated property type supports that comparison.
-- When `Always use AValue` is false and metadata shows a concrete CLR type, generated properties can usually be used as normal typed C# properties.
 
-### Important AValue Operations Rule
+### Important AValue-backed Map Key Rule
 
-- Generated record properties may be `AValue` instances, especially when `Always use AValue` / AutoValue behavior is enabled.
-- `AValue` makes schemaless, mixed-type, sparse Aerospike records feel natural in LINQPad without repeated null checks, casts, type guards, or raw `Aerospike.Client.Value` plumbing.
-- Prefer generated record properties first, such as `customer.FirstName`, `invoice.Total`, or `record.Status`.
-- When a generated property is `AValue`, use the driver's AValue-aware operations instead of unsafe casts.
-- For simple equality, direct comparisons such as `customer.State == "CA"` or `record.Status == "active"` are preferred when the generated property/operator supports the comparison.
-
-#### AValue type inspection
-
-- Use type-inspection properties when the operation depends on the underlying type: `IsString`, `IsNumeric`, `IsInt`, `IsFloat`, `IsBool`, `IsList`, `IsMap`, `IsDictionary`, `IsCDT`, `IsJson`, `IsGeoJson`, `IsDateTime`, `IsDateTimeOffset`, `IsTimeSpan`, `IsKeyValuePair`, `IsEmpty`, and `UnderlyingType`.
-- For mixed-type ordering, prefer type checks or `CanConvert<T>()` before numeric/date comparisons.
-
-#### AValue conversion operations
-
-- Use `value.CanConvert<T>()` to test whether an `AValue` can be converted to `T` without throwing.
-- Use `value.Convert<T>()` to convert an `AValue` to `T` when conversion is expected to be valid.
-- Use `value.Apply<TValue, TResult>(func)` to safely convert an existing non-null `AValue` to `TValue`, execute `func`, and return `TResult`; it returns `default` if conversion or execution fails.
-- Use `value.TryApply<TValue, TResult>(func)` when the `AValue` itself may be null; this is the preferred null-safe option in query filters.
-
-#### AValue comparison operations
-
-- `AValue` supports equality and comparison operators such as `==`, `!=`, `<`, `>`, `<=`, and `>=`.
-- `AValue` also supports `CompareTo(...)` for comparing against another `AValue`, an Aerospike `Value`, an Aerospike `Key`, or another object.
-- Use simple comparison operators when the intent is direct value comparison and the generated property/operator supports it.
-- Use `Apply` or `TryApply` when invoking type-specific methods such as `StartsWith`, `Contains`, `ToUpper`, date operations, or numeric calculations.
-
-#### AValue collection, map, JSON, and CDT operations
-
-- Use `Contains(...)`, `ContainsKey(...)`, `FindAll(...)`, `TryGetValue(...)`, and `AValue.MatchOptions` for scalar/list/map/JSON/CDT search scenarios.
-- `AValue.MatchOptions` can control value matching, equality matching, dictionary key/value matching, substring matching, exact matching, and regex matching.
-- Use `AsEnumerable()`, `AsEnumerable<T>()`, `ToList()`, `ToListItem()`, `ToDictionary()`, `ToDictionary<K,V>()`, `ToCDT()`, `ElementAt(...)`, and `ElementAtOrDefault(...)` for collection, map, JSON, GeoJSON, and CDT exploration.
-- Use `Count()` for string or collection counts, noting that non-string/non-collection values may return `-1`.
-- Use `ToBin()` when turning an `AValue` back into an Aerospike `Bin` for write operations.
-- Use `DebugDump()` when debugging `AValue` metadata such as value, bin name, field name, and detected type.
-
-#### AValue helper extension operations
-
-- Use `ToAValue(...)` to create an `AValue` from a normal value, nullable value, Aerospike `Value`, or Aerospike `Bin`.
-- Use `ToAPrimaryKey(...)` to create an `APrimaryKey` from a normal value or Aerospike `Key`.
-- Use `ToAValueList()` to create a list of AValues from an `ARecord` or Aerospike `Record`.
-- For `IEnumerable<AValue>`, use `OfType<T>()`, `Cast<T>()`, or `Convert<T>()` depending on whether exact type filtering, strict casting, or coercion is desired.
-
-#### Preferred query usage
-
-- In query filters, prefer `TryApply<TValue, bool>(...)` when the bin/property may be missing, null, mixed-type, or AValue-backed.
-- Use `Apply<TValue, TResult>(...)` when the `AValue` is expected to exist but the underlying value still needs safe conversion.
-- Avoid direct CLR casts such as `(string)customer.FirstName.Value` unless the context clearly says the value is present and has that exact type.
-- Avoid calling type-specific CLR methods directly on an `AValue` unless the generated property type is known to be that CLR type.
-
-### Important APrimaryKey / Digest Rule
-
-- `APrimaryKey` is the primary-key companion to `AValue` and supports the same Auto-Value style comparisons and conversions.
-- Prefer the generated/default primary-key property first, then `GetPK()` if the generated property is unavailable.
-- `APrimaryKey` can represent a user key value, an Aerospike `Key`, a digest-backed key, a byte-array digest, or a hex digest string.
-- Records written with send-key disabled may not expose the original user key, but can still be identified by digest.
-- A digest identifies the record but is not the original user key value.
-- The native Aerospike `Key` instance can be obtained through the `AerospikeKey` property when native API calls require it.
-- Digest/user-key comparisons are supported, so primary-key filters can often be written naturally, such as `record.PK == "0x..."` or `record.PK == userKeyValue`.
-- Do not treat the primary key as a normal bin unless the context explicitly says the primary key is stored as a bin.
+- Some map, dictionary, JSON, and CDT structures may expose keys as `AValue` instances rather than plain CLR key types.
+- When searching `IEnumerable<KeyValuePair<TKey,TValue>>` where `TKey : AValue`, use the AValue-aware key helpers `ContainsKey(...)` and `GetByKey(...)`.
+- Use `ContainsKey(matchKey, matchOptions)` to test whether any AValue key matches.
+- Use `GetByKey(key, matchOptions)` to retrieve the first matching value.
+- Use `AValue.MatchOptions` when key matching needs exact, equality, substring, regex, or broader AValue matching behavior.
+- Use `ContainsKey(...)` before `GetByKey(...)` when missing keys are expected because `GetByKey(...)` throws `KeyNotFoundException` if no key matches.
+- Do not assume dictionary/map keys are always plain strings.
+- Prefer these helpers over manually converting every key with `.Convert<string>()` unless the key type is known and conversion is required.
 
 ### Important Aerospike Expression Rule
 
@@ -108,8 +119,50 @@
 - Do not use generated record properties inside server-side `Exp.*` expression builders.
 - When using AValue expression helpers, use `value.ToExpBin(...)` for the bin reference side and `value.ToExpVal()` for the literal side.
 - For straightforward server-side expressions, using raw bin names directly is usually simpler and clearer.
-- Do not call `Exp.Build(...)` when passing a `Client.Exp` filter expression to `SetRecords.Query(...)`; the driver builds it into the policy.
+- Do not call `Exp.Build(...)` when passing an `Exp` filter expression to `SetRecords.Query(...)`; the driver builds it into the policy.
 - Use operational expressions with `Operate(...)` and `ExpOperation.Read(...)` / `ExpOperation.Write(...)` only when the user asks for expression read/write operations.
+- When using Aerospike expression APIs, prefer importing the native namespace with `using Aerospike.Client;` or via the LINQPad query header namespace import.
+- Use `Exp.StringBin(...)`, `Exp.IntBin(...)`, `Exp.RegexCompare(...)`, and related expression builders directly after `Aerospike.Client` is imported.
+- Use `RegexFlag.NONE` for regex flags. Do not generate `Exp.RegexFlag.NONE`.
+- Only use `using Exp = Aerospike.Client.Exp;` if a type-name conflict requires it.
+- In LINQPad-driver expression examples, pass the raw `Exp` expression to `SetRecords.Query(...)`; do not call `Exp.Build(...)`.
+- In native Aerospike client examples, assign `Exp.Build(...)` to `ScanPolicy.filterExp` or `QueryPolicy.filterExp`.
+
+#### Driver API versus native client API
+
+There are two different expression patterns.
+
+Driver API pattern:
+
+```csharp
+Exp filterExpression =
+    Exp.RegexCompare("^J.*", RegexFlag.NONE, Exp.StringBin("FirstName"));
+
+var results =
+    from customer in test.Customer.Query(filterExpression)
+    select customer;
+```
+
+Native Aerospike C# client API pattern:
+
+```csharp
+var scanPolicy = new ScanPolicy
+{
+    filterExp = Exp.Build(
+        Exp.RegexCompare(
+            "^J.*",
+            RegexFlag.NONE,
+            Exp.StringBin("FirstName")))
+};
+
+client.ScanAll(scanPolicy, "test", "Customer", callback);
+```
+
+Do not mix these patterns.
+
+If the user asks for native Aerospike C# client API code, use the native pattern only.
+If the user asks for LINQPad-driver code, use the driver pattern only.
+Use `RegexFlag.NONE`, not `Exp.RegexFlag.NONE`.
 
 ### Important Primary Key Rule
 
@@ -123,7 +176,7 @@
 - Generated Aerospike set objects are `SetRecords` / `SetRecords<T>` instances.
 - When using LINQ extension methods that require `IEnumerable<T>` semantics, call `AsEnumerable()` on the set first.
 - This applies to LINQ operations such as `Join`, `GroupJoin`, `OrderBy`, `OrderByDescending`, `ThenBy`, `ThenByDescending`, `GroupBy`, `SelectMany`, `Concat`, `Union`, `Distinct`, `Except`, `Intersect`, `ToDictionary`, and similar collection-style LINQ methods.
-- The API has native First, FirstOrDefault, Skip, Where, ToList and ToArry functions for 'set' instances(i.e., SetRecords, SetRecords<T>) and those should be used directly. if possible, without using the AsEnumerable() pattern.
+- The API has native `First`, `FirstOrDefault`, `Skip`, `Where`, `ToList`, and `ToArray` functions for set instances (`SetRecords`, `SetRecords<T>`) and those should be used directly, if possible, without using the `AsEnumerable()` pattern.
 - With query syntax, use `from record in NamespaceName.SetName.AsEnumerable()`.
 - With method syntax, use `NamespaceName.SetName.AsEnumerable()` as the LINQ source.
 - Do not generate `NamespaceName.SetName.Join(...)`, `NamespaceName.SetName.OrderBy(...)`, or `NamespaceName.SetName.GroupBy(...)` directly.

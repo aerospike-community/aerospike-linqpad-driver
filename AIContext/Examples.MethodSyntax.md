@@ -157,3 +157,18 @@ var recordsWithFallbackPK = NamespaceName.SetName
 recordsWithFallbackPK.Dump();
 ```
 
+### Use aerospike server-side expression filters
+
+```csharp
+using Exp = Aerospike.Client.Exp;
+
+Exp filterExpression =
+	Exp.RegexCompare("^J", 0, Exp.StringBin("FirstName"));
+
+var customers =
+	(from customer in test.Customer.Query(filterExpression)
+	 select customer)
+	.Take(100);
+
+customers.Dump();
+```

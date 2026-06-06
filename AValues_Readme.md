@@ -963,6 +963,32 @@ var hasKey3 = test.DataTypes
     .Contains("Key3", AValue.MatchOptions.Any);
 ```
 
+### AValue-backed dictionary keys
+
+Some Aerospike map/CDT or JSON-style structures may expose keys as `AValue` instances instead of plain CLR strings, integers, or other primitive key types.
+
+For these cases, use the AValue-aware key helper methods on `IEnumerable<KeyValuePair<TKey,TValue>>` where `TKey : AValue`.
+
+#### ContainsKey for AValue keys
+
+Use `ContainsKey(...)` when dictionary/map keys are `AValue` instances and you want AValue matching behavior:
+
+```csharp
+var hasEmailKey = profileMap.ContainsKey("email");
+```
+
+### GetByKey for AValue-backed keys
+
+Some Aerospike map, JSON, dictionary, or CDT structures may expose keys as `AValue` instances rather than plain CLR key types such as `string` or `long`.
+
+This can happen when working with key/value pairs from AValue-backed maps or nested document structures.
+
+Use `GetByKey(...)` when you have an `IEnumerable<KeyValuePair<TKey,TValue>>` where `TKey : AValue` and you want to retrieve the value whose key matches using AValue comparison behavior.
+
+```csharp
+var value = keyValuePairs.GetByKey("email");
+```
+
 ***
 
 ## Aerospike Expression Helpers
