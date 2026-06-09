@@ -1,3 +1,5 @@
+<!-- AIContext-Version: 2026.06.08.4; Change: native dictionary lookup boundary to prevent LINQPad-driver TryGetValue helper leakage into native mode. -->
+
 ## AI Query Guidance
 
 - Prefer bounded queries.
@@ -47,6 +49,15 @@ When generated code navigates a property or nested value as AValue/CDT data, do 
 When the user asks for native Aerospike C# client API code, do not return any generated code that uses LINQPad-driver data access. Reject and rewrite code containing `test.CustInvsDoc`, `test.Track`, `test.Album`, `test.Artist`, `.AsEnumerable()` on generated sets, `.AerospikeClient` taken from a generated set, `SetRecords`, `AValue`, `APrimaryKey`, `PK`, `GetPK()`, or generated record properties for Aerospike data access.
 
 Native mode must use an explicit `new AerospikeClient(...)` and native operations such as `client.Query(...)`, `client.ScanAll(...)`, `client.Get(...)`, and `record.GetValue("BinName")`. If native mode needs Track/Album/Artist enrichment, read those related sets through the native client too.
+
+
+## Native Dictionary Lookup Validation
+
+When the user asks for native Aerospike C# client API code, do not return LINQPad-driver/AValue helper dictionary lookup forms such as `dict.TryGetValue(key, null)`, `dict.TryGetValue(key, default(...))`, `dict.TryGetValue(key, defaultValue)`, `source.TryGetValue("KeyName")`, or `source.TryGetValue("KeyName", AValue.Empty)`.
+
+Native mode must use ordinary C# dictionary APIs such as `TryGetValue(key, out var value)` inside a statement block, block lambda, or helper method where the `out var` scope is clear.
+
+If native-mode code contains `let x = dict.TryGetValue(key, default(...))` or similar default-value helper syntax, rewrite it before returning.
 
 
 ## C# Iterator Helper Validation

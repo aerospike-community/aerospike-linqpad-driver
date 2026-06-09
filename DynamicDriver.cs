@@ -579,7 +579,7 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
                                                     DragText = null,
                                                     ToolTipText= cxInfo.DatabaseInfo.DbVersion
                                                 },
-								 new ExplorerItem($"Aerospike Client Version {aerospikeClient?.Version}",
+								 new ExplorerItem($"Aerospike Native API {aerospikeClient?.Version}",
 													ExplorerItemKind.Parameter,
 													ExplorerIcon.ScalarFunction)
 												{
@@ -587,13 +587,21 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 													DragText = null,
 													ToolTipText= aerospikeClient?.Version?.ToString() ?? "N/A"
 												},
-								  new ExplorerItem($"ALPD Version {linqPadDriver?.Version}{versionSuffix}",
+								  new ExplorerItem($"Aerospike LINQPad Driver {linqPadDriver?.Version}{versionSuffix}",
 													ExplorerItemKind.Parameter,
 													ExplorerIcon.ScalarFunction)
 												{
 													IsEnumerable = false,
 													DragText = null,
 													ToolTipText= linqPadDriver?.Version?.ToString() ?? "N/A"
+												},
+								new ExplorerItem($"AI Context {AIContextVersion.Current}",
+													ExplorerItemKind.Parameter,
+													ExplorerIcon.ScalarFunction)
+												{
+													IsEnumerable = false,
+													DragText = null,
+													ToolTipText= AIContextVersion.Current ?? "N/A"
 												},
 								new ExplorerItem($"Nodes ({connection.Nodes.Length})",
                                                     ExplorerItemKind.Category,

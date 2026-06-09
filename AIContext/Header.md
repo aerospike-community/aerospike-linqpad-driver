@@ -1,3 +1,5 @@
+<!-- AIContext-Version: 2026.06.08.3; Change: runtime AI-context version source, LINQPad output display, and generated script provenance comments. -->
+
 # Aerospike LINQPad Driver AI Context
 
 This context describes the current Aerospike LINQPad connection.

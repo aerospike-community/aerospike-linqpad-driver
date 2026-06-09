@@ -36,6 +36,11 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			if(string.IsNullOrWhiteSpace(userRequest))
 				throw new ArgumentException("AI request cannot be blank.", nameof(userRequest));
 
+			_ = new
+			{
+				Version = AIContextVersion.Current
+			}.Dump("AI Context");
+
 			var response = await aiContext
 				.SubmitRequestAsync(
 						userRequest,
@@ -487,6 +492,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					Environment.NewLine;
 			}
 
+			normalizedCode = EnsureAIContextVersionComment(normalizedCode);
+
 			var generatedQueryText =
 				generatedHeader
 				+ Environment.NewLine
@@ -512,6 +519,52 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			File.WriteAllText(outputPath, generatedQueryText, Encoding.UTF8);
 
 			return outputPath;
+		}
+
+		private static string EnsureAIContextVersionComment(string code)
+		{
+			if(string.IsNullOrWhiteSpace(code))
+				return code;
+
+			var normalized = Regex.Replace(
+				code.TrimStart(),
+				@"(?m)^\s*//\s*-?\s*AI Context Version:.*(?:\r?\n)?",
+				string.Empty);
+
+			var lines = normalized
+				.Replace("\r\n", "\n")
+				.Replace('\r', '\n')
+				.Split('\n')
+				.ToList();
+
+			while(lines.Count > 0 && string.IsNullOrWhiteSpace(lines[0]))
+				lines.RemoveAt(0);
+
+			var versionLine = $"// - AI Context Version: {AIContextVersion.Current}";
+
+			if(lines.Count > 0 && lines[0].TrimStart().StartsWith("//", StringComparison.Ordinal))
+			{
+				var insertIndex = 0;
+
+				while(insertIndex < lines.Count
+					&& lines[insertIndex].TrimStart().StartsWith("//", StringComparison.Ordinal))
+				{
+					insertIndex++;
+				}
+
+				lines.Insert(insertIndex, versionLine);
+
+				return string.Join(Environment.NewLine, lines).Trim();
+			}
+
+			var header = string.Join(
+				Environment.NewLine,
+				"// Request summary:",
+				"// - AI-generated LINQPad C# Statements query.",
+				versionLine,
+				string.Empty);
+
+			return header + string.Join(Environment.NewLine, lines).Trim();
 		}
 
 		[GeneratedRegex(@"(?m)^\s*var\s+client\s*=\s*\w+\.Client\s*;\s*$")]

@@ -1,3 +1,5 @@
+<!-- AIContext-Version: 2026.06.08.3; Change: runtime AI-context version source, LINQPad output display, and generated script provenance comments. -->
+
 > **Example naming note:** Namespace, set, bin, and generated property names shown here, such as `test`, `Customer`, `Invoice`, `Track`, `Album`, `Artist`, `FirstName`, `CustomerId`, `AlbumId`, and `Name`, are examples. In generated code, substitute the actual names from the current AI context metadata or from the user's request.
 
 ### Data Mutation, Import, and Export Examples

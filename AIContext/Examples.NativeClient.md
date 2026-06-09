@@ -1,3 +1,5 @@
+<!-- AIContext-Version: 2026.06.08.3; Change: runtime AI-context version source, LINQPad output display, and generated script provenance comments. -->
+
 ### Native Aerospike C# Client API Mode
 
 When the user asks to translate driver/LINQPad-driver code to the **native Aerospike C# client API**, native mode overrides all LINQPad-driver examples and rules.
