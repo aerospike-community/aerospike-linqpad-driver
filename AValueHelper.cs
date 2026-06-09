@@ -1,4 +1,5 @@
 ﻿using Aerospike.Client;
+using LINQPad.Reflection;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
@@ -25,18 +26,50 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		public static APrimaryKey ToAPrimaryKey(this object value, string nameSpace, string setName = null)
                         => new APrimaryKey(LPDHelpers.ToAerospikeKey(value, nameSpace, setName));
 
-        public static AValue ToAValue<T>(this Nullable<T> value, string bin = null, string fld = null)
+		/// <summary>
+		/// Converts a nullable value type to an <see cref="AValue"/>.
+		/// </summary>
+		/// <typeparam name="T">The underlying value type.</typeparam>
+		/// <param name="value">The nullable value to convert.</param>
+		/// <param name="bin">Optional bin name. Defaults to <c>"Value"</c> when not provided.</param>
+		/// <param name="fld">Optional field name. Defaults to <c>"Value"</c> when not provided.</param>
+		/// <returns>
+		/// An <see cref="AValue"/> created from <paramref name="value"/> when it has a value;
+		/// otherwise, <see cref="AValue.Empty"/>.
+		/// </returns>
+		public static AValue ToAValue<T>(this Nullable<T> value, string bin = null, string fld = null)
                                 where T : struct
         {
             if(value.HasValue)
                 return ToAValue(value.Value, bin, fld);
             return AValue.Empty;
         }
-                                
+
+		/// <summary>
+		/// Converts any object into an <see cref="AValue"/>.
+		/// </summary>
+		/// <param name="value">
+		/// The source object to wrap. If already an <see cref="AValue"/>, it is returned unchanged.
+		/// If <see langword="null"/>, <see cref="AValue.Empty"/> is returned.
+		/// </param>
+		/// <param name="bin">
+		/// Optional bin name for newly created values. Defaults to <c>"Object"</c> when not provided.
+		/// Ignored when <paramref name="value"/> is already an <see cref="AValue"/> or null.
+		/// </param>
+		/// <param name="fld">
+		/// Optional field name for newly created values. Defaults to <c>"Value"</c> when not provided.
+		/// Ignored when <paramref name="value"/> is already an <see cref="AValue"/> or null.
+		/// </param>
+		/// <returns>
+		/// The existing <see cref="AValue"/>, <see cref="AValue.Empty"/> for null input,
+		/// or a new <see cref="AValue"/> wrapping the supplied object.
+		/// </returns>
 		public static AValue ToAValue(this object value, string bin = null, string fld = null)
                                 => value is AValue aValue
                                         ? aValue
-                                        : new AValue(value, bin ?? "Object", fld ??"Value");
+                                        : (value is null
+											? AValue.Empty
+											: new AValue(value, bin ?? "Object", fld ??"Value"));
 
 		/// <summary>
 		/// Converts an <see cref="AValue"/> to an Aerospike bin expression (<see cref="Exp.Bin(string, Exp.Type)"/>).
@@ -386,10 +419,73 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 													AValue.MatchOptions matchOptions = AValue.MatchOptions.Exact)
 			where TKey : AValue
 		{
-			KeyValuePair<TKey, TValue> result = source?.FirstOrDefault(kvp => kvp.Key?.Contains(key, matchOptions) ?? false)
-													?? throw new KeyNotFoundException($"Key '{key}' not found in the provided collection.");
-			
-			return result.Value;
+            foreach (KeyValuePair<TKey,TValue> kvp in source)
+            {
+				if(kvp.Key?.Contains(key, matchOptions) ?? false)
+				{
+					return kvp.Value;
+				}
+			}
+			throw new KeyNotFoundException($"Key '{key}' not found in the provided collection.");					
+		}
+
+		/// <summary>
+		/// Attempts to retrieve the first value whose key exactly matches the specified <paramref name="key"/>.
+		/// </summary>
+		/// <typeparam name="TKey">The key type in the source collection. Must derive from <see cref="AValue"/>.</typeparam>
+		/// <typeparam name="TValue">The value type in the source collection.</typeparam>
+		/// <typeparam name="K">The type of the key to match.</typeparam>
+		/// <param name="source">The key/value sequence to search.</param>
+		/// <param name="key">The key to match against each source key.</param>
+		/// <param name="defaultValue">The value to return when no matching key is found.</param>
+		/// <returns>
+		/// The first matching value found in <paramref name="source"/>; otherwise, <paramref name="defaultValue"/>.
+		/// </returns>
+		/// <remarks>
+		/// Matching uses <see cref="AValue.MatchOptions.Exact"/>.
+		/// </remarks>
+		public static TValue TryGetValue<TKey, TValue, K>(this IEnumerable<KeyValuePair<TKey, TValue>> source,
+													        K key,
+                                                            TValue defaultValue)
+	        where TKey : AValue
+        {
+			foreach(KeyValuePair<TKey, TValue> kvp in source)
+			{
+				if(kvp.Key?.Contains(key, AValue.MatchOptions.Exact) ?? false)
+				{
+					return kvp.Value;
+				}
+			}
+			return defaultValue;
+		}
+
+		/// <summary>
+		/// Attempts to retrieve the first value whose key exactly matches the specified <paramref name="key"/>,
+		/// and returns it as an <see cref="AValue"/>.
+		/// </summary>
+		/// <typeparam name="TKey">The key type in the source collection. Must derive from <see cref="AValue"/>.</typeparam>
+		/// <typeparam name="TValue">The value type in the source collection.</typeparam>
+		/// <typeparam name="K">The type of the key to match.</typeparam>
+		/// <param name="source">The key/value sequence to search.</param>
+		/// <param name="key">The key to match against each source key.</param>
+		/// <returns>
+		/// The first matching value converted to <see cref="AValue"/>; otherwise, <see cref="AValue.Empty"/>.
+		/// </returns>
+		/// <remarks>
+		/// Matching uses <see cref="AValue.MatchOptions.Exact"/>. The matched value is converted using <c>ToAValue()</c>.
+		/// </remarks>
+		public static AValue TryGetValue<TKey, TValue, K>(this IEnumerable<KeyValuePair<TKey, TValue>> source,
+															K key)
+			where TKey : AValue
+		{
+			foreach(KeyValuePair<TKey, TValue> kvp in source)
+			{
+				if(kvp.Key?.Contains(key, AValue.MatchOptions.Exact) ?? false)
+				{
+					return kvp.Value.ToAValue();
+				}
+			}
+			return AValue.Empty;
 		}
 
 		/// <summary>
@@ -520,7 +616,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// The value used to determine if a match occurred.
         /// </param>
         /// <param name="returnEmptyAValue">
-        /// If true and if a match was not found, a null AValue will be returned.
+        /// If true and if a match was not found, an <see cref="AValue.Empty"/> will be returned otherwise null is returned.
         /// </param>
         /// <returns>
         /// Returns the matched <see cref="AValue"/>. If no match found either <see cref="AValue.Empty"/>, or null is returned.
@@ -529,7 +625,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <seealso cref="TryGetValue{T, R}(IEnumerable{AValue}, T, out R)"/>
         /// <seealso cref="TryGetValue{T, R}(IEnumerable{AValue}, T, R)"/>
         /// <seealso cref="TryGetValue{T}(IEnumerable{AValue}, T, out AValue)"/>
-        public static AValue TryGetValue<T>(this IEnumerable<AValue> source, T matchValue, bool returnEmptyAValue = false)
+        public static AValue TryGetValue<T>(this IEnumerable<AValue> source, T matchValue, bool returnEmptyAValue = true)
                     => TryGetValue<T,AValue>(source, matchValue, out AValue matchedValue)
                             ? matchedValue
                             : (returnEmptyAValue ? AValue.Empty : null);

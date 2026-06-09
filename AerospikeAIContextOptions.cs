@@ -130,14 +130,27 @@
 		///
 		/// Examples show how to display the AI context, call Util.AI.Ask(...), query sets,
 		/// filter by generated record properties, use AsEnumerable() for LINQ collection
-		/// operations, join sets, group records, access primary keys, and use the native
-		/// Aerospike client.
+		/// operations, join sets, group records, access primary keys, use the native
+		/// Aerospike client, and optionally include data-operation examples controlled by
+		/// IncludeDataOperationExamples.
 		///
 		/// Examples are generated according to LinqSyntaxPreference.
 		///
 		/// Default: true.
 		/// </summary>
 		public bool IncludeExamples { get; set; } = true;
+
+		/// <summary>
+		/// Includes canonical examples for non-read-only data operations such as insert,
+		/// update, delete, import, export, copy, put, and native-client write operations.
+		///
+		/// These examples are intentionally safety-oriented. They should show preview/bounded
+		/// selection logic before mutation where practical, require explicit user intent for
+		/// destructive operations, and make namespace, set, bin, and primary-key sources explicit.
+		///
+		/// Default: true.
+		/// </summary>
+		public bool IncludeDataOperationExamples { get; set; } = true;
 
 		/// <summary>
 		/// Controls whether generated AI guidance and examples prefer LINQ query syntax
@@ -164,6 +177,18 @@
 		/// </summary>
 		public AerospikeLinqSyntaxPreference LinqSyntaxPreference { get; set; }
 			= AerospikeLinqSyntaxPreference.QuerySyntax;
+
+		/// <summary>
+		/// Controls whether generated AI code should include concise inline comments that explain
+		/// important steps, mode choices, expression filters, nested CDT traversal, conversions,
+		/// and safety boundaries.
+		///
+		/// This does not disable the short request-summary comment block at the top of generated
+		/// scripts; that summary remains enabled so generated queries document their intent.
+		///
+		/// Default: true.
+		/// </summary>
+		public bool IncludeInlineComments { get; set; } = true;
 
 		/// <summary>
 		/// Forces the driver to refresh Aerospike metadata before building the AI context.

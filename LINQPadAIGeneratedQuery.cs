@@ -1,4 +1,4 @@
-﻿using LINQPad;
+using LINQPad;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,42 +12,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 {
 	/// <summary>
 	/// LINQPad AI helper that submits an AI request, classifies the response,
-	/// and creates a connected C# Statements query file when the AI response
-	/// contains runnable C# code.
+	/// and creates a C# Statements query file when the AI response contains runnable C# code.
 	/// </summary>
 	public static partial class LINQPadAIGeneratedQuery
 	{
 		/// <summary>
 		/// Sends a natural-language request to LINQPad AI, inspects the returned content,
-		/// and, when runnable C# is detected, creates a new connected C# Statements query.
+		/// and, when runnable C# is detected, creates a new C# Statements query.
+		/// Driver-mode queries may copy the current LINQPad connection metadata.
+		/// Native Aerospike client queries are generated as standalone LINQPad scripts with an Aerospike.Client NuGet reference.
 		/// </summary>
-		/// <param name="aiContext">
-		/// The Aerospike AI context associated with the active LINQPad connection.
-		/// </param>
-		/// <param name="userRequest">
-		/// The prompt text to submit to the AI service.
-		/// </param>
-		/// <param name="options">
-		/// Optional request settings used to control AI behavior for this submission.
-		/// </param>
-		/// <param name="systemInstruction">
-		/// Optional system-level instruction prepended to guide response style and constraints.
-		/// </param>
-		/// <param name="progression">
-		/// <see langword="true"/> to show AI progress feedback while the request is running; otherwise, <see langword="false"/>.
-		/// </param>
-		/// <param name="cancellationToken">
-		/// A token that can be used to cancel the request.
-		/// </param>
-		/// <returns>
-		/// The raw response text returned by the AI, regardless of whether query generation succeeds.
-		/// </returns>
-		/// <exception cref="ArgumentNullException">
-		/// Thrown when <paramref name="aiContext"/> is <see langword="null"/>.
-		/// </exception>
-		/// <exception cref="ArgumentException">
-		/// Thrown when <paramref name="userRequest"/> is empty, null, or whitespace.
-		/// </exception>
 		public static async Task<string> SubmitRequestAsync(
 				AerospikeAIContext aiContext,
 				string userRequest,
@@ -92,21 +66,43 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				return response;
 			}
 
-			var generatedQueryPath = CreateConnectedGeneratedQuery(
+			var queryMode = DetermineGeneratedQueryMode(userRequest, response, csharpCode);
+
+			if(queryMode == AIGeneratedQueryMode.NativeAerospikeClient)
+			{
+				_ = "Using Native Mode: the generated .linq file will not copy LINQPad driver connection metadata, will reference the Aerospike.Client NuGet package, and should create an explicit AerospikeClient connection."
+					.Dump("AI Generation Mode");
+			}
+			else
+			{
+				_ = "Using LINQPad Driver Mode: the generated .linq file may copy the current Aerospike LINQPad connection metadata when available."
+					.Dump("AI Generation Mode");
+			}
+
+			var generatedQueryPath = CreateGeneratedQuery(
 				csharpCode,
+				queryMode,
 				out var copiedCurrentConnection);
 
-			var linkText = copiedCurrentConnection
-				? "Open generated C# Statements query with this Aerospike connection"
-				: "Open generated C# Statements query";
+			var linkText = queryMode == AIGeneratedQueryMode.NativeAerospikeClient
+				? "Open generated native Aerospike C# Statements query"
+				: copiedCurrentConnection
+					? "Open generated C# Statements query with this Aerospike connection"
+					: "Open generated C# Statements query";
 
 			_ = new Hyperlinq(generatedQueryPath, linkText)
 				.Dump("Generated Query");
 
-			if(!copiedCurrentConnection)
+			if(queryMode == AIGeneratedQueryMode.NativeAerospikeClient)
+			{
+				_ = "Review the native AerospikeClient host, port, TLS, authentication, and policy placeholders before running. " +
+					"The generated .linq file includes a NuGet reference to Aerospike.Client and does not copy LINQPad driver connection metadata."
+					.Dump("Native Connection Notice");
+			}
+			else if(!copiedCurrentConnection)
 			{
 				_ = "The generated query was created, but the current LINQPad connection could not be copied. " +
-				"Save the AI query first and run it again if you want generated queries to automatically reuse the Aerospike connection."
+					"Save the AI query first and run it again if you want generated queries to automatically reuse the Aerospike connection."
 					.Dump("Connection Notice");
 			}
 
@@ -118,6 +114,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			None,
 			Explanation,
 			RunnableCSharp
+		}
+
+		private enum AIGeneratedQueryMode
+		{
+			Driver,
+			NativeAerospikeClient
 		}
 
 		private sealed class FencedCodeBlock
@@ -146,19 +148,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 			if(codeBlocks.Count > 1)
 			{
-				var normalizedBlocks = codeBlocks
-					.Select(block => NormalizeCSharpStatements(block.Code))
-					.Where(code => !string.IsNullOrWhiteSpace(code))
-					.ToList();
-
-				var runnableBlocks = normalizedBlocks
-					.Where(LooksLikeRunnableCSharp)
-					.ToList();
-
 				var prose = RemoveFencedCodeBlocks(responseText).Trim();
 
-				if(runnableBlocks.Count == normalizedBlocks.Count && prose.Length < 600)
+				if(prose.Length < 300
+					&& codeBlocks.All(block => LooksLikeRunnableCSharp(NormalizeCSharpStatements(block.Code))))
+				{
 					return AIResponseKind.RunnableCSharp;
+				}
 
 				return AIResponseKind.Explanation;
 			}
@@ -235,7 +231,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			}
 		}
 
-
 		[GeneratedRegex(@"```[\s\S]*?```", RegexOptions.IgnoreCase, "en-US")]
 		private static partial Regex RemoveFencedCodeBlkRegex();
 
@@ -273,86 +268,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			if(!string.IsNullOrWhiteSpace(fullLinqCode))
 				code = fullLinqCode.Trim();
 
-			// Do not strip using statements here.
-			// This method is called before the generated LINQPad header is known.
-			// Leading using statements are moved into the .linq header later by
-			// NormalizeCSharpStatementsForGeneratedQuery(...).
+			code = StripUsingStatements(code);
 			code = StripMainWrapper(code);
 
 			return code.Trim();
 		}
 
-		private static string NormalizeCSharpStatementsForGeneratedQuery(
-								string code,
-								ref string generatedHeader)
-		{
-			if(string.IsNullOrWhiteSpace(code))
-				return null;
-
-			code = code.Trim();
-
-			var fullLinqCode = ExtractCodeFromFullLinqFile(code);
-
-			if(!string.IsNullOrWhiteSpace(fullLinqCode))
-				code = fullLinqCode.Trim();
-
-			code = MoveLeadingUsingStatementsToHeader(code, ref generatedHeader);
-			code = StripMainWrapper(code);
-
-			return code.Trim();
-		}
-
-		[GeneratedRegex(@"^using\s+(?<namespace>[A-Za-z_][A-Za-z0-9_.]*)\s*;$", RegexOptions.IgnoreCase, "en-US")]
-		private static partial Regex NormalUsingRegex();
-
-		[GeneratedRegex(@"^using\s+(?<alias>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?<type>[A-Za-z_][A-Za-z0-9_.]*)\s*;$", RegexOptions.IgnoreCase, "en-US")]
-		private static partial Regex AliasUsingRegex();
-
-		private static bool TryMoveAliasUsingToHeader(
-							string alias,
-							string typeName,
-							ref string header)
-		{
-			if(string.IsNullOrWhiteSpace(alias) || string.IsNullOrWhiteSpace(typeName))
-				return false;
-
-			// Common Aerospike AI-generated alias:
-			// using Exp = Aerospike.Client.Exp;
-			//
-			// In LINQPad C# Statements, importing Aerospike.Client is enough because
-			// Exp is the type name in that namespace.
-			if(string.Equals(alias, "Exp", StringComparison.Ordinal)
-				&& string.Equals(typeName, "Aerospike.Client.Exp", StringComparison.Ordinal))
-			{
-				header = EnsureNamespace(header, "Aerospike.Client");
-				return true;
-			}
-
-			// General safe case:
-			// using Foo = Some.Namespace.Foo;
-			//
-			// If the alias is the same as the type name, it can be represented as a normal
-			// namespace import.
-			var lastDot = typeName.LastIndexOf('.');
-
-			if(lastDot > 0 && lastDot < typeName.Length - 1)
-			{
-				var namespaceName = typeName.Substring(0, lastDot);
-				var shortTypeName = typeName.Substring(lastDot + 1);
-
-				if(string.Equals(alias, shortTypeName, StringComparison.Ordinal))
-				{
-					header = EnsureNamespace(header, namespaceName);
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		private static string MoveLeadingUsingStatementsToHeader(
-								string code,
-								ref string header)
+		private static string StripUsingStatements(string code)
 		{
 			if(string.IsNullOrWhiteSpace(code))
 				return code;
@@ -363,55 +285,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				.Split('\n')
 				.ToList();
 
-			var outputLines = new List<string>();
-			var inLeadingUsingBlock = true;
+			while(lines.Count > 0 && string.IsNullOrWhiteSpace(lines[0]))
+				lines.RemoveAt(0);
 
-			foreach(var line in lines)
-			{
-				var trimmed = line.Trim();
+			while(lines.Count > 0 && lines[0].TrimStart().StartsWith("using ", StringComparison.Ordinal))
+				lines.RemoveAt(0);
 
-				if(inLeadingUsingBlock)
-				{
-					if(string.IsNullOrWhiteSpace(trimmed))
-					{
-						// Drop leading blank lines while processing the using block.
-						continue;
-					}
-
-					var normalUsing = NormalUsingRegex().Match(trimmed);
-
-					if(normalUsing.Success)
-					{
-						header = EnsureNamespace(
-							header,
-							normalUsing.Groups["namespace"].Value);
-
-						continue;
-					}
-
-					var aliasUsing = AliasUsingRegex().Match(trimmed);
-
-					if(aliasUsing.Success)
-					{
-						var alias = aliasUsing.Groups["alias"].Value;
-						var typeName = aliasUsing.Groups["type"].Value;
-
-						if(TryMoveAliasUsingToHeader(alias, typeName, ref header))
-							continue;
-
-						outputLines.Add(
-							"// NOTE: Unsupported using alias removed from C# Statements query: " + trimmed);
-
-						continue;
-					}
-
-					inLeadingUsingBlock = false;
-				}
-
-				outputLines.Add(line);
-			}
-
-			return string.Join(Environment.NewLine, outputLines).Trim();
+			return string.Join(Environment.NewLine, lines);
 		}
 
 		[GeneratedRegex(@"^\s*(?:public\s+|private\s+|protected\s+|internal\s+|static\s+|async\s+)*\s*(?:Task|void)\s+Main\s*\([^)]*\)\s*\{(?<body>[\s\S]*)\}\s*$", RegexOptions.IgnoreCase, "en-US")]
@@ -474,81 +354,68 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			if(trimmed.StartsWith("<Query", StringComparison.OrdinalIgnoreCase))
 				return true;
 
-			var body = StripLeadingUsingStatementsForClassification(trimmed);
-
-			if(string.IsNullOrWhiteSpace(body))
-				body = trimmed;
-
 			var hasExecutableShape =
-				body.StartsWith("var ", StringComparison.Ordinal)
-				|| body.StartsWith("from ", StringComparison.Ordinal)
-				|| body.StartsWith("let ", StringComparison.Ordinal)
-				|| body.StartsWith("Client.Exp ", StringComparison.Ordinal)
-				|| body.StartsWith("Aerospike.Client.Exp ", StringComparison.Ordinal)
-				|| body.Contains(".Dump(", StringComparison.Ordinal)
-				|| body.Contains(" = ", StringComparison.Ordinal)
-				|| body.Contains(";", StringComparison.Ordinal);
+				trimmed.StartsWith("var ", StringComparison.Ordinal)
+				|| trimmed.StartsWith("from ", StringComparison.Ordinal)
+				|| trimmed.StartsWith("let ", StringComparison.Ordinal)
+				|| trimmed.StartsWith("Client.Exp ", StringComparison.Ordinal)
+				|| trimmed.StartsWith("Aerospike.Client.Exp ", StringComparison.Ordinal)
+				|| trimmed.Contains(".Dump(")
+				|| trimmed.Contains(" = ")
+				|| trimmed.Contains(";");
 
-			var hasQueryOrAerospikeShape =
-				body.Contains("from ", StringComparison.Ordinal)
-				|| body.Contains("select ", StringComparison.Ordinal)
-				|| body.Contains("where ", StringComparison.Ordinal)
-				|| body.Contains("join ", StringComparison.Ordinal)
-				|| body.Contains("orderby ", StringComparison.Ordinal)
-				|| body.Contains(".AsEnumerable()", StringComparison.Ordinal)
-				|| body.Contains(".Query(", StringComparison.Ordinal)
-				|| body.Contains(".Dump(", StringComparison.Ordinal)
-				|| body.Contains("new AerospikeClient", StringComparison.Ordinal)
-				|| body.Contains("ScanAll(", StringComparison.Ordinal)
-				|| body.Contains("Query(", StringComparison.Ordinal)
-				|| body.Contains("ScanPolicy", StringComparison.Ordinal)
-				|| body.Contains("QueryPolicy", StringComparison.Ordinal)
-				|| body.Contains("Exp.Build", StringComparison.Ordinal)
-				|| body.Contains("Exp.RegexCompare", StringComparison.Ordinal)
-				|| body.Contains("Exp.StringBin", StringComparison.Ordinal);
+			var hasQueryShape =
+				trimmed.Contains("from ")
+				|| trimmed.Contains("select ")
+				|| trimmed.Contains("where ")
+				|| trimmed.Contains("join ")
+				|| trimmed.Contains("orderby ")
+				|| trimmed.Contains("ScanAll(")
+				|| trimmed.Contains("client.Query(")
+				|| trimmed.Contains("new AerospikeClient")
+				|| trimmed.Contains(".AsEnumerable()")
+				|| trimmed.Contains(".Query(")
+				|| trimmed.Contains(".Dump(");
 
 			var looksLikeNarrativeSnippet =
-				body.StartsWith("test.", StringComparison.Ordinal)
-				&& !body.Contains(";", StringComparison.Ordinal)
-				&& !body.Contains(".Dump(", StringComparison.Ordinal);
+				trimmed.StartsWith("test.", StringComparison.Ordinal)
+				&& !trimmed.Contains(";")
+				&& !trimmed.Contains(".Dump(");
 
-			return hasExecutableShape && hasQueryOrAerospikeShape && !looksLikeNarrativeSnippet;
+			return hasExecutableShape && hasQueryShape && !looksLikeNarrativeSnippet;
 		}
 
-		private static string StripLeadingUsingStatementsForClassification(string code)
+		private static AIGeneratedQueryMode DetermineGeneratedQueryMode(
+			string userRequest,
+			string responseText,
+			string csharpCode)
 		{
-			if(string.IsNullOrWhiteSpace(code))
-				return code;
+			var combined = string.Join(
+				Environment.NewLine,
+				userRequest ?? string.Empty,
+				responseText ?? string.Empty,
+				csharpCode ?? string.Empty);
 
-			var lines = code
-				.Replace("\r\n", "\n")
-				.Replace('\r', '\n')
-				.Split('\n')
-				.ToList();
+			if(IsNativeAerospikeClientRequest(combined))
+				return AIGeneratedQueryMode.NativeAerospikeClient;
 
-			while(lines.Count > 0 && string.IsNullOrWhiteSpace(lines[0]))
-				lines.RemoveAt(0);
+			return AIGeneratedQueryMode.Driver;
+		}
 
-			while(lines.Count > 0)
-			{
-				var trimmed = lines[0].Trim();
+		private static bool IsNativeAerospikeClientRequest(string text)
+		{
+			if(string.IsNullOrWhiteSpace(text))
+				return false;
 
-				if(NormalUsingRegex().IsMatch(trimmed) || AliasUsingRegex().IsMatch(trimmed))
-				{
-					lines.RemoveAt(0);
-					continue;
-				}
-
-				if(string.IsNullOrWhiteSpace(trimmed))
-				{
-					lines.RemoveAt(0);
-					continue;
-				}
-
-				break;
-			}
-
-			return string.Join(Environment.NewLine, lines).Trim();
+			return text.Contains("native Aerospike API", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("native Aerospike C# client", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("native C# client", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("Aerospike native API", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("Aerospike native", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("native API", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("AerospikeClient", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("no LINQPad driver", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("total Aerospike native", StringComparison.OrdinalIgnoreCase);
 		}
 
 		private static bool TryGetCurrentQueryHeader(out string header)
@@ -578,9 +445,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			}
 		}
 
-		private static string CreateConnectedGeneratedQuery(
-								string csharpCode,
-								out bool copiedCurrentConnection)
+		private static string CreateGeneratedQuery(
+							string csharpCode,
+							AIGeneratedQueryMode queryMode,
+							out bool copiedCurrentConnection)
 		{
 			copiedCurrentConnection = false;
 
@@ -589,8 +457,19 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 			string generatedHeader;
 			string warningComment = null;
+			var normalizedCode = csharpCode;
 
-			if(TryGetCurrentQueryHeader(out var currentHeader))
+			if(queryMode == AIGeneratedQueryMode.NativeAerospikeClient)
+			{
+				generatedHeader = EnsureNativeAerospikeClientHeader("<Query Kind=\"Statements\" />");
+				normalizedCode = NormalizeNativeAerospikeClientCode(normalizedCode);
+				warningComment =
+					"// NOTE: Native Aerospike client mode. This query intentionally does not copy LINQPad driver connection metadata." + Environment.NewLine +
+					"// Confirm host, port, TLS, authentication, and policy settings before running." + Environment.NewLine +
+					"// The Aerospike.Client NuGet package is referenced in the LINQPad query header." + Environment.NewLine +
+					Environment.NewLine;
+			}
+			else if(TryGetCurrentQueryHeader(out var currentHeader))
 			{
 				generatedHeader = EnsureStatementsQueryKind(currentHeader);
 				generatedHeader = EnsureCommonNamespaces(generatedHeader);
@@ -606,10 +485,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					"// You can still manually select the Aerospike connection in LINQPad." + Environment.NewLine +
 					Environment.NewLine;
 			}
-
-			var normalizedCode = NormalizeCSharpStatementsForGeneratedQuery(
-				csharpCode,
-				ref generatedHeader);
 
 			var generatedQueryText =
 				generatedHeader
@@ -627,13 +502,75 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 			var outputPath = Path.Combine(
 				outputFolder,
-				"Generated-Aerospike-AI-Query-"
-					+ DateTime.Now.ToString("yyyyMMdd-HHmmss")
-					+ ".linq");
+				(queryMode == AIGeneratedQueryMode.NativeAerospikeClient
+					? "Generated-Aerospike-Native-AI-Query-"
+					: "Generated-Aerospike-AI-Query-")
+						+ DateTime.Now.ToString("yyyyMMdd-HHmmss")
+						+ ".linq");
 
 			File.WriteAllText(outputPath, generatedQueryText, Encoding.UTF8);
 
 			return outputPath;
+		}
+
+		private static string NormalizeNativeAerospikeClientCode(string code)
+		{
+			if(string.IsNullOrWhiteSpace(code))
+				return code;
+
+			// Aerospike.Client.ClientPolicy uses public fields whose names are mostly lowercase/camelCase.
+			// Normalize common PascalCase AI mistakes before writing the generated native .linq file.
+			code = NormalizeNativeClientPolicyMemberNames(code);
+
+			// Pure native code must not acquire the client through the LINQPad driver context.
+			code = Regex.Replace(
+				code,
+				@"(?m)^\s*var\s+client\s*=\s*\w+\.Client\s*;\s*$",
+				"var host = \"<aerospike-host>\";" + Environment.NewLine +
+				"var port = 3000;" + Environment.NewLine +
+				"var clientPolicy = new ClientPolicy();" + Environment.NewLine +
+				"using var client = new AerospikeClient(clientPolicy, host, port);");
+
+			return code;
+		}
+
+		private static string NormalizeNativeClientPolicyMemberNames(string code)
+		{
+			if(string.IsNullOrWhiteSpace(code))
+				return code;
+
+			var replacements = new Dictionary<string, string>(StringComparer.Ordinal)
+			{
+				["User"] = "user",
+				["Password"] = "password",
+				["ClusterName"] = "clusterName",
+				["AuthMode"] = "authMode",
+				["Timeout"] = "timeout",
+				["LoginTimeout"] = "loginTimeout",
+				["MinConnsPerNode"] = "minConnsPerNode",
+				["MaxConnsPerNode"] = "maxConnsPerNode",
+				["ConnPoolsPerNode"] = "connPoolsPerNode",
+				["MaxSocketIdle"] = "maxSocketIdle",
+				["MaxErrorRate"] = "maxErrorRate",
+				["ErrorRateWindow"] = "errorRateWindow",
+				["TendInterval"] = "tendInterval",
+				["FailIfNotConnected"] = "failIfNotConnected",
+				["ReadPolicyDefault"] = "readPolicyDefault",
+				["WritePolicyDefault"] = "writePolicyDefault",
+				["ScanPolicyDefault"] = "scanPolicyDefault",
+				["QueryPolicyDefault"] = "queryPolicyDefault",
+				["BatchPolicyDefault"] = "batchPolicyDefault"
+			};
+
+			foreach(var replacement in replacements)
+			{
+				code = Regex.Replace(
+					code,
+					@"\b" + Regex.Escape(replacement.Key) + @"\s*=",
+					replacement.Value + " =");
+			}
+
+			return code;
 		}
 
 		private static string ExtractQueryHeader(string queryText)
@@ -653,7 +590,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		[GeneratedRegex(@"<Query\b[^>]*\bKind\s*=", RegexOptions.IgnoreCase, "en-US")]
 		private static partial Regex QueryKindMatchRegex();
 
-		[GeneratedRegex(@"(<Query\b[^>]*\bKind\s*=\s*"")[^""]*("")", RegexOptions.IgnoreCase, "en-US")]
+		[GeneratedRegex(@"(<Query\b[^>]*\bKind\s*=\s*"")[^"" ]*("")", RegexOptions.IgnoreCase, "en-US")]
 		private static partial Regex QueryKindReplaceRegex();
 
 		[GeneratedRegex(@"<Query\b", RegexOptions.IgnoreCase, "en-US")]
@@ -665,9 +602,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				return "<Query Kind=\"Statements\" />";
 
 			if(QueryKindMatchRegex().IsMatch(header))
-			{
 				return QueryKindReplaceRegex().Replace(header, "$1Statements$2");
-			}
 
 			return QueryKindReplace2Regex().Replace(header, "<Query Kind=\"Statements\"");
 		}
@@ -678,10 +613,32 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			header = EnsureNamespace(header, "System.Linq");
 			header = EnsureNamespace(header, "System.Collections.Generic");
 			header = EnsureNamespace(header, "System.Text.RegularExpressions");
-			header = EnsureNamespace(header, "System.Threading.Tasks");			
+			header = EnsureNamespace(header, "System.Threading.Tasks");
+			header = EnsureNamespace(header, "Aerospike");
 			header = EnsureNamespace(header, "Aerospike.Client");
 
 			return header;
+		}
+
+		private static string EnsureNativeAerospikeClientHeader(string header)
+		{
+			// Native Aerospike client generated queries are standalone LINQPad Statements queries.
+			// Do not depend on a copied LINQPad-driver connection header.
+			// Build the header explicitly so the Aerospike.Client NuGet reference cannot be lost
+			// when the source header is the self-closing form: <Query Kind="Statements" />.
+			var nativeHeader =
+				"<Query Kind=\"Statements\">" + Environment.NewLine +
+				"  <NuGetReference>Aerospike.Client</NuGetReference>" + Environment.NewLine +
+				"  <Namespace>System</Namespace>" + Environment.NewLine +
+				"  <Namespace>System.Collections</Namespace>" + Environment.NewLine +
+				"  <Namespace>System.Collections.Generic</Namespace>" + Environment.NewLine +
+				"  <Namespace>System.Linq</Namespace>" + Environment.NewLine +
+				"  <Namespace>System.Security.Authentication</Namespace>" + Environment.NewLine +
+				"  <Namespace>System.Security.Cryptography.X509Certificates</Namespace>" + Environment.NewLine +
+				"  <Namespace>Aerospike.Client</Namespace>" + Environment.NewLine +
+				"</Query>";
+
+			return nativeHeader;
 		}
 
 		private static string EnsureNamespace(string header, string namespaceName)
@@ -694,15 +651,42 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			if(header.IndexOf(namespaceLine, StringComparison.OrdinalIgnoreCase) >= 0)
 				return header;
 
+			return InsertIntoQueryHeader(header, "  " + namespaceLine + Environment.NewLine);
+		}
+
+		private static string EnsureNuGetReference(string header, string packageName)
+		{
+			if(string.IsNullOrWhiteSpace(header))
+				return header;
+
+			var referenceLine = "<NuGetReference>" + packageName + "</NuGetReference>";
+
+			if(header.IndexOf(referenceLine, StringComparison.OrdinalIgnoreCase) >= 0)
+				return header;
+
+			return InsertIntoQueryHeader(header, "  " + referenceLine + Environment.NewLine);
+		}
+
+		private static string InsertIntoQueryHeader(string header, string line)
+		{
 			var endTag = "</Query>";
 			var endIndex = header.IndexOf(endTag, StringComparison.OrdinalIgnoreCase);
 
-			if(endIndex < 0)
-				return header;
+			if(endIndex >= 0)
+				return header.Insert(endIndex, line);
 
-			return header.Insert(
-				endIndex,
-				"  " + namespaceLine + Environment.NewLine);
-		}		
+			if(header.TrimEnd().EndsWith("/>", StringComparison.Ordinal))
+			{
+				var openTag = header.Trim();
+				openTag = openTag.Substring(0, openTag.Length - 2).TrimEnd() + ">";
+
+				return openTag
+					+ Environment.NewLine
+					+ line
+					+ "</Query>";
+			}
+
+			return header;
+		}
 	}
 }

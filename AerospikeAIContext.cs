@@ -63,6 +63,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			return replacements;
 		}
 
+		private static string BuildInlineCommentGuidance(AerospikeAIContextOptions options)
+		{
+			var includeInlineComments = options?.IncludeInlineComments ?? true;
+
+			return includeInlineComments
+				? "- Include concise inline comments for non-obvious logic, server-side expression filters, nested CDT/document traversal, AValue conversions, dictionary-key normalization, and safety boundaries. Avoid noisy comments that merely repeat obvious C# syntax."
+				: "- Do not include explanatory inline comments in the generated code unless the user explicitly asks for comments. The short request-summary comment block at the top of the script is still allowed.";
+		}
+
 		private static void AppendMarkdownResource(
 			StringBuilder sb,
 			string fileName,
@@ -214,7 +223,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// </returns>
 		/// <remarks>
 		/// This method is intended for interactive LINQPad use. It sends the request through
-		/// <see cref="LINQPadAIGeneratedQuery.SubmitRequestAsync(AerospikeAIContext, string, AerospikeAIContextOptions, string, bool, CancellationToken)"/>, classifies the
+		/// <see cref="SubmitRequestAsync(string, AerospikeAIContextOptions, string, bool, CancellationToken)"/>, classifies the
 		/// AI response, and creates a connected generated query when runnable C# is detected.
 		///
 		/// When the current LINQPad query has been saved, the generated query copies the current
@@ -401,7 +410,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 			return EmbeddedMarkdownLoader.LoadAndReplace(
 				fileName,
-				CreateMarkdownReplacements());
+				CreateMarkdownReplacements(
+					("InlineCommentGuidance", BuildInlineCommentGuidance(options))));
 		}
 
 		private void AppendHeader(StringBuilder sb)
@@ -423,7 +433,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				sb,
 				fileName,
 				CreateMarkdownReplacements(
-					("AlwaysUseAValues", connection.AlwaysUseAValues.ToString())));
+					("AlwaysUseAValues", connection.AlwaysUseAValues.ToString()),
+					("InlineCommentGuidance", BuildInlineCommentGuidance(options))));
 		}
 
 		private void AppendClusterSummary(StringBuilder sb)
@@ -807,6 +818,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				CreateMarkdownReplacements());
 
 			AppendMarkdownResource(sb, "Examples.NativeClient.md");
+
+			if(options.IncludeDataOperationExamples)
+			{
+				AppendMarkdownResource(
+					sb,
+					"Examples.DataOperations.md",
+					CreateMarkdownReplacements());
+			}
 		}
 
 		private void AppendFooter(StringBuilder sb, AerospikeAIContextOptions options)
@@ -827,7 +846,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				"Footer.md",
 				CreateMarkdownReplacements(
 					("AlwaysUseAValuesGuidance", alwaysUseAValuesGuidance),
-					("LinqSyntaxGuidance", linqSyntaxGuidance)));
+					("LinqSyntaxGuidance", linqSyntaxGuidance),
+					("InlineCommentGuidance", BuildInlineCommentGuidance(options))));
 		}
 
 		private static void AppendKeyValue(StringBuilder sb, string key, object value)

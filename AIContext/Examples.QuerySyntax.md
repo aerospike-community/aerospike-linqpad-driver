@@ -276,9 +276,10 @@ recordsWithFallbackPK.Dump();
 ```csharp
 // Use this pattern when a generated property is a document/list/map/CDT value.
 // Do not assume a searched field exists directly at the first level.
-// Traverse safely with Contains, TryGetValue, AsEnumerable, SelectMany, and AValue.Empty.
+// Traverse safely with TryGetValue(..., AValue.Empty), AsEnumerable(), SelectMany(),
+// CanConvert<T>(), and Convert<T>().
 
-var targetIds = new HashSet<long> { 1447, 179, 3169 };
+var targetIds = new HashSet<long> { 1447L, 179L, 3169L };
 
 var results =
     (from parent in NamespaceName.SetName.AsEnumerable()
@@ -291,13 +292,16 @@ var results =
             .SelectMany(document => document.TryGetValue("ChildCollectionName", AValue.Empty).AsEnumerable())
             .ToList()
      let matchingItems =
-         childItems
-            .Where(item => targetIds.Contains(item.TryGetValue("NestedIdField", 0L)))
-            .ToList()
+         (from item in childItems
+          let nestedId = item.TryGetValue("NestedIdField", AValue.Empty)
+          where nestedId.CanConvert<long>()
+             && targetIds.Contains(nestedId.Convert<long>())
+          select item)
+         .ToList()
      where matchingItems.Any()
      select new
      {
-         parent.PK,
+         ParentPK = parent.PK,
          MatchingItems = matchingItems
      })
     .Take(100);
@@ -308,23 +312,22 @@ results.Dump();
 ### Query `CustInvsDoc` by nested invoice-line `TrackId` (nested document/list/CDT values)
 
 ```csharp
-var targetTrackIds = new HashSet<long> { 1447, 179, 3169 };
+var targetTrackIds = new HashSet<long> { 1447L, 179L, 3169L };
 
 var results =
     (from doc in test.CustInvsDoc.AsEnumerable()
-     let invoices = doc.Invoices
-     where !invoices.IsEmpty
      let matchingInvoiceLines =
-         invoices
-            .AsEnumerable()
-            .Where(invoice => invoice.Contains("Lines"))
-            .SelectMany(invoice => invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable())
-            .ToList()
-     let trackIds = matchingInvoiceLines.Select(line => line.TryGetValue("TrackId", 0L))
-     where trackIds.Any(trackId => targetTrackIds.Contains(trackId))
+         (from invoice in doc.Invoices.AsEnumerable()
+          from line in invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable()
+          let trackId = line.TryGetValue("TrackId", AValue.Empty)
+          where trackId.CanConvert<long>()
+             && targetTrackIds.Contains(trackId.Convert<long>())
+          select line)
+         .ToList()
+     where matchingInvoiceLines.Any()
      select new
      {
-         doc.PK,
+         CustomerPK = doc.PK,
          doc.FirstName,
          doc.LastName,
          doc.Email,
@@ -343,33 +346,185 @@ results.Dump();
 
 Request:
 ```text
-I want to obtain all customer records from CustInvDoc set for TrackIds	2955, 1447, 179, or 3169.
-"Trackid" is within the "Lines" map which is within "Invoices" map. 
+I want to obtain all customer records from CustInvDoc set for TrackIds 2955, 1447, 179, or 3169.
+"TrackId" is within the "Lines" map which is within "Invoices" map.
 I just need the customer's record and the matching TrackIds.
 ```
 
 ```csharp
+var targetTrackIds = new HashSet<long> { 2955L, 1447L, 179L, 3169L };
+
 var results =
-	(from customer in test.CustInvsDoc.AsEnumerable()
-	 let invoices = customer.Invoices.AsEnumerable()
-	 let matchingTrackIds =
-		(from invoice in invoices
-		 let lines = invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable()
-		 from line in lines
-		 let trackId = line.TryGetValue("TrackId", AValue.Empty)
-		 where
-			(trackId == 2955L) ||
-			(trackId == 1447L) ||
-			(trackId == 179L) ||
-			(trackId == 3169L)
-		 select trackId)
-		.ToList()
-	 where matchingTrackIds.Any()
-	 select new
-	 {
-		 customer,
-		 MatchingTrackIds = matchingTrackIds
-	 });
+    (from customer in test.CustInvsDoc.AsEnumerable()
+     let matchingTrackIds =
+         (from invoice in customer.Invoices.AsEnumerable()
+          from line in invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable()
+          let trackId = line.TryGetValue("TrackId", AValue.Empty)
+          where trackId.CanConvert<long>()
+             && targetTrackIds.Contains(trackId.Convert<long>())
+          select trackId.Convert<long>())
+         .Distinct()
+         .ToList()
+     where matchingTrackIds.Any()
+     select new
+     {
+         CustomerPK = customer.PK,
+         customer.FirstName,
+         customer.LastName,
+         customer.Email,
+         customer.Address,
+         customer.City,
+         customer.State,
+         customer.Country,
+         MatchingTrackIds = matchingTrackIds
+     })
+    .Take(100);
 
 results.Dump();
+```
+
+### Query `CustInvsDoc` TrackIds and enrich with Track, Album, and Artist by Query Syntax
+
+Request:
+```text
+I want to obtain all customer records from CustInvDoc set for TrackIds 2955, 1447, 179, or 3169.
+"TrackId" is within the "Lines" map which is within "Invoices" map.
+I need the customer's record without Invoices and the matching TrackIds with associated artist name and album title.
+```
+
+```csharp
+var targetTrackIds = new HashSet<long> { 2955L, 1447L, 179L, 3169L };
+
+// Normalize generated PK and FK values to long before creating dictionaries or doing lookups.
+var trackInfoById =
+    (from track in test.Track.AsEnumerable()
+     where track.PK.CanConvert<long>()
+        && track.AlbumId.CanConvert<long>()
+     let trackId = track.PK.Convert<long>()
+     let albumId = track.AlbumId.Convert<long>()
+     where targetTrackIds.Contains(trackId)
+     join album in test.Album.AsEnumerable()
+        on albumId equals album.PK.Convert<long>()
+     where album.ArtistId.CanConvert<long>()
+     let artistId = album.ArtistId.Convert<long>()
+     join artist in test.Artist.AsEnumerable()
+        on artistId equals artist.PK.Convert<long>()
+     select new
+     {
+         TrackId = trackId,
+         TrackName = track.Name,
+         AlbumTitle = album.Title,
+         ArtistName = artist.Name
+     })
+    .ToDictionary(x => x.TrackId);
+
+var results =
+    (from customer in test.CustInvsDoc.AsEnumerable()
+     let matchingTrackIds =
+         (from invoice in customer.Invoices.AsEnumerable()
+          from line in invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable()
+          let trackIdValue = line.TryGetValue("TrackId", AValue.Empty)
+          where trackIdValue.CanConvert<long>()
+          let trackId = trackIdValue.Convert<long>()
+          where targetTrackIds.Contains(trackId)
+          select trackId)
+         .Distinct()
+         .ToList()
+     where matchingTrackIds.Any()
+     select new
+     {
+         Customer = new
+         {
+             CustomerPK = customer.PK,
+             customer.FirstName,
+             customer.LastName,
+             customer.Email,
+             customer.Address,
+             customer.City,
+             customer.State,
+             customer.Country,
+             customer.PostalCode,
+             customer.Phone,
+             customer.Fax,
+             customer.SupportRepId
+         },
+         MatchingTracks =
+             (from trackId in matchingTrackIds
+              let info = trackInfoById.TryGetValue(trackId, null)
+              where info != null
+              select new
+              {
+                  TrackId = trackId,
+                  info.TrackName,
+                  info.ArtistName,
+                  info.AlbumTitle
+              })
+             .ToList()
+     })
+    .Take(100);
+
+results.Dump();
+```
+
+### Query AValue-keyed map/CDT values with non-throwing TryGetValue helpers
+
+```csharp
+// Use this pattern when a CDT/map is represented as an AValue-keyed key/value sequence.
+// The AValue-keyed TryGetValue helper performs exact matching on the AValue key
+// and returns AValue.Empty when no matching key is found.
+var rows =
+    (from customer in test.CustInvsDoc.AsEnumerable()
+     from invoice in customer.Invoices.AsEnumerable()
+     from line in invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable()
+     let trackId = line.TryGetValue("TrackId", AValue.Empty)
+     where trackId.CanConvert<long>()
+     select new
+     {
+         CustomerPK = customer.PK,
+         TrackId = trackId.Convert<long>()
+     })
+    .Take(100);
+
+rows.Dump();
+```
+
+
+### Normalize nullable AValue/CDT values with ToAValue before traversal
+
+```csharp
+// Use ToAValue() when a generated property may be null or may already be AValue.
+// If customer.Invoices is null, ToAValue() returns AValue.Empty.
+// If customer.Invoices is already AValue, the original AValue is preserved.
+var targetTrackIds = new HashSet<long> { 2955L, 1447L, 179L, 3169L };
+
+var rows =
+    (from customer in test.CustInvsDoc.AsEnumerable()
+     let invoices = customer.Invoices.ToAValue()
+     where !invoices.IsEmpty
+     let matchingTrackIds =
+         (from invoice in invoices.AsEnumerable()
+          from line in invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable()
+          let trackId = line.TryGetValue("TrackId", AValue.Empty)
+          where trackId.CanConvert<long>()
+          let trackIdValue = trackId.Convert<long>()
+          where targetTrackIds.Contains(trackIdValue)
+          select trackIdValue)
+         .Distinct()
+         .ToList()
+     where matchingTrackIds.Any()
+     select new
+     {
+         CustomerPK = customer.PK,
+         customer.FirstName,
+         customer.LastName,
+         customer.Email,
+         customer.Address,
+         customer.City,
+         customer.State,
+         customer.Country,
+         MatchingTrackIds = matchingTrackIds
+     })
+    .Take(100);
+
+rows.Dump();
 ```

@@ -55,6 +55,95 @@ Do not generate `test.Customer.Query(filterExpression)` in native API mode. That
   - `Exp.RegexFlag.NONE`
 - Use `RegexFlag.NONE`, not `Exp.RegexFlag.NONE`.
 
+
+### Important Generated Script Summary and Comment Rule
+
+- For runnable generated C# scripts, start with a short comment block that summarizes the user's request before the first executable statement.
+- The request summary should capture the target namespace/set, filter criteria, output shape, and any important mode choice such as LINQPad-driver mode, native API mode, server-side expression filtering, or client-side traversal.
+- Keep the summary factual and concise; do not restate the entire prompt verbatim.
+- The top request-summary comment is always allowed because it documents the generated script's intent.
+{{InlineCommentGuidance}}
+
+
+
+### Important C# Iterator Helper Rule
+
+- When generating C# helper methods that use `yield return`, the method body is an iterator block.
+- Do not generate `return someEnumerable;`, `return someValue;`, or `return objectList;` inside an iterator block. That does not compile when the method also contains `yield return`.
+- To emit all items from an existing enumerable inside an iterator block, use `foreach` and `yield return` each item.
+- When a first branch handles `IEnumerable<object>`, add `yield break;` after yielding those items so the broader `System.Collections.IEnumerable` branch does not emit the same items again.
+- If the helper should directly return an enumerable, then do not use `yield return` anywhere in that helper; instead return `Enumerable.Empty<object>()`, `objectList`, or a projected enumerable consistently.
+
+Preferred native/helper pattern:
+
+```csharp
+IEnumerable<object> AsObjectEnumerable(object value)
+{
+    if (value is IEnumerable<object> objectList)
+    {
+        foreach (var item in objectList)
+            yield return item;
+
+        yield break;
+    }
+
+    if (value is System.Collections.IEnumerable enumerable && value is not string)
+    {
+        foreach (var item in enumerable)
+            yield return item;
+    }
+}
+```
+
+Avoid this invalid iterator pattern:
+
+```csharp
+IEnumerable<object> AsObjectEnumerable(object value)
+{
+    if (value is IEnumerable<object> objectList)
+        return objectList;
+
+    if (value is System.Collections.IEnumerable enumerable && value is not string)
+    {
+        foreach (var item in enumerable)
+            yield return item;
+    }
+}
+```
+
+
+
+### Important Native API Purity Rule
+
+When the selected mode is native Aerospike C# client API mode, **all** Aerospike data access in the generated script must use native client objects and methods.
+
+Do not mix native customer filtering with LINQPad-driver enrichment. In native mode, do not use:
+
+```csharp
+test.CustInvsDoc
+test.CustInvsDoc.AerospikeClient
+test.Track.AsEnumerable()
+test.Album.AsEnumerable()
+test.Artist.AsEnumerable()
+SetRecords
+AValue
+APrimaryKey
+PK
+GetPK()
+generated record properties such as track.AlbumId or artist.Name
+```
+
+Use an explicit native client connection:
+
+```csharp
+using var client = new AerospikeClient(clientPolicy, host, port);
+```
+
+Then use native calls such as `client.Query(...)`, `client.ScanAll(...)`, `client.Get(...)`, `client.Put(...)`, `client.Delete(...)`, and `record.GetValue("BinName")` with raw namespace, set, and bin names.
+
+For native enrichment across related sets, read `Track`, `Album`, and `Artist` through the same native `AerospikeClient`; do not switch back to generated LINQPad driver sets.
+
+
 ### Important LINQ Syntax Preference
 
 - Preferred LINQ style: `method syntax`.
@@ -81,6 +170,33 @@ select new
 
 This rule applies to all generated C# code, including LINQPad-driver queries, native Aerospike C# client code, helper methods, projections, enrichment logic, and post-processing code. Prefer correctness and clear C# scoping over forcing query syntax when `out var`, dictionary lookups, exception handling, or multi-step enrichment logic is involved.
 
+
+### Important Dictionary Lookup Rule for LINQ Query Projections
+
+- When generating LINQPad-driver code that enriches nested CDT/AValue results from a dictionary lookup, prefer the non-throwing default-value lookup helper instead of a `ContainsKey(...) ? dictionary[key] : null` expression.
+- Preferred pattern: `let enrichment = lookupById.TryGetValue(id, null)`.
+- Avoid this pattern inside LINQ query clauses: `let enrichment = lookupById.ContainsKey(id) ? lookupById[id] : null`.
+- This avoids duplicated lookups, avoids indexer access in the `let` clause, and keeps lookup code consistent with the driver's AValue-safe / null-safe style.
+- Only use the standard `TryGetValue(key, out var value)` form outside LINQ query clauses or inside a block lambda/local helper where the `out var` variable will not be referenced across LINQ query clauses.
+
+Preferred:
+
+```csharp
+let enrichment = trackInfoById.TryGetValue(trackId, null)
+select new
+{
+    TrackId = trackId,
+    ArtistName = enrichment?.ArtistName,
+    AlbumTitle = enrichment?.AlbumTitle
+}
+```
+
+Avoid:
+
+```csharp
+let enrichment = trackInfoById.ContainsKey(trackId) ? trackInfoById[trackId] : null
+```
+
 ### Important Record Property Rule
 
 - When accessing Aerospike bin values from generated record objects, prefer generated C# properties when available.
@@ -88,6 +204,27 @@ This rule applies to all generated C# code, including LINQPad-driver queries, na
 - Use `record["binName"]` only when no generated property exists, the bin name is not a valid C# identifier, or dynamic access is specifically required.
 - Prefer property access in projections, filters, joins, sorts, and groups.
 - The set-level bin metadata below lists the raw Aerospike bin name and, when available, the generated C# property name.
+
+### Important Projection Naming Rule
+
+- When projecting fields from multiple records, explicitly name projected properties that may collide.
+- Do not rely on inferred anonymous-object property names when projecting the same property name from more than one source.
+- Common collision-prone names include `PK`, `Name`, `Title`, `Id`, `Date`, `Total`, `Email`, `City`, `State`, and any repeated bin/property name across joined sets.
+- Always alias primary keys from multiple records, such as `CustomerPK`, `InvoicePK`, `TrackPK`, `AlbumPK`, and `ArtistPK`.
+- Always alias repeated descriptive fields, such as `TrackName = track.Name` and `ArtistName = artist.Name`.
+- Prefer clear source-qualified names in projections from joins.
+
+Avoid:
+
+```csharp
+select new
+{
+    customer.PK,
+    invoice.PK,
+    track.Name,
+    artist.Name
+}
+```
 
 ### Important AValue / AutoValue Rule
 
@@ -99,17 +236,79 @@ This rule applies to all generated C# code, including LINQPad-driver queries, na
 - Avoid unsafe casts from `AValue`-backed values to CLR primitive types.
 - Use the driver's `AValue`-friendly comparison, conversion, or value-access patterns when needed.
 
+
+### Important AValue Null Normalization Rule
+
+- When a generated property, nested document value, list, map, JSON value, or CDT value may already be `AValue` or may be null, prefer `value.ToAValue()` to normalize it before AValue/CDT navigation.
+- `ToAValue()` returns the original `AValue` when the value is already an `AValue`; when the source value is null, it returns `AValue.Empty`.
+- Do not replace nullable CDT/list/map/document values with CLR fallback containers such as `new List<System.Text.Json.JsonDocument>()` when the next operation is AValue navigation.
+- Prefer `let invoices = customer.Invoices.ToAValue()` over `let invoices = customer.Invoices ?? new List<System.Text.Json.JsonDocument>()`.
+- After normalization, use normal AValue-safe operations such as `IsEmpty`, `AsEnumerable()`, `TryGetValue(...)`, `CanConvert<T>()`, and `Convert<T>()`.
+- Use CLR fallback containers only when the subsequent code truly requires a concrete CLR collection type rather than AValue/CDT navigation.
+
+Preferred pattern:
+
+```csharp
+let invoices = customer.Invoices.ToAValue()
+where !invoices.IsEmpty
+from invoice in invoices.AsEnumerable()
+from line in invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable()
+let trackId = line.TryGetValue("TrackId", AValue.Empty)
+where trackId.CanConvert<long>()
+select trackId.Convert<long>()
+```
+
+Avoid this pattern for AValue/CDT traversal:
+
+```csharp
+let invoices = customer.Invoices ?? new List<System.Text.Json.JsonDocument>()
+```
+
 ### Important AValue-backed Map Key Rule
 
 - Some map, dictionary, JSON, and CDT structures may expose keys as `AValue` instances rather than plain CLR key types.
-- When searching `IEnumerable<KeyValuePair<TKey,TValue>>` where `TKey : AValue`, use the AValue-aware key helpers `ContainsKey(...)` and `GetByKey(...)`.
-- Use `ContainsKey(matchKey, matchOptions)` to test whether any AValue key matches.
-- Use `GetByKey(key, matchOptions)` to retrieve the first matching value.
-- Use `AValue.MatchOptions` when key matching needs exact, equality, substring, regex, or broader AValue matching behavior.
-- Use `ContainsKey(...)` before `GetByKey(...)` when missing keys are expected because `GetByKey(...)` throws `KeyNotFoundException` if no key matches.
-- Do not assume dictionary/map keys are always plain strings.
-- Prefer these helpers over manually converting every key with `.Convert<string>()` unless the key type is known and conversion is required.
+- When searching `IEnumerable<KeyValuePair<TKey,TValue>>` where `TKey : AValue`, use AValue-aware helpers rather than assuming keys are plain strings.
+- Prefer the non-throwing AValue-keyed `TryGetValue(...)` helper overloads when missing keys are normal.
+- Use `source.TryGetValue("KeyName", defaultValue)` when the caller needs the original `TValue` type.
+- Use `source.TryGetValue("KeyName")` when the caller wants the matched value as `AValue`; this returns `AValue.Empty` when no matching key is found.
+- The AValue-keyed `TryGetValue(...)` helpers use `AValue.MatchOptions.Exact` against the source AValue key.
+- Use `ContainsKey(...)` and `GetByKey(...)` only when separate existence testing is needed or throwing on missing keys is intentional.
+- Use `ContainsKey(...)` before `GetByKey(...)` when missing keys are expected, because `GetByKey(...)` throws `KeyNotFoundException` if no key matches.
+- Do not manually iterate key/value pairs or convert every key with `.Convert<string>()` unless the key type is known and conversion is required.
+- For nested CDT/map traversal, prefer `line.TryGetValue("TrackId", AValue.Empty)` or `line.TryGetValue("TrackId")` over `TryApply<IDictionary<...>>(...)` or manual dictionary conversion.
 
+### Important AValue-keyed Dictionary TryGetValue Rule
+
+- Some map, dictionary, JSON, and CDT structures may expose keys as `AValue` instances rather than plain CLR key types.
+- When the source is `IEnumerable<KeyValuePair<TKey,TValue>> where TKey : AValue`, prefer the non-throwing AValue-keyed `TryGetValue(...)` helper overloads for exact key matching.
+- Use `source.TryGetValue("KeyName", defaultValue)` when the caller needs the original `TValue` type and has an appropriate default value.
+- Use `source.TryGetValue("KeyName")` when the caller wants the matched value as `AValue`; this overload returns `AValue.Empty` when no matching key is found.
+- These helpers use `AValue.MatchOptions.Exact` against the AValue key.
+- Prefer these helpers over `ContainsKey(...)` plus `GetByKey(...)` when missing keys are normal, because `TryGetValue(...)` is non-throwing.
+- Use `ContainsKey(...)` plus `GetByKey(...)` only when the code specifically needs separate existence testing or the throwing behavior is intentional.
+- Do not manually iterate key/value pairs or convert every AValue key to string just to find a key when these helpers are available.
+
+Preferred examples:
+
+```csharp
+var lines = invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable();
+var trackId = line.TryGetValue("TrackId", AValue.Empty);
+```
+
+When working with an AValue-keyed key/value sequence directly:
+
+```csharp
+var trackId = line.AsEnumerable<KeyValuePair<AValue, AValue>>()
+                  .TryGetValue("TrackId");
+```
+
+Avoid this pattern when the non-throwing helper is available:
+
+```csharp
+var trackId = line.ContainsKey("TrackId")
+    ? line.GetByKey("TrackId")
+    : AValue.Empty;
+```
 ### Important Aerospike Expression Rule
 
 - AValue comparisons and LINQ `where` clauses are client-side after records are returned and materialized by the driver.

@@ -630,3 +630,354 @@ When generating native client code, verify that the output:
 - Uses `CDTExp.SelectByPath(...)` with `CTX` selectors for nested list/map/document expression traversal.
 - Uses `ListExp.GetByValue(ListReturnType.EXISTS, ...)` to test whether extracted list values contain a target value.
 - Does not use `test.Customer`, `SetRecords`, `AValue`, `PK`, `GetPK()`, generated properties, or any LINQPad-driver query APIs.
+
+
+---
+
+### Native helper: enumerate CDT/list values safely
+
+Use this pattern when native Aerospike API code needs to traverse a bin value that may be a list, array, or other non-string enumerable. Because this helper uses `yield return`, do not use `return objectList;` inside it.
+
+```csharp
+IEnumerable<object> AsObjectEnumerable(object value)
+{
+    if (value is IEnumerable<object> objectList)
+    {
+        foreach (var item in objectList)
+            yield return item;
+
+        yield break;
+    }
+
+    if (value is System.Collections.IEnumerable enumerable && value is not string)
+    {
+        foreach (var item in enumerable)
+            yield return item;
+    }
+}
+```
+
+
+
+---
+
+### Native API example: `CustInvsDoc` TrackId search with server-side expression and native enrichment only
+
+Use this pattern when the user asks for native Aerospike C# client API code, server-side expression filtering, and enrichment from related sets. This example intentionally does **not** use LINQPad-driver sets such as `test.Track.AsEnumerable()`.
+
+```csharp
+// Request summary:
+// - Query test.CustInvsDoc with native Aerospike API and a server-side nested CDT expression.
+// - Match customers whose Invoices[*].Lines[*].TrackId contains 2955, 1447, 179, or 3169.
+// - Return customer fields without Invoices, plus matching TrackIds with artist name and album title.
+// - Use native client access only for CustInvsDoc, Track, Album, and Artist.
+
+using Aerospike.Client;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+
+var host = "<aerospike-host>";
+var port = 3000;
+var namespaceName = "test";
+
+var customerSetName = "CustInvsDoc";
+var trackSetName = "Track";
+var albumSetName = "Album";
+var artistSetName = "Artist";
+
+var targetTrackIds = new HashSet<long> { 2955L, 1447L, 179L, 3169L };
+
+var clientPolicy = new ClientPolicy();
+using var client = new AerospikeClient(clientPolicy, host, port);
+
+// Build the server-side expression for Invoices[*].Lines[*].TrackId.
+var trackIdsExpression =
+    CDTExp.SelectByPath(
+        Exp.Type.LIST,
+        SelectFlag.VALUE,
+        Exp.ListBin("Invoices"),
+        CTX.AllChildren(),
+        CTX.MapKey(Value.Get("Lines")),
+        CTX.AllChildren(),
+        CTX.MapKey(Value.Get("TrackId")));
+
+// Keep only customers whose nested TrackId list contains at least one target value.
+var customerPolicy = new QueryPolicy
+{
+    filterExp = Exp.Build(
+        Exp.Or(
+            ListExp.GetByValue(ListReturnType.EXISTS, Exp.Val(2955L), trackIdsExpression),
+            ListExp.GetByValue(ListReturnType.EXISTS, Exp.Val(1447L), trackIdsExpression),
+            ListExp.GetByValue(ListReturnType.EXISTS, Exp.Val(179L), trackIdsExpression),
+            ListExp.GetByValue(ListReturnType.EXISTS, Exp.Val(3169L), trackIdsExpression)))
+};
+
+var customerStatement = new Statement();
+customerStatement.SetNamespace(namespaceName);
+customerStatement.SetSetName(customerSetName);
+customerStatement.SetBinNames(
+    "Address",
+    "City",
+    "Country",
+    "Email",
+    "Fax",
+    "FirstName",
+    "LastName",
+    "Phone",
+    "PostalCode",
+    "State",
+    "SupportRepId",
+    "Invoices");
+
+// Query filtered customers natively.
+var matchedCustomers = new List<object>();
+
+using (var recordSet = client.Query(customerPolicy, customerStatement))
+{
+    while (recordSet.Next())
+    {
+        var key = recordSet.Key;
+        var record = recordSet.Record;
+        var bins = record?.bins;
+
+        if (bins == null)
+            continue;
+
+        var invoices = GetBin(bins, "Invoices");
+
+        // Traverse nested CDT client-side only to shape the matching TrackIds for the output.
+        var matchingTrackIds =
+            (from invoice in AsObjectEnumerable(invoices)
+             let lines = TryGetMapValue(invoice, "Lines")
+             from line in AsObjectEnumerable(lines)
+             let trackId = ToInt64(TryGetMapValue(line, "TrackId"))
+             where trackId.HasValue && targetTrackIds.Contains(trackId.Value)
+             select trackId.Value)
+            .Distinct()
+            .ToList();
+
+        if (matchingTrackIds.Count == 0)
+            continue;
+
+        matchedCustomers.Add(new
+        {
+            PK = key?.userKey?.Object,
+            Address = ToStringSafe(GetBin(bins, "Address")),
+            City = ToStringSafe(GetBin(bins, "City")),
+            Country = ToStringSafe(GetBin(bins, "Country")),
+            Email = ToStringSafe(GetBin(bins, "Email")),
+            Fax = ToStringSafe(GetBin(bins, "Fax")),
+            FirstName = ToStringSafe(GetBin(bins, "FirstName")),
+            LastName = ToStringSafe(GetBin(bins, "LastName")),
+            Phone = ToStringSafe(GetBin(bins, "Phone")),
+            PostalCode = ToStringSafe(GetBin(bins, "PostalCode")),
+            State = ToStringSafe(GetBin(bins, "State")),
+            SupportRepId = ToInt64(GetBin(bins, "SupportRepId")),
+            MatchingTrackIds = matchingTrackIds
+        });
+    }
+}
+
+// Enrich via native scans of related sets. Do not use generated LINQPad driver sets in native mode.
+var tracksById = LoadTracksById(client, namespaceName, trackSetName, targetTrackIds);
+var albumIds = tracksById.Values.Select(x => x.AlbumId).Where(x => x.HasValue).Select(x => x.Value).ToHashSet();
+var albumsById = LoadAlbumsById(client, namespaceName, albumSetName, albumIds);
+var artistIds = albumsById.Values.Select(x => x.ArtistId).Where(x => x.HasValue).Select(x => x.Value).ToHashSet();
+var artistsById = LoadArtistsById(client, namespaceName, artistSetName, artistIds);
+
+var results =
+    matchedCustomers
+        .Select(customer => new
+        {
+            customer,
+            Matches =
+                ((IEnumerable<long>)customer.MatchingTrackIds)
+                .Select(trackId =>
+                {
+                    tracksById.TryGetValue(trackId, out var track);
+                    var album = track?.AlbumId is long albumId && albumsById.TryGetValue(albumId, out var a) ? a : null;
+                    var artist = album?.ArtistId is long artistId && artistsById.TryGetValue(artistId, out var ar) ? ar : null;
+
+                    return new
+                    {
+                        TrackId = trackId,
+                        TrackName = track?.TrackName,
+                        AlbumTitle = album?.AlbumTitle,
+                        ArtistName = artist?.ArtistName
+                    };
+                })
+                .ToList()
+        })
+        .Select(x => new
+        {
+            x.customer.PK,
+            x.customer.FirstName,
+            x.customer.LastName,
+            x.customer.Email,
+            x.customer.Phone,
+            x.customer.Address,
+            x.customer.City,
+            x.customer.State,
+            x.customer.PostalCode,
+            x.customer.Country,
+            x.customer.Fax,
+            x.customer.SupportRepId,
+            Matches = x.Matches
+        })
+        .ToList();
+
+results.Dump("CustInvsDoc customers matching requested TrackIds");
+
+static object GetBin(IDictionary<string, object> bins, string name)
+{
+    return bins.TryGetValue(name, out var value) ? value : null;
+}
+
+static object TryGetMapValue(object source, string key)
+{
+    if (source is IDictionary<string, object> stringDict && stringDict.TryGetValue(key, out var stringValue))
+        return stringValue;
+
+    if (source is IDictionary<object, object> objectDict && objectDict.TryGetValue(key, out var objectValue))
+        return objectValue;
+
+    if (source is IDictionary dict && dict.Contains(key))
+        return dict[key];
+
+    return null;
+}
+
+static IEnumerable<object> AsObjectEnumerable(object value)
+{
+    if (value is IEnumerable<object> objectList)
+    {
+        foreach (var item in objectList)
+            yield return item;
+
+        yield break;
+    }
+
+    if (value is IEnumerable enumerable && value is not string)
+    {
+        foreach (var item in enumerable)
+            yield return item;
+    }
+}
+
+static long? ToInt64(object value)
+{
+    if (value == null)
+        return null;
+
+    if (value is long longValue)
+        return longValue;
+
+    if (value is int intValue)
+        return intValue;
+
+    if (value is short shortValue)
+        return shortValue;
+
+    if (value is byte byteValue)
+        return byteValue;
+
+    return long.TryParse(value.ToString(), out var parsed) ? parsed : null;
+}
+
+static string ToStringSafe(object value)
+{
+    return value?.ToString();
+}
+
+static Dictionary<long, TrackInfo> LoadTracksById(AerospikeClient client, string namespaceName, string setName, ISet<long> targetTrackIds)
+{
+    var results = new Dictionary<long, TrackInfo>();
+
+    client.ScanAll(
+        new ScanPolicy(),
+        namespaceName,
+        setName,
+        (key, record) =>
+        {
+            if (record?.bins == null)
+                return;
+
+            var trackId = ToInt64(key?.userKey?.Object);
+            var albumId = ToInt64(record.GetValue("AlbumId"));
+
+            if (trackId.HasValue && targetTrackIds.Contains(trackId.Value))
+            {
+                results[trackId.Value] = new TrackInfo(
+                    trackId.Value,
+                    ToStringSafe(record.GetValue("Name")),
+                    albumId);
+            }
+        },
+        "Name",
+        "AlbumId");
+
+    return results;
+}
+
+static Dictionary<long, AlbumInfo> LoadAlbumsById(AerospikeClient client, string namespaceName, string setName, ISet<long> albumIds)
+{
+    var results = new Dictionary<long, AlbumInfo>();
+
+    client.ScanAll(
+        new ScanPolicy(),
+        namespaceName,
+        setName,
+        (key, record) =>
+        {
+            if (record?.bins == null)
+                return;
+
+            var albumId = ToInt64(key?.userKey?.Object);
+            var artistId = ToInt64(record.GetValue("ArtistId"));
+
+            if (albumId.HasValue && albumIds.Contains(albumId.Value))
+            {
+                results[albumId.Value] = new AlbumInfo(
+                    albumId.Value,
+                    ToStringSafe(record.GetValue("Title")),
+                    artistId);
+            }
+        },
+        "Title",
+        "ArtistId");
+
+    return results;
+}
+
+static Dictionary<long, ArtistInfo> LoadArtistsById(AerospikeClient client, string namespaceName, string setName, ISet<long> artistIds)
+{
+    var results = new Dictionary<long, ArtistInfo>();
+
+    client.ScanAll(
+        new ScanPolicy(),
+        namespaceName,
+        setName,
+        (key, record) =>
+        {
+            if (record?.bins == null)
+                return;
+
+            var artistId = ToInt64(key?.userKey?.Object);
+
+            if (artistId.HasValue && artistIds.Contains(artistId.Value))
+            {
+                results[artistId.Value] = new ArtistInfo(
+                    artistId.Value,
+                    ToStringSafe(record.GetValue("Name")));
+            }
+        },
+        "Name");
+
+    return results;
+}
+
+record TrackInfo(long TrackId, string TrackName, long? AlbumId);
+record AlbumInfo(long AlbumId, string AlbumTitle, long? ArtistId);
+record ArtistInfo(long ArtistId, string ArtistName);
+```

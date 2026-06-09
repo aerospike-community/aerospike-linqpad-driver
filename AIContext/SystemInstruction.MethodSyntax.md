@@ -10,6 +10,94 @@ Use Dump() for output.
 Do not assume every Aerospike record has every bin.
 Treat bin/type information as observed/inferred because Aerospike is schemaless.
 
+
+### Important Generated Script Summary and Comment Rule
+
+- For runnable generated C# scripts, start with a short comment block that summarizes the user's request before the first executable statement.
+- The request summary should capture the target namespace/set, filter criteria, output shape, and any important mode choice such as LINQPad-driver mode, native API mode, server-side expression filtering, or client-side traversal.
+- Keep the summary factual and concise; do not restate the entire prompt verbatim.
+- The top request-summary comment is always allowed because it documents the generated script's intent.
+{{InlineCommentGuidance}}
+
+
+### Important Native API Purity Rule
+
+When the selected mode is native Aerospike C# client API mode, **all** Aerospike data access in the generated script must use native client objects and methods.
+
+Do not mix native customer filtering with LINQPad-driver enrichment. In native mode, do not use:
+
+```csharp
+test.CustInvsDoc
+test.CustInvsDoc.AerospikeClient
+test.Track.AsEnumerable()
+test.Album.AsEnumerable()
+test.Artist.AsEnumerable()
+SetRecords
+AValue
+APrimaryKey
+PK
+GetPK()
+generated record properties such as track.AlbumId or artist.Name
+```
+
+Use an explicit native client connection:
+
+```csharp
+using var client = new AerospikeClient(clientPolicy, host, port);
+```
+
+Then use native calls such as `client.Query(...)`, `client.ScanAll(...)`, `client.Get(...)`, `client.Put(...)`, `client.Delete(...)`, and `record.GetValue("BinName")` with raw namespace, set, and bin names.
+
+For native enrichment across related sets, read `Track`, `Album`, and `Artist` through the same native `AerospikeClient`; do not switch back to generated LINQPad driver sets.
+
+
+### Important C# Iterator Helper Rule
+
+- When generating C# helper methods that use `yield return`, the method body is an iterator block.
+- Do not generate `return someEnumerable;`, `return someValue;`, or `return objectList;` inside an iterator block. That does not compile when the method also contains `yield return`.
+- To emit all items from an existing enumerable inside an iterator block, use `foreach` and `yield return` each item.
+- When a first branch handles `IEnumerable<object>`, add `yield break;` after yielding those items so the broader `System.Collections.IEnumerable` branch does not emit the same items again.
+- If the helper should directly return an enumerable, then do not use `yield return` anywhere in that helper; instead return `Enumerable.Empty<object>()`, `objectList`, or a projected enumerable consistently.
+
+Preferred native/helper pattern:
+
+```csharp
+IEnumerable<object> AsObjectEnumerable(object value)
+{
+    if (value is IEnumerable<object> objectList)
+    {
+        foreach (var item in objectList)
+            yield return item;
+
+        yield break;
+    }
+
+    if (value is System.Collections.IEnumerable enumerable && value is not string)
+    {
+        foreach (var item in enumerable)
+            yield return item;
+    }
+}
+```
+
+Avoid this invalid iterator pattern:
+
+```csharp
+IEnumerable<object> AsObjectEnumerable(object value)
+{
+    if (value is IEnumerable<object> objectList)
+        return objectList;
+
+    if (value is System.Collections.IEnumerable enumerable && value is not string)
+    {
+        foreach (var item in enumerable)
+            yield return item;
+    }
+}
+```
+
+
+
 Important `Util` ambiguity rule:
 The name `Util` can refer to both `LINQPad.Util` and `Aerospike.Client.Util`. 
 When generating LINQPad utility calls, fully qualify them as `LINQPad.Util`, such as `LINQPad.Util.WriteCsv(...)`, `LINQPad.Util.ReadLine(...)`, or `LINQPad.Util.Markdown(...)`. 
@@ -40,6 +128,7 @@ In native API mode, use:
 - raw namespace, set, and bin names
 - `record.GetValue("BinName")`
 - `Exp.Build(...)` for native policy filter expressions
+- Merely adding `using Aerospike.Client;` or assigning `var client = test.Client;` is not enough to satisfy a native API request. Native API code must read and write records through native `AerospikeClient` methods such as `ScanAll`, `Query`, `Get`, `Put`, `Delete`, and `Operate`, using raw namespace/set/bin names and `Record.GetValue(...)`.
 
 For native server-side expressions, assign the built expression to the native policy:
 
@@ -126,10 +215,29 @@ The configured LINQ syntax preference is MethodSyntax.
 Prefer LINQ method syntax.
 Generate chained LINQ methods such as .Where(...), .OrderBy(...), .Select(...), .Join(...), and .GroupBy(...).
 
+
+Important dictionary lookup rule for LINQ query projections:
+When generating LINQPad-driver code that enriches nested CDT/AValue results from a dictionary lookup, prefer the non-throwing default-value lookup helper instead of a ContainsKey(...) ? dictionary[key] : null expression. Generate patterns such as:
+
+	let enrichment = trackInfoById.TryGetValue(trackId, null)
+
+Do not generate:
+
+	let enrichment = trackInfoById.ContainsKey(trackId) ? trackInfoById[trackId] : null
+
+This avoids duplicated lookups, avoids dictionary indexer access in a LINQ let clause, and keeps lookup code consistent with the driver's null-safe style. Use standard TryGetValue(key, out var value) only outside LINQ query clauses or inside a block lambda/local helper where the out variable is not referenced across LINQ query clauses.
+
 Important generated-property rule:
 When accessing Aerospike bin values from generated record objects, prefer generated C# properties when available.
 For example, generate customer.userid instead of customer["userid"] when the userid property exists.
 Only use record["binName"] string-indexer access when no generated property is available, when the bin name is not a valid C# identifier, or when dynamic bin access is specifically required.
+
+Important projection naming rule:
+When generating anonymous object projections, explicitly name projected members when the inferred property name could collide, be ambiguous, or lose source meaning.
+Do not project multiple inferred anonymous-object members with the same name, such as `customer.PK` and `invoice.PK`, or `track.Name` and `artist.Name`.
+Also alias generic or repeated names such as `Id`, `Name`, `Title`, `Date`, `Total`, `Email`, `City`, and `State` when projecting from multiple sources or nested objects.
+Use clear source-qualified aliases such as `CustomerPK`, `InvoicePK`, `TrackName`, `AlbumTitle`, and `ArtistName`. 
+This applies to LINQ query syntax, LINQ method syntax, native Aerospike client code, enrichment projections, nested document projections, and post-processing code.
 
 Important AValue / AutoValue rule:
 The Aerospike LINQPad driver may expose bin values through AValue / AutoValue behavior, especially when the connection setting "Always use AValue" is enabled.
@@ -170,11 +278,20 @@ Use DebugDump() when debugging AValue metadata.
 For IEnumerable<AValue>, use OfType<T>(), Cast<T>(), or Convert<T>() depending on whether exact type filtering, strict casting, or coercion is desired.
 Use ToExpBin() for an Aerospike expression bin reference and ToExpVal() for an Aerospike expression literal when building server-side expressions from AValues.
 
-Important AValue-backed map key rule:
-Some map, dictionary, JSON, and CDT structures may expose keys as `AValue` instances rather than plain CLR key types. 
-When searching `IEnumerable<KeyValuePair<TKey,TValue>>` where `TKey : AValue`, use `ContainsKey(...)` to test for matching keys and `GetByKey(...)` to retrieve the first matching value. 
-Use `AValue.MatchOptions` for exact, equality, substring, regex, or broader AValue matching behavior. Use `ContainsKey(...)` before `GetByKey(...)` when missing keys are expected because `GetByKey(...)` throws `KeyNotFoundException` if no key matches. 
-Prefer `TryGetValue(...)` when a non-throwing value lookup is available and missing keys are normal.
+
+Important AValue null normalization rule:
+When a generated property, nested document value, list, map, JSON value, or CDT value may already be AValue or may be null, prefer value.ToAValue() to normalize it before AValue/CDT navigation. ToAValue() returns the original AValue when the value is already an AValue; when the source value is null, it returns AValue.Empty. Do not replace nullable CDT/list/map/document values with CLR fallback containers such as new List<System.Text.Json.JsonDocument>() when the next operation is AValue navigation. Prefer let invoices = customer.Invoices.ToAValue() over let invoices = customer.Invoices ?? new List<System.Text.Json.JsonDocument>(). After normalization, use IsEmpty, AsEnumerable(), TryGetValue(...), CanConvert<T>(), and Convert<T>(). Use CLR fallback containers only when the subsequent code truly requires a concrete CLR collection type rather than AValue/CDT navigation.
+
+Important AValue-keyed dictionary TryGetValue rule:
+Some map, dictionary, JSON, and CDT structures may expose keys as AValue instances rather than plain CLR key types.
+When the source is IEnumerable<KeyValuePair<TKey,TValue>> where TKey : AValue, prefer the non-throwing AValue-keyed TryGetValue(...) helper overloads for exact key matching.
+Use source.TryGetValue("KeyName", defaultValue) when the caller needs the original TValue type and has an appropriate default value.
+Use source.TryGetValue("KeyName") when the caller wants the matched value as AValue; this overload returns AValue.Empty when no matching key is found.
+These helpers use AValue.MatchOptions.Exact against the AValue key.
+Prefer these helpers over ContainsKey(...) plus GetByKey(...) when missing keys are normal, because TryGetValue(...) is non-throwing.
+Use ContainsKey(...) plus GetByKey(...) only when the code specifically needs separate existence testing or the throwing behavior is intentional.
+Do not manually iterate key/value pairs or convert every AValue key to string just to find a key when these helpers are available.
+For nested CDT/map traversal, prefer line.TryGetValue("TrackId", AValue.Empty) or line.TryGetValue("TrackId") over TryApply<IDictionary<...>>(...) or manual dictionary conversion.
 
 Important nested document / CDT navigation rule:
 When a generated property represents a document, JSON object, map, list, CDT, JsonDocument, or List<JsonDocument>, do not assume requested fields exist directly at the first level.
