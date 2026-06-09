@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.16; Change: cross-mode C# null-check pattern rule with AValue IsEmpty preservation. -->
+<!-- AIContext-Version: 2026.06.08.20; Change: add final validation for normal CLR dictionary TryGetValue patterns versus AValue/CDT TryGetValue semantics. -->
 
 ## Generated Script Summary and Comments
 
@@ -46,3 +46,7 @@ Use `is null` and `is not null` for ordinary C# reference/null checks.
 This applies to both LINQPad-driver mode and native Aerospike C# client API mode.
 
 Do not rewrite AValue semantic checks such as `value.IsEmpty` or `!value.IsEmpty`; those are preferred for AValue missing/empty/null semantics and may be valid even when the AValue variable itself is null.
+
+Before returning generated code, reject and rewrite normal CLR dictionary lookup patterns that misuse `TryGetValue` in LINQ clauses (for example, `dictionary.TryGetValue(key, null)` or `dictionary.TryGetValue(key, default)`).
+Use helper-based lookup in query clauses (for example, `GetValueOrDefault(...)`) and use `TryGetValue(key, out var value)` only in statement/lambda blocks.
+Do not apply this rewrite to AValue/CDT `TryGetValue(...)` navigation patterns.

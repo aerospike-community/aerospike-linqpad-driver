@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.3; Change: runtime AI-context version source, LINQPad output display, and generated script provenance comments. -->
+<!-- AIContext-Version: 2026.06.08.21; Change: normalize dictionary helper examples to generic GetValueOrDefault pattern and avoid TryGetValue(key, null). -->
 
 ### Query a generated set
 
@@ -397,6 +397,17 @@ I need the customer's record without Invoices and the matching TrackIds with ass
 ```csharp
 var targetTrackIds = new HashSet<long> { 2955L, 1447L, 179L, 3169L };
 
+// Generic helper for normal CLR dictionary lookups in LINQ query clauses.
+static TValue GetValueOrDefault<TKey, TValue>(
+    IReadOnlyDictionary<TKey, TValue> source,
+    TKey key,
+    TValue defaultValue = default)
+{
+    return source.TryGetValue(key, out var value)
+        ? value
+        : defaultValue;
+}
+
 // Normalize generated PK and FK values to long before creating dictionaries or doing lookups.
 var trackInfoById =
     (from track in test.Track.AsEnumerable()
@@ -452,8 +463,8 @@ var results =
          },
          MatchingTracks =
              (from trackId in matchingTrackIds
-              let info = trackInfoById.TryGetValue(trackId, null)
-              where info != null
+              let info = GetValueOrDefault(trackInfoById, trackId)
+              where info is not null
               select new
               {
                   TrackId = trackId,

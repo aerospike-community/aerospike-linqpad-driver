@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.3; Change: runtime AI-context version source, LINQPad output display, and generated script provenance comments. -->
+<!-- AIContext-Version: 2026.06.08.21; Change: normalize dictionary helper examples to generic GetValueOrDefault pattern and avoid TryGetValue(key, null). -->
 
 ### Query a generated set
 
@@ -220,6 +220,17 @@ rows.Dump();
 ```csharp
 var targetTrackIds = new HashSet<long> { 2955L, 1447L, 179L, 3169L };
 
+// Generic helper for normal CLR dictionary lookups in LINQ projections/clauses.
+static TValue GetValueOrDefault<TKey, TValue>(
+    IReadOnlyDictionary<TKey, TValue> source,
+    TKey key,
+    TValue defaultValue = default)
+{
+    return source.TryGetValue(key, out var value)
+        ? value
+        : defaultValue;
+}
+
 // Normalize generated PK and FK values to long before creating dictionaries or doing lookups.
 var albumsById = test.Album
     .AsEnumerable()
@@ -254,11 +265,11 @@ var trackInfoById = test.Track
     .Where(track => targetTrackIds.Contains(track.TrackId))
     .Select(track =>
     {
-        var album = albumsById.TryGetValue(track.AlbumId, null);
-        if (album == null)
+        var album = GetValueOrDefault(albumsById, track.AlbumId);
+        if (album is null)
             return null;
 
-        var artist = artistsById.TryGetValue(album.ArtistId, null);
+        var artist = GetValueOrDefault(artistsById, album.ArtistId);
 
         return new
         {
@@ -268,7 +279,7 @@ var trackInfoById = test.Track
             ArtistName = artist?.ArtistName
         };
     })
-    .Where(track => track != null)
+    .Where(track => track is not null)
     .ToDictionary(track => track.TrackId);
 
 var results = test.CustInvsDoc
@@ -305,8 +316,8 @@ var results = test.CustInvsDoc
             row.Customer.SupportRepId
         },
         MatchingTracks = row.MatchingTrackIds
-            .Select(trackId => trackInfoById.TryGetValue(trackId, null))
-            .Where(enrichment => enrichment != null)
+            .Select(trackId => GetValueOrDefault(trackInfoById, trackId))
+            .Where(enrichment => enrichment is not null)
             .ToList()
     })
     .Take(100);

@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.16; Change: cross-mode C# null-check pattern rule with AValue IsEmpty preservation. -->
+<!-- AIContext-Version: 2026.06.08.20; Change: enforce normal CLR dictionary lookup pattern in LINQ clauses and prevent AValue TryGetValue-style misuse. -->
 
 
 You are generating LINQPad C# statements for the Aerospike LINQPad driver.
@@ -163,6 +163,14 @@ For example, use record.{{DefaultASPIKeyName}}
 			exists.
 If no generated / default primary - key property is available, use record.GetPK().
 Do not use string bin access for the primary key unless the context explicitly says the primary key is stored as a normal bin.
+
+Important normal CLR dictionary lookup rule:
+For normal CLR dictionaries (for example Dictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>, IDictionary<TKey, TValue>), do not generate dictionary.TryGetValue(key, null) or dictionary.TryGetValue(key, default) patterns.
+Inside LINQ query clauses, avoid out-var dictionary lookup patterns and prefer a helper lookup pattern such as:
+	let value = GetValueOrDefault(dictionary, key)
+	where value is not null
+Inside statement/lambda blocks, use dictionary.TryGetValue(key, out var value).
+Do not confuse these normal CLR dictionary rules with AValue/CDT TryGetValue APIs.
 
 Important LINQ rule:
 Generated Aerospike set objects are SetRecords / SetRecords < T > instances.

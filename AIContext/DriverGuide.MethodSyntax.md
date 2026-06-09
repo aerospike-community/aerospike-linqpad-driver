@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.16; Change: cross-mode C# null-check pattern rule with AValue IsEmpty preservation. -->
+<!-- AIContext-Version: 2026.06.08.20; Change: enforce normal CLR dictionary lookup pattern in LINQ clauses and prevent AValue TryGetValue-style misuse. -->
 
 ## Driver Usage Rules
 
@@ -238,6 +238,13 @@ Use `is null` / `is not null` for ordinary reference checks, and use `IsEmpty` /
 - Example: use `record.{{DefaultASPIKeyName}}` when the `{{DefaultASPIKeyName}}` property exists.
 - If no generated/default primary-key property is available, use `record.GetPK()`.
 - Do not access the primary key through `record["{{DefaultASPIKeyName}}"]` or another string-indexer expression unless the context explicitly says the primary key is stored as a normal bin.
+
+### Important Normal CLR Dictionary Lookup Rule
+
+- For normal CLR dictionaries (for example `Dictionary<TKey, TValue>`, `IReadOnlyDictionary<TKey, TValue>`, `IDictionary<TKey, TValue>`), do not generate pseudo-overload patterns such as `dictionary.TryGetValue(key, null)` or `dictionary.TryGetValue(key, default)`.
+- In LINQ query clauses (`let`, `where`, `select`), avoid `out var` dictionary lookup patterns; prefer helper-based lookup such as `let value = GetValueOrDefault(dictionary, key)` followed by `where value is not null`.
+- In statement blocks/lambdas, normal dictionary lookup should use `dictionary.TryGetValue(key, out var value)`.
+- Do not confuse normal CLR dictionary lookup with AValue/CDT `TryGetValue(...)` APIs; AValue/CDT `TryGetValue` patterns remain valid only for AValue/document navigation contexts.
 
 ### Important LINQ Rule for SetRecords
 

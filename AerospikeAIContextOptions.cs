@@ -28,6 +28,33 @@
 	}
 
 	/// <summary>
+	/// Named AI context profile used to quickly choose a section/verbosity shape.
+	/// </summary>
+	public enum AerospikeAIContextProfile
+	{
+		/// <summary>
+		/// Default profile for standard query generation.
+		/// Includes schema, rules, and examples.
+		/// </summary>
+		Full = 0,
+
+		/// <summary>
+		/// Compact profile focused on guidance/rules with minimal metadata and no examples.
+		/// </summary>
+		RulesOnly = 1,
+
+		/// <summary>
+		/// Metadata-focused profile for namespace/set/bin guidance with minimal examples.
+		/// </summary>
+		SchemaOnly = 2,
+
+		/// <summary>
+		/// Diagnostic profile intended for troubleshooting context assembly.
+		/// </summary>
+		Debug = 3
+	}
+
+	/// <summary>
 	/// Controls how much Aerospike/LINQPad metadata and usage guidance is generated
 	/// for AI prompts.
 	///
@@ -36,6 +63,14 @@
 	/// </summary>
 	public sealed class AerospikeAIContextOptions
 	{
+		/// <summary>
+		/// High-level context profile that controls default section density and diagnostics.
+		///
+		/// Full is the default and keeps current behavior broadly intact.
+		/// </summary>
+		public AerospikeAIContextProfile ContextProfile { get; set; }
+			= AerospikeAIContextProfile.Full;
+
 		/// <summary>
 		/// Includes general guidance explaining how the Aerospike LINQPad driver should be used.
 		///
@@ -241,6 +276,34 @@
 		/// Default: true.
 		/// </summary>
 		public bool DumpTruncationWarning { get; set; } = true;
+
+		/// <summary>
+		/// When true, profile/application logic should keep schema/metadata sections before long examples.
+		///
+		/// Default: true.
+		/// </summary>
+		public bool PreferSchemaOverExamples { get; set; } = true;
+
+		/// <summary>
+		/// Include a context build diagnostics/report section in generated context output.
+		///
+		/// Default: false (can be profile-enabled).
+		/// </summary>
+		public bool IncludeContextBuildReport { get; set; } = false;
+
+		/// <summary>
+		/// Include detailed/full cluster diagnostics in addition to compact summary data.
+		///
+		/// Default: false.
+		/// </summary>
+		public bool IncludeFullClusterInfo { get; set; } = false;
+
+		/// <summary>
+		/// Include namespace configuration key/value details.
+		///
+		/// Default: false.
+		/// </summary>
+		public bool IncludeNamespaceConfig { get; set; } = false;
 
 		/// <summary>
 		/// Optional namespace filter.

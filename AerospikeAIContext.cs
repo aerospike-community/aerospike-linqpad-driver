@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace Aerospike.Database.LINQPadDriver.Extensions
 {
 	/// <summary>
-	/// Result of building AI context Markdown, including truncation metadata.
+	/// Result of building AI context Markdown, including truncation metadata and diagnostics.
 	/// </summary>
 	public sealed class AerospikeAIContextBuildResult
 	{
@@ -39,6 +39,21 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// True when the generated Markdown exceeded MaxChars and was truncated.
 		/// </summary>
 		public bool WasTruncated { get; set; }
+
+		/// <summary>
+		/// Context profile used for generation.
+		/// </summary>
+		public AerospikeAIContextProfile Profile { get; set; }
+
+		/// <summary>
+		/// Ordered list of top-level sections that were included.
+		/// </summary>
+		public IReadOnlyList<string> IncludedSections { get; set; } = Array.Empty<string>();
+
+		/// <summary>
+		/// Build warnings collected during context assembly.
+		/// </summary>
+		public IReadOnlyList<string> Warnings { get; set; } = Array.Empty<string>();
 	}
 
 	/// <summary>
@@ -170,40 +185,122 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		{
 			options ??= new AerospikeAIContextOptions();
 
+			var includedSections = new List<string>();
+			var warnings = new List<string>();
+			var profile = options.ContextProfile;
+
+			var includeDriverGuide = options.IncludeDriverGuide;
+			var includeClusterSummary = options.IncludeClusterSummary;
+			var includeNamespaces = options.IncludeNamespaces;
+			var includeUdfs = options.IncludeUdfs;
+			var includeExamples = options.IncludeExamples;
+
+			switch(profile)
+			{
+				case AerospikeAIContextProfile.RulesOnly:
+					includeClusterSummary = false;
+					includeNamespaces = false;
+					includeUdfs = false;
+					includeExamples = false;
+					break;
+				case AerospikeAIContextProfile.SchemaOnly:
+					includeUdfs = false;
+					includeExamples = false;
+					break;
+				case AerospikeAIContextProfile.Debug:
+					includeClusterSummary = true;
+					includeNamespaces = true;
+					includeUdfs = true;
+					includeExamples = true;
+					options.IncludeFullClusterInfo = true;
+					options.IncludeNamespaceConfig = true;
+					options.IncludeContextBuildReport = true;
+					break;
+			}
+
 			var sb = new StringBuilder(Math.Min(options.MaxChars + 2048, 128_000));
 
 			AppendHeader(sb);
+			includedSections.Add("Header");
 
-			if(options.IncludeDriverGuide)
+			AppendGenerationModeSummary(sb);
+			includedSections.Add("GenerationModeSummary");
+
+			var namespaces = Array.Empty<LPNamespace>();
+			if(includeNamespaces)
 			{
-				AppendDriverGuide(sb, options);
+				namespaces = GetNamespaces(options).ToArray();
 			}
 
-			if(options.IncludeClusterSummary)
+			void AppendSchemaSections()
 			{
-				AppendClusterSummary(sb);
+				if(includeClusterSummary)
+				{
+					AppendClusterSummary(sb, options);
+					includedSections.Add("ClusterSummary");
+				}
+
+				if(includeNamespaces)
+				{
+					AppendNamespaces(sb, namespaces, options);
+					includedSections.Add("Namespaces");
+
+					if(namespaces.Length == 0)
+					{
+						warnings.Add("No namespace metadata was found for this connection.");
+					}
+				}
+
+				if(includeUdfs)
+				{
+					AppendUdfs(sb);
+					includedSections.Add("UDFs");
+				}
 			}
 
-			if(options.IncludeNamespaces)
+			void AppendRuleSections()
 			{
-				var namespaces = GetNamespaces(options);
-				AppendNamespaces(sb, namespaces, options);
+				if(includeDriverGuide)
+				{
+					AppendDriverGuide(sb, options);
+					includedSections.Add("DriverGuide");
+				}
 			}
 
-			if(options.IncludeUdfs)
+			if(options.PreferSchemaOverExamples)
 			{
-				AppendUdfs(sb);
+				AppendSchemaSections();
+				AppendRuleSections();
+			}
+			else
+			{
+				AppendRuleSections();
+				AppendSchemaSections();
 			}
 
-			if(options.IncludeExamples)
+			if(includeExamples)
 			{
 				AppendExamples(sb, options);
+				includedSections.Add("Examples");
 			}
 
 			AppendFooter(sb, options);
+			includedSections.Add("Footer");
+
+			if(options.IncludeContextBuildReport)
+			{
+				AppendContextBuildReport(sb, options, profile, includedSections, warnings);
+				includedSections.Add("ContextBuildReport");
+			}
 
 			var originalMarkdown = sb.ToString();
+			var wasTruncated = options.MaxChars > 0 && originalMarkdown.Length > options.MaxChars;
 			var finalMarkdown = TrimToMaxChars(originalMarkdown, options.MaxChars);
+
+			if(wasTruncated)
+			{
+				warnings.Add($"Context was truncated at MaxChars={options.MaxChars:n0}.");
+			}
 
 			return new AerospikeAIContextBuildResult
 			{
@@ -211,7 +308,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				OriginalLength = originalMarkdown.Length,
 				FinalLength = finalMarkdown.Length,
 				MaxChars = options.MaxChars,
-				WasTruncated = options.MaxChars > 0 && originalMarkdown.Length > options.MaxChars
+				WasTruncated = wasTruncated,
+				Profile = profile,
+				IncludedSections = includedSections,
+				Warnings = warnings
 			};
 		}
 
@@ -488,51 +588,73 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					("InlineCommentGuidance", BuildInlineCommentGuidance(options))));
 		}
 
-		private void AppendClusterSummary(StringBuilder sb)
+		private void AppendGenerationModeSummary(StringBuilder sb)
+		{
+			sb.AppendLine("## Generation Mode Summary");
+			sb.AppendLine();
+			sb.AppendLine("- Default mode: LINQPad-driver mode using generated namespace/set members and driver abstractions.");
+			sb.AppendLine("- Native Aerospike C# client mode is used only when explicitly requested.");
+			sb.AppendLine("- Keep mode boundaries strict: do not mix LINQPad-driver APIs and native-client-only patterns in one query.");
+			sb.AppendLine();
+		}
+
+		private void AppendClusterSummary(StringBuilder sb, AerospikeAIContextOptions options)
 		{
 			sb.AppendLine("## Cluster Summary");
 			sb.AppendLine();
 
 			AppendKeyValue(sb, "Cluster name", connection.Database);
-			AppendKeyValue(sb, "Connection string", connection.ConnectionString);
 			AppendKeyValue(sb, "Record view", connection.RecordView);
 			AppendKeyValue(sb, "Document API enabled", connection.DocumentAPI);
 			AppendKeyValue(sb, "Always use AValue / AutoValue behavior", connection.AlwaysUseAValues);
 			AppendKeyValue(sb, "Send user key", connection.SendPK);
-			AppendKeyValue(sb, "Network compression", connection.NetworkCompression);
 
-			var version = connection.CXInfo?.DatabaseInfo?.DbVersion;
-			AppendKeyValue(sb, "Server version", version);
-
-			var nodes = connection.Nodes;
-			if(nodes is not null && nodes.Length > 0)
+			if(options.IncludeFullClusterInfo)
 			{
-				sb.AppendLine($"- Nodes: `{nodes.Length}`");
+				AppendKeyValue(sb, "Connection string", connection.ConnectionString);
+				AppendKeyValue(sb, "Network compression", connection.NetworkCompression);
 
-				foreach(var node in nodes.Take(20))
+				var version = connection.CXInfo?.DatabaseInfo?.DbVersion;
+				AppendKeyValue(sb, "Server version", version);
+
+				var nodes = connection.Nodes;
+				if(nodes is not null && nodes.Length > 0)
 				{
-					sb.AppendLine($"  - `{Safe(node?.Name)}` active=`{node?.Active}`");
+					sb.AppendLine($"- Nodes: `{nodes.Length}`");
+
+					foreach(var node in nodes.Take(20))
+					{
+						sb.AppendLine($"  - `{Safe(node?.Name)}` active=`{node?.Active}`");
+					}
+
+					if(nodes.Length > 20)
+					{
+						sb.AppendLine("  - ... truncated after 20 nodes");
+					}
 				}
 
-				if(nodes.Length > 20)
+				var features = connection.DBFeatures;
+				if(features is not null && features.Any())
 				{
-					sb.AppendLine("  - ... truncated after 20 nodes");
+					sb.AppendLine("- Server/driver features:");
+
+					foreach(var feature in features.Take(60))
+					{
+						sb.AppendLine($"  - `{Safe(feature)}`");
+					}
+
+					if(features.Count() > 60)
+					{
+						sb.AppendLine("  - ... truncated after 60 features");
+					}
 				}
 			}
-
-			var features = connection.DBFeatures;
-			if(features is not null && features.Any())
+			else
 			{
-				sb.AppendLine("- Server/driver features:");
-
-				foreach(var feature in features.Take(60))
+				var nodeCount = connection.Nodes?.Length ?? 0;
+				if(nodeCount > 0)
 				{
-					sb.AppendLine($"  - `{Safe(feature)}`");
-				}
-
-				if(features.Count() > 60)
-				{
-					sb.AppendLine("  - ... truncated after 60 features");
+					sb.AppendLine($"- Nodes: `{nodeCount}`");
 				}
 			}
 
@@ -610,7 +732,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				}
 			}
 
-			if(ns.ConfigParams is not null && ns.ConfigParams.Any())
+			if(options.IncludeNamespaceConfig && ns.ConfigParams is not null && ns.ConfigParams.Any())
 			{
 				sb.AppendLine("- Selected namespace configuration:");
 
@@ -899,6 +1021,43 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					("AlwaysUseAValuesGuidance", alwaysUseAValuesGuidance),
 					("LinqSyntaxGuidance", linqSyntaxGuidance),
 					("InlineCommentGuidance", BuildInlineCommentGuidance(options))));
+		}
+
+		private static void AppendContextBuildReport(
+			StringBuilder sb,
+			AerospikeAIContextOptions options,
+			AerospikeAIContextProfile profile,
+			IReadOnlyList<string> includedSections,
+			IReadOnlyList<string> warnings)
+		{
+			sb.AppendLine();
+			sb.AppendLine("## Context Build Report");
+			sb.AppendLine();
+			sb.AppendLine($"- Profile: `{profile}`");
+			sb.AppendLine($"- MaxChars: `{options.MaxChars:n0}`");
+			sb.AppendLine($"- Prefer schema over examples: `{options.PreferSchemaOverExamples}`");
+			sb.AppendLine($"- Include full cluster info: `{options.IncludeFullClusterInfo}`");
+			sb.AppendLine($"- Include namespace config: `{options.IncludeNamespaceConfig}`");
+
+			if(includedSections is not null && includedSections.Count > 0)
+			{
+				sb.AppendLine("- Included sections:");
+				foreach(var section in includedSections)
+				{
+					sb.AppendLine($"  - `{Safe(section)}`");
+				}
+			}
+
+			if(warnings is not null && warnings.Count > 0)
+			{
+				sb.AppendLine("- Build warnings:");
+				foreach(var warning in warnings)
+				{
+					sb.AppendLine($"  - {Safe(warning)}");
+				}
+			}
+
+			sb.AppendLine();
 		}
 
 		private static void AppendKeyValue(StringBuilder sb, string key, object value)
