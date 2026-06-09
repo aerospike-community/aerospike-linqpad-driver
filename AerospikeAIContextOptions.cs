@@ -227,9 +227,9 @@
 		/// If the generated context exceeds this limit, it is truncated and a truncation
 		/// note is appended.
 		///
-		/// Default: 40,000.
+		/// Default: 150,000.
 		/// </summary>
-		public int MaxChars { get; set; } = 40_000;
+		public int MaxChars { get; set; } = 150_000;
 
 		/// <summary>
 		/// Optional namespace filter.

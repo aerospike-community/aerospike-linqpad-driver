@@ -1,8 +1,18 @@
-<!-- AIContext-Version: 2026.06.08.3; Change: runtime AI-context version source, LINQPad output display, and generated script provenance comments. -->
+<!-- AIContext-Version: 2026.06.08.6; Change: mode-specific API repository references and reflection fallback guidance. -->
+
+> **Example naming note:** Namespace, set, bin, and generated property names shown here, such as `test`, `Customer`, `CustInvsDoc`, `Invoice`, `Track`, `Album`, `Artist`, `Invoices`, `Lines`, `TrackId`, `FirstName`, `CustomerId`, `AlbumId`, and `Name`, are examples. In generated code, substitute the actual names from the current AI context metadata or from the user's request.
+> **Example mode note:** Examples in this file are native Aerospike C# client API mode examples unless a heading explicitly says otherwise. They must not use generated LINQPad-driver sets, `SetRecords`, `AValue`, `APrimaryKey`, `PK`, `GetPK()`, or generated record properties for Aerospike data access.
 
 ### Native Aerospike C# Client API Mode
 
 When the user asks to translate driver/LINQPad-driver code to the **native Aerospike C# client API**, native mode overrides all LINQPad-driver examples and rules.
+
+Native API reference repository: `{{NativeCSharpClientRepositoryUrl}}`
+
+Use this repository as the API authority for native Aerospike C# client code. Do not use LINQPad-driver APIs as the authority for native-mode code.
+
+When a native API member, overload, enum, namespace, constructor, or disposable behavior is unclear, inspect the loaded `Aerospike.Client` assembly by reflection before guessing.
+
 
 Return a complete runnable LINQPad C# Statements script using only the native Aerospike C# client API.
 
@@ -95,7 +105,7 @@ using Exp = Aerospike.Client.Exp;
 
 ---
 
-### Using the native Aerospike client to create a connection
+### Native Aerospike API mode: Using the native Aerospike client to create a connection
 
 ```csharp
 using Aerospike.Client;
@@ -111,7 +121,7 @@ using var clientConnection = new AerospikeClient(clientPolicy, host, port);
 
 ---
 
-### Native server-side nested CDT expression rule
+### Native Aerospike API mode: Native server-side nested CDT expression rule
 
 Aerospike server-side expressions support nested CDT traversal. For nested list/map/document paths, prefer `CDTExp.SelectByPath(...)` with `CTX` selectors instead of inventing arbitrary `ListExp` / `MapExp` chains.
 
@@ -166,7 +176,7 @@ Exp.RegexFlag.NONE
 
 ---
 
-### Use the native Aerospike client to transform this LINQ query using client-side filtering
+### Native Aerospike API mode: Use the native Aerospike client to transform this LINQ query using client-side filtering
 
 Original LINQPad-driver query:
 
@@ -251,7 +261,7 @@ static string ToHex(byte[] bytes)
 
 ---
 
-### Use the native Aerospike client to transform this LINQ query using server-side filtering expressions
+### Native Aerospike API mode: Use the native Aerospike client to transform this LINQ query using server-side filtering expressions
 
 Original LINQPad-driver query:
 
@@ -337,7 +347,7 @@ static string ToHex(byte[] bytes)
 
 ---
 
-### Native Aerospike client: nested document search with safe client-side traversal
+### Native Aerospike API mode: Native Aerospike client: nested document search with safe client-side traversal
 
 Use this pattern when the user asks for native Aerospike client code and either does not require server-side filtering or when a client-side traversal example is requested.
 
@@ -497,7 +507,7 @@ static string ToHex(byte[] bytes)
 
 ---
 
-### Native Aerospike client: server-side nested CDT expression for `CustInvsDoc` TrackId
+### Native Aerospike API mode: Native Aerospike client: server-side nested CDT expression for `CustInvsDoc` TrackId
 
 Use this pattern when the user asks for native Aerospike client code with server-side expressions for the nested document/list/map path:
 
@@ -619,7 +629,7 @@ static string ToHex(byte[] bytes)
 
 ---
 
-### Native API mode checklist
+### Native Aerospike API mode: Native API mode checklist
 
 When generating native client code, verify that the output:
 
@@ -663,7 +673,7 @@ IEnumerable<object> AsObjectEnumerable(object value)
 
 ---
 
-### Native API example: `CustInvsDoc` TrackId search with server-side expression and native enrichment only
+### Native Aerospike API mode: Native API example: `CustInvsDoc` TrackId search with server-side expression and native enrichment only
 
 Use this pattern when the user asks for native Aerospike C# client API code, server-side expression filtering, and enrichment from related sets. This example intentionally does **not** use LINQPad-driver sets such as `test.Track.AsEnumerable()`.
 

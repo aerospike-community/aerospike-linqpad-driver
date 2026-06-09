@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.4; Change: native dictionary lookup boundary to prevent LINQPad-driver TryGetValue helper leakage into native mode. -->
+<!-- AIContext-Version: 2026.06.08.13; Change: C# type declaration placement rule for generated LINQPad scripts. -->
 
 ## Driver Usage Rules
 
@@ -29,6 +29,55 @@ LINQPad.Util.WriteCsv(rows, filePath);
 LINQPad.Util.ReadLine("Enter a value:");
 LINQPad.Util.Markdown(markdown).Dump("Rendered Markdown");
 ```
+
+
+### Important Mode-Specific API Reference and Reflection Fallback Rule
+
+Use the correct API reference for the selected mode.
+
+For LINQPad-driver mode, treat the Aerospike LINQPad driver repository as the driver API reference:
+
+`{{DriverRepositoryUrl}}`
+
+For native Aerospike C# client API mode, treat the official Aerospike C# client repository as the native API reference:
+
+`{{NativeCSharpClientRepositoryUrl}}`
+
+Do not use LINQPad-driver APIs as the authority for native-mode code, and do not use native-client-only APIs as the authority for LINQPad-driver-only APIs.
+
+When an API member, overload, enum, namespace, constructor, or disposable behavior is unclear, prefer reflection against the relevant loaded assembly before guessing.
+
+Reflection fallback guidance:
+
+- In LINQPad-driver mode, inspect the Aerospike LINQPad driver assembly and generated connection types.
+- In native Aerospike C# client API mode, inspect the loaded `Aerospike.Client` assembly.
+- Use reflection to confirm method names, overloads, parameter types, return types, properties, enum names, nested types, and whether a type implements `IDisposable`.
+- Do not invent methods or overloads when reflection can verify the API surface.
+- If reflection shows the expected API is unavailable, generate a simpler verified pattern or explain the limitation.
+
+Example reflection snippets:
+
+```csharp
+typeof(Aerospike.Client.ClientPolicy)
+    .GetInterfaces()
+    .Select(t => t.FullName)
+    .Dump("ClientPolicy interfaces");
+
+typeof(Aerospike.Client.AerospikeClient)
+    .GetMethods()
+    .Where(m => m.Name == "Query")
+    .Select(m => m.ToString())
+    .Dump("AerospikeClient.Query overloads");
+
+typeof(Aerospike.Client.CDTExp)
+    .GetMethods()
+    .Where(m => m.Name == "SelectByPath")
+    .Select(m => m.ToString())
+    .Dump("CDTExp.SelectByPath overloads");
+```
+
+Use reflection as a fallback validation aid, not as a replacement for clear, known examples.
+
 
 ### Important native Aerospike C# client API override
 
@@ -67,6 +116,75 @@ Do not generate `test.Customer.Query(filterExpression)` in native API mode. That
 {{InlineCommentGuidance}}
 
 
+
+### Important Native Disposable Object Rule
+
+When the selected mode is native Aerospike C# client API mode, use `using var` only for objects that implement `IDisposable`, such as `AerospikeClient` and `RecordSet`.
+
+Do not generate:
+
+```csharp
+using var clientPolicy = new ClientPolicy();
+```
+
+`ClientPolicy`, `ScanPolicy`, `QueryPolicy`, `WritePolicy`, and similar policy/configuration objects should be normal variables, not `using var` declarations.
+
+Preferred native connection pattern:
+
+```csharp
+var clientPolicy = new ClientPolicy();
+using var client = new AerospikeClient(clientPolicy, host, port);
+```
+
+Preferred native query result pattern:
+
+```csharp
+using var recordSet = client.Query(queryPolicy, statement);
+```
+
+Before returning native-mode code, verify that `using var` is not applied to non-disposable policy/configuration objects.
+
+
+
+### Important Native ScanAll Callback Rule
+
+In native Aerospike C# client API mode, do not treat `client.ScanAll(...)` as returning an enumerable, record set, list, or assignable result.
+
+`client.ScanAll(...)` is a callback-style scan API. Collect rows inside the callback into a local `List<T>`, `Dictionary<TKey,TValue>`, `ConcurrentBag<T>`, or other collection.
+
+Do not generate:
+
+```csharp
+var artistSet = client.ScanAll(null, namespaceName, "Artist");
+var artists = client.ScanAll(scanPolicy, namespaceName, "Artist").ToList();
+foreach (var record in client.ScanAll(scanPolicy, namespaceName, "Artist")) { }
+```
+
+Preferred callback scan pattern:
+
+```csharp
+var artists = new List<ArtistInfo>();
+var scanPolicy = new ScanPolicy();
+
+client.ScanAll(
+    scanPolicy,
+    namespaceName,
+    "Artist",
+    (key, record) =>
+    {
+        if (record == null)
+            return;
+
+        artists.Add(new ArtistInfo(
+            ArtistId: ToInt64(key.userKey?.Object),
+            ArtistName: record.GetValue("Name")?.ToString()));
+    },
+    "Name");
+```
+
+For query APIs, use `client.Query(...)` with `using var recordSet = ...` and iterate with `recordSet.Next()`.
+
+Use `ScanAll(...)` for callback scans. Use `Query(...)` when a `RecordSet` is required.
 
 ### Important C# Iterator Helper Rule
 
@@ -190,6 +308,36 @@ For native projection/enrichment code, use a block lambda when lookup state is n
 This native rule overrides the LINQPad-driver dictionary lookup rule whenever native API mode is selected.
 
 
+### Important C# Type Declaration Placement Rule
+
+This rule applies to both LINQPad-driver mode and native Aerospike C# client API mode.
+
+When generating LINQPad C# Statements scripts, place helper type declarations at the end of the script, after the top-level executable statements and helper methods.
+
+This applies to C# `record`, `class`, `struct`, and `enum` declarations.
+
+In particular, generated helper records such as:
+
+```csharp
+record TrackInfo(long TrackId, string TrackName, long? AlbumId);
+record AlbumInfo(long AlbumId, string AlbumTitle, long? ArtistId);
+record ArtistInfo(long ArtistId, string ArtistName);
+```
+
+should be placed at the end of the generated script, not interleaved with query, scan, lookup, enrichment, or output logic.
+
+Preferred generated script order:
+
+```text
+1. Request summary comments.
+2. `using` statements, if needed by LINQPad C# Statements.
+3. Top-level executable statements: variables, policies, queries, scans, transformations, and `Dump()` output.
+4. Local/static helper methods.
+5. Helper type declarations: `record`, `class`, `struct`, and `enum`.
+```
+
+Do not place `record`, `class`, `struct`, or `enum` declarations before or between executable query/scanning/enrichment logic unless the target LINQPad script mode explicitly requires it.
+
 ### Important LINQ Syntax Preference
 
 - Preferred LINQ style: `method syntax`.
@@ -200,6 +348,8 @@ This native rule overrides the LINQPad-driver dictionary lookup rule whenever na
 ### Important C# Scoping Rule for `out var` and LINQ
 
 When generating C# code that uses dictionaries and `TryGetValue(...)`, do not declare `out var` variables in one LINQ query clause and then reference those variables in later query clauses. This can produce invalid or fragile C#.
+
+This rule applies to all generated C# code, including LINQPad-driver queries, native Aerospike C# client code, helper methods, projections, enrichment logic, and post-processing code. Prefer correctness and clear C# scoping over forcing query syntax when `out var`, dictionary lookups, exception handling, or multi-step enrichment logic is involved.
 
 Avoid this pattern:
 
@@ -214,35 +364,124 @@ select new
 }
 ```
 
-This rule applies to all generated C# code, including LINQPad-driver queries, native Aerospike C# client code, helper methods, projections, enrichment logic, and post-processing code. Prefer correctness and clear C# scoping over forcing query syntax when `out var`, dictionary lookups, exception handling, or multi-step enrichment logic is involved.
-
-
-### Important Dictionary Lookup Rule for LINQPad-driver Query Projections
-
-- This rule applies only to LINQPad-driver code. It does not apply to native Aerospike C# client API mode.
-- When generating LINQPad-driver code that enriches nested CDT/AValue results from a dictionary lookup, prefer the non-throwing default-value lookup helper instead of a `ContainsKey(...) ? dictionary[key] : null` expression.
-- Preferred pattern: `let enrichment = lookupById.TryGetValue(id, null)`.
-- Avoid this pattern inside LINQ query clauses: `let enrichment = lookupById.ContainsKey(id) ? lookupById[id] : null`.
-- This avoids duplicated lookups, avoids indexer access in the `let` clause, and keeps lookup code consistent with the driver's AValue-safe / null-safe style.
-- Only use the standard `TryGetValue(key, out var value)` form outside LINQ query clauses or inside a block lambda/local helper where the `out var` variable will not be referenced across LINQ query clauses.
-
-Preferred:
+Also avoid chained dependent `TryGetValue(..., out var ...)` lookups inside LINQ query clauses:
 
 ```csharp
-let enrichment = trackInfoById.TryGetValue(trackId, null)
-select new
+let hasAlbum = albumByTrackId.TryGetValue(trackId, out var albumId)
+let hasArtist = hasAlbum && albumArtistByAlbumId.TryGetValue(albumId, out var artistId)
+let hasArtistName = hasArtist && artistById.TryGetValue(artistId, out var artistName)
+where hasArtistName && !string.IsNullOrWhiteSpace(artistName)
+orderby artistName
+select artistName
+```
+
+When a query requires multi-step dictionary enrichment, use one of these safe patterns:
+
+1. Use block-lambda method syntax for the enrichment step.
+2. Use a local helper method that performs the full lookup chain and returns a nullable/default result.
+3. Materialize intermediate lookup rows before returning to query syntax.
+
+Preferred helper pattern:
+
+```csharp
+static string GetArtistName(
+    long trackId,
+    IReadOnlyDictionary<long, long> albumByTrackId,
+    IReadOnlyDictionary<long, long> albumArtistByAlbumId,
+    IReadOnlyDictionary<long, string> artistById)
 {
-    TrackId = trackId,
-    ArtistName = enrichment?.ArtistName,
-    AlbumTitle = enrichment?.AlbumTitle
+    if (!albumByTrackId.TryGetValue(trackId, out var albumId))
+        return null;
+
+    if (!albumArtistByAlbumId.TryGetValue(albumId, out var artistId))
+        return null;
+
+    return artistById.TryGetValue(artistId, out var artistName)
+        ? artistName
+        : null;
 }
 ```
 
-Avoid:
+Then use the helper inside query syntax:
 
 ```csharp
-let enrichment = trackInfoById.ContainsKey(trackId) ? trackInfoById[trackId] : null
+let artistName = GetArtistName(
+    trackId,
+    albumByTrackId,
+    albumArtistByAlbumId,
+    artistById)
+where !string.IsNullOrWhiteSpace(artistName)
+orderby artistName
+select artistName
 ```
+
+Prefer this helper-method pattern whenever multiple dictionary lookups depend on prior lookup results.
+
+### Important Cross-Mode Dictionary Lookup Helper Rule
+
+This rule applies to both LINQPad-driver mode and native Aerospike C# client API mode.
+
+When generated code performs dictionary lookups inside LINQ query clauses, do **not** declare `out var` variables directly inside `let`, `where`, `orderby`, `join`, or `select` clauses.
+
+For normal CLR dictionary-shaped sources such as `Dictionary<TKey,TValue>`, `IReadOnlyDictionary<TKey,TValue>`, or `IDictionary<TKey,TValue>`, generate a local helper that wraps the standard C# `TryGetValue(key, out var value)` call inside a normal statement block, and call that helper from the LINQ query.
+
+This helper may be used with any key/value types, including CLR primitives, nullable values, tuples, records, reference types, `AValue`, or `APrimaryKey`, as long as the source is a normal CLR dictionary-shaped source.
+
+Prefer this helper name to avoid confusion with `Dictionary.TryGetValue(...)` and AValue `TryGetValue(...)` helper APIs:
+
+```csharp
+static TValue GetValueOrDefault<TKey, TValue>(
+    IReadOnlyDictionary<TKey, TValue> source,
+    TKey key,
+    TValue defaultValue = default)
+{
+    return source.TryGetValue(key, out var value)
+        ? value
+        : defaultValue;
+}
+```
+
+Preferred LINQ query pattern:
+
+```csharp
+from artistId in artistIds
+let artistName = GetValueOrDefault(artistById, artistId)
+where !string.IsNullOrWhiteSpace(artistName)
+orderby artistName
+select artistName
+```
+
+Avoid this pattern inside LINQ query clauses:
+
+```csharp
+from artistId in artistIds
+let hasValue = artistById.TryGetValue(artistId, out var artistName)
+where hasValue && !string.IsNullOrWhiteSpace(artistName)
+orderby artistName
+select artistName
+```
+
+Outside LINQ query clauses, or inside block lambdas/local helper methods, standard C# `TryGetValue(key, out var value)` is still preferred:
+
+```csharp
+if (artistById.TryGetValue(artistId, out var artistName))
+{
+    // use artistName here
+}
+```
+
+Do not confuse normal CLR dictionary-shaped lookup with AValue/CDT/map/document navigation. Do **not** use `GetValueOrDefault(...)` to replace AValue/CDT navigation when the source is an `AValue`, list/map/document value, or AValue helper target.
+
+For AValue/CDT navigation, continue using AValue-safe helper patterns such as:
+
+```csharp
+let trackId = line.TryGetValue("TrackId", AValue.Empty)
+```
+
+The deciding factor is the source shape:
+
+- `Dictionary<TKey,TValue>`, `IReadOnlyDictionary<TKey,TValue>`, or `IDictionary<TKey,TValue>`: use `GetValueOrDefault(...)` inside LINQ query clauses.
+- `AValue`, CDT, JSON, map, list, or document navigation object: use AValue-safe `TryGetValue(...)`, `AsEnumerable()`, `AValue.Empty`, `CanConvert<T>()`, and `Convert<T>()`.
 
 ### Important Record Property Rule
 
@@ -251,6 +490,96 @@ let enrichment = trackInfoById.ContainsKey(trackId) ? trackInfoById[trackId] : n
 - Use `record["binName"]` only when no generated property exists, the bin name is not a valid C# identifier, or dynamic access is specifically required.
 - Prefer property access in projections, filters, joins, sorts, and groups.
 - The set-level bin metadata below lists the raw Aerospike bin name and, when available, the generated C# property name.
+
+
+### Important Cross-Mode Join Key Source Selection Rule
+
+This rule applies to both LINQPad-driver mode and native Aerospike C# client API mode.
+
+When generating joins, lookups, enrichment dictionaries, or cross-set correlation logic, prefer direct scalar bin values, generated scalar properties, and primary-key values as join/correlation keys before using values extracted from CDT, JSON, map, list, or document bins.
+
+A direct scalar bin/property is preferred when it represents the same relationship as a nested value because it is simpler, more type-stable, easier to index, easier to convert, easier to validate, and less likely to require fragile document traversal.
+
+Preferred join-key sources, in order:
+
+1. Primary key / generated primary-key property, such as `PK`, `{{DefaultASPIKeyName}}`, or the native `Key.userKey`.
+2. Direct scalar foreign-key bin or generated property, such as `CustomerId`, `AlbumId`, `ArtistId`, `TrackId`, or the equivalent current-context property.
+3. Secondary-indexed scalar bin when available and relevant.
+4. CDT / JSON / map / list / document value extracted with AValue navigation, `TryGetValue(...)`, `AsEnumerable()`, `CDTExp`, `ListExp`, `MapExp`, or native map/list traversal.
+
+Do not extract a join key from a CDT, JSON, map, list, or document bin when an equivalent direct scalar bin/property exists in the current metadata and represents the same relationship.
+
+Use CDT/JSON/map/list/document traversal for join/correlation keys only when:
+
+- the relationship exists only inside the nested structure,
+- the user explicitly asks to join, filter, or correlate through nested document data,
+- the direct scalar bin/property is absent from current metadata,
+- the nested value is the actual subject of the request,
+- or nested traversal is required to filter parent records before enrichment.
+
+LINQPad-driver mode example:
+
+```csharp
+where track.PK.CanConvert<long>() && track.AlbumId.CanConvert<long>()
+let trackId = track.PK.Convert<long>()
+let albumId = track.AlbumId.Convert<long>()
+join album in test.Album.AsEnumerable()
+    on albumId equals album.PK.Convert<long>()
+```
+
+Native Aerospike C# client API mode example:
+
+```csharp
+var albumId = ToInt64(record.GetValue("AlbumId"));
+```
+
+Avoid using nested CDT/JSON/document traversal as the join-key source in either mode when a direct scalar key is available and represents the same relationship.
+
+### Important Source-of-Truth Preference Rule for Embedded Document Values
+
+This rule applies to both LINQPad-driver mode and native Aerospike C# client API mode.
+
+When generated code needs related-entity values such as names, titles, descriptions, prices, statuses, classifications, foreign-key targets, or other attributes from associated sets, prefer reading those values directly from the associated source set instead of relying on values embedded inside CDT, JSON, map, list, or document bins.
+
+Embedded CDT/JSON/document values are often denormalized snapshots. They can be useful for filtering, locating related records, showing the exact stored document content, or comparing embedded snapshots to current records, but they may be stale relative to the current record in the associated set.
+
+Preferred source order for related values:
+
+1. The associated set's current record, read by primary key, foreign key, secondary index, scan, or query.
+2. Direct scalar bins/properties on the current record when they represent the authoritative current value.
+3. Embedded CDT / JSON / map / list / document values only when the user explicitly asks for the embedded document content, the associated set is unavailable, the embedded value is the only available source, or the purpose of the query is to inspect or compare the denormalized snapshot.
+
+Do not use embedded document values as the authoritative source for related entity fields when the associated set is available and the relationship can be resolved.
+
+Use embedded document values to locate, filter, or match parent records when needed, then read current related values from the associated set.
+
+For example, if a customer document embeds invoice-line `TrackId` values and the user asks for track name, album title, or artist name, use the embedded document only to find matching `TrackId` values. Then read `Track`, `Album`, and `Artist` from their associated sets to obtain current `TrackName`, `AlbumTitle`, and `ArtistName`.
+
+LINQPad-driver mode pattern:
+
+```csharp
+// Use the document to find matching TrackIds.
+let matchingTrackIds =
+    (from invoice in customer.Invoices.ToAValue().AsEnumerable()
+     from line in invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable()
+     let trackId = line.TryGetValue("TrackId", AValue.Empty)
+     where trackId.CanConvert<long>()
+     select trackId.Convert<long>())
+    .Distinct()
+    .ToList()
+
+// Use associated sets for current related values.
+```
+
+Native Aerospike C# client API mode pattern:
+
+```csharp
+// Use record.GetValue("Invoices") to find matching TrackIds.
+// Then read Track, Album, and Artist through the native AerospikeClient
+// for current related values.
+```
+
+Use embedded values directly when the user asks to show the stored embedded snapshot, display the embedded document contents, compare embedded values to current associated-set values, find stale denormalized values, or avoid querying related sets.
 
 ### Important Projection Naming Rule
 

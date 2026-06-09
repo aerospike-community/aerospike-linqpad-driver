@@ -1,4 +1,4 @@
-﻿using Aerospike.Client;
+using Aerospike.Client;
 using LINQPad;
 using System;
 using System.Collections.Generic;
@@ -29,6 +29,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		private const string DriverRepositoryName =
 			"aerospike-community/aerospike-linqpad-driver";
 
+		private const string NativeCSharpClientRepositoryUrl =
+			"https://github.com/aerospike/aerospike-client-csharp";
+
 		private const string AValueReadmeFileName =
 			"AValues_Readme.md";
 
@@ -41,6 +44,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			{
 				[nameof(DriverRepositoryUrl)] = DriverRepositoryUrl,
 				[nameof(DriverRepositoryName)] = DriverRepositoryName,
+				[nameof(NativeCSharpClientRepositoryUrl)] = NativeCSharpClientRepositoryUrl,
 				[nameof(AValueReadmeFileName)] = AValueReadmeFileName,
 				[nameof(AutoValuesBlogUrl)] = AutoValuesBlogUrl,
 				["DefaultASPIKeyName"] = ARecord.DefaultASPIKeyName
