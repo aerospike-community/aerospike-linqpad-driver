@@ -1,3 +1,5 @@
+<!-- AValues-Readme-Version: 2026.06.08.1; Change: align README with current AValue helper APIs and null-normalization guidance. -->
+
 # Auto Values (`AValue`) in the Aerospike LINQPad Driver
 
 `AValue` is the Aerospike LINQPad driver's **auto-value** abstraction. It is designed to make Aerospike records feel natural in LINQPad even though Aerospike is schemaless and stores a smaller set of native database types than .NET.
@@ -265,7 +267,7 @@ This example really shows the complexity of using the native Aerospike C\# API d
 
 ### Obtaining the Associated Aerospike Bin/Value Instance
 
-The Aerospike Client API Bin and Value instances can be obtained by means of the `ToBin` and `ToAerospikeValue` methods.
+The Aerospike Client API `Bin` instance can be obtained by means of the `ToBin()` method. For Aerospike server-side expression literal values, use `ToExpVal()`. For expression bin references, use `ToExpBin(...)`.
 
 ***
 
@@ -717,7 +719,7 @@ items.Dump("Tags as AValue items");
 
 For a dictionary/map, the elements can be key/value-pair AValues.
 
-### AsEnumerable
+### AsEnumerable<T>
 
 Use `AsEnumerable<T>()` when the AValue should be converted to an array/enumerable of a specific type:
 
@@ -815,7 +817,7 @@ test.DataTypes
 
 ### MatchOptions
 
-`AValue.MatchOptions` controls how `Contains`, `FindAll`, and `TryGetValue` search:
+`AValue.MatchOptions` controls how `Contains(...)` and `FindAll(...)` search. Some key-specific helpers, such as AValue-keyed `TryGetValue(...)`, use exact matching internally:
 
 -   `Value` searches normal values and keys depending on the underlying type.
 -   `Equals` uses AValue-aware equality.
@@ -969,25 +971,46 @@ Some Aerospike map/CDT or JSON-style structures may expose keys as `AValue` inst
 
 For these cases, use the AValue-aware key helper methods on `IEnumerable<KeyValuePair<TKey,TValue>>` where `TKey : AValue`.
 
+#### TryGetValue for AValue-backed keys
+
+Prefer `TryGetValue(...)` when missing keys are normal and you want a non-throwing lookup.
+
+Use this overload when you want to preserve the original value type and supply a default value:
+
+```csharp
+var email = keyValuePairs.TryGetValue("email", defaultValue: "<missing>");
+```
+
+Use this overload when you want the matched value returned as an `AValue`. If no key matches, it returns `AValue.Empty`:
+
+```csharp
+var emailValue = keyValuePairs.TryGetValue("email");
+
+if (!emailValue.IsEmpty)
+{
+    emailValue.Dump("email");
+}
+```
+
+These overloads perform exact matching against the `AValue` key using `AValue.MatchOptions.Exact`.
+
 #### ContainsKey for AValue keys
 
-Use `ContainsKey(...)` when dictionary/map keys are `AValue` instances and you want AValue matching behavior:
+Use `ContainsKey(...)` when dictionary/map keys are `AValue` instances and you only need to test whether a matching key exists:
 
 ```csharp
 var hasEmailKey = profileMap.ContainsKey("email");
 ```
 
-### GetByKey for AValue-backed keys
+#### GetByKey for AValue-backed keys
 
-Some Aerospike map, JSON, dictionary, or CDT structures may expose keys as `AValue` instances rather than plain CLR key types such as `string` or `long`.
-
-This can happen when working with key/value pairs from AValue-backed maps or nested document structures.
-
-Use `GetByKey(...)` when you have an `IEnumerable<KeyValuePair<TKey,TValue>>` where `TKey : AValue` and you want to retrieve the value whose key matches using AValue comparison behavior.
+Use `GetByKey(...)` when you have an `IEnumerable<KeyValuePair<TKey,TValue>>` where `TKey : AValue` and you want to retrieve the value whose key matches using AValue comparison behavior, and missing keys should be treated as an error.
 
 ```csharp
 var value = keyValuePairs.GetByKey("email");
 ```
+
+When missing keys are expected, prefer `TryGetValue(...)` over `ContainsKey(...)` plus `GetByKey(...)`.
 
 ***
 
@@ -1083,6 +1106,24 @@ var namedValue = "active".ToAValue("Status", "Status");
 
 AValue nullableValue = ((int?)null).ToAValue("Score", "Score");
 ```
+
+#### ToAValue for null-normalization
+
+Use `ToAValue()` before CDT/map/list traversal when the source may already be an `AValue` or may be null.
+
+If the source is already an `AValue`, the original `AValue` is preserved. If the source is null, the result is `AValue.Empty`.
+
+```csharp
+let invoices = customer.Invoices.ToAValue()
+where !invoices.IsEmpty
+from invoice in invoices.AsEnumerable()
+from line in invoice.TryGetValue("Lines", AValue.Empty).AsEnumerable()
+let trackId = line.TryGetValue("TrackId", AValue.Empty)
+where trackId.CanConvert<long>()
+select trackId.Convert<long>()
+```
+
+Prefer this pattern over replacing nullable CDT/list/map/document values with CLR fallback containers such as `new List<System.Text.Json.JsonDocument>()` when the next operation is AValue navigation.
 
 ### ToAPrimaryKey
 
