@@ -1,4 +1,4 @@
-namespace Aerospike.Database.LINQPadDriver.Extensions
+﻿namespace Aerospike.Database.LINQPadDriver.Extensions
 {
 	/// <summary>
 	/// Preferred LINQ syntax style for AI-generated LINQPad queries.
@@ -28,32 +28,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 	}
 
 	/// <summary>
-	/// Selects the overall AI-context output profile.
-	/// </summary>
-	public enum AerospikeAIContextProfile
-	{
-		/// <summary>
-		/// Include the normal AI context, with schema emitted before long rules and examples.
-		/// </summary>
-		Full = 0,
-
-		/// <summary>
-		/// Include only the stable rule/guidance sections and validation footer.
-		/// </summary>
-		RulesOnly = 1,
-
-		/// <summary>
-		/// Include only connection/schema metadata such as cluster, namespaces, sets, bins, indexes, and UDFs.
-		/// </summary>
-		SchemaOnly = 2,
-
-		/// <summary>
-		/// Include the broadest diagnostic context, including full cluster and namespace configuration details.
-		/// </summary>
-		Debug = 3
-	}
-
-	/// <summary>
 	/// Controls how much Aerospike/LINQPad metadata and usage guidance is generated
 	/// for AI prompts.
 	///
@@ -62,18 +36,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 	/// </summary>
 	public sealed class AerospikeAIContextOptions
 	{
-		/// <summary>
-		/// Selects the overall AI-context output profile.
-		///
-		/// Full preserves the normal context shape, but emits schema before long guidance.
-		/// RulesOnly emits rule/guidance sections without cluster/schema metadata.
-		/// SchemaOnly emits cluster/schema metadata without long rules/examples.
-		/// Debug emits the broadest diagnostic context.
-		///
-		/// Default: Full.
-		/// </summary>
-		public AerospikeAIContextProfile ContextProfile { get; set; } = AerospikeAIContextProfile.Full;
-
 		/// <summary>
 		/// Includes general guidance explaining how the Aerospike LINQPad driver should be used.
 		///
@@ -97,20 +59,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		public bool IncludeClusterSummary { get; set; } = true;
 
 		/// <summary>
-		/// Includes the full cluster/connection diagnostic information instead of the compact AI-safe cluster summary.
-		///
-		/// The compact summary is preferred for normal AI prompts and includes only key connection shape
-		/// information such as cluster name, server version, contact hosts, node count, node identifiers,
-		/// and AI-relevant connection features.
-		///
-		/// Full cluster info is useful for debugging but can consume context budget and may include
-		/// configuration details that are not needed for query generation.
-		///
-		/// Default: false.
-		/// </summary>
-		public bool IncludeFullClusterInfo { get; set; } = false;
-
-		/// <summary>
 		/// Includes namespace metadata from the current Aerospike connection.
 		///
 		/// Namespace metadata may include namespace names, generated C# namespace-access names,
@@ -120,17 +68,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Default: true.
 		/// </summary>
 		public bool IncludeNamespaces { get; set; } = true;
-
-		/// <summary>
-		/// Includes namespace configuration details when namespace metadata is emitted.
-		///
-		/// This is disabled by default because namespace configuration is usually not needed for
-		/// query generation and can consume significant context budget. Namespace names, sets, bins,
-		/// and indexes are still included when the corresponding metadata options are enabled.
-		///
-		/// Default: false.
-		/// </summary>
-		public bool IncludeNamespaceConfig { get; set; } = false;
 
 		/// <summary>
 		/// Includes set metadata under each included namespace.
@@ -193,14 +130,27 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		///
 		/// Examples show how to display the AI context, call Util.AI.Ask(...), query sets,
 		/// filter by generated record properties, use AsEnumerable() for LINQ collection
-		/// operations, join sets, group records, access primary keys, and use the native
-		/// Aerospike client.
+		/// operations, join sets, group records, access primary keys, use the native
+		/// Aerospike client, and optionally include data-operation examples controlled by
+		/// IncludeDataOperationExamples.
 		///
 		/// Examples are generated according to LinqSyntaxPreference.
 		///
 		/// Default: true.
 		/// </summary>
 		public bool IncludeExamples { get; set; } = true;
+
+		/// <summary>
+		/// Includes canonical examples for non-read-only data operations such as insert,
+		/// update, delete, import, export, copy, put, and native-client write operations.
+		///
+		/// These examples are intentionally safety-oriented. They should show preview/bounded
+		/// selection logic before mutation where practical, require explicit user intent for
+		/// destructive operations, and make namespace, set, bin, and primary-key sources explicit.
+		///
+		/// Default: true.
+		/// </summary>
+		public bool IncludeDataOperationExamples { get; set; } = true;
 
 		/// <summary>
 		/// Controls whether generated AI guidance and examples prefer LINQ query syntax
@@ -227,6 +177,18 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// </summary>
 		public AerospikeLinqSyntaxPreference LinqSyntaxPreference { get; set; }
 			= AerospikeLinqSyntaxPreference.QuerySyntax;
+
+		/// <summary>
+		/// Controls whether generated AI code should include concise inline comments that explain
+		/// important steps, mode choices, expression filters, nested CDT traversal, conversions,
+		/// and safety boundaries.
+		///
+		/// This does not disable the short request-summary comment block at the top of generated
+		/// scripts; that summary remains enabled so generated queries document their intent.
+		///
+		/// Default: true.
+		/// </summary>
+		public bool IncludeInlineComments { get; set; } = true;
 
 		/// <summary>
 		/// Forces the driver to refresh Aerospike metadata before building the AI context.
@@ -265,27 +227,20 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// If the generated context exceeds this limit, it is truncated and a truncation
 		/// note is appended.
 		///
-		/// Default: 40,000.
+		/// Default: 100,000.
 		/// </summary>
-		public int MaxChars { get; set; } = 40_000;
+		public int MaxChars { get; set; } = 100_000;
 
 		/// <summary>
-		/// Appends a small diagnostic report describing the generated context profile, limits,
-		/// enabled sections, and whether the final context is expected to be truncated.
+		/// Controls whether LINQPad AI submission helpers should display a visible warning
+		/// when the generated AI context exceeds MaxChars and is truncated.
+		///
+		/// This warning is intended to make missing schema/rules/examples obvious before
+		/// the request is sent to the AI provider.
 		///
 		/// Default: true.
 		/// </summary>
-		public bool IncludeContextBuildReport { get; set; } = true;
-
-		/// <summary>
-		/// Indicates that schema metadata should be prioritized over examples when context size matters.
-		///
-		/// This option is reserved for request-scoped and budget-aware generation. In this phase,
-		/// the Full profile already emits schema before long rules/examples.
-		///
-		/// Default: true.
-		/// </summary>
-		public bool PreferSchemaOverExamples { get; set; } = true;
+		public bool DumpTruncationWarning { get; set; } = true;
 
 		/// <summary>
 		/// Optional namespace filter.

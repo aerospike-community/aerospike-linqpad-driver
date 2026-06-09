@@ -41,6 +41,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				Version = AIContextVersion.Current
 			}.Dump("AI Context");
 
+			DumpAIContextTruncationWarningIfNeeded(aiContext, options);
+
 			var response = await aiContext
 				.SubmitRequestAsync(
 						userRequest,
@@ -745,6 +747,74 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 		readonly static MethodInfo utilMarkdownMethod = typeof(LINQPad.Util)
 															.GetMethod("Markdown",[typeof(string)]);
+
+		readonly static MethodInfo utilRawHtmlMethod = typeof(LINQPad.Util)
+													.GetMethod("RawHtml", [typeof(string)]);
+
+		private static void DumpAIContextTruncationWarningIfNeeded(
+			AerospikeAIContext aiContext,
+			AerospikeAIContextOptions options)
+		{
+			if(options?.DumpTruncationWarning == false)
+			{
+				return;
+			}
+
+			try
+			{
+				var buildResult = aiContext.BuildMarkdown(options);
+
+				if(buildResult?.WasTruncated != true)
+				{
+					return;
+				}
+
+				var message =
+					$"AI context was truncated from {buildResult.OriginalLength:n0} characters " +
+					$"to {buildResult.MaxChars:n0} content characters. " +
+					$"Final Markdown length is {buildResult.FinalLength:n0} characters including the truncation notice. " +
+					"Some schema, rules, examples, or validation guidance may be missing. " +
+					"Consider increasing MaxChars, using a more focused context profile, or disabling examples/full diagnostic sections.";
+
+				DumpAIContextWarning(message);
+			}
+			catch(Exception ex)
+			{
+				_ = $"WARNING: Unable to evaluate AI context truncation status. {ex.Message}"
+					.Dump("AI Context Warning");
+			}
+		}
+
+		private static void DumpAIContextWarning(string message)
+		{
+			const string title = "AI Context Warning";
+
+			if(string.IsNullOrWhiteSpace(message))
+			{
+				return;
+			}
+
+			try
+			{
+				if(utilRawHtmlMethod != null)
+				{
+					var encodedMessage = System.Net.WebUtility.HtmlEncode(message);
+					var html =
+						$"<div style=\"color:#b00020;font-weight:bold;font-size:16px;\">WARNING</div>" +
+						$"<div style=\"color:#b00020;\">{encodedMessage}</div>";
+					var rendered = utilRawHtmlMethod.Invoke(null, [html]);
+
+					_ = rendered.Dump(title);
+					return;
+				}
+			}
+			catch
+			{
+				// Fall back to raw text if the LINQPad runtime does not expose a RawHtml renderer.
+			}
+
+			_ = $"WARNING: {message}".Dump(title);
+		}
 
 		private static void DumpAIResponse(string response)
 		{
