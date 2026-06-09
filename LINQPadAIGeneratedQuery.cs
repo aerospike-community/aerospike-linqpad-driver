@@ -1,3 +1,4 @@
+using Aerospike.Client;
 using LINQPad;
 using System;
 using System.Collections.Generic;
@@ -432,7 +433,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 			try
 			{
-				var currentQueryPath = Util.CurrentQueryPath;
+				var currentQueryPath = LINQPad.Util.CurrentQueryPath;
 
 				if(string.IsNullOrWhiteSpace(currentQueryPath))
 					return false;
@@ -572,6 +573,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		[GeneratedRegex(@"(?m)^\s*var\s+client\s*=\s*\w+\.Client\s*;\s*$")]
 		private static partial Regex NorNatCodeReplaceClientPol();
 
+		[GeneratedRegex(@"(?m)^\s*var\s+host\s*=\s*\""[^\""\r\n]*\""\s*;\s*$")]
+		private static partial Regex NorNatCodeReplaceHostLine();
+
+		[GeneratedRegex(@"(?m)^\s*var\s+port\s*=\s*\d+\s*;\s*$")]
+		private static partial Regex NorNatCodeReplacePortLine();
+
+		private static readonly Regex NorNatCodeReplacePlaceholderNativeBlockRegex = new Regex(
+			@"(?ms)^\s*var\s+host\s*=\s*\""[^\""\r\n]*\""\s*;\s*\r?\n\s*var\s+port\s*=\s*\d+\s*;\s*\r?\n(?:\s*\r?\n)?(?<namespaceSet>\s*var\s+namespaceName\s*=\s*\""[^\""\r\n]*\""\s*;\s*\r?\n\s*var\s+setName\s*=\s*\""[^\""\r\n]*\""\s*;\s*\r?\n)(?:\s*\r?\n)?\s*var\s+clientPolicy\s*=\s*new\s+ClientPolicy\s*\(\s*\)\s*;\s*\r?\n(?:\s*\r?\n)?\s*using\s+var\s+client\s*=\s*new\s+AerospikeClient\s*\(\s*clientPolicy\s*,\s*host\s*,\s*port\s*\)\s*;\s*$",
+			RegexOptions.Compiled);
 		private static string NormalizeNativeAerospikeClientCode(string code)
 		{
 			if(string.IsNullOrWhiteSpace(code))
@@ -581,13 +591,197 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			// Normalize common PascalCase AI mistakes before writing the generated native .linq file.
 			code = NormalizeNativeClientPolicyMemberNames(code);
 
+			var nativeBootstrap = BuildNativeConnectionBootstrapCode();
+			var nativeHostPortLines = BuildNativeHostPortLines();
+
 			// Pure native code must not acquire the client through the LINQPad driver context.
-			code = NorNatCodeReplaceClientPol().Replace(code, "var host = \"<aerospike-host>\";" + Environment.NewLine +
-				"var port = 3000;" + Environment.NewLine +
-				"var clientPolicy = new ClientPolicy();" + Environment.NewLine +
-				"using var client = new AerospikeClient(clientPolicy, host, port);");
+			code = NorNatCodeReplaceClientPol().Replace(code, nativeBootstrap);
+
+			// Always prefer the active connection endpoint for explicit native host/port variables.
+			code = NorNatCodeReplaceHostLine().Replace(code, nativeHostPortLines.HostLine);
+			code = NorNatCodeReplacePortLine().Replace(code, nativeHostPortLines.PortLine);
+
+			// Upgrade common placeholder native bootstrap blocks while preserving AI-generated namespace/set values.
+			var placeholderMatch = NorNatCodeReplacePlaceholderNativeBlockRegex.Match(code);
+			if(placeholderMatch.Success)
+			{
+				var namespaceSetLines = placeholderMatch.Groups["namespaceSet"].Value.TrimEnd('\r', '\n');
+				var mergedBootstrap = BuildNativeConnectionBootstrapCode(namespaceSetLines);
+				code = NorNatCodeReplacePlaceholderNativeBlockRegex.Replace(code, mergedBootstrap);
+			}
 
 			return code;
+		}
+
+		private static (string HostLine, string PortLine) BuildNativeHostPortLines()
+		{
+			var host = "localhost";
+			var port = 3000;
+
+			var cluster = AClusterAccess.Instance;
+			var connection = cluster?.AerospikeConnection;
+
+			if(connection is not null && TryGetSeedHost(connection, out var currentHost, out var currentPort))
+			{
+				host = currentHost;
+				port = currentPort;
+			}
+
+			return ($"var host = {ToCSharpStringLiteral(host)};", $"var port = {port};");
+		}
+
+		private static string BuildNativeConnectionBootstrapCode(string namespaceSetLines = null)
+		{
+			var host = "localhost";
+			var port = 3000;
+			var namespaceName = "test";
+			var setName = "Customer";
+			var user = string.Empty;
+			var password = string.Empty;
+			var hasTls = false;
+			var tlsName = string.Empty;
+			var timeout = 1000;
+			var loginTimeout = 1000;
+			var useServicesAlternate = false;
+			var connPoolsPerNode = 0;
+
+			var cluster = AClusterAccess.Instance;
+			var connection = cluster?.AerospikeConnection;
+
+			if(connection is not null)
+			{
+				if(TryGetSeedHost(connection, out var currentHost, out var currentPort))
+				{
+					host = currentHost;
+					port = currentPort;
+				}
+
+				var cxInfo = connection.CXInfo?.DatabaseInfo;
+				user = cxInfo?.UserName ?? string.Empty;
+				password = cxInfo?.Password ?? string.Empty;
+
+				hasTls = connection.TLS is not null || !string.IsNullOrWhiteSpace(connection.TLSCertName);
+				tlsName = connection.TLSCertName ?? string.Empty;
+				timeout = connection.SocketTimeout;
+				loginTimeout = connection.ConnectionTimeout;
+				useServicesAlternate = connection.UseExternalIP;
+				connPoolsPerNode = connection.ConnectionsPerNode;
+
+				var discoveredNamespace = connection.Namespaces?.FirstOrDefault(ns => !string.IsNullOrWhiteSpace(ns?.Name));
+				if(discoveredNamespace is not null)
+				{
+					namespaceName = discoveredNamespace.Name;
+
+					var discoveredSet = discoveredNamespace.Sets?.FirstOrDefault(set => !set.IsNullSet && !string.IsNullOrWhiteSpace(set.Name));
+					if(discoveredSet is not null)
+						setName = discoveredSet.Name;
+				}
+			}
+
+			var policyLines = new List<string>
+			{
+				"var clientPolicy = new ClientPolicy()",
+				"{",
+				$"    timeout = {timeout},",
+				$"    loginTimeout = {loginTimeout},",
+				$"    useServicesAlternate = {useServicesAlternate.ToString().ToLowerInvariant()},",
+				$"    connPoolsPerNode = {connPoolsPerNode}",
+			};
+
+			if(!string.IsNullOrWhiteSpace(user))
+				policyLines.Insert(2, $"    user = {ToCSharpStringLiteral(user)},");
+
+			if(!string.IsNullOrWhiteSpace(password))
+				policyLines.Insert(!string.IsNullOrWhiteSpace(user) ? 3 : 2, $"    password = {ToCSharpStringLiteral(password)},");
+
+			if(hasTls)
+				policyLines.Insert(!string.IsNullOrWhiteSpace(user) || !string.IsNullOrWhiteSpace(password) ? 4 : 2, "    tlsPolicy = new TlsPolicy(),");
+
+			policyLines.Add("};");
+
+			var defaultNamespaceSetLines = string.Join(
+				Environment.NewLine,
+				$"var namespaceName = {ToCSharpStringLiteral(namespaceName)};",
+				$"var setName = {ToCSharpStringLiteral(setName)};");
+
+			var finalNamespaceSetLines = string.IsNullOrWhiteSpace(namespaceSetLines)
+				? defaultNamespaceSetLines
+				: namespaceSetLines;
+
+			return string.Join(
+				Environment.NewLine,
+				$"var host = {ToCSharpStringLiteral(host)};",
+				$"var port = {port};",
+				string.Empty,
+				finalNamespaceSetLines,
+				string.Empty,
+				$"var tlsName = {ToCSharpStringLiteral(tlsName)};",
+				"var seedHost = new Host(host, string.IsNullOrWhiteSpace(tlsName) ? null : tlsName, port);",
+				string.Empty,
+				string.Join(Environment.NewLine, policyLines),
+				string.Empty,
+				"using var client = new AerospikeClient(clientPolicy, seedHost);");
+		}
+
+		private static bool TryGetSeedHost(AerospikeConnection connection, out string host, out int port)
+		{
+			host = null;
+			port = 0;
+
+			if(connection?.SeedHosts is null || connection.SeedHosts.Length == 0)
+				return false;
+
+			var seedHost = connection.SeedHosts[0];
+			if(seedHost is null)
+				return false;
+
+			host = TryReadHostMember(seedHost, "name", "Name");
+			var portText = TryReadHostMember(seedHost, "port", "Port");
+
+			if(string.IsNullOrWhiteSpace(host) || !int.TryParse(portText, out port))
+				return false;
+
+			return true;
+		}
+
+		private static string TryReadHostMember(Host host, params string[] memberNames)
+		{
+			if(host is null || memberNames is null || memberNames.Length == 0)
+				return null;
+
+			foreach(var memberName in memberNames)
+			{
+				var property = typeof(Host).GetProperty(memberName);
+				if(property is not null)
+				{
+					var value = property.GetValue(host);
+					if(value is not null)
+						return value.ToString();
+				}
+
+				var field = typeof(Host).GetField(memberName);
+				if(field is not null)
+				{
+					var value = field.GetValue(host);
+					if(value is not null)
+						return value.ToString();
+				}
+			}
+
+			return null;
+		}
+
+		private static string ToCSharpStringLiteral(string value)
+		{
+			if(value is null)
+				return "null";
+
+			return "\"" + value
+				.Replace("\\", "\\\\")
+				.Replace("\"", "\\\"")
+				.Replace("\r", "\\r")
+				.Replace("\n", "\\n")
+				+ "\"";
 		}
 
 		private static string NormalizeNativeClientPolicyMemberNames(string code)
