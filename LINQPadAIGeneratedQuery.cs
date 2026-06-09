@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -44,7 +45,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 						cancellationToken)
 				.ConfigureAwait(true);
 
-			_ = response.Dump("AI-generated LINQPad response");
+			DumpAIResponse(response);
 
 			var responseKind = ClassifyAIResponse(response);
 
@@ -513,6 +514,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			return outputPath;
 		}
 
+		[GeneratedRegex(@"(?m)^\s*var\s+client\s*=\s*\w+\.Client\s*;\s*$")]
+		private static partial Regex NorNatCodeReplaceClientPol();
+
 		private static string NormalizeNativeAerospikeClientCode(string code)
 		{
 			if(string.IsNullOrWhiteSpace(code))
@@ -523,10 +527,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			code = NormalizeNativeClientPolicyMemberNames(code);
 
 			// Pure native code must not acquire the client through the LINQPad driver context.
-			code = Regex.Replace(
-				code,
-				@"(?m)^\s*var\s+client\s*=\s*\w+\.Client\s*;\s*$",
-				"var host = \"<aerospike-host>\";" + Environment.NewLine +
+			code = NorNatCodeReplaceClientPol().Replace(code, "var host = \"<aerospike-host>\";" + Environment.NewLine +
 				"var port = 3000;" + Environment.NewLine +
 				"var clientPolicy = new ClientPolicy();" + Environment.NewLine +
 				"using var client = new AerospikeClient(clientPolicy, host, port);");
@@ -687,6 +688,37 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			}
 
 			return header;
+		}
+
+		readonly static MethodInfo utilMarkdownMethod = typeof(LINQPad.Util)
+															.GetMethod("Markdown",[typeof(string)]);
+
+		private static void DumpAIResponse(string response)
+		{
+			const string title = "AI-generated LINQPad response";
+
+			if(string.IsNullOrWhiteSpace(response))
+			{
+				_ = response.Dump(title);
+				return;
+			}
+
+			try
+			{
+				if(utilMarkdownMethod != null)
+				{
+					var rendered = utilMarkdownMethod.Invoke(null, [response]);
+
+					_ = rendered.Dump(title);
+					return;
+				}
+			}
+			catch
+			{
+				// Fall back to raw text if the LINQPad runtime does not expose a Markdown renderer.
+			}
+
+			_ = response.Dump(title);
 		}
 	}
 }
