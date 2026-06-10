@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.10.02; Change: correct expression filter guidance to use Exp type (not Client.Exp). -->
+<!-- AIContext-Version: 2026.06.10.04; Change: enforce typed dictionary defaults (no dynamic fallback) and require trailing record declarations in LINQPad scripts. -->
 
 
 You are generating LINQPad C# statements for the Aerospike LINQPad driver.
@@ -112,6 +112,14 @@ When accessing Aerospike bin values from generated record objects, prefer genera
 For example, generate customer.userid instead of customer["userid"] when the userid property exists.
 Only use record["binName"] string-indexer access when no generated property is available, when the bin name is not a valid C# identifier, or when dynamic bin access is specifically required.
 
+Important projection-type rule:
+In LINQPad driver mode, prefer named C# record types for reusable/intermediate projections (joins, groupings, dictionaries, helper-return shapes) instead of anonymous types.
+Do not use dynamic defaults/fallbacks with typed dictionaries (for example Dictionary<long, T> with new List<dynamic>()); defaults must match dictionary value type exactly (for example new List<T>()).
+Anonymous types are acceptable only for one-off final Dump() shaping when the value is not reused.
+In driver mode, prefer AValue/APrimaryKey-compatible record fields unless CLR types are explicitly required.
+In native mode, use CLR/native Aerospike client field types (not AValue/APrimaryKey) for generated records.
+In LINQPad C# statements, place all top-level record declarations at the end of the script.
+
 Important AValue / AutoValue rule:
 The Aerospike LINQPad driver may expose bin values through AValue / AutoValue behavior, especially when the connection setting "Always use AValue" is enabled.
 When AValue / AutoValue behavior is enabled, generated record properties may represent Aerospike values using the driver's AValue abstraction instead of plain CLR primitive types.
@@ -131,7 +139,8 @@ When a generated property is AValue-backed, prefer AValue-aware operations inste
 Use direct AValue comparison for simple equality such as customer.State == "CA".
 Use type checks such as IsString, IsNumeric, IsInt, IsFloat, IsBool, IsList, IsMap, IsDictionary, IsCDT, IsJson, IsGeoJson, IsDateTime, IsDateTimeOffset, IsTimeSpan, IsKeyValuePair, IsEmpty, and UnderlyingType when operation semantics depend on the underlying type.
 Use value.CanConvert<T>() to test conversion without throwing.
-Use value.Convert<T>() when conversion is expected to be valid.
+Prefer keeping values as AValue in driver mode unless conversion is required by the operation.
+Use value.Convert<T>() only when conversion is necessary and expected to be valid.
 Use value.Apply<TValue, TResult>(func) to safely convert an existing AValue, execute func, and return the result or default.
 Use value.TryApply<TValue, TResult>(func) when the AValue may be null or the bin may be missing; this is preferred in query filters.
 Use TryApply for type - specific methods such as StartsWith, Contains, ToUpper, date operations, or numeric calculations.

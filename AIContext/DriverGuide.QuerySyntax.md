@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.10.01; Change: add native mode connection inference precedence (explicit request > explicit code > inferred defaults) and examples preserving requested timeout/user values. -->
+<!-- AIContext-Version: 2026.06.10.04; Change: enforce typed dictionary defaults (no dynamic fallback) and require trailing record declarations in LINQPad scripts. -->
 
 ## Driver Usage Rules
 
@@ -157,6 +157,15 @@ Use `is null` / `is not null` for ordinary reference checks, and use `IsEmpty` /
 - Prefer property access in projections, filters, joins, sorts, and groups.
 - The set-level bin metadata below lists the raw Aerospike bin name and, when available, the generated C# property name.
 
+### Important Projection Type Rule
+
+- In LINQPad driver mode, prefer named C# `record` types for reusable/intermediate projections (for example joins, groupings, dictionary values, enrichment pipelines, or helper return types) instead of anonymous types.
+- Do not use `dynamic` defaults/fallbacks with typed dictionaries (for example `Dictionary<long, T>` / `IReadOnlyDictionary<long, T>` with `new List<dynamic>()`); defaults must match the dictionary value type exactly (for example `new List<T>()`).
+- Anonymous types are acceptable only for one-off final `Dump()` shaping where the value is not reused.
+- For driver mode record fields, prefer `AValue`/`APrimaryKey`-compatible field types unless a CLR type is explicitly required.
+- In native mode, do not use `AValue`/`APrimaryKey` in generated records; use CLR/native Aerospike client types.
+- In LINQPad C# statements, place all top-level `record` declarations at the end of the script so executable statements appear first and declarations are grouped in one trailing block.
+
 ### Important AValue / AutoValue Rule
 
 - The Aerospike LINQPad driver may expose bin values through `AValue` / AutoValue behavior.
@@ -185,8 +194,9 @@ Use `is null` / `is not null` for ordinary reference checks, and use `IsEmpty` /
 
 #### AValue conversion operations
 
+- Prefer staying in `AValue` form in driver mode unless conversion is required by the operation (for example dictionary keys, arithmetic/ordering semantics, external API contracts, or explicit user-requested output types).
 - Use `value.CanConvert<T>()` to test whether an `AValue` can be converted to `T` without throwing.
-- Use `value.Convert<T>()` to convert an `AValue` to `T` when conversion is expected to be valid.
+- Use `value.Convert<T>()` only when conversion is necessary and expected to be valid.
 - Use `value.Apply<TValue, TResult>(func)` to safely convert an existing non-null `AValue` to `TValue`, execute `func`, and return `TResult`; it returns `default` if conversion or execution fails.
 - Use `value.TryApply<TValue, TResult>(func)` when the `AValue` itself may be null; this is the preferred null-safe option in query filters.
 

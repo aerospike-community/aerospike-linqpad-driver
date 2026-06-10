@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.10.01; Change: add native mode precedence validation for inferred connection values versus explicit requested values. -->
+<!-- AIContext-Version: 2026.06.10.04; Change: add validation for typed dictionary defaults (no dynamic fallback) and trailing record declaration placement. -->
 
 ## Generated Script Summary and Comments
 
@@ -32,6 +32,10 @@
 - Use Aerospike expressions with raw bin names when the user asks for server-side filtering; do not replace those with LINQ `where` clauses.
 - Use `{{DefaultASPIKeyName}}` for the primary key when available; otherwise use `GetPK()`.
 - Use `.AsEnumerable()` before collection-style LINQ operations on `SetRecords` instances.
+- In LINQPad driver mode, prefer named `record` projections for reusable/intermediate shapes and avoid anonymous-type + `dynamic` fallback patterns.
+- Do not use `dynamic` defaults/fallbacks for typed dictionaries (for example `Dictionary<long, T>` with `new List<dynamic>()`); dictionary defaults must be strongly typed (`new List<T>()`).
+- In LINQPad C# statements, require all top-level `record` declarations to appear in a single trailing declaration block at the end of the script.
+- In driver mode, keep values as `AValue`/`APrimaryKey` when possible and only convert to CLR types when required by operation semantics.
 {{LinqSyntaxGuidance}}
 - In native Aerospike C# client mode, apply connection-value precedence in this order: explicit user request values > explicit values already present in generated code > inferred connection defaults.
 - In native mode, infer host/port/TLS/auth/policy defaults only for missing values and do not overwrite explicit requested values.

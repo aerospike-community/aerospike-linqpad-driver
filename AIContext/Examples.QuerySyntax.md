@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.10.02; Change: correct Aerospike expression type usage from Client.Exp to Exp in server-side expression examples. -->
+<!-- AIContext-Version: 2026.06.10.03; Change: add driver-mode named-record projection example to avoid anonymous-type/dynamic dictionary inference issues. -->
 
 ### Query a generated set
 
@@ -33,6 +33,53 @@ var dynamicRecords =
 	.Take(100);
 
 dynamicRecords.Dump();
+```
+
+### Driver mode reusable projection with named record (avoid anonymous/dynamic fallback)
+
+```csharp
+// Use named records for reusable intermediate shapes in driver mode.
+public record test_InvoiceProjection(
+	APrimaryKey InvoiceId,
+	AValue CustomerId,
+	AValue InvoiceDate,
+	AValue Total,
+	AValue BillingAddr,
+	AValue BillingCity,
+	AValue BillingState,
+	AValue BillingCode,
+	AValue BillingCtry);
+
+static TValue GetValueOrDefault<TKey, TValue>(
+	IReadOnlyDictionary<TKey, TValue> source,
+	TKey key,
+	TValue defaultValue = default)
+{
+	return source.TryGetValue(key, out var value)
+		? value
+		: defaultValue;
+}
+
+var invoicesByCustomerId =
+	test.Invoice.AsEnumerable()
+		.Where(invoice => !invoice.CustomerId.IsEmpty)
+		.Select(invoice => new test_InvoiceProjection(
+			invoice.PK,
+			invoice.CustomerId,
+			invoice.InvoiceDate,
+			invoice.Total,
+			invoice.BillingAddr,
+			invoice.BillingCity,
+			invoice.BillingState,
+			invoice.BillingCode,
+			invoice.BillingCtry))
+		.GroupBy(x => x.CustomerId)
+		.ToDictionary(g => g.Key, g => g.ToList());
+
+var sampleCustomerId = "1".ToAValue();
+var invoices = GetValueOrDefault(invoicesByCustomerId, sampleCustomerId, new List<test_InvoiceProjection>());
+
+invoices.Take(20).Dump();
 ```
 
 ### Filter with AValue TryApply
