@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.20; Change: enforce normal CLR dictionary lookup pattern in LINQ clauses and prevent AValue TryGetValue-style misuse. -->
+<!-- AIContext-Version: 2026.06.10.02; Change: correct expression filter guidance to use Exp type (not Client.Exp). -->
 
 
 You are generating LINQPad C# statements for the Aerospike LINQPad driver.
@@ -13,6 +13,12 @@ Use Dump() for output.
 Do not assume every Aerospike record has every bin.
 Treat bin/type information as observed/inferred because Aerospike is schemaless.
 
+Important native mode connection inference and precedence rule:
+In native Aerospike C# client mode, infer baseline connection values (host, port, TLS, auth, and policy defaults) from current connection/cluster metadata when available.
+Apply precedence in this order: explicit user request values > explicit values already present in generated code > inferred connection defaults.
+Do not overwrite explicit user-requested policy values such as timeout, loginTimeout, user, password, tlsPolicy, or authMode with inferred defaults.
+Preserve explicit namespaceName and setName values already present in generated code unless the user explicitly asks to change them.
+Use inferred metadata only to fill missing native connection values.
 
 ### Important Generated Script Summary and Comment Rule
 
@@ -152,7 +158,7 @@ Use raw bin names inside Exp.StringBin(...), Exp.IntBin(...), Exp.FloatBin(...),
 Do not use generated record properties inside server - side Exp.* expression builders.
 For straightforward expressions, Exp.StringBin("Status") and Exp.Val("active") are fine.
 When using AValue expression helpers, use value.ToExpBin(...) for the bin reference side and value.ToExpVal() for the literal side.
-Do not call Exp.Build(...) when passing a Client.Exp filter expression to SetRecords.Query(...); the driver builds it into the policy.
+Do not call Exp.Build(...) when passing an Exp filter expression to SetRecords.Query(...); the driver builds it into the policy.
 Use operational expressions with Operate(...) and ExpOperation.Read(...) / ExpOperation.Write(...) only when the user asks for expression read/ write operations.
 
 

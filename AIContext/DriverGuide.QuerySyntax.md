@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.20; Change: enforce normal CLR dictionary lookup pattern in LINQ clauses and prevent AValue TryGetValue-style misuse. -->
+<!-- AIContext-Version: 2026.06.10.01; Change: add native mode connection inference precedence (explicit request > explicit code > inferred defaults) and examples preserving requested timeout/user values. -->
 
 ## Driver Usage Rules
 
@@ -13,6 +13,13 @@
 - Ask before destructive deletes/truncates unless the user explicitly requested them.
 - Use the native Aerospike client only when the high-level driver API does not cover the request.
 
+### Important Native Mode Connection Inference and Precedence Rule
+
+- In native Aerospike C# client mode, infer baseline connection values (for example host, port, TLS, authentication, and policy defaults) from current connection/cluster metadata when available.
+- Apply precedence in this order: explicit user request values > explicit values already present in generated code > inferred connection defaults.
+- Do not overwrite explicit user-requested policy values such as `timeout`, `loginTimeout`, `user`, `password`, `tlsPolicy`, or `authMode` with inferred defaults.
+- Preserve explicit `namespaceName` and `setName` values already present in generated code unless the user explicitly asks to change them.
+- Use inferred metadata only to fill missing native connection values.
 
 ### Important Generated Script Summary and Comment Rule
 

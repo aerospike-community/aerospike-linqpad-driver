@@ -106,6 +106,8 @@
       <PackagePath>contentFiles\any\any\AIContext\</PackagePath>
       <Visible>false</Visible>
     </None>
+    
+    <None Include=".github\copilot-instructions.md" />
     <None Include="LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
 

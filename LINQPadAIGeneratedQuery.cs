@@ -495,6 +495,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					Environment.NewLine;
 			}
 
+			normalizedCode = NormalizeAerospikeExpressionAliasUsage(normalizedCode);
 			normalizedCode = EnsureAIContextVersionComment(normalizedCode);
 
 			var generatedQueryText =
@@ -782,6 +783,24 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				.Replace("\r", "\\r")
 				.Replace("\n", "\\n")
 				+ "\"";
+		}
+
+		[GeneratedRegex(@"(?m)^\s*using\s+Exp\s*=\s*Aerospike\.Client\.Exp\s*;\s*$")]
+		private static partial Regex ExpAliasUsingRegex();
+
+		[GeneratedRegex(@"(?<!Aerospike\.)\bClient\.Exp\b")]
+		private static partial Regex ClientExpTypeRegex();
+
+		private static string NormalizeAerospikeExpressionAliasUsage(string code)
+		{
+			if(string.IsNullOrWhiteSpace(code))
+				return code;
+
+			// Guard: when an Exp alias is present, normalize legacy/incorrect Client.Exp type references.
+			if(!ExpAliasUsingRegex().IsMatch(code))
+				return code;
+
+			return ClientExpTypeRegex().Replace(code, "Exp");
 		}
 
 		private static string NormalizeNativeClientPolicyMemberNames(string code)

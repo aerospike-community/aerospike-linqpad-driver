@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.21; Change: normalize dictionary helper examples to generic GetValueOrDefault pattern and avoid TryGetValue(key, null). -->
+<!-- AIContext-Version: 2026.06.10.01; Change: add native mode example showing inferred connection values while preserving explicit requested timeout/user values. -->
 
 ### Query a generated set
 
@@ -173,6 +173,63 @@ var customers =
 	.Take(100);
 
 customers.Dump();
+```
+
+### Native Aerospike client with inferred connection + explicit requested policy
+
+```csharp
+using Exp = Aerospike.Client.Exp;
+
+// Example intent:
+// - Use current connection/cluster metadata to fill host/port and other missing connection defaults.
+// - Keep explicit user-requested policy values (timeout/user) unchanged.
+
+var host = "<inferred-from-current-connection>";
+var port = 3000; // inferred if available
+
+var namespaceName = "test";
+var setName = "Customer";
+
+var clientPolicy = new ClientPolicy
+{
+	user = "randersen",      // explicit user request value
+	timeout = 100,            // explicit user request value
+	loginTimeout = 1000       // fallback/default or inferred value
+};
+
+using var client = new AerospikeClient(clientPolicy, host, port);
+
+var rows = new List<object>();
+
+var scanPolicy = new ScanPolicy
+{
+	totalTimeout = 100,
+	filterExp = Exp.Build(
+		Exp.RegexCompare("^J.*", RegexFlag.NONE, Exp.StringBin("FirstName")))
+};
+
+client.ScanAll(
+	scanPolicy,
+	namespaceName,
+	setName,
+	(key, record) =>
+	{
+		if (record is null)
+			return;
+
+		rows.Add(new
+		{
+			PrimaryKey = key.userKey?.Object,
+			FirstName = record.GetValue("FirstName") as string,
+			LastName = record.GetValue("LastName") as string
+		});
+	},
+	"FirstName",
+	"LastName");
+
+rows
+	.Take(100)
+	.Dump("Native API: explicit timeout/user preserved over inferred defaults");
 ```
 
 ### Query nested document/list/CDT values with method syntax

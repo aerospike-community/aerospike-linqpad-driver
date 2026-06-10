@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.20; Change: enforce normal CLR dictionary lookup pattern in LINQ clauses and prevent AValue TryGetValue-style misuse. -->
+<!-- AIContext-Version: 2026.06.10.02; Change: correct Aerospike expression guidance to use Exp type (not Client.Exp) for SetRecords.Query filters. -->
 
 ## Driver Usage Rules
 
@@ -13,6 +13,13 @@
 - Ask before destructive deletes/truncates unless the user explicitly requested them.
 - Use the native Aerospike client only when the high-level driver API does not cover the request.
 
+### Important Native Mode Connection Inference and Precedence Rule
+
+- In native Aerospike C# client mode, infer baseline connection values (for example host, port, TLS, authentication, and policy defaults) from current connection/cluster metadata when available.
+- Apply precedence in this order: explicit user request values > explicit values already present in generated code > inferred connection defaults.
+- Do not overwrite explicit user-requested policy values such as `timeout`, `loginTimeout`, `user`, `password`, `tlsPolicy`, or `authMode` with inferred defaults.
+- Preserve explicit `namespaceName` and `setName` values already present in generated code unless the user explicitly asks to change them.
+- Use inferred metadata only to fill missing native connection values.
 
 ### Important Generated Script Summary and Comment Rule
 
@@ -229,7 +236,7 @@ Use `is null` / `is not null` for ordinary reference checks, and use `IsEmpty` /
 - Do not use generated record properties inside server-side `Exp.*` expression builders.
 - When using AValue expression helpers, use `value.ToExpBin(...)` for the bin reference side and `value.ToExpVal()` for the literal side.
 - For straightforward server-side expressions, using raw bin names directly is usually simpler and clearer.
-- Do not call `Exp.Build(...)` when passing a `Client.Exp` filter expression to `SetRecords.Query(...)`; the driver builds it into the policy.
+- Do not call `Exp.Build(...)` when passing an `Exp` filter expression to `SetRecords.Query(...)`; the driver builds it into the policy.
 - Use operational expressions with `Operate(...)` and `ExpOperation.Read(...)` / `ExpOperation.Write(...)` only when the user asks for expression read/write operations.
 
 ### Important Primary Key Rule

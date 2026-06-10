@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.21; Change: normalize dictionary helper examples to generic GetValueOrDefault pattern and avoid TryGetValue(key, null). -->
+<!-- AIContext-Version: 2026.06.10.02; Change: correct Aerospike expression type usage from Client.Exp to Exp in server-side expression examples. -->
 
 ### Query a generated set
 
@@ -136,7 +136,7 @@ recordsByKeyOrDigest.Dump();
 
 ```csharp
 // Aerospike expressions run server-side. Use raw bin names inside Exp.*Bin(...).
-Client.Exp filterExpression = Exp.And(
+Exp filterExpression = Exp.And(
 	Exp.EQ(Exp.StringBin("State"), Exp.Val("CA")),
 	Exp.BinExists("Company"));
 
@@ -154,11 +154,66 @@ customers.Dump();
 // Use ToExpBin() for the bin reference and ToExpVal() for the literal value.
 var status = "active".ToAValue("Status", "Status");
 
-Client.Exp filterExpression = Exp.EQ(
+Exp filterExpression = Exp.EQ(
 	status.ToExpBin(Exp.Type.STRING),
 	status.ToExpVal());
 
 test.Customer.Query(filterExpression).Take(100).Dump();
+```
+
+### Native Aerospike client with inferred connection + explicit requested policy
+
+```csharp
+// Example intent:
+// - Use current connection/cluster metadata to fill host/port and other missing connection defaults.
+// - Keep explicit user-requested policy values (timeout/user) unchanged.
+
+var host = "<inferred-from-current-connection>";
+var port = 3000; // inferred if available
+
+var namespaceName = "test";
+var setName = "Customer";
+
+var clientPolicy = new ClientPolicy
+{
+	user = "randersen",      // explicit user request value
+	timeout = 100,            // explicit user request value
+	loginTimeout = 1000       // fallback/default or inferred value
+};
+
+using var client = new AerospikeClient(clientPolicy, host, port);
+
+var policy = new ScanPolicy
+{
+	totalTimeout = 100,
+	filterExp = Exp.Build(
+		Exp.RegexCompare("^J.*", RegexFlag.NONE, Exp.StringBin("FirstName")))
+};
+
+var rows = new List<object>();
+
+client.ScanAll(
+	policy,
+	namespaceName,
+	setName,
+	(key, record) =>
+	{
+		if (record is null)
+			return;
+
+		rows.Add(new
+		{
+			PrimaryKey = key.userKey?.Object,
+			FirstName = record.GetValue("FirstName") as string,
+			LastName = record.GetValue("LastName") as string
+		});
+	},
+	"FirstName",
+	"LastName");
+
+rows
+	.Take(100)
+	.Dump("Native API: explicit timeout/user preserved over inferred defaults");
 ```
 
 ### Sort records from an Aerospike set

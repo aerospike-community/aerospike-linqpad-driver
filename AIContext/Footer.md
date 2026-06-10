@@ -1,4 +1,4 @@
-<!-- AIContext-Version: 2026.06.08.20; Change: add final validation for normal CLR dictionary TryGetValue patterns versus AValue/CDT TryGetValue semantics. -->
+<!-- AIContext-Version: 2026.06.10.01; Change: add native mode precedence validation for inferred connection values versus explicit requested values. -->
 
 ## Generated Script Summary and Comments
 
@@ -33,6 +33,9 @@
 - Use `{{DefaultASPIKeyName}}` for the primary key when available; otherwise use `GetPK()`.
 - Use `.AsEnumerable()` before collection-style LINQ operations on `SetRecords` instances.
 {{LinqSyntaxGuidance}}
+- In native Aerospike C# client mode, apply connection-value precedence in this order: explicit user request values > explicit values already present in generated code > inferred connection defaults.
+- In native mode, infer host/port/TLS/auth/policy defaults only for missing values and do not overwrite explicit requested values.
+- In native mode, preserve explicit `namespaceName` and `setName` values already present in generated code unless explicitly asked to change them.
 - Avoid destructive operations unless explicitly requested.
 
 
