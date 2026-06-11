@@ -124,7 +124,7 @@ Use Auto-Value/LINQ filtering when exploring data interactively and when driver-
 
 For the complete Auto-Values guide, including comparisons, conversions, `APrimaryKey`, digests, collection helpers, JSON/CDT helpers, expression helpers, and common mistakes, see:
 
-[Auto Values (`AValue`) in the Aerospike LINQPad Driver](./AValues_Readme.md)
+[Auto Values (`AValue`) in the Aerospike LINQPad Driver](./README_AVALUES.md)
 
 For additional background and examples, see the Auto-Values blog article:
 

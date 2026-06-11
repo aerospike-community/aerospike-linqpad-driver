@@ -1,4 +1,4 @@
-<!-- AValues-Readme-Version: 2026.06.08.1; Change: align README with current AValue helper APIs and null-normalization guidance. -->
+<!-- AValues-Readme-Version: 2026.06.11.1; Change: add LINQPad AI feature guidance and AI-generated AValue code patterns. -->
 
 # Auto Values (`AValue`) in the Aerospike LINQPad Driver
 
@@ -29,6 +29,86 @@ instead of writing code that manually extracts the bin value, checks for null, c
 -   You want collection/map helpers that work across scalars, lists, dictionaries, JSON objects, and Aerospike CDTs.
 
 The Native LINQPad samples under `linqpad-samples/Native` are a good source of examples, especially `Basic Data Types.linq` and `Basic Data Types 2.linq`.
+
+---
+
+## Auto Values and LINQPad AI
+
+Auto Values are especially important for the Aerospike LINQPad AI features.
+
+When LINQPad AI generates C# against the Aerospike LINQPad driver, it needs to produce code that works with Aerospike's schemaless data model. Records may be sparse, bins may be missing, and the same bin name may contain different types across records. `AValue` gives AI-generated code a safer and more natural way to work with that data.
+
+For example, a natural-language request such as:
+
+```text
+Show me customers whose first name starts with J.
+```
+
+can generate AValue-aware LINQPad-driver code such as:
+
+```csharp
+var customers =
+    (from customer in test.Customer.AsEnumerable()
+     where customer.FirstName.TryApply<string, bool>(name => name.StartsWith("J"))
+     select customer)
+    .Take(100);
+
+customers.Dump();
+```
+
+This is safer than directly casting `FirstName` to `string` because `TryApply<string, bool>(...)` only invokes `StartsWith` when the value can behave as a string. Missing, null, or mixed-type values simply do not match.
+
+### AI-generated LINQPad-driver code
+
+When AI generates LINQPad-driver code, it should prefer:
+
+```csharp
+customer.FirstName
+customer.PK
+customer.Total.CanConvert<decimal>()
+customer.Total.Convert<decimal>()
+customer.Profile.TryGetValue("email", AValue.Empty)
+customer.Invoices.ToAValue().AsEnumerable()
+```
+
+over raw casts, raw Aerospike values, or string-indexer access when generated properties are available.
+
+### AI-generated server-side expression code
+
+Auto Values are client-side LINQPad-driver conveniences after records are materialized.
+
+Server-side Aerospike expressions are different. When AI generates server-side expression filters, it should use raw bin names and Aerospike expression APIs:
+
+```csharp
+Client.Exp filterExpression = Exp.EQ(
+    Exp.StringBin("State"),
+    Exp.Val("CA"));
+
+test.Customer
+    .Query(filterExpression)
+    .Take(100)
+    .Dump();
+```
+
+For native Aerospike C# client API code, AI should use native APIs such as `AerospikeClient`, `ScanPolicy`, `QueryPolicy`, `Statement`, `Record`, `Exp.Build(...)`, and `record.GetValue("BinName")`. Native API code should not use `AValue`, generated LINQPad-driver sets, or generated record properties.
+
+### AI guidance summary
+
+When generating LINQPad-driver code, AI should:
+
+- Prefer generated properties over string-indexer access.
+- Use `IsEmpty` / `!IsEmpty` for AValue missing or empty checks.
+- Use `TryApply<TValue,TResult>()` for type-specific methods on values that may be null, missing, or mixed-type.
+- Use `CanConvert<T>()` before `Convert<T>()` when conversion may fail.
+- Use `ToAValue()` before traversing nullable or document/CDT values.
+- Use `TryGetValue(..., AValue.Empty)` for AValue/CDT map or document navigation.
+- Avoid direct `System.Convert.*` calls on values that may be `AValue` or `APrimaryKey`.
+- Avoid unsafe casts such as `(string)customer.FirstName.Value`.
+- Use server-side Aerospike expressions when the request explicitly asks for server-side filtering.
+
+This behavior is one of the main reasons Auto Values are a good fit for AI-assisted query generation in LINQPad.
+
+
 
 ***
 
