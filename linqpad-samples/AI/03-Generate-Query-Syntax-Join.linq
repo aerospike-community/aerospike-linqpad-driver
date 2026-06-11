@@ -29,8 +29,10 @@ Use Dump().
 Do not use .Join(...). Use a query-syntax join clause.
 """;
 
+//Build Request with Aerospike AI Context (includes metadata about the connection, etc.)
 var prompt = AIContext.BuildPrompt(request);
 
+//Send request to AI and get response (async)
 var response = await LINQPad.Util.AI.Ask(prompt).GetResponseAsync();
 
 response.Text.Dump("AI-generated query-syntax join");

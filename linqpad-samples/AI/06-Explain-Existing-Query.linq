@@ -16,10 +16,11 @@
 </Query>
 
 // Paste a query and ask AI to explain it in Aerospike LINQPad-driver terms.
+// This demonstrates some of the LINQPad AI API...
 
 var queryToExplain = LINQPad.Util.ReadLine(
-    "Paste the LINQPad/Aerospike query to explain:",
-    """
+"Paste the LINQPad/Aerospike query to explain:",
+"""
 from customer in test.Customer.AsEnumerable()
 where customer.FirstName.TryApply<string, bool>(name => name.StartsWith("J"))
 select customer
@@ -42,8 +43,10 @@ Query:
 {queryToExplain}
 """;
 
+//Build Request with Aerospike AI Context (includes metadata about the connection, etc.)
 var prompt = AIContext.BuildPrompt(request);
 
+//Send request to AI and get response (async)
 var response = await LINQPad.Util.AI.Ask(prompt).GetResponseAsync();
 
 response.Text.Dump("AI Explanation");

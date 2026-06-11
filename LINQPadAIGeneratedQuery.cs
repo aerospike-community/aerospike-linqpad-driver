@@ -44,9 +44,13 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 			DumpAIContextTruncationWarningIfNeeded(aiContext, options);
 
+			var aiUserRequest = StripAIRequestCommentLines(userRequest);
+			if(string.IsNullOrWhiteSpace(aiUserRequest))
+				throw new ArgumentException("AI request cannot be blank after removing comment lines.", nameof(userRequest));
+
 			var response = await aiContext
 				.SubmitRequestAsync(
-						userRequest,
+						aiUserRequest,
 						options,
 						systemInstruction,
 						progression,
@@ -75,7 +79,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				return response;
 			}
 
-			var queryMode = DetermineGeneratedQueryMode(userRequest, response, csharpCode);
+			var queryMode = DetermineGeneratedQueryMode(aiUserRequest, response, csharpCode);
 
 			if(queryMode == AIGeneratedQueryMode.NativeAerospikeClient)
 			{
@@ -116,6 +120,26 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			}
 
 			return response;
+		}
+
+		private static string StripAIRequestCommentLines(string request)
+		{
+			if(string.IsNullOrWhiteSpace(request))
+				return request;
+
+			var filteredLines = request
+				.Replace("\r\n", "\n")
+				.Replace('\r', '\n')
+				.Split('\n')
+				.Where(line =>
+				{
+					var trimmed = line.TrimStart();
+					return !(trimmed.StartsWith("//", StringComparison.Ordinal)
+						|| trimmed.StartsWith("#", StringComparison.Ordinal)
+						|| trimmed.StartsWith("--", StringComparison.Ordinal));
+				});
+
+			return string.Join(Environment.NewLine, filteredLines).Trim();
 		}
 
 		private enum AIResponseKind

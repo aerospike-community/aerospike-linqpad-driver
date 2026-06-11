@@ -14,7 +14,7 @@
   </Connection>
 </Query>
 
-// Dump the current AI context.
+// Dump the current Aerospike AI context based on the specified options.
 // Useful for verifying what the AI sees before asking a question.
 
 var options = new AerospikeAIContextOptions

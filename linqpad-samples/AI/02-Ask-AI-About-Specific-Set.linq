@@ -17,23 +17,24 @@
 
 // Ask AI about a specific namespace/set.
 // Change namespaceName and setName to match your connection.
-// This uses some fo the AI API... 
+// This demonstrates some of the AI API...
 
 var namespaceName = "test";
 var setName = "Customer";
 
 var request = LINQPad.Util.ReadLine(
-    $"Ask AI about {namespaceName}.{setName}:",
-    "Generate a safe read-only query that filters, sorts, and shows 100 useful records from this set.");
+$"Ask AI about {namespaceName}.{setName}:",
+"Generate a safe read-only query that filters, sorts, and shows 100 useful records from this set.");
 
 if (string.IsNullOrWhiteSpace(request))
-    return;
+return;
 
-var prompt = AIContext.BuildSetPrompt(
-    namespaceName: namespaceName,
-    setName: setName,
-    userRequest: request);
+//Build Request with Aerospike AI Context for specific namespace/set (includes metadata about the connection, etc.)
+var prompt = AIContext.BuildSetPrompt(namespaceName: namespaceName,
+setName: setName,
+userRequest: request);
 
+//Send request to AI and get response (async)
 var response = await LINQPad.Util.AI.Ask(prompt).GetResponseAsync();
 
 response.Text.Dump("AI Response");

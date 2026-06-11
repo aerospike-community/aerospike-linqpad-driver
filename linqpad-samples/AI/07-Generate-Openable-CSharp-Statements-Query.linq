@@ -16,7 +16,7 @@
 
 // Ask AI for C# Statements code. If the response contains C#,
 // create a new .linq file with this query's connection header and dump a link to open it.
-//
+// Uses short form request.
 
 AIContext.SubmitRequestAndCreateQuery("""
 Generate a query-syntax join between test.Customer and test.Invoice, limit to 100 rows, and Dump the results.

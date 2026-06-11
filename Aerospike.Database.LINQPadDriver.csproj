@@ -92,7 +92,7 @@
       <pack>true</pack>
     </Content>
 	  <Content Include="linqpad-samples\DemoDBJson\aerospike.json" />
-	  <Content Include="linqpad-samples\Native\*.linq" />
+	  <Content Include="linqpad-samples\Demo\*.linq" />
     <Content Include="linqpad-samples\AI\*.linq" />
     <Content Include="linqpad-samples\AI\*.md" />
     

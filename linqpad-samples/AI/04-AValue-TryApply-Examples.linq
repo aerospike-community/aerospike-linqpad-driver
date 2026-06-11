@@ -16,6 +16,7 @@
 </Query>
 
 // Ask AI for AValue-safe examples using TryApply, Apply, CanConvert, and Convert.
+// Use short-form request.
 
 AIContext.SubmitRequestAndCreateQuery("""
 Generate LINQPad C# Statements examples for AValue-backed properties.

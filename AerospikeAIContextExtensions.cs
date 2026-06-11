@@ -172,7 +172,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				if(counter % 5 == 0)
 				{
 					var frame = spinner[(counter / 5) % spinner.Length];
-					var status = sending ? "Sending" : "Thinking";
+					var status = sending ? "Thinking" : "Response";
 					progress.Content = frame + " " + status + "...";
 				}
 
@@ -212,7 +212,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 						}
 						else
 						{
-							progress.Content = "✓ AI Response Received.";
+							progress.Content = "✓ AI Response Completed.";
 						}
 					},
 					CancellationToken.None,

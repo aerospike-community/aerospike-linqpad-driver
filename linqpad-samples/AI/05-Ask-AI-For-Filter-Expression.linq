@@ -17,6 +17,7 @@
 
 // Ask AI to generate a server-side Aerospike filter-expression query.
 // This should use SetRecords.Query(...) and raw Aerospike bin names inside Exp.*Bin(...).
+// Uses short form request.
 
 AIContext.SubmitRequestAndCreateQuery("""
 Generate a LINQPad C# Statements query using an Aerospike server-side filter expression.

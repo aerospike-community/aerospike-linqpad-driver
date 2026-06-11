@@ -17,17 +17,19 @@
 
 // Ask LINQPad AI a general question about the current Aerospike connection.
 // This uses AIContext.BuildPrompt(...) and the driver's current metadata/context.
-// This shows some of the AI API...
+// This demonstrates some of the LINQPad AI API...
 
 var request = LINQPad.Util.ReadLine(
-    "Ask AI about this Aerospike connection:",
-    "Generate a safe read-only query that explores the most useful sets and shows 100 rows.");
+"Ask AI about this Aerospike connection:",
+"Generate a safe read-only query that explores the most useful sets and shows 100 rows.");
 
 if (string.IsNullOrWhiteSpace(request))
-    return;
+return;
 
+//Build Request with Aerospike AI Context (includes metadata about the connection, etc.)
 var prompt = AIContext.BuildPrompt(request);
 
+//Send request to AI and get response (async)
 var response = await LINQPad.Util.AI.Ask(prompt).GetResponseAsync();
 
 response.Text.Dump("AI Response");
