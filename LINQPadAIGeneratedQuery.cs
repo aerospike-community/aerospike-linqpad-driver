@@ -48,6 +48,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			if(string.IsNullOrWhiteSpace(aiUserRequest))
 				throw new ArgumentException("AI request cannot be blank after removing comment lines.", nameof(userRequest));
 
+			EnsureDriverModeAValueEnabled(aiUserRequest);
+
 			var response = await aiContext
 				.SubmitRequestAsync(
 						aiUserRequest,
@@ -79,7 +81,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				return response;
 			}
 
-			var queryMode = DetermineGeneratedQueryMode(aiUserRequest, response, csharpCode);
+			var queryMode = DetermineGeneratedQueryMode(aiUserRequest, response, csharpCode, out var modeWarning);
+
+			if(!string.IsNullOrWhiteSpace(modeWarning))
+			{
+				_ = modeWarning.Dump("AI Generation Mode Warning");
+			}
 
 			if(queryMode == AIGeneratedQueryMode.NativeAerospikeClient)
 			{
@@ -140,6 +147,41 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				});
 
 			return string.Join(Environment.NewLine, filteredLines).Trim();
+		}
+
+		private static void EnsureDriverModeAValueEnabled(string aiUserRequest)
+		{
+			if(string.IsNullOrWhiteSpace(aiUserRequest))
+				return;
+
+			if(TryGetExplicitModeOverride(aiUserRequest, out var overrideMode)
+				&& overrideMode == AIGeneratedQueryMode.NativeAerospikeClient)
+			{
+				return;
+			}
+
+			if(HasStrongNativeModeCue(aiUserRequest)
+				|| (HasMediumNativeModeCue(aiUserRequest) && !HasDriverModeCue(aiUserRequest)))
+			{
+				return;
+			}
+
+			var connection = AClusterAccess.Instance?.AerospikeConnection;
+			var guidance = "Enable 'Always use AValue' in the Aerospike connection properties dialog, then rerun the AI request.";
+
+			if(connection is null)
+			{
+				var missingConnectionMessage = "Driver-mode AI guardrail blocked request: no active Aerospike LINQPad connection is available to verify AValue mode. " + guidance;
+				_ = missingConnectionMessage.Dump("AI Guardrail Error");
+				throw new InvalidOperationException(missingConnectionMessage);
+			}
+
+			if(connection.AlwaysUseAValues)
+				return;
+
+			var message = "Driver-mode AI guardrail blocked request: 'Always use AValue' is disabled for the current connection. " + guidance;
+			_ = message.Dump("AI Guardrail Error");
+			throw new InvalidOperationException(message);
 		}
 
 		private enum AIResponseKind
@@ -421,34 +463,103 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		private static AIGeneratedQueryMode DetermineGeneratedQueryMode(
 			string userRequest,
 			string responseText,
-			string csharpCode)
+			string csharpCode,
+			out string modeWarning)
 		{
+			modeWarning = null;
+			var requestText = userRequest ?? string.Empty;
+
+			if(TryGetExplicitModeOverride(requestText, out var overrideMode))
+				return overrideMode;
+
+			var hasStrongNativeCue = HasStrongNativeModeCue(requestText);
+			var hasMediumNativeCue = HasMediumNativeModeCue(requestText);
+			var hasDriverCue = HasDriverModeCue(requestText);
+
+			if((hasStrongNativeCue || hasMediumNativeCue) && hasDriverCue)
+			{
+				modeWarning = "Mode conflict detected (native and driver cues). Defaulting to LINQPad Driver mode. Add mode:native or mode:driver to force mode selection.";
+				return AIGeneratedQueryMode.Driver;
+			}
+
+			if(hasStrongNativeCue)
+				return AIGeneratedQueryMode.NativeAerospikeClient;
+
+			if(hasMediumNativeCue && !hasDriverCue)
+				return AIGeneratedQueryMode.NativeAerospikeClient;
+
 			var combined = string.Join(
 				Environment.NewLine,
-				userRequest ?? string.Empty,
+				requestText,
 				responseText ?? string.Empty,
 				csharpCode ?? string.Empty);
 
-			if(IsNativeAerospikeClientRequest(combined))
+			if(HasStrongNativeModeCue(combined))
 				return AIGeneratedQueryMode.NativeAerospikeClient;
 
 			return AIGeneratedQueryMode.Driver;
 		}
 
-		private static bool IsNativeAerospikeClientRequest(string text)
+		private static bool TryGetExplicitModeOverride(string text, out AIGeneratedQueryMode mode)
+		{
+			mode = AIGeneratedQueryMode.Driver;
+
+			if(string.IsNullOrWhiteSpace(text))
+				return false;
+
+			if(text.Contains("mode:native", StringComparison.OrdinalIgnoreCase))
+			{
+				mode = AIGeneratedQueryMode.NativeAerospikeClient;
+				return true;
+			}
+
+			if(text.Contains("mode:driver", StringComparison.OrdinalIgnoreCase))
+			{
+				mode = AIGeneratedQueryMode.Driver;
+				return true;
+			}
+
+			return false;
+		}
+
+		private static bool HasStrongNativeModeCue(string text)
 		{
 			if(string.IsNullOrWhiteSpace(text))
 				return false;
 
-			return text.Contains("native Aerospike API", StringComparison.OrdinalIgnoreCase)
+			return text.Contains("Aerospike native API", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("Aerospike native API driver", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("native Aerospike API", StringComparison.OrdinalIgnoreCase)
 				|| text.Contains("native Aerospike C# client", StringComparison.OrdinalIgnoreCase)
 				|| text.Contains("native C# client", StringComparison.OrdinalIgnoreCase)
-				|| text.Contains("Aerospike native API", StringComparison.OrdinalIgnoreCase)
-				|| text.Contains("Aerospike native", StringComparison.OrdinalIgnoreCase)
-				|| text.Contains("native API", StringComparison.OrdinalIgnoreCase)
-				|| text.Contains("AerospikeClient", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("native API driver", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("native driver", StringComparison.OrdinalIgnoreCase)
 				|| text.Contains("no LINQPad driver", StringComparison.OrdinalIgnoreCase)
-				|| text.Contains("total Aerospike native", StringComparison.OrdinalIgnoreCase);
+				|| text.Contains("total Aerospike native", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("AerospikeClient", StringComparison.OrdinalIgnoreCase);
+		}
+
+		private static bool HasMediumNativeModeCue(string text)
+		{
+			if(string.IsNullOrWhiteSpace(text))
+				return false;
+
+			if(!text.Contains("native API", StringComparison.OrdinalIgnoreCase))
+				return false;
+
+			return text.Contains("Aerospike", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("client", StringComparison.OrdinalIgnoreCase);
+		}
+
+		private static bool HasDriverModeCue(string text)
+		{
+			if(string.IsNullOrWhiteSpace(text))
+				return false;
+
+			return text.Contains("LINQPad driver", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("AsEnumerable()", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("SetRecords", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("from ", StringComparison.OrdinalIgnoreCase);
 		}
 
 		private static bool TryGetCurrentQueryHeader(out string header)
