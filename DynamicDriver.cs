@@ -256,14 +256,14 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 			List<ExplorerItem> items = new List<ExplorerItem>();
 
 			{
-				var asyncClient = typeof(Aerospike.Client.Connection).Assembly.GetName();
+				var aerospikeClient = typeof(Aerospike.Client.Connection).Assembly.GetName();
 				items.Add(new ExplorerItem("Client Connection",
 														ExplorerItemKind.Property,
 														ExplorerIcon.TableFunction)
 				{
 					IsEnumerable = false,
 					DragText = "ASClient",
-					ToolTipText = $"{asyncClient?.Name} Driver Version: {asyncClient?.Version}"
+					ToolTipText = $"{aerospikeClient?.Name} Driver Version: {aerospikeClient?.Version}"
 				});
 			}
 
@@ -548,7 +548,20 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
 		{
 			List<ExplorerItem> children;
 
-            children = new List<ExplorerItem>()
+			var aerospikeClient = typeof(Aerospike.Client.Connection).Assembly.GetName();
+            var linqPadDriver = typeof(DynamicDriver).Assembly.GetName();
+			var informationalVersion = typeof(DynamicDriver).Assembly
+	                                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+	                                    .InformationalVersion;
+
+			string versionSuffix = string.Empty;
+			if(informationalVersion?.Contains('-') == true)
+			{
+                var endOfReferenceIdx = informationalVersion.IndexOf('+');
+				versionSuffix = " " + informationalVersion[(informationalVersion.IndexOf('-') + 1)..endOfReferenceIdx];
+			}
+
+			children = new List<ExplorerItem>()
                             {
                                 new ExplorerItem($"Cluster Name \"{cxInfo.DatabaseInfo.Database}\"",
                                                     ExplorerItemKind.Parameter,
@@ -566,7 +579,31 @@ public class {typeName} : Aerospike.Database.LINQPadDriver.Extensions.AClusterAc
                                                     DragText = null,
                                                     ToolTipText= cxInfo.DatabaseInfo.DbVersion
                                                 },
-                                new ExplorerItem($"Nodes ({connection.Nodes.Length})",
+								 new ExplorerItem($"Aerospike Native API {aerospikeClient?.Version}",
+													ExplorerItemKind.Parameter,
+													ExplorerIcon.ScalarFunction)
+												{
+													IsEnumerable = false,
+													DragText = null,
+													ToolTipText= aerospikeClient?.Version?.ToString() ?? "N/A"
+												},
+								  new ExplorerItem($"Aerospike LINQPad Driver {linqPadDriver?.Version}{versionSuffix}",
+													ExplorerItemKind.Parameter,
+													ExplorerIcon.ScalarFunction)
+												{
+													IsEnumerable = false,
+													DragText = null,
+													ToolTipText= linqPadDriver?.Version?.ToString() ?? "N/A"
+												},
+								new ExplorerItem($"AI Context {AIContextVersion.Current}",
+													ExplorerItemKind.Parameter,
+													ExplorerIcon.ScalarFunction)
+												{
+													IsEnumerable = false,
+													DragText = null,
+													ToolTipText= AIContextVersion.Current ?? "N/A"
+												},
+								new ExplorerItem($"Nodes ({connection.Nodes.Length})",
                                                     ExplorerItemKind.Category,
                                                     ExplorerIcon.OneToMany)
                                                 {

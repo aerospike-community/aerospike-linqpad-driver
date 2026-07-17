@@ -1,8 +1,8 @@
-# Aerospike Database for LINQPad 7+ (Windows Only) and LINQPad 8+ (Windows and MacOS)
+# Aerospike Database for LINQPad 8+ (Windows Only) and LINQPad 8+ (Windows and MacOS)
 
 ## Description
 
-[Aerospike](https://aerospike.com/) for LINQPad 7/8 is a data context dynamic driver for interactively querying and updating an Aerospike database using "[LINQPad](https://www.linqpad.net/)". LINQPad is a Graphical Development Tool designed for rapid prototyping, interactive testing, data modeling, data mining, drag-and-drop execution, interactive debugging, etc. The Aerospike driver for LINQPad is designed to support all LINQPad capabilities including the enhanced ability to learn and use the [Aerospike API directly](https://developer.aerospike.com/client/csharp).
+[Aerospike](https://aerospike.com/) for LINQPad 8 is a data context dynamic driver for interactively querying and updating an Aerospike database using "[LINQPad](https://www.linqpad.net/)". LINQPad is a Graphical Development Tool designed for rapid prototyping, interactive testing, data modeling, data mining, drag-and-drop execution, interactive debugging, etc. The Aerospike driver for LINQPad is designed to support all LINQPad capabilities including the enhanced ability to learn and use the [Aerospike API directly](https://developer.aerospike.com/client/csharp).
 
 Here is a subset of what you can perform using the driver:
 
@@ -28,6 +28,107 @@ The driver can, also, dynamically detect the structure of records within an Aero
 Each component can be dragged-and-dropped onto the LINQPad Query pane to be executed by LINQPad. The execution behavior will depend on the component. For example, a Set or Secondary Index will present the records within that component. For other components, the properties are displayed. In all cases, you can always execute the driver’s extension methods. These extension methods greatly simplify Aerospike API commands like [Get, Put, Query, Operate, etc](https://developer.aerospike.com/client/csharp). plus, the ability to perform things like importing or exporting data. Of course, you can always use LINQ against Aerospike Sets or Secondary Indexes. Below is an example of some of the driver extensions:
 
 ![A screenshot of a computer Description automatically generated](media/7b6d6cfdfe43159fb1c6dedfc6ef5cc0.png)
+
+## Auto-Values
+
+Auto-Values are one of the most powerful features of the Aerospike LINQPad driver. They make Aerospike’s schemaless, mixed-type record model feel natural inside LINQPad by wrapping bin values and primary keys in driver-friendly types such as `AValue` and `APrimaryKey`.
+
+The short version:
+
+> **Auto-Values let you query, compare, convert, search, and display Aerospike values without constantly writing null checks, casts, type guards, or raw `Aerospike Client API` plumbing.**
+
+Aerospike records can vary from record to record. A bin may exist on one record and be missing on another. The same bin name may contain different data types across records. A value may be a scalar, list, map, JSON document, GeoJSON value, byte array, date/time representation, or CDT structure. Auto-Values are designed to make those cases easier to explore and safer to query from LINQPad.
+
+For example, with Auto-Values enabled, you can often write:
+
+```csharp
+from customer in test.Customer.AsEnumerable()
+where !customer.Company.IsEmpty && customer.State == "CA"
+select customer
+```
+
+instead of writing manual code to check whether each bin exists, check for null, inspect the underlying .NET type, cast the value, and handle invalid comparisons.
+
+Auto-Values help with:
+
+- **Mixed-type bins** where the same bin may contain strings, numbers, lists, maps, JSON, or other values.
+- **Sparse records** where some records have a bin and others do not.
+- **Natural comparisons** such as `customer.State == "CA"` or `record.Amount > 100`.
+- **Safer conversion** with `CanConvert<T>()` and `Convert<T>()`.
+- **Type-specific operations** with `Apply<TValue,TResult>()` and `TryApply<TValue,TResult>()`.
+- **Primary-key handling** through `APrimaryKey`, including user keys and digest-backed keys.
+- **Collection, map, JSON, and CDT exploration** with helpers such as `Contains(...)`, `ContainsKey(...)`, `FindAll(...)`, `TryGetValue(...)`, `AsEnumerable()`, `ToList()`, `ToDictionary()`, and `ElementAtOrDefault(...)`.
+- **Aerospike expression building** with helpers such as `ToExpBin()` and `ToExpVal()` when server-side expressions are needed.
+
+### Why This Matters
+
+Without Auto-Values, a LINQPad query against schemaless Aerospike data often needs defensive code like this:
+
+```csharp
+from customer in test.Customer.AsEnumerable()
+where !String.IsNullOrEmpty(customer.Company)
+	  && customer.State is string state
+	  && state == "CA"
+select customer
+```
+
+With Auto-Values, the same intent can usually be written more directly:
+
+```csharp
+from customer in test.Customer.AsEnumerable()
+where !customer.Company.IsEmpty && customer.State == "CA"
+select customer
+```
+
+This makes LINQPad exploration faster, more readable, and less error-prone.
+
+### Auto-Values and APrimaryKey
+
+Auto-Values also apply to primary keys through `APrimaryKey`. All the features of Auto-Values also apply to primary keys.
+
+Use the generated primary-key property:
+
+```csharp
+from customer in test.Customer.AsEnumerable()
+select new
+{
+	customer.PK,
+	customer.FirstName,
+	customer.LastName
+}
+```
+
+`APrimaryKey` is especially useful when working with Aerospike user keys, digest-backed records, or records written without the send-key policy enabled.
+
+### Auto-Values versus Aerospike Expressions
+
+Auto-Values are primarily a LINQPad/client-side convenience after records are returned and materialized by the driver.
+
+Aerospike Filter Expressions are server-side and use raw Aerospike bin names and Aerospike expression APIs:
+
+```csharp
+from customer in test.Customer
+	.Query(Aerospike.Client.Exp.And(
+		Aerospike.Client.Exp.EQ(
+			Aerospike.Client.Exp.StringBin("State"),
+			Aerospike.Client.Exp.Val("CA")),
+		Aerospike.Client.Exp.BinExists("Company")))
+select customer
+```
+
+Once realized, Auto-Values are in play and waiting for your interaction.
+
+Use Auto-Value/LINQ filtering when exploring data interactively and when driver-side conversion behavior is useful.
+
+### Learn More
+
+For the complete Auto-Values guide, including comparisons, conversions, `APrimaryKey`, digests, collection helpers, JSON/CDT helpers, expression helpers, and common mistakes, see:
+
+[Auto Values (`AValue`) in the Aerospike LINQPad Driver](./README_AVALUES.md)
+
+For additional background and examples, see the Auto-Values blog article:
+
+[How to use Auto Values in the NoSQL LINQPad Driver](https://aerospike.com/developer/blog/how-to-use-auto-values-in-nosql-linqpad-driver)
 
 ## Cluster and Namespace Configuration Information
 
@@ -467,18 +568,6 @@ Below is an example of Record Display View:
 Below is an example of Dynamic Display View:
 
 ![A screenshot of a computer Description automatically generated](media/714499372aafd2767b8569bb8cfb8f1d.png)
-
-## Auto-Values
-
-Auto-Values are a wrapper around Aerospike DB values so that working with unstructured data is simple and risk free of exceptions like null reference and invalid cast.
-
-They provide a rich set of functions to work with conversions from or to DB and .Net values. They have the following main features:
-
--   Implicit Casting – don’t have to worry about check and cast. Just use the standard .Net operators.
--   Convert functions – Will try to convert a DB or .Net value with or without any explicit reference.
--   Contains, TryGetValue, FindAll, ElementAt, etc. functions – Search/Match/Access functions used to find a value within a CDT or match a single non-CDT value.
-
-For more information, see the [Auto-Values blog](https://aerospike.com/developer/blog/how-to-use-auto-values-in-nosql-linqpad-driver).
 
 ## Working with the “null” Set
 

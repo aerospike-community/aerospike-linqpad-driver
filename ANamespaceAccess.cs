@@ -198,7 +198,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
         /// <summary>
         /// Refreshes the Connection Explorer
         /// </summary>        
-        public static async void RefreshExplorer()
+        public static async Task RefreshExplorer()
         {
             await DynamicDriver.GetConnection()?.CXInfo?.ForceRefresh();
         }

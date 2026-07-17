@@ -95,7 +95,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsTrue(checkValue <= aValueStr);
 			Assert.IsTrue(checkValue < aValueStr);
 
-			Assert.AreEqual(aValueStr, "abc");
+			Assert.AreEqual("abc", aValueStr);
 			Assert.IsTrue(aValueStr == "abc");
 			Assert.IsFalse(aValueStr != "abc");
 			Assert.IsTrue(aValueStr >= "abc");
@@ -106,7 +106,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			aValueStr = new AValue(expectedValuex10.ToString(), "binStrNum", "fldStrNum");
 
 			Assert.AreEqual(aValueStr, expectedValuex10.ToString());
-			Assert.AreEqual(aValueStr, expectedValuex10);
+			Assert.AreEqual(expectedValuex10, aValueStr);
 			Assert.IsFalse(checkValue == aValueStr);
 			Assert.IsTrue(checkValue != aValueStr);
 			Assert.IsFalse(checkValue >= aValueStr);
@@ -161,7 +161,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsTrue(Helpers.SequenceEquals(listTst, aValue.ToList()));
 			Assert.IsTrue(Helpers.SequenceEquals(listTst, aValue.ToListItem()));
 			Assert.IsTrue(aValue.ToDictionary().Count == 0);
-			Assert.AreEqual(jToken, aValue.ToJToken());
+			Assert.AreSequenceEqual(jToken, aValue.ToJToken());
 			Assert.IsFalse(aValue.Equals(testEqual));
 			Assert.IsFalse(aValue.Equals(1));
 			Assert.IsFalse(aValue.Equals("a"));
@@ -193,7 +193,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsFalse(aValue.Contains("pa", "x"));
 			Assert.IsFalse(aValue.Contains("px", "a"));
 
-			Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+			Assert.AreSequenceEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
 
 			var newDict = aValue.ToDictionary();
 			Assert.IsTrue(Helpers.SequenceEquals(dirTst.Keys, newDict.Keys));
@@ -228,7 +228,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 
 			Assert.IsTrue(Helpers.SequenceEquals(dirTst.Keys, aValue.ToDictionary().Keys));
 			Assert.IsTrue(Helpers.SequenceEquals(dirTst.Values, aValue.ToDictionary().Values));
-			Assert.AreEqual(jToken, aValue.ToJToken());
+			Assert.AreSequenceEqual(jToken, aValue.ToJToken());
 
 			var strTest = "abcdefg";
 
@@ -548,27 +548,27 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			object checkValue = "123";
 			AValue aValue = checkValue.ToAValue();
 
-			Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+			Assert.AreSequenceEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
 
 			checkValue = true;
 			aValue = checkValue.ToAValue();
 
-			Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+			Assert.AreSequenceEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
 
 			checkValue = 123;
 			aValue = checkValue.ToAValue();
 
-			Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+			Assert.AreSequenceEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
 
 			checkValue = 123.45M;
 			aValue = checkValue.ToAValue();
 
-			Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+			Assert.AreSequenceEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
 
 			checkValue = 123.567D;
 			aValue = checkValue.ToAValue();
 
-			Assert.AreEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
+			Assert.AreSequenceEqual(Enumerable.Empty<AValue>(), aValue.AsEnumerable());
 
 			checkValue = new List<object>() { "a", "b", "c", "d" };
 			aValue = checkValue.ToAValue();

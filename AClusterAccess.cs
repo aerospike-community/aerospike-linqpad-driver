@@ -29,10 +29,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
         public static AClusterAccess Instance { get => _instance; }
 
-        /// <summary>
-        /// A connection string
-        /// </summary>
-        public string ConnectionString { get => this.AerospikeConnection.ConnectionString; }
+		/// <summary>
+		/// AI-oriented context builder for LINQPad Runtime AI.
+		/// Use this from LINQPad scripts to feed Aerospike driver/API/schema context into Util.AI.Ask(...).
+		/// </summary>
+		public AerospikeAIContext AIContext
+			=> AerospikeAIContext.From(this);
+
+		/// <summary>
+		/// A connection string
+		/// </summary>
+		public string ConnectionString { get => this.AerospikeConnection.ConnectionString; }
 
         /// <summary>
         /// Returns the seed nodes used to establish the connection.
