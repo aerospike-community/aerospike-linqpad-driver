@@ -669,8 +669,7 @@ LINQPad API documentation can be found in the [Help Folder](https://aerospike-co
 
 ## Prerequisites
 
--   [LINQPad 8](https://www.linqpad.net/LINQPad8.aspx): [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0)/[.NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)/[.NET 6](https://dotnet.microsoft.com/download/dotnet/6.0)
--   [LINQPad 7](https://www.linqpad.net/LINQPad7.aspx): [.NET 7](https://dotnet.microsoft.com/download/dotnet/7.0)/[.NET 6](https://dotnet.microsoft.com/download/dotnet/6.0)
+-   [LINQPad 9](https://www.linqpad.net/Download.aspx): [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0)
 
 # 
 
