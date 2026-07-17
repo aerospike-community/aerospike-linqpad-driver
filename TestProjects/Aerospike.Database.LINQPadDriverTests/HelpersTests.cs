@@ -2,10 +2,8 @@
 using Aerospike.Database.LINQPadDriver;
 using Aerospike.Database.LINQPadDriver.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
+using Newtonsoft.Json.Linq;
 using System.Text;
 
 namespace Aerospike.Database.LINQPadDriver.Tests

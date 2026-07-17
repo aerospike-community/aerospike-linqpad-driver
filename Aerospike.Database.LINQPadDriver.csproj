@@ -1,112 +1,176 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
-	
-	<PropertyGroup>    
-    <TargetFrameworks>net8.0-windows</TargetFrameworks>
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <NoWarn>1591</NoWarn>
-		<UseWpf>true</UseWpf>
-		<AssemblyName>Aerospike.Database.LINQPadDriver</AssemblyName>
-		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<PackageTags>linqpaddriver aerospike linqpad-samples</PackageTags>
-		<Title>Aerospike LINQPad Driver</Title>
+  <PropertyGroup>
+    <!--
+      The driver is compiled against Windows Desktop/WPF. LINQPad's XPF layer
+      supplies the compatible UI implementation when the driver runs on macOS.
+    -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWpf>true</UseWpf>
+
+    <AssemblyName>Aerospike.Database.LINQPadDriver</AssemblyName>
+    <PackageId>Aerospike.Database.LINQPadDriver</PackageId>
+
+    <!--
+      NU5128 is intentional for this LINQPad driver: the assembly is compiled
+      as net8.0-windows but is also deliberately packaged under lib/net8.0 so
+      LINQPad/XPF can select it on macOS.
+    -->
+    <NoWarn>$(NoWarn);1591;NU5128</NoWarn>
+    <Deterministic>true</Deterministic>
+
+    <!-- Current validated package version. Increment for the next release. -->
+    <Version>7.0.53.14</Version>
+    <FileVersion>7.0.53.14</FileVersion>
+    <VersionSuffix Condition="'$(Configuration)' == 'Debug'">debug</VersionSuffix>
+    <InformationalVersion Condition="'$(Configuration)' == 'Debug'">$(Version)-debug</InformationalVersion>
+    <InformationalVersion Condition="'$(Configuration)' != 'Debug'">$(Version)</InformationalVersion>
+
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <!--
+      dotnet pack writes the .nupkg here. Do not use $(OutputPath) to locate
+      it: OutputPath is framework-specific (bin\Release\net8.0-windows\).
+    -->
+    <PackageOutputPath>$(MSBuildProjectDirectory)\bin\$(Configuration)</PackageOutputPath>
+    <PackageTags>linqpaddriver aerospike linqpad-samples</PackageTags>
+    <Title>Aerospike LINQPad Driver</Title>
     <Authors>Richard Andersen</Authors>
     <Company>Aerospike</Company>
     <Product>Aerospike LINQPad Driver</Product>
     <Description>Aerospike for LINQPad 9+ is a data context dynamic driver for querying and updating an Aerospike database.</Description>
     <RepositoryUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</PackageProjectUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <Icon>Connection.png</Icon>
+    <PackageIcon>AerospikeLINQPad.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2026</Copyright>
-    <Version>7.0.53.5</Version>
-    <VersionSuffix Condition="'$(Configuration)' == 'Debug'">debug</VersionSuffix>
-    <InformationalVersion Condition="'$(Configuration)' == 'Debug'">$(Version)-debug</InformationalVersion>
-    <InformationalVersion Condition="'$(Configuration)' != 'Debug'">$(Version)</InformationalVersion>
-    <FileVersion>7.0.53.5</FileVersion>
-    <Deterministic>true</Deterministic>
-	</PropertyGroup>
+
+    <!--
+      Build a self-contained LINQPad driver package.
+
+      Class libraries do not normally copy all transitive runtime package
+      assemblies to the output directory. This property makes the output
+      directory suitable for plugin deployment and allows Pack to include the
+      same runtime files that made package 7.0.53.13 work on macOS.
+    -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+    <!-- Class libraries do not generate a .deps.json by default. -->
+    <GenerateDependencyFile>true</GenerateDependencyFile>
+
+    <!--
+      Do not let NuGet place the project output under
+      lib/net8.0-windows7.0 and do not publish a dependency graph. The custom
+      pack target below places the complete driver runtime under lib/net8.0.
+    -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+
+    <SelfContainedNuGetFramework>net8.0</SelfContainedNuGetFramework>
+    <TargetsForTfmSpecificContentInPackage>
+      $(TargetsForTfmSpecificContentInPackage);AddSelfContainedDriverFilesToPackage
+    </TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
 
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
-  </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'netcoreapp3.1'">
-		<DefineConstants>NETCORE</DefineConstants>
-	</PropertyGroup>
-
-  <PropertyGroup>
     <IncludeSymbols>true</IncludeSymbols>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>    
-    <DebugType>embedded</DebugType>    
-    <PackageProjectUrl>https://github.com/aerospike-community/aerospike-linqpad-driver</PackageProjectUrl>    
-    <SignAssembly>True</SignAssembly>    
-    <PackageIcon>AerospikeLINQPad.png</PackageIcon>    
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+
+    <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>$(SolutionDir)..\..\aerospike-linqpad-driver.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
-	<ItemGroup>
-	  <Compile Remove="NuGetUpdPkgStruct\**" />
-	  <Compile Remove="TestProjects\**" />
-	  <EmbeddedResource Remove="NuGetUpdPkgStruct\**" />
-	  <EmbeddedResource Remove="TestProjects\**" />
-	  <None Remove="NuGetUpdPkgStruct\**" />
-	  <None Remove="TestProjects\**" />
-	  <Page Remove="NuGetUpdPkgStruct\**" />
-	  <Page Remove="TestProjects\**" />
-	</ItemGroup>
-  
-	<ItemGroup>
-	  <None Remove="AerospikeLINQPad.png" />
-	  <None Remove="linqpad-samples\**" />    
-	</ItemGroup>
-
-  <ItemGroup>    
-      <None Update="AValue.tt">
-        <Generator>TextTemplatingFileGenerator</Generator>
-        <LastGenOutput>AValue.cs</LastGenOutput>
-    </None>    
+  <ItemGroup>
+    <Compile Remove="NuGetUpdPkgStruct\**" />
+    <Compile Remove="TestProjects\**" />
+    <EmbeddedResource Remove="NuGetUpdPkgStruct\**" />
+    <EmbeddedResource Remove="TestProjects\**" />
+    <None Remove="NuGetUpdPkgStruct\**" />
+    <None Remove="TestProjects\**" />
+    <Page Remove="NuGetUpdPkgStruct\**" />
+    <Page Remove="TestProjects\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Connection.png">
-    </Resource>
+    <None Remove="AerospikeLINQPad.png" />
+    <None Remove="linqpad-samples\**" />
   </ItemGroup>
-  
-	<ItemGroup>
-	  <Content Include="AerospikeLINQPad.png">
-	    <PackageCopyToOutput>true</PackageCopyToOutput>
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	    <Pack>True</Pack>
-	    <PackagePath>\</PackagePath>
-	  </Content>
-	  <Content Include="Connection.png">
-      <PackageCopyToOutput>true</PackageCopyToOutput>
+
+  <ItemGroup>
+    <None Update="AValue.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AValue.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Connection.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Package icon at the package root and beside the installed driver. -->
+    <Content Include="AerospikeLINQPad.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	    <Pack>true</Pack>      
-	  </Content>
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+    </Content>
+
+    <!--
+      These files remain normal package content, and the custom Pack target
+      also places their output copies beside the driver in lib/net8.0.
+      Explicit PackagePath values avoid net8.0-windows contentFiles paths.
+    -->
+    <Content Include="Connection.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <PackagePath>content\;contentFiles\any\net8.0\</PackagePath>
+    </Content>
+
     <Content Include="FailedConnection.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Pack>true</Pack>
       <PackageCopyToOutput>true</PackageCopyToOutput>
-      <pack>true</pack>
+      <PackagePath>content\;contentFiles\any\net8.0\</PackagePath>
     </Content>
-	  <Content Include="linqpad-samples\DemoDBJson\aerospike.json" />
-	  <Content Include="linqpad-samples\Demo\*.linq" />
-    <Content Include="linqpad-samples\AI\*.linq" />
-    <Content Include="linqpad-samples\AI\*.md" />
-    
+
+    <Content Include="linqpad-samples\DemoDBJson\aerospike.json">
+      <Pack>true</Pack>
+      <PackagePath>content\linqpad-samples\DemoDBJson\;contentFiles\any\net8.0\linqpad-samples\DemoDBJson\</PackagePath>
+    </Content>
+
+    <Content Include="linqpad-samples\Demo\*.linq">
+      <Pack>true</Pack>
+      <PackagePath>content\linqpad-samples\Demo\;contentFiles\any\net8.0\linqpad-samples\Demo\</PackagePath>
+    </Content>
+
+    <Content Include="linqpad-samples\AI\*.linq">
+      <Pack>true</Pack>
+      <PackagePath>content\linqpad-samples\AI\;contentFiles\any\net8.0\linqpad-samples\AI\</PackagePath>
+    </Content>
+
+    <Content Include="linqpad-samples\AI\*.md">
+      <Pack>true</Pack>
+      <PackagePath>content\linqpad-samples\AI\;contentFiles\any\net8.0\linqpad-samples\AI\</PackagePath>
+    </Content>
+
     <Content Include="README.md">
       <Pack>true</Pack>
       <PackagePath />
     </Content>
-    
+
     <None Update="AIContext\*.md">
       <Pack>true</Pack>
       <PackagePath>contentFiles\any\any\AIContext\</PackagePath>
       <Visible>false</Visible>
     </None>
-    
+
     <None Include=".github\copilot-instructions.md" />
     <None Include="LICENSE" Pack="true" PackagePath="" />
   </ItemGroup>
@@ -115,65 +179,147 @@
     <EmbeddedResource Include="AIContext\*.md" />
   </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Aerospike.Client" Version="8.4.1" />
-    <PackageReference Include="LINQPad.Reference" Version="1.3.1" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="GeoJSON.Net" Version="1.4.1" />
-    <PackageReference Include="NeoLua" Version="1.3.19" />
-	</ItemGroup>
+  <ItemGroup>
+    <!--
+      These packages are build-time inputs only from NuGet's perspective.
+      Their runtime assemblies are copied into this driver's own package by
+      AddSelfContainedDriverFilesToPackage, so they must not flow as package
+      dependencies to LINQPad.
+    -->
+    <PackageReference Include="Aerospike.Client" Version="8.4.2">
+      <IncludeAssets>compile;runtime</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
 
-	<ItemGroup>
-		<None Update="ConnectionDialog.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</None>
-	</ItemGroup>
+    <!--
+      Pin Binder directly and exclude its source-generator/build assets.
+      This prevents the System.Collections.Immutable 10.0 analyzer conflict
+      that occurred when LINQPad resolved the transitive NuGet graph.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.10">
+      <IncludeAssets>runtime; compile</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
 
-	<ItemGroup>
-	  <Folder Include="Driver\" />
-	</ItemGroup>
+    <!-- LINQPad supplies this assembly in the host process. -->
+    <PackageReference Include="LINQPad.Reference" Version="1.3.1">
+      <IncludeAssets>compile</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
 
-	<ItemGroup>
-	  <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-	</ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4">
+      <IncludeAssets>compile;runtime</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
 
-	<ItemGroup>
-	  <Compile Update="AValue.cs">
-	    <DesignTime>True</DesignTime>
-	    <AutoGen>True</AutoGen>
-	    <DependentUpon>AValue.tt</DependentUpon>
-	  </Compile>
-	</ItemGroup>
- 
-	<Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(Configuration)' == 'Debug'">
-    <Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)&quot;" />
+    <PackageReference Include="GeoJSON.Net" Version="1.4.1">
+      <IncludeAssets>compile;runtime</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+
+    <PackageReference Include="NeoLua" Version="1.3.19">
+      <IncludeAssets>compile;runtime</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ConnectionDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Driver\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="AValue.cs">
+      <DesignTime>true</DesignTime>
+      <AutoGen>true</AutoGen>
+      <DependentUpon>AValue.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <!--
+    NuGet packaging for both macOS and Windows.
+
+    Do not restore the old NuGetUpdate target. That tool renamed framework
+    metadata and failed on four-part package versions. LINQPad requires only
+    the driver assets themselves to be under lib/net8.0; the compiled driver
+    and WPF framework metadata remain Windows-qualified.
+  -->
+  <Target Name="AddSelfContainedDriverFilesToPackage">
+    <ItemGroup>
+      <!-- Main driver plus all copied runtime dependencies. -->
+      <_DriverRuntimeDll Include="$(TargetDir)*.dll" Exclude="$(TargetDir)LINQPad*.dll;$(TargetDir)System.Collections.Immutable.dll" />
+
+      <!-- Preserve culture folders such as de\Neo.Lua.resources.dll. -->
+      <_DriverSatelliteDll Include="$(TargetDir)**\*.resources.dll" />
+
+      <!-- Runtime manifest, XML documentation, and connection-dialog images. -->
+      <_DriverSupportFile Include="$(TargetDir)$(AssemblyName).deps.json;&#xA;                 $(TargetDir)$(AssemblyName).xml;&#xA;                 $(TargetDir)*.png" />
+
+      <TfmSpecificPackageFile Include="@(_DriverRuntimeDll)">
+        <PackagePath>lib\$(SelfContainedNuGetFramework)\</PackagePath>
+      </TfmSpecificPackageFile>
+
+      <TfmSpecificPackageFile Include="@(_DriverSatelliteDll)">
+        <PackagePath>lib\$(SelfContainedNuGetFramework)\%(RecursiveDir)</PackagePath>
+      </TfmSpecificPackageFile>
+
+      <TfmSpecificPackageFile Include="@(_DriverSupportFile)">
+        <PackagePath>lib\$(SelfContainedNuGetFramework)\</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+
+    <Error Condition="!Exists('$(TargetDir)$(AssemblyName).deps.json')" Text="$(AssemblyName).deps.json was not generated. Verify GenerateDependencyFile=true." />
+
+    <Error Condition="Exists('$(TargetDir)System.Collections.Immutable.dll')" Text="System.Collections.Immutable.dll appeared in the driver output. Review the dependency graph before packaging because this previously conflicted with LINQPad on macOS." />
+  </Target>
+
+  <Target Name="PostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(Configuration)' == 'Debug'">
+
+    <Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)*.*&quot; &quot;%25LocalAppData%25\LINQPad\Drivers\DataContext\NetCore\$(TargetName)&quot;" />
     <Exec Command="powershell -nologo -noprofile -command &quot;New-Item -Path &quot;$(TargetDir)LPX6&quot; -ItemType Directory -Force &gt; $null &quot;" ContinueOnError="true" />
-    <Exec Command="powershell -nologo -noprofile -command &quot;compress-archive -force -path &quot;$(TargetDir)*.*&quot; -destinationpath &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
+    <Exec Command="powershell -nologo -noprofile -command &quot;Compress-Archive -Force -Path &quot;$(TargetDir)*.*&quot; -DestinationPath &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
     <Exec Command="xcopy /Y/R /-I &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.zip&quot; &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.LPX6&quot;" />
-    <Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.zip&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)\\LPX6&quot;" />
-    <Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.zip&quot; &quot;%25LocalAppData%25\\LINQPad\\Drivers\\DataContext\\NetCore\\$(TargetName)\\LPX6\\Aerospike.Database.LINQPadDriver.LPX6&quot;" />
-
+    <Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.zip&quot; &quot;%25LocalAppData%25\LINQPad\Drivers\DataContext\NetCore\$(TargetName)\LPX6&quot;" />
+    <Exec Command="xcopy /i/y/s/c &quot;$(TargetDir)LPX6\Aerospike.Database.LINQPadDriver.zip&quot; &quot;%25LocalAppData%25\LINQPad\Drivers\DataContext\NetCore\$(TargetName)\LPX6\Aerospike.Database.LINQPadDriver.LPX6&quot;" />
   </Target>
 
   <Target Name="ReleasePostBuild1" AfterTargets="PostBuildEvent" Condition="'$(TargetFramework)' == 'net8.0-windows' and '$(Configuration)' == 'Release'">
-    <Exec Command="powershell -nologo -noprofile -command &quot;compress-archive -force -path &quot;$(TargetDir)*.*&quot; -destinationpath &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
+
+    <Exec Command="powershell -nologo -noprofile -command &quot;Compress-Archive -Force -Path &quot;$(TargetDir)*.*&quot; -DestinationPath &quot;$(SolutionDir)Driver\Aerospike.Database.LINQPadDriver.zip&quot;&quot;" />
     <Copy SourceFiles="Driver\Aerospike.Database.LINQPadDriver.zip" DestinationFiles="Publish\Aerospike.Database.LINQPadDriver.$(FileVersion).LPX6" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
     <Copy SourceFiles="Driver\Aerospike.Database.LINQPadDriver.zip" DestinationFiles="Driver\Aerospike.Database.LINQPadDriver.LPX6" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
     <Delete Files="Driver\Aerospike.Database.LINQPadDriver.zip" ContinueOnError="true" />
   </Target>
 
-  <Target Name="NuGetUpdate" AfterTargets="Pack">   
-    <Exec Command="Tools\NuGetUpdPkgStruct.exe &quot;$(OutputPath)$(PackageId).$(PackageVersion).nupkg&quot;" />
-    <Exec Command="Tools\NuGetUpdPkgStruct.exe &quot;$(OutputPath)$(PackageId).$(PackageVersion).symbols.nupkg&quot;" />
-  </Target>
-  
-	<Target Name="NuGetPublish" AfterTargets="Pack" Condition="'$(Configuration)' == 'Release'">
-    <Copy SourceFiles="$(OutputPath)$(PackageId).$(PackageVersion).nupkg" DestinationFiles="Publish\$(PackageId).$(PackageVersion).nupkg" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
+  <Target Name="NuGetPublish" AfterTargets="Pack" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <_PackedNuGetFile>$(PackageOutputPath)\$(PackageId).$(PackageVersion).nupkg</_PackedNuGetFile>
+      <_PublishDirectory>$(MSBuildProjectDirectory)\Publish</_PublishDirectory>
+      <_DriverDirectory>$(MSBuildProjectDirectory)\Driver</_DriverDirectory>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(_PackedNuGetFile)')" Text="The packed NuGet file was not found at '$(_PackedNuGetFile)'." />
+
+    <MakeDir Directories="$(_PublishDirectory);$(_DriverDirectory)" />
+
+    <Copy SourceFiles="$(_PackedNuGetFile)" DestinationFiles="$(_PublishDirectory)\$(PackageId).$(PackageVersion).nupkg" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
+
     <ItemGroup>
-      <TargetFilesToDelete Include="Driver\**\*.nuget" />
+      <TargetFilesToDelete Include="$(_DriverDirectory)\**\*.nuget" />
     </ItemGroup>
-    <Delete Files="@{TargetFilesToDelete}" TreatErrorsAsWarnings="true" ContinueOnError="true" />
-    <Copy SourceFiles="$(OutputPath)$(PackageId).$(PackageVersion).nupkg" DestinationFiles="Driver\$(PackageId).$(PackageVersion).nupkg" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
+
+    <Delete Files="@(TargetFilesToDelete)" TreatErrorsAsWarnings="true" ContinueOnError="true" />
+
+    <Copy SourceFiles="$(_PackedNuGetFile)" DestinationFiles="$(_DriverDirectory)\$(PackageId).$(PackageVersion).nupkg" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
   </Target>
 
 </Project>
