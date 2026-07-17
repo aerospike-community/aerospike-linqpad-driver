@@ -160,6 +160,16 @@
       <PackagePath>content\linqpad-samples\AI\;contentFiles\any\net8.0\linqpad-samples\AI\</PackagePath>
     </Content>
 
+    <Content Include="linqpad-samples\README.md">
+      <Pack>true</Pack>
+      <PackagePath>content\linqpad-samples\;contentFiles\any\net8.0\linqpad-samples\</PackagePath>
+    </Content>
+
+    <Content Include="linqpad-samples\Demo\README.md">
+      <Pack>true</Pack>
+      <PackagePath>content\linqpad-samples\Demo\;contentFiles\any\net8.0\linqpad-samples\Demo\</PackagePath>
+    </Content>
+
     <Content Include="README.md">
       <Pack>true</Pack>
       <PackagePath />

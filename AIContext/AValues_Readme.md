@@ -28,7 +28,7 @@ instead of writing code that manually extracts the bin value, checks for null, c
 -   You want safer helper methods such as `CanConvert<T>()`, `Convert<T>()`, `Apply<TValue,TResult>()`, and `TryApply<TValue,TResult>()`.
 -   You want collection/map helpers that work across scalars, lists, dictionaries, JSON objects, and Aerospike CDTs.
 
-The Native LINQPad samples under `linqpad-samples/Native` are a good source of examples, especially `Basic Data Types.linq` and `Basic Data Types 2.linq`.
+The Native LINQPad samples under `linqpad-samples/Demo` are a good source of examples, especially `Basic Data Types.linq` and `Basic Data Types 2.linq`.
 
 ***
 
@@ -59,28 +59,28 @@ The LINQPad driver can expose those values as convenient .NET-facing values. In 
 -   JSON objects
 -   GeoJSON objects
 
-Most of the time users do not need to cast manually because the driver performs casting and transformation between Aerospike DB types and .NET types, seamlessly.
+In most queries, you do not need to cast manually. The driver handles compatible conversions between Aerospike values and .NET types.
 
 ***
 
 ## AValue Versus Raw Bin Access
 
-AValues gives the driver a consistent way to represent Aerospike bins in LINQPad, even when bins are different types across records, missing within a record, etc.
+`AValue` gives the driver a consistent representation for Aerospike bins, including bins that are missing or have different types across records.
 
-Let’s demonstrate the usefulness of AValues by examples. We have a “customer” set (in namespace “test”) and each customer may or may not have a “Company” bin (value is null). I want to obtain all customers who are associated with a company from the “State” of “CA”. Note, that the “State” bin can also be null (missing) and let’s assume this bin can contain different datatypes (e.g., strings and numbers).
+Consider a `Customer` set in the `test` namespace. Some records do not have a `Company` bin, and the `State` bin may also be missing or contain different data types. The goal is to find customers in California that have a company value.
 
 Below is a sample of the customer set:
 
-![](./docs/CompanyStateSampleRS.png)
+![](../docs/CompanyStateSampleRS.png)
 
-There are multiple ways to obtain this result set. We will focus on four using the LINQPad Aerospike driver.
+The following examples compare four ways to express the same request:
 
-1.  Using AValues
-2.  Using native .Net datatypes (disabling AValues)
+1.  Using Auto Values
+2.  Using native .NET data types with Auto Values disabled
 3.  Using Aerospike Expression Filters
-4.  Using native Aerospike API (not using Aerospike LINQPad driver)
+4.  Using the native Aerospike C# client without driver helpers
 
-### Example Using AValues
+### Example using Auto Values
 
 ```csharp
 from customer in test.Customer.AsEnumerable()
@@ -90,15 +90,15 @@ where !customer.Company.IsEmpty && customer.State == "CA"
 
 The result set:
 
-![](./docs/CompanyStateCARS.png)
+![](../docs/CompanyStateCARS.png)
 
-Even though bins “State” and “Company” maybe missing, AValues handled the checks.
+The query remains safe when `State` or `Company` is missing because `AValue` handles the missing-value checks.
 
-Note: If “State” contained other datatype, instead of string, AValues would have taken care of the datatype checking and casting so that the equals operation would have worked correctly (can’t compare an int and a string, exception occurs).
+If `State` contains another type, `AValue` applies its comparison rules instead of requiring an unsafe direct cast.
 
-### Example Using native .Net datatypes
+### Example using native .NET data types
 
-In this example, AValues are disabled and assume “state” can contain multiple datatypes.
+Here Auto Values are disabled, so the query must verify that `State` is a string before comparing it.
 
 ```csharp
 from customer in test.Customer.AsEnumerable()
@@ -109,13 +109,13 @@ select customer
 
 The result set:
 
-![](./docs/CompanyStateCARS.png)
+![](../docs/CompanyStateCARS.png)
 
 In this example we had to write more code and checks to ensure proper execution.
 
-### Example Using Aerospike Expression Filters
+### Example using an Aerospike expression filter
 
-In this example, we will use Aerospike Expression Filters with the Query method.
+This version moves the filtering to Aerospike by passing an expression to `Query(...)`.
 
 ```csharp
 from customer in test.Customer
@@ -129,15 +129,15 @@ select customer
 
 The result set:
 
-![](./docs/CompanyStateCARS.png)
+![](../docs/CompanyStateCARS.png)
 
 In this example we show how to write Aerospike Filter Expressions which results in server-side query execution.
 
 Note: Working with complex filtering can result in difficulty writing and understanding Filter Expressions.
 
-### Example Using native Aerospike API
+### Example using the native Aerospike C# client
 
-In this example, we will use the native Aerospike API without using the Aerospike LINQPad driver.
+This version uses only the native Aerospike C# client APIs.
 
 ```csharp
 void Main()
@@ -261,9 +261,9 @@ sealed class ResultRow
 
 The result set:
 
-![](./docs/CompanyStateCADigestRS.png)
+![](../docs/CompanyStateCADigestRS.png)
 
-This example really shows the complexity of using the native Aerospike C\# API driver. It took 137 lines of code versus at maximum 7 lines with the Aerospike LINQPad driver.
+This example illustrates how much connection, policy, record, and conversion code the driver can remove from an interactive LINQPad query. Native client code remains appropriate when that lower-level control is required.
 
 ### Obtaining the Associated Aerospike Bin/Value Instance
 
@@ -277,11 +277,11 @@ The Aerospike Client API `Bin` instance can be obtained by means of the `ToBin()
 
 `APrimaryKey` is the primary-key companion to `AValue`. It gives the driver a consistent way to represent Aerospike keys in LINQPad, even when primary keys are different types across records, user key values ([send key policy](https://aerospike.com/docs/database/learn/policies#send-key) is true), working with [Aerospike digests](https://aerospike.com/docs/database/learn/architecture/data-storage/data-model/#keys-and-digests), etc.
 
-All the features of AValues apply to APrimaryKey. APrimaryKey is enhanced to support digest to user key value compare support, conversion from a user key value to digest, creation/conversion of keys between namespaces and/or sets, etc.
+`APrimaryKey` provides the same inspection and conversion model for record keys. It also supports user-key and digest comparisons, digest creation from a user key, and key conversion between namespaces or sets.
 
 Below is an example where a record was inserted with the “send key” policy was set to false.
 
-![](./docs/DigestSampleRS.png)
+![](../docs/DigestSampleRS.png)
 
 I want to be able to retrieve this record by means of the user key value and the digest (you can always use the digest to obtain any record when using the driver).
 
@@ -291,7 +291,7 @@ test.DataTypes.Where(r => r.PK == "NoPKValueSaved") //using the user key value
 
 Below is the result set:
 
-![](./docs/DigestRSOnly.png)
+![](../docs/DigestRSOnly.png)
 
 ```csharp
 test.DataTypes.Where(r => r.PK == "0xc363ecde6a39ae0611c69ee2c7bd8a3b6930337b")
@@ -299,7 +299,7 @@ test.DataTypes.Where(r => r.PK == "0xc363ecde6a39ae0611c69ee2c7bd8a3b6930337b")
 
 Below is the result set:
 
-![](./docs/DigestRSOnly.png)
+![](../docs/DigestRSOnly.png)
 
 Note that the digest can be represented as a hex string, a byte array, APrimaryKey instance, etc.
 
@@ -365,7 +365,7 @@ When comparing values of different non-numeric types, the driver may fall back t
 
 ### Null and Missing Values
 
-AValues are designed to make null and missing-bin scenarios easier to work with. However, for mixed or sparse sets, type-aware guards are still recommended when the next operation depends on a specific type.
+Auto Values make null and missing-bin scenarios easier to handle. For mixed or sparse sets, still use type-aware guards whenever the next operation requires a specific type.
 
 For example:
 

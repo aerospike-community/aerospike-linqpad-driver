@@ -7,7 +7,7 @@
 Aerospike LINQPad AI Sample Scripts
 ===================================
 
-These sample '.linq' scripts demonstrate how to use the Aerospike LINQPad driver's
+These sample '.linq' scripts demonstrate how to use the Aerospike LINQPad 9 driver's
 AIContext helpers with LINQPad AI.
 
 The samples are designed to show how natural-language requests can produce useful
@@ -24,7 +24,7 @@ Aerospike LINQPad code, including:
 Overview
 --------
 
-The Aerospike LINQPad AI workflow is intended to help a user move from a natural
+The Aerospike LINQPad 9 AI workflow is intended to help a user move from a natural
 language request to runnable LINQPad C# Statements code.
 
 Typical workflow:
@@ -40,7 +40,7 @@ Key capabilities demonstrated by these samples:
 
 - Query generation from natural-language requests.
 - Query explanation and code review.
-- LINQPad-driver mode using generated sets and generated properties.
+- LINQPad 9 driver mode using generated sets and generated properties.
 - Native Aerospike C# client API mode.
 - AValue-safe filtering and projection.
 - Server-side expression filtering.
