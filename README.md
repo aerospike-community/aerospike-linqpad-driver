@@ -161,3 +161,21 @@ The project builds as `net8.0-windows` with WPF and is packaged under `lib/net8.
 - [LINQPad documentation](https://www.linqpad.net/)
 - [Repository](https://github.com/aerospike-community/aerospike-linqpad-driver)
 - [License](LICENSE)
+
+***
+
+## Driver, .NET, and operating-system compatibility
+
+The table below summarizes the driver package's .NET targets and operating-system compatibility. It distinguishes between **LINQPad macOS support** and whether a specific **Aerospike driver package** is packaged for macOS.
+
+| Aerospike LINQPad Driver version | Packaged .NET target(s)         | Recommended LINQPad version                     | Windows       | macOS                       |
+|----------------------------------|---------------------------------|-------------------------------------------------|---------------|-----------------------------|
+| `7.0.53.14`                      | .NET 8 (`lib/net8.0`)           | LINQPad 9+                                      | ✅            | ✅ Apple silicon            |
+| `6.1.0`                          | .NET 6, .NET 7, and .NET 8      | LINQPad 8                                       | ✅            | ✅ Apple silicon            |
+| `6.0.x`                          | .NET 6, .NET 7, and .NET 8      | LINQPad 7 or 8                                  | ✅            | ❌ Windows-targeted package |
+| Earlier `5.x` releases           | Package-specific legacy targets | Upgrade to a current driver and LINQPad release | ✅ Legacy use | ❌ Not supported            |
+
+### Compatibility notes
+
+-   LINQPad first introduced an official macOS edition with **LINQPad 8**. LINQPad 9 continues macOS support.
+-   LINQPad for macOS currently requires an **Apple-silicon Mac**. Intel Macs are not supported.
