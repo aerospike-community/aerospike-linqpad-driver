@@ -1,4 +1,4 @@
-# Aerospike Database for LINQPad 8+ (Windows Only) and LINQPad 8+ (Windows and MacOS)
+# Aerospike Database for LINQPad 9+ (Windows and MacOS)
 
 ## Description
 
