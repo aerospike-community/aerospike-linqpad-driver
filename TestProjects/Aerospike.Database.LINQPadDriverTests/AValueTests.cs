@@ -25,7 +25,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			var checkValueNeg = new AValue(expectedValueNeg, "binIntX-1", "fldIntX-1");
 
 			Assert.AreEqual(expectedValue, checkValue);
+#pragma warning disable MSTEST0032 // Assertion condition is always true
 			Assert.AreEqual(checkValue, checkValue);
+#pragma warning restore MSTEST0032 // Assertion condition is always true
 			Assert.AreEqual(checkValue, checkValue1);
 
 			//AValue and Int
@@ -308,7 +310,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			aValue = tjValue.ToAValue();
 
 			Assert.AreEqual(tnValue, aValue);
+#pragma warning disable MSTEST0065 // Avoid Assert.AreEqual on collection types
 			Assert.AreEqual(tjValue, aValue);
+#pragma warning restore MSTEST0065 // Avoid Assert.AreEqual on collection types
 			Assert.AreEqual("123456", aValue.ToString());
 			Assert.AreEqual("123,456", aValue.ToString("###,###"));
 
@@ -2088,7 +2092,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			Assert.IsTrue(aPK.Equals("0x" + Helpers.ByteArrayToString(pkDigest)));
 			Assert.IsFalse(aPK.Equals(Helpers.ByteArrayToString(pkDigest)));
 			Assert.IsFalse(aPK.Equals("0x" + Helpers.ByteArrayToString(pkDigest).Substring(0, 9)));
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 			Assert.IsFalse(aPK.Equals((string) null));
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
 			Assert.IsFalse(aPK.Equals(""));
 
 			Assert.IsTrue(aPK == pk);
@@ -2120,7 +2126,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 			aValue = pkDigest.ToAValue();
 			asValue = Value.Get(pkDigest);
 
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 			Assert.IsFalse(aPK.Equals((object) null));
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
 			Assert.IsFalse(aPK.Equals(pk));
 			Assert.IsFalse(aPK.Equals(pkDigest));
 			Assert.IsFalse(aPK.Equals(aValue));

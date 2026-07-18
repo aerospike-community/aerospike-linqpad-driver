@@ -20,8 +20,8 @@
     <Deterministic>true</Deterministic>
 
     <!-- Current validated package version. Increment for the next release. -->
-    <Version>7.0.53.14</Version>
-    <FileVersion>7.0.53.14</FileVersion>
+    <Version>7.0.53.17</Version>
+    <FileVersion>7.0.53.17</FileVersion>
     <VersionSuffix Condition="'$(Configuration)' == 'Debug'">debug</VersionSuffix>
     <InformationalVersion Condition="'$(Configuration)' == 'Debug'">$(Version)-debug</InformationalVersion>
     <InformationalVersion Condition="'$(Configuration)' != 'Debug'">$(Version)</InformationalVersion>

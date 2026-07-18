@@ -262,9 +262,9 @@
 		/// If the generated context exceeds this limit, it is truncated and a truncation
 		/// note is appended.
 		///
-		/// Default: 100,000.
+		/// Default: 105,000.
 		/// </summary>
-		public int MaxChars { get; set; } = 100_000;
+		public int MaxChars { get; set; } = 105_000;
 
 		/// <summary>
 		/// Controls whether LINQPad AI submission helpers should display a visible warning

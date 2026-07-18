@@ -74,13 +74,16 @@ Detects generated C# code and creates a new '.linq' file with the same connectio
 8. '08-Dump-AI-Context-Markdown.linq'
 Renders the current 'AIContext' as Markdown in LINQPad.
 
+9. '09-CDT-Nested-Query.linq'
+Demonstrates how to generate a query where the data is nested within multiple maps (documents).
+
 Recommended Additional Samples
 ------------------------------
 
 The following sample scripts are recommended additions based on the LINQPad AI
 overview deck and demo workflow.
 
-9. '09-Generate-Customer-Invoice-Artist-Purchase-Query.linq'
+10. '10-Generate-Customer-Invoice-Artist-Purchase-Query.linq'
 
 Purpose:
 Generate a LINQ query-syntax script that returns customers, their invoices, and
@@ -106,7 +109,7 @@ when those sets are available in the current connection metadata.
 - Generate a bounded result set with 'Take(...)'.
 - Use 'Dump()' for output.
 
-10. '10-Explain-AValue-TryApply-Customer-Query.linq'
+11. '11-Explain-AValue-TryApply-Customer-Query.linq'
 
 Purpose:
 Ask AI to explain an existing LINQPad Aerospike query and identify whether the
@@ -148,7 +151,7 @@ Expected AI behavior:
     string-indexer access when available.
     - Call out that server-side filtering may be more efficient for large sets.
 
-11. '11-Translate-TryApply-Query-To-Native-Server-Expression.linq'
+12. '12-Translate-TryApply-Query-To-Native-Server-Expression.linq'
 
 Purpose:
   Ask AI to translate a LINQPad-driver client-side AValue/TryApply query into
@@ -179,43 +182,7 @@ AIContext.SubmitRequestAndCreateQuery(
     - Assign the built expression with 'Exp.Build(...)' to the native policy.
     - Do not use LINQPad-driver APIs such as 'test.Customer', 'SetRecords',
     'AValue', 'PK', or generated record properties in the native implementation.
-
-    12. '12-Native-Server-Expression-CustInvDoc-TrackId-Enrichment.linq'
-
-    Purpose:
-    Ask AI to generate a native Aerospike C# client API query using server-side
-    expressions for nested invoice-line TrackId matching, followed by enrichment
-    with track, album, and artist details.
-
-    Recommended request:
-
-    AIContext.SubmitRequestAndCreateQuery(
-    """
-    I want to obtain all customer records from the CustInvDoc set for TrackIds
-    2955, 1447, 179, or 3169.
-
-    "TrackId" is within the "Lines" map, which is within the "Invoices" map.
-
-    I only need the customer record without invoices, plus the matching TrackIds
-    with the associated artist name and album title.
-
-    Please generate this using the Aerospike native API with server-side expressions.
-    """
-    );
-
-    Expected AI behavior:
-    - Use native Aerospike C# client API mode.
-    - Use raw namespace, set, and bin names.
-    - Use 'CDTExp.SelectByPath(...)' with 'CTX' selectors to traverse:
-    Invoices[*].Lines[*].TrackId.
-    - Use 'ListExp.GetByValue(ListReturnType.EXISTS, ...)' to test whether the
-    extracted TrackId list contains one of the requested target IDs.
-    - Use 'Exp.Build(...)' on the native policy.
-    - Return customer fields without the full Invoices payload.
-    - Perform enrichment from Track, Album, and Artist using native API access only.
-    - Do not use generated LINQPad-driver sets, AValue, APrimaryKey, PK, GetPK(), or
-    generated record properties in native API code.
-    - Use 'Dump()' to display the final shaped result.
+    
 
     Notes
     -----

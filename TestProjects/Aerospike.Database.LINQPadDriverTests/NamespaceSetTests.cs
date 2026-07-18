@@ -137,7 +137,9 @@ namespace Aerospike.Database.LINQPadDriver.Extensions.Tests
 
 			var cloneNSSet = nsSet.Clone();
 
+#pragma warning disable MSTEST0065 // Avoid Assert.AreEqual on collection types
 			Assert.AreEqual(nsSet, cloneNSSet);
+#pragma warning restore MSTEST0065 // Avoid Assert.AreEqual on collection types
 			Assert.IsInstanceOfType<SetRecords>(cloneNSSet);
 			Assert.AreEqual(nsSet.SetName, cloneNSSet.SetName);
 			Assert.AreEqual(nsSet.BinNames.Length, cloneNSSet.BinNames.Length);

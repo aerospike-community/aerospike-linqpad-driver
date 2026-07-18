@@ -54,6 +54,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// Build warnings collected during context assembly.
 		/// </summary>
 		public IReadOnlyList<string> Warnings { get; set; } = Array.Empty<string>();
+
+		/// <summary>
+		/// Per-section character counts before any MaxChars truncation.
+		///
+		/// Entries are sorted by descending character count to help diagnose
+		/// which context sections contribute most to prompt size.
+		/// </summary>
+		public IReadOnlyList<string> SectionLengthSummary { get; set; } = Array.Empty<string>();
 	}
 
 	/// <summary>
@@ -187,6 +195,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 			var includedSections = new List<string>();
 			var warnings = new List<string>();
+			var sectionLengths = new Dictionary<string, int>(StringComparer.Ordinal);
 			var profile = options.ContextProfile;
 
 			var includeDriverGuide = options.IncludeDriverGuide;
@@ -220,11 +229,17 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 			var sb = new StringBuilder(Math.Min(options.MaxChars + 2048, 128_000));
 
-			AppendHeader(sb);
-			includedSections.Add("Header");
+			void AppendMeasuredSection(string sectionName, Action appendAction)
+			{
+				var startLength = sb.Length;
+				appendAction();
+				var appendedLength = Math.Max(0, sb.Length - startLength);
+				includedSections.Add(sectionName);
+				sectionLengths[sectionName] = appendedLength;
+			}
 
-			AppendGenerationModeSummary(sb);
-			includedSections.Add("GenerationModeSummary");
+			AppendMeasuredSection("Header", () => AppendHeader(sb));
+			AppendMeasuredSection("GenerationModeSummary", () => AppendGenerationModeSummary(sb));
 
 			var namespaces = Array.Empty<LPNamespace>();
 			if(includeNamespaces)
@@ -236,14 +251,12 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			{
 				if(includeClusterSummary)
 				{
-					AppendClusterSummary(sb, options);
-					includedSections.Add("ClusterSummary");
+					AppendMeasuredSection("ClusterSummary", () => AppendClusterSummary(sb, options));
 				}
 
 				if(includeNamespaces)
 				{
-					AppendNamespaces(sb, namespaces, options);
-					includedSections.Add("Namespaces");
+					AppendMeasuredSection("Namespaces", () => AppendNamespaces(sb, namespaces, options));
 
 					if(namespaces.Length == 0)
 					{
@@ -253,8 +266,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 				if(includeUdfs)
 				{
-					AppendUdfs(sb);
-					includedSections.Add("UDFs");
+					AppendMeasuredSection("UDFs", () => AppendUdfs(sb));
 				}
 			}
 
@@ -262,8 +274,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			{
 				if(includeDriverGuide)
 				{
-					AppendDriverGuide(sb, options);
-					includedSections.Add("DriverGuide");
+					AppendMeasuredSection("DriverGuide", () => AppendDriverGuide(sb, options));
 				}
 			}
 
@@ -280,26 +291,34 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
 			if(includeExamples)
 			{
-				AppendExamples(sb, options);
-				includedSections.Add("Examples");
+				AppendMeasuredSection("Examples", () => AppendExamples(sb, options));
 			}
 
-			AppendFooter(sb, options);
-			includedSections.Add("Footer");
+			AppendMeasuredSection("Footer", () => AppendFooter(sb, options));
 
 			if(options.IncludeContextBuildReport)
 			{
-				AppendContextBuildReport(sb, options, profile, includedSections, warnings);
-				includedSections.Add("ContextBuildReport");
+				AppendMeasuredSection("ContextBuildReport", () => AppendContextBuildReport(sb, options, profile, includedSections, warnings));
 			}
 
 			var originalMarkdown = sb.ToString();
 			var wasTruncated = options.MaxChars > 0 && originalMarkdown.Length > options.MaxChars;
 			var finalMarkdown = TrimToMaxChars(originalMarkdown, options.MaxChars);
 
+			var sectionLengthSummary = sectionLengths
+				.OrderByDescending(entry => entry.Value)
+				.Select(entry => $"{entry.Key}: {entry.Value:n0} chars")
+				.ToArray();
+
 			if(wasTruncated)
 			{
 				warnings.Add($"Context was truncated at MaxChars={options.MaxChars:n0}.");
+
+				if(sectionLengthSummary.Length > 0)
+				{
+					var topContributors = string.Join(", ", sectionLengthSummary.Take(3));
+					warnings.Add($"Top section contributors: {topContributors}.");
+				}
 			}
 
 			return new AerospikeAIContextBuildResult
@@ -311,7 +330,8 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				WasTruncated = wasTruncated,
 				Profile = profile,
 				IncludedSections = includedSections,
-				Warnings = warnings
+				Warnings = warnings,
+				SectionLengthSummary = sectionLengthSummary
 			};
 		}
 

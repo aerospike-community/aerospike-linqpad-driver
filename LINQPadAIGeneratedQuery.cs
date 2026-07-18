@@ -488,15 +488,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			if(hasMediumNativeCue && !hasDriverCue)
 				return AIGeneratedQueryMode.NativeAerospikeClient;
 
-			var combined = string.Join(
-				Environment.NewLine,
-				requestText,
-				responseText ?? string.Empty,
-				csharpCode ?? string.Empty);
-
-			if(HasStrongNativeModeCue(combined))
-				return AIGeneratedQueryMode.NativeAerospikeClient;
-
 			return AIGeneratedQueryMode.Driver;
 		}
 
@@ -1123,6 +1114,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 					$"Final Markdown length is {buildResult.FinalLength:n0} characters including the truncation notice. " +
 					"Some schema, rules, examples, or validation guidance may be missing. " +
 					"Consider increasing MaxChars, using a more focused context profile, or disabling examples/full diagnostic sections.";
+
+				var topSections = buildResult.SectionLengthSummary?
+					.Take(3)
+					.ToArray();
+
+				if(topSections is { Length: > 0 })
+				{
+					message += " Top context-size contributors: " + string.Join(", ", topSections) + ".";
+				}
 
 				DumpAIContextWarning(message);
 			}

@@ -898,7 +898,9 @@ namespace Aerospike.Database.LINQPadDriver.Tests
 			// Dictionary to JObject
 			var jobj = (JObject) Helpers.CastToNativeType("field", typeof(JObject), "bin", dict);
 			Assert.IsNotNull(jobj);
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
 			Assert.AreEqual("value1", jobj["key1"].ToString());
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
 			// Dictionary to JsonDocument
 			var jsonDoc = (JsonDocument) Helpers.CastToNativeType("field", typeof(JsonDocument), "bin", dict);
@@ -908,7 +910,9 @@ namespace Aerospike.Database.LINQPadDriver.Tests
 			string jsonStr = "{\"name\":\"test\",\"value\":123}";
 			var jobjFromStr = (JObject) Helpers.CastToNativeType("field", typeof(JObject), "bin", jsonStr);
 			Assert.IsNotNull(jobjFromStr);
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
 			Assert.AreEqual("test", jobjFromStr["name"].ToString());
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
 
 			string jsonArrayStr = "[1,2,3]";
 			var jarr = (JArray) Helpers.CastToNativeType("field", typeof(JArray), "bin", jsonArrayStr);
