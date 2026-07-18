@@ -20,12 +20,12 @@
     <Deterministic>true</Deterministic>
 
     <!-- Current validated package version. Increment for the next release. -->
-    <Version>7.0.53.17</Version>
-    <FileVersion>7.0.53.17</FileVersion>
+    <Version>7.0.53.18</Version>
+    <FileVersion>7.0.53.18</FileVersion>
     <VersionSuffix Condition="'$(Configuration)' == 'Debug'">debug</VersionSuffix>
     <InformationalVersion Condition="'$(Configuration)' == 'Debug'">$(Version)-debug</InformationalVersion>
     <InformationalVersion Condition="'$(Configuration)' != 'Debug'">$(Version)</InformationalVersion>
-
+    
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 
     <!--
@@ -47,6 +47,11 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>2026</Copyright>
 
+    <PackageReleaseNotes>
+      Self-contained LINQPad driver package. Runtime dependencies are bundled
+      under lib/net8.0 for Windows and macOS compatibility.
+    </PackageReleaseNotes>
+    
     <!--
       Build a self-contained LINQPad driver package.
 
@@ -87,30 +92,33 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+
     <Compile Remove="NuGetUpdPkgStruct\**" />
     <Compile Remove="TestProjects\**" />
     <EmbeddedResource Remove="NuGetUpdPkgStruct\**" />
     <EmbeddedResource Remove="TestProjects\**" />
+    <EmbeddedResource Include="AIContext\*.md" />
+    <Resource Include="Connection.png" />
     <None Remove="NuGetUpdPkgStruct\**" />
     <None Remove="TestProjects\**" />
-    <Page Remove="NuGetUpdPkgStruct\**" />
-    <Page Remove="TestProjects\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Remove="AerospikeLINQPad.png" />
     <None Remove="linqpad-samples\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="AValue.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>AValue.cs</LastGenOutput>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Resource Include="Connection.png" />
+    <None Update="ConnectionDialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </None>
+    <Compile Update="AValue.cs">
+      <DesignTime>true</DesignTime>
+      <AutoGen>true</AutoGen>
+      <DependentUpon>AValue.tt</DependentUpon>
+    </Compile>
+    <Page Remove="NuGetUpdPkgStruct\**" />
+    <Page Remove="TestProjects\**" />
+    <Folder Include="Driver\" />
   </ItemGroup>
 
   <ItemGroup>
@@ -186,10 +194,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="AIContext\*.md" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <None Include="BUNDLED-DEPENDENCIES.md"
+         Pack="true"
+         PackagePath="" />
     <!--
       These packages are build-time inputs only from NuGet's perspective.
       Their runtime assemblies are copied into this driver's own package by
@@ -232,29 +239,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-
-  <ItemGroup>
-    <None Update="ConnectionDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Driver\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="AValue.cs">
-      <DesignTime>true</DesignTime>
-      <AutoGen>true</AutoGen>
-      <DependentUpon>AValue.tt</DependentUpon>
-    </Compile>
-  </ItemGroup>
-
+  
   <!--
     NuGet packaging for both macOS and Windows.
 
