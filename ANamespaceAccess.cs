@@ -420,19 +420,53 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		/// <seealso href="https://aerospike.com/docs/server/guide/consistency"/>
 		public bool IsStrongConsistencyMode { get; }
 
+        private bool? isTTLEnabled = null;
+
+		/// <summary>
+		/// Gets a value indicating whether this namespace has TTL enabled but examining the nsup-period configuration parameter.
+        /// If the nsup-period is 0 or not set, then TTL is disabled.
+		/// </summary>
+		public bool IsTTLEnabled {
+			get
+			{
+				if(this.isTTLEnabled.HasValue) return this.isTTLEnabled.Value;
+
+                var dbInfo = this.AerospikeConnection?.GetDBInfo();
+
+                if(dbInfo != null)
+                {
+					var lpNamespace = dbInfo.FirstOrDefault(n => n.Name == this.Namespace);
+					if(lpNamespace != null)
+					{
+                        var ttlValue = lpNamespace?.ConfigParams["nsup-period"]
+                                        .FirstOrDefault();
+                        if(string.IsNullOrEmpty(ttlValue) || ttlValue == "0")
+						{
+							this.isTTLEnabled = false;
+						}
+						else
+						{
+							this.isTTLEnabled = true;
+						}
+					}
+				}
+                return false;
+			}
+		}
+
 		/// <summary>
 		/// Gets the Aerospike Set Name based on the PK Digest. 
 		/// </summary>
 		/// <param name="digest">
-        /// The PK Digest (<see cref="Aerospike.Client.Key.digest"/>)
-        /// </param>
+		/// The PK Digest (<see cref="Aerospike.Client.Key.digest"/>)
+		/// </param>
 		/// <returns>
 		/// Returns the Aerospike Set name based on <paramref name="digest"/> or null to indicate that the PK doesn&apos;t exists.
 		/// </returns>
 		/// <seealso cref="Aerospike.Client.Key"/>
-        /// <seealso cref="Aerospike.Client.Key.digest"/>
+		/// <seealso cref="Aerospike.Client.Key.digest"/>
 		/// <seealso cref="APrimaryKey"/>
-        /// <seealso cref="GetSetKeyValue(byte[])"/>
+		/// <seealso cref="GetSetKeyValue(byte[])"/>
 		public string GetSetName(byte[] digest)
         {
 			var policy = this.DefaultWritePolicy.Clone();
@@ -783,8 +817,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (ttl.HasValue)
             {
-                writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
-            }
+                if(this.IsTTLEnabled)
+                {
+                    writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+                }
+				else
+				{
+					throw new InvalidOperationException($"TTL is not enabled for namespace '{this.Namespace}'.");
+				}
+			}
 
             var bins = Helpers.CreateBinRecord(binValues);
             this.AerospikeConnection
@@ -825,8 +866,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (ttl.HasValue)
             {
-                writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
-            }
+                if(this.IsTTLEnabled)
+                {
+                    writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+                }
+				else
+				{
+					throw new InvalidOperationException($"TTL is not enabled for namespace '{this.Namespace}'.");
+				}
+			}
 
             var bins = Helpers.CreateBinRecord(binValue, bin);
             this.AerospikeConnection
@@ -894,8 +942,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (ttl.HasValue)
             {
-                writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
-            }
+                if(this.IsTTLEnabled)
+                {
+                    writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+                }
+				else
+				{
+					throw new InvalidOperationException($"TTL is not enabled for namespace '{this.Namespace}'.");
+				}
+
+			}
 
             var cbin = Helpers.CreateBinRecord(listValue, bin);
             this.AerospikeConnection
@@ -936,8 +992,16 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (ttl.HasValue)
             {
-                writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
-            }
+                if(this.IsTTLEnabled)
+                {
+                    writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+                }
+				else
+				{
+					throw new InvalidOperationException($"TTL is not enabled for namespace '{this.Namespace}'.");
+				}
+
+			}
 
             var cBin = Helpers.CreateBinRecord((IEnumerable<KeyValuePair<K,V>>) collectionValue, bin);
             this.AerospikeConnection
@@ -978,7 +1042,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (ttl.HasValue)
             {
-                writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+                if(this.IsTTLEnabled)
+                {
+                    writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+                }
+				else
+				{
+					throw new InvalidOperationException($"TTL is not enabled for namespace '{this.Namespace}'.");
+				}
+
             }
 
             var cBin = Helpers.CreateBinRecord(collectionValue, bin);
@@ -1017,7 +1089,15 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (ttl.HasValue)
             {
-                writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+                if(this.IsTTLEnabled)
+                {
+                    writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+                }
+				else
+				{
+					throw new InvalidOperationException($"TTL is not enabled for namespace '{this.Namespace}'.");
+				}
+
             }
             
             this.AerospikeConnection
@@ -1077,7 +1157,14 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 
             if (ttl.HasValue)
             {
-                writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+                if(this.IsTTLEnabled)
+                {
+                    writePolicyPut = new WritePolicy(writePolicyPut) { expiration = SetRecords.DetermineExpiration(ttl.Value) };
+                }
+				else
+				{
+					throw new InvalidOperationException($"TTL is not enabled for namespace '{this.Namespace}'.");
+				}
             }
 
             var key = Helpers.DetermineAerospikeKey(primaryKey, this.Namespace, setName);
