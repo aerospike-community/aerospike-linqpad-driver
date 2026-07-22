@@ -24,7 +24,7 @@ Generate LINQPad C# Statements examples for AValue-backed properties.
 Use query syntax where practical.
 Use test.Customer.AsEnumerable().
 Show:
-1. A filter using FirstName.TryApply<string,bool>(name => name.StartsWith("a")).
+1. A filter using FirstName.TryApply<string,bool>(name => name.StartsWith("M")).
 2. A projection using FirstName.Apply<string,int>(name => name.Length).
 3. A numeric conversion example using CanConvert<decimal>() and Convert<decimal>().
 4. Use generated properties, not string-indexer access.

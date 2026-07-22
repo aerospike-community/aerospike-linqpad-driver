@@ -77,13 +77,16 @@ Renders the current 'AIContext' as Markdown in LINQPad.
 9. '09-CDT-Nested-Query.linq'
 Demonstrates how to generate a query where the data is nested within multiple maps (documents).
 
+10. '10-Translate-LINQ-to-Native.linq'
+Demonstrates how to translate a LINQ query into Aerospike native API calls using server expressions.
+
 Recommended Additional Samples
 ------------------------------
 
 The following sample scripts are recommended additions based on the LINQPad AI
 overview deck and demo workflow.
 
-10. '10-Generate-Customer-Invoice-Artist-Purchase-Query.linq'
+11. '11-Generate-Customer-Invoice-Artist-Purchase-Query.linq'
 
 Purpose:
 Generate a LINQ query-syntax script that returns customers, their invoices, and
@@ -109,7 +112,7 @@ when those sets are available in the current connection metadata.
 - Generate a bounded result set with 'Take(...)'.
 - Use 'Dump()' for output.
 
-11. '11-Explain-AValue-TryApply-Customer-Query.linq'
+12. '12-Explain-AValue-TryApply-Customer-Query.linq'
 
 Purpose:
 Ask AI to explain an existing LINQPad Aerospike query and identify whether the
@@ -151,7 +154,7 @@ Expected AI behavior:
     string-indexer access when available.
     - Call out that server-side filtering may be more efficient for large sets.
 
-12. '12-Translate-TryApply-Query-To-Native-Server-Expression.linq'
+13. '13-Translate-TryApply-Query-To-Native-Server-Expression.linq'
 
 Purpose:
   Ask AI to translate a LINQPad-driver client-side AValue/TryApply query into

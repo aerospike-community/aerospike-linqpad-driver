@@ -17,15 +17,30 @@ namespace Aerospike.Database.LINQPadDriver.Tests
 		/// </summary>
 		private static string StripAIRequestCommentLines(string request)
 		{
+			return InvokePrivateStringMethod("StripAIRequestCommentLines", new object[] { request }, new[] { typeof(string) });
+		}
+
+		private static string EnsureNativeAerospikeClientHeader(string header)
+		{
+			return InvokePrivateStringMethod("EnsureNativeAerospikeClientHeader", new object[] { header }, new[] { typeof(string) });
+		}
+
+		private static object InvokePrivateMethod(string methodName, object[] args, Type[] parameterTypes)
+		{
 			var method = typeof(LINQPadAIGeneratedQuery).GetMethod(
-				"StripAIRequestCommentLines",
+				methodName,
 				BindingFlags.NonPublic | BindingFlags.Static,
 				null,
-				new[] { typeof(string) },
+				parameterTypes,
 				null);
 
-			Assert.IsNotNull(method, "StripAIRequestCommentLines method should exist");
-			return (string)method!.Invoke(null, new object[] { request })!;
+			Assert.IsNotNull(method, methodName + " method should exist");
+			return method!.Invoke(null, args);
+		}
+
+		private static string InvokePrivateStringMethod(string methodName, object[] args, Type[] parameterTypes)
+		{
+			return (string) InvokePrivateMethod(methodName, args, parameterTypes)!;
 		}
 
 		#region StripAIRequestCommentLines Tests
@@ -353,6 +368,88 @@ Limit 10";
 
 			// Assert
 			Assert.AreEqual("Query data", result);
+		}
+
+		#endregion
+
+		#region Native Header Generation
+
+		[TestMethod]
+		public void EnsureNativeAerospikeClientHeader_UsesMinimalStandaloneHeader()
+		{
+			// Arrange
+			const string inputHeader = "<Query Kind=\"Statements\" />";
+
+			// Act
+			var result = EnsureNativeAerospikeClientHeader(inputHeader);
+
+			// Assert
+			Assert.AreEqual(
+				"<Query Kind=\"Statements\">" + Environment.NewLine +
+				"  <NuGetReference>Aerospike.Client</NuGetReference>" + Environment.NewLine +
+				"  <Namespace>Aerospike</Namespace>" + Environment.NewLine +
+				"  <Namespace>Aerospike.Client</Namespace>" + Environment.NewLine +
+				"</Query>",
+				result);
+		}
+
+		[TestMethod]
+		public void EnsureNativeAerospikeClientHeader_DoesNotIncludeConnectionMetadata()
+		{
+			// Arrange
+			const string inputHeader = "<Query Kind=\"Statements\"><Connection><ID>abc</ID></Connection></Query>";
+
+			// Act
+			var result = EnsureNativeAerospikeClientHeader(inputHeader);
+
+			// Assert
+			Assert.IsFalse(result.Contains("<Connection>", StringComparison.Ordinal));
+			Assert.IsFalse(result.Contains("<ID>", StringComparison.Ordinal));
+			Assert.IsFalse(result.Contains("<CustomCxString>", StringComparison.Ordinal));
+			StringAssert.Contains(result, "<NuGetReference>Aerospike.Client</NuGetReference>");
+			StringAssert.Contains(result, "<Namespace>Aerospike</Namespace>");
+			StringAssert.Contains(result, "<Namespace>Aerospike.Client</Namespace>");
+		}
+
+		#endregion
+
+		#region Mode Detection
+
+		[TestMethod]
+		public void DetermineGeneratedQueryMode_StrongNativeAndDriverCue_PrefersNative()
+		{
+			// Arrange
+			const string request = "Can you translate this LINQPad driver query to native Aerospike C# client code using AsEnumerable()";
+			var args = new object[] { request, string.Empty, string.Empty, null };
+
+			// Act
+			var mode = InvokePrivateMethod(
+				"DetermineGeneratedQueryMode",
+				args,
+				new[] { typeof(string), typeof(string), typeof(string), typeof(string).MakeByRefType() });
+			var warning = (string) args[3];
+
+			// Assert
+			Assert.AreEqual("NativeAerospikeClient", mode!.ToString());
+			Assert.IsFalse(string.IsNullOrWhiteSpace(warning));
+			StringAssert.Contains(warning, "Honoring explicit native intent");
+		}
+
+		[TestMethod]
+		public void DetermineGeneratedQueryMode_NativeApiCodePhrase_PrefersNative()
+		{
+			// Arrange
+			const string request = "Can you translate this linq query into native API code, use filter expressions on invoice set: test.Customer.AsEnumerable().GroupJoin(...)";
+			var args = new object[] { request, string.Empty, string.Empty, null };
+
+			// Act
+			var mode = InvokePrivateMethod(
+				"DetermineGeneratedQueryMode",
+				args,
+				new[] { typeof(string), typeof(string), typeof(string), typeof(string).MakeByRefType() });
+
+			// Assert
+			Assert.AreEqual("NativeAerospikeClient", mode!.ToString());
 		}
 
 		#endregion

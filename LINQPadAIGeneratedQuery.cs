@@ -476,16 +476,23 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			var hasMediumNativeCue = HasMediumNativeModeCue(requestText);
 			var hasDriverCue = HasDriverModeCue(requestText);
 
-			if((hasStrongNativeCue || hasMediumNativeCue) && hasDriverCue)
+			if(hasStrongNativeCue)
+			{
+				if(hasDriverCue)
+				{
+					modeWarning = "Mode conflict detected (native and driver cues). Honoring explicit native intent from the request.";
+				}
+
+				return AIGeneratedQueryMode.NativeAerospikeClient;
+			}
+
+			if(hasMediumNativeCue && hasDriverCue)
 			{
 				modeWarning = "Mode conflict detected (native and driver cues). Defaulting to LINQPad Driver mode. Add mode:native or mode:driver to force mode selection.";
 				return AIGeneratedQueryMode.Driver;
 			}
 
-			if(hasStrongNativeCue)
-				return AIGeneratedQueryMode.NativeAerospikeClient;
-
-			if(hasMediumNativeCue && !hasDriverCue)
+			if(hasMediumNativeCue)
 				return AIGeneratedQueryMode.NativeAerospikeClient;
 
 			return AIGeneratedQueryMode.Driver;
@@ -523,6 +530,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 				|| text.Contains("native Aerospike API", StringComparison.OrdinalIgnoreCase)
 				|| text.Contains("native Aerospike C# client", StringComparison.OrdinalIgnoreCase)
 				|| text.Contains("native C# client", StringComparison.OrdinalIgnoreCase)
+				|| text.Contains("native API code", StringComparison.OrdinalIgnoreCase)
 				|| text.Contains("native API driver", StringComparison.OrdinalIgnoreCase)
 				|| text.Contains("native driver", StringComparison.OrdinalIgnoreCase)
 				|| text.Contains("no LINQPad driver", StringComparison.OrdinalIgnoreCase)
@@ -598,11 +606,6 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 			{
 				generatedHeader = EnsureNativeAerospikeClientHeader("<Query Kind=\"Statements\" />");
 				normalizedCode = NormalizeNativeAerospikeClientCode(normalizedCode);
-				warningComment =
-					"// NOTE: Native Aerospike client mode. This query intentionally does not copy LINQPad driver connection metadata." + Environment.NewLine +
-					"// Confirm host, port, TLS, authentication, and policy settings before running." + Environment.NewLine +
-					"// The Aerospike.Client NuGet package is referenced in the LINQPad query header." + Environment.NewLine +
-					Environment.NewLine;
 			}
 			else if(TryGetCurrentQueryHeader(out var currentHeader))
 			{
@@ -1019,17 +1022,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 		{
 			// Native Aerospike client generated queries are standalone LINQPad Statements queries.
 			// Do not depend on a copied LINQPad-driver connection header.
-			// Build the header explicitly so the Aerospike.Client NuGet reference cannot be lost
-			// when the source header is the self-closing form: <Query Kind="Statements" />.
 			var nativeHeader =
 				"<Query Kind=\"Statements\">" + Environment.NewLine +
 				"  <NuGetReference>Aerospike.Client</NuGetReference>" + Environment.NewLine +
-				"  <Namespace>System</Namespace>" + Environment.NewLine +
-				"  <Namespace>System.Collections</Namespace>" + Environment.NewLine +
-				"  <Namespace>System.Collections.Generic</Namespace>" + Environment.NewLine +
-				"  <Namespace>System.Linq</Namespace>" + Environment.NewLine +
-				"  <Namespace>System.Security.Authentication</Namespace>" + Environment.NewLine +
-				"  <Namespace>System.Security.Cryptography.X509Certificates</Namespace>" + Environment.NewLine +
+				"  <Namespace>Aerospike</Namespace>" + Environment.NewLine +
 				"  <Namespace>Aerospike.Client</Namespace>" + Environment.NewLine +
 				"</Query>";
 
