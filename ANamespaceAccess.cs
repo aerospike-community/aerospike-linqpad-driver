@@ -436,10 +436,10 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
                 if(dbInfo != null)
                 {
 					var lpNamespace = dbInfo.FirstOrDefault(n => n.Name == this.Namespace);
-					if(lpNamespace != null)
+					if(lpNamespace != null && lpNamespace.ConfigParams != null)
 					{
-                        var ttlValue = lpNamespace?.ConfigParams["nsup-period"]
-                                        .FirstOrDefault();
+                        var ttlValue = lpNamespace.ConfigParams["nsup-period"]
+                                        ?.FirstOrDefault();
                         if(string.IsNullOrEmpty(ttlValue) || ttlValue == "0")
 						{
 							this.isTTLEnabled = false;
@@ -450,7 +450,7 @@ namespace Aerospike.Database.LINQPadDriver.Extensions
 						}
 					}
 				}
-                return false;
+                return this.isTTLEnabled ?? false;
 			}
 		}
 
